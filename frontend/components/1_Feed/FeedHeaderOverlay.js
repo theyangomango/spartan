@@ -76,6 +76,7 @@ export default function FeedHeaderOverlay({
             timerRef={timerRef}
             heightAdjust={-2}
             topAdjust={-HEADER_TOP_TRIM}
+            centerVariant="feedTitle"
           />
         </Reanimated.View>
       </Reanimated.View>

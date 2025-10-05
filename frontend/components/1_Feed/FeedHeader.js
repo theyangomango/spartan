@@ -38,7 +38,7 @@ const METRICS = (() => {
     const paddingH = dynamicStyles.paddingHorizontal;
     const paddingTop = s(0);
     const paddingBottom = s(4);
-    const centerH = s(45);
+    const centerH = s(42);
     // Remove the extra top margin so the header sits flush with other screens
     const marginTop = 0;
     const icon = dynamicStyles.iconSize;
@@ -433,6 +433,7 @@ const FeedHeader = ({
     timerRef: _timerRef,
     heightAdjust = 0, // optional fine-tune for overall header height (affects padding only)
     topAdjust = 0,
+    centerVariant = "logo",
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
@@ -476,15 +477,24 @@ const FeedHeader = ({
             {/* Center: fixed-height slot */}
             <View style={styles.centerArea}>
                 <View style={styles.centerSlot}>
-                    <RNBounceable onPress={withStrongPress(scrollToTop)} style={styles.logoWrap}>
-                        <View style={styles.logo_image_ctnr}>
-                            <FastImage
-                                source={require("../../../frontend/assets/logo_feed_black.png")}
-                                style={styles.logo_image}
-                                resizeMode={FastImage.resizeMode.contain}
-                            />
-                        </View>
-                        <Text style={styles.logo_text}>SPARTAN</Text>
+                    <RNBounceable
+                        onPress={withStrongPress(scrollToTop)}
+                        style={centerVariant === "logo" ? styles.logoWrap : styles.feedTitleWrap}
+                    >
+                        {centerVariant === "logo" ? (
+                            <>
+                                <View style={styles.logo_image_ctnr}>
+                                    <FastImage
+                                        source={require("../../../frontend/assets/logo_feed_black.png")}
+                                        style={styles.logo_image}
+                                        resizeMode={FastImage.resizeMode.contain}
+                                    />
+                                </View>
+                                <Text style={styles.logo_text}>SPARTAN</Text>
+                            </>
+                        ) : (
+                            <Text style={styles.feed_title_text}>Feed</Text>
+                        )}
                     </RNBounceable>
                 </View>
             </View>
@@ -601,6 +611,7 @@ const styles = StyleSheet.create({
 
     // Nudge the logo down slightly to align with side icons
     logoWrap: { height: "100%", flexDirection: "row", alignItems: "center", paddingTop: METRICS.logoPadTop },
+    feedTitleWrap: { height: "100%", alignItems: "center", justifyContent: "center" },
     logo_image_ctnr: { justifyContent: "center", alignItems: "center" },
     logo_image: { width: scaleSize(s(26.5)), height: scaleSize(s(26.5)) },
     logo_text: {
@@ -610,6 +621,13 @@ const styles = StyleSheet.create({
         color: theme.textPrimary,
         includeFontPadding: false,
         ...Platform.select({ android: { lineHeight: scaleSize(s(19)) } }),
+    },
+    feed_title_text: {
+        fontFamily: "Outfit_600SemiBold",
+        letterSpacing: 0.25,
+        fontSize: scaleSize(s(18)),
+        color: theme.textPrimary,
+        includeFontPadding: false,
     },
 
     right_icons: {
