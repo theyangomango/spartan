@@ -1,8 +1,6 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Pressable, Dimensions, FlatList } from "react-native";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Dimensions } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { FontAwesome6, AntDesign } from '@expo/vector-icons';
-import { Location, Weight } from 'iconsax-react-native';
 import { Feather } from '@expo/vector-icons';
 import makeID from "../../../../backend/helper/makeID";
 // Storage handled via native resumable helper to avoid RN Blob issues
@@ -10,38 +8,39 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import uploadResumableNative from "../../../../backend/storage/uploadResumableNative";
 import createPost from "../../../../backend/posts/createPost";
 import arrayAppend from "../../../../backend/helper/firebase/arrayAppend";
-import formatDate from '../../../helper/formatDate';
-import { toMillis } from "../../../utils/friends";
 import { compressUnder250KB } from "./compressUnder250KB";
 import PostHonestyModal from "./PostHonestyModal";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
-import WorkoutHistoryCard from "../ProfileBottom/History/WorkoutHistoryCard";
 import theme from '../../../theme/mfpDark';
 import { withStrongPress } from "../../../utils/haptics";
-import { linkCompletedWorkoutToPost, syncLocalCompletedWorkoutsPost } from "../../../utils/workoutLinking";
 
-import scaleSize1 from "../../../helper/scaleSize";
 import DismissableTextInput from "../../common/DismissableTextInput";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get('window');
 const scale = screenWidth / 375; // Assuming a base screen width of 375 (like iPhone X)
 
 function scaleSize(size) {
     return Math.round(size * scale);
 }
 
+const composeHorizontalPadding = scaleSize(18);
+const mediaSpacing = scaleSize(8);
+const mediaImageWidth = Math.round((screenWidth - composeHorizontalPadding * 2 - mediaSpacing) / 2);
+const mediaImageHeight = Math.round(mediaImageWidth * 1.1);
+const singleImageWidth = screenWidth - composeHorizontalPadding * 2;
+const singleImageHeight = Math.round(singleImageWidth * 0.75);
+const avatarSize = scaleSize(42);
+
 export default function PostOptionsScreen({ navigation, route }) {
-    const { images, workout } = route.params;
+    const { images = [] } = route.params ?? {};
 
     const [caption, setCaption] = useState('');
-    const [isSharing, setIsSharing] = useState(false); // New state for tracking share progress
+    const [isSharing, setIsSharing] = useState(false);
     const [honestyVisible, setHonestyVisible] = useState(false);
-    const [selectedWorkout, setSelectedWorkout] = useState(workout || null);
-    const workoutSheetRef = useRef(null);
     const sharePromiseRef = useRef(null);
     const isMountedRef = useRef(true);
     const insets = useSafeAreaInsets();
     const headerTopPadding = useMemo(() => scaleSize(6) + Math.max(0, insets.top), [insets.top]);
+    const userImage = global?.userData?.image;
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -50,26 +49,6 @@ export default function PostOptionsScreen({ navigation, route }) {
             sharePromiseRef.current = null;
         };
     }, []);
-    const workoutList = useMemo(() => {
-        if (!Array.isArray(global?.userData?.completedWorkouts)) return [];
-        return [...global.userData.completedWorkouts].sort((a, b) => {
-            const latestA = toMillis(a?.created ?? a?.createdAt);
-            const latestB = toMillis(b?.created ?? b?.createdAt);
-            return latestB - latestA;
-        });
-    }, [(global?.userData?.completedWorkouts || []).length]);
-    const snapPoints = useMemo(() => ["94%"], []);
-    const renderBackdrop = useCallback(
-        (props) => (
-            <BottomSheetBackdrop
-                {...props}
-                disappearsOnIndex={-1}
-                appearsOnIndex={0}
-                opacity={0.6}
-            />
-        ),
-        []
-    );
 
     function goBack() {
         navigation.goBack();
@@ -137,10 +116,6 @@ export default function PostOptionsScreen({ navigation, route }) {
                 const uid = global?.userData?.uid;
                 if (!uid) throw new Error('Missing user UID for createPost');
 
-                const workoutForPost = selectedWorkout
-                    ? { ...selectedWorkout, postPid: pid }
-                    : null;
-
                 await createPost(
                     uid,
                     global?.userData?.handle,
@@ -148,25 +123,13 @@ export default function PostOptionsScreen({ navigation, route }) {
                     caption,
                     media,
                     pid,
-                    workoutForPost
+                    null
                 );
 
                 await Promise.allSettled([
                     arrayAppend('users', uid, 'posts', pid),
                     arrayAppend('global', 'posts', 'PIDs', pid),
                 ]);
-
-                if (selectedWorkout) {
-                    try {
-                        await linkCompletedWorkoutToPost(uid, selectedWorkout, pid);
-                        syncLocalCompletedWorkoutsPost(selectedWorkout, pid);
-                        if (isMountedRef.current) {
-                            setSelectedWorkout((prev) => (prev ? { ...prev, postPid: pid } : prev));
-                        }
-                    } catch (error) {
-                        console.error('linkCompletedWorkoutToPost failed', error);
-                    }
-                }
             } catch (error) {
                 console.error('sharePost failed', error);
                 if (appendedOptimistically && global?.userData) {
@@ -192,97 +155,67 @@ export default function PostOptionsScreen({ navigation, route }) {
         }, 0);
     }
 
+    const shareDisabled = caption.length === 0 || isSharing;
+
     return (
         <View style={styles.main_ctnr}>
             <View style={[styles.header, { paddingTop: headerTopPadding }]}>
-                <TouchableOpacity onPress={withStrongPress(goBack)} style={styles.back_icon_ctnr}>
-                    <FontAwesome6 name='chevron-left' size={scaleSize(17)} color={theme.textSecondary} />
+                <TouchableOpacity onPress={withStrongPress(goBack)} style={styles.cancel_btn}>
+                    <Text style={styles.cancel_text}>Cancel</Text>
                 </TouchableOpacity>
-                <View style={styles.title_text_ctnr}>
-                    <Text style={styles.header_text}>New Post</Text>
-                </View>
-                <View style={styles.share_button_ctnr}>
-                    <TouchableOpacity
-                        onPress={withStrongPress(beginShare)}
-                        style={[styles.share_btn, (caption.length === 0 || isSharing) && styles.share_btn_disabled]}
-                        disabled={caption.length === 0 || isSharing}
-                    >
-                        <Text style={styles.share_btn_text}>{isSharing ? 'Sharing...' : 'Share'}</Text>
-                    </TouchableOpacity>
-                </View>
+                <Text style={styles.header_text}>New Post</Text>
+                <TouchableOpacity
+                    onPress={withStrongPress(beginShare)}
+                    style={[styles.share_btn, shareDisabled && styles.share_btn_disabled]}
+                    disabled={shareDisabled}
+                >
+                    <Text style={styles.share_btn_text}>{isSharing ? 'Posting...' : 'Post'}</Text>
+                </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.body_scrollview}>
-                <View style={styles.post_preview_ctnr}>
-                    <Image
-                        source={{ uri: images[0] }}
-                        style={styles.post_preview_image}
-                    />
-                    <View style={styles.caption_input_ctnr}>
+            <ScrollView
+                style={styles.body_scrollview}
+                contentContainerStyle={styles.body_content}
+                keyboardShouldPersistTaps="handled"
+            >
+                <View style={styles.compose_row}>
+                    <View style={styles.avatar_ctnr}>
+                        {userImage ? (
+                            <Image source={{ uri: userImage }} style={styles.avatar} />
+                        ) : (
+                            <View style={styles.avatar_placeholder}>
+                                <Feather name="user" size={scaleSize(20)} color={theme.textSecondary} />
+                            </View>
+                        )}
+                    </View>
+                    <View style={styles.caption_ctnr}>
                         <DismissableTextInput
-                            placeholder="Write a caption..."
+                            placeholder="What's happening?"
                             placeholderTextColor={theme.textSecondary}
                             value={caption}
                             onChangeText={setCaption}
                             style={styles.caption_text}
                             multiline
                             returnKeyType="default"
+                            maxLength={280}
                         />
                     </View>
                 </View>
 
-                <Pressable onPress={withStrongPress(() => workoutSheetRef.current?.expand?.())}>
-                    <View style={[styles.btn_ctnr, styles.top_btn_ctnr]}>
-                        <View style={styles.btn_left}>
-                            <View style={[styles.btn_icon_ctnr, styles.workout_icon_ctnr]}>
-                                <Weight size={scaleSize(25)} color={theme.primary} />
-                            </View>
-                            <Text style={[styles.btn_text, selectedWorkout ? styles.dark_text : {}]}>
-                                {
-                                    selectedWorkout
-                                        ? `${formatDate(new Date(toMillis(selectedWorkout?.created ?? selectedWorkout?.createdAt))) } Workout`
-                                        : "Add Workout"
-                                }
-                            </Text>
-                        </View>
-                        <View style={styles.right_icon_ctnr}>
-                            <FontAwesome6 name='chevron-right' size={scaleSize(15)} color={theme.textSecondary} />
-                        </View>
+                {images.length > 0 && (
+                    <View style={styles.media_grid}>
+                        {images.map((uri, index) => (
+                            <Image
+                                key={`${uri}-${index}`}
+                                source={{ uri }}
+                                style={[
+                                    images.length === 1 ? styles.media_image_single : styles.media_image,
+                                    images.length > 1 && index % 2 === 0 ? styles.media_image_left : null
+                                ]}
+                            />
+                        ))}
                     </View>
-                </Pressable>
-
-                {/* Tagging and location are not part of this version */}
-                {false && (
-                    <Pressable>
-                        <View style={styles.btn_ctnr}>
-                            <View style={styles.btn_left}>
-                                <View style={[styles.btn_icon_ctnr, styles.user_icon_ctnr]}>
-                                    <Feather name="user" size={scaleSize(22)} color={theme.primary} />
-                                </View>
-                                <Text style={styles.btn_text}>Tag People</Text>
-                            </View>
-                            <View style={styles.right_icon_ctnr}>
-                                <FontAwesome6 name='chevron-right' size={scaleSize(15)} color={theme.textSecondary} />
-                            </View>
-                        </View>
-                    </Pressable>
                 )}
-                {false && (
-                    <Pressable>
-                        <View style={styles.btn_ctnr}>
-                            <View style={styles.btn_left}>
-                                <View style={[styles.btn_icon_ctnr, styles.location_icon_ctnr]}>
-                                    <Location size={scaleSize(22)} color={theme.primary} />
-                                </View>
-                                <Text style={styles.btn_text}>Add Location</Text>
-                            </View>
-                            <View style={styles.right_icon_ctnr}>
-                                <FontAwesome6 name='chevron-right' size={scaleSize(15)} color={theme.textSecondary} />
-                            </View>
-                        </View>
-                    </Pressable>
-                )}
-
             </ScrollView>
 
             <PostHonestyModal
@@ -290,40 +223,6 @@ export default function PostOptionsScreen({ navigation, route }) {
                 onCancel={() => setHonestyVisible(false)}
                 onConfirm={() => { setHonestyVisible(false); sharePost(); }}
             />
-
-            {/* Bottom sheet: Select a past workout to attach */}
-            <View style={styles.bottomSheetOuter} pointerEvents="box-none">
-                <BottomSheet
-                    ref={workoutSheetRef}
-                    index={-1}
-                    snapPoints={snapPoints}
-                    enablePanDownToClose
-                    backdropComponent={renderBackdrop}
-                    handleIndicatorStyle={styles.handleIndicator}
-                    backgroundStyle={styles.bottomSheetBackground}
-                >
-                    <View style={styles.sheetHeader}>
-                        <Text style={styles.sheetTitle}>Your Workouts</Text>
-                        {selectedWorkout && (
-                            <TouchableOpacity onPress={withStrongPress(() => setSelectedWorkout(null))}>
-                                <Text style={styles.clearAttach}>Remove</Text>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-                    <FlatList
-                        data={workoutList}
-                        keyExtractor={(item, index) => index.toString()}
-                        renderItem={({ item }) => (
-                            <Pressable onPress={withStrongPress(() => { setSelectedWorkout(item); workoutSheetRef.current?.close?.(); })}>
-                                <WorkoutHistoryCard workout={item} />
-                            </Pressable>
-                        )}
-                        contentContainerStyle={{ paddingBottom: scaleSize(20) }}
-                        ListEmptyComponent={<Text style={styles.emptyText}>No workouts yet</Text>}
-                        initialNumToRender={5}
-                    />
-                </BottomSheet>
-            </View>
         </View>
     );
 }
@@ -331,158 +230,108 @@ export default function PostOptionsScreen({ navigation, route }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
-        backgroundColor: theme.bg
+        backgroundColor: theme.surface
     },
     header: {
         alignItems: 'center',
-        paddingHorizontal: scaleSize(12),
+        paddingHorizontal: scaleSize(18),
         flexDirection: 'row',
+        justifyContent: 'space-between',
         backgroundColor: theme.bg,
-        paddingBottom: scaleSize(10)
+        paddingBottom: scaleSize(12),
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: theme.hairline
     },
-    back_icon_ctnr: {
-        paddingHorizontal: scaleSize(23),
-        width: '33.33%'
+    cancel_btn: {
+        paddingVertical: scaleSize(6),
+        paddingHorizontal: scaleSize(8)
     },
-    title_text_ctnr: {
-        alignItems: 'center',
-        width: '33.33%'
+    cancel_text: {
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(14),
+        color: theme.textSecondary
     },
     header_text: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(16),
         textAlign: 'center',
-        color: theme.textPrimary,
-    },
-    share_button_ctnr: {
-        width: '33.33%',
-        alignItems: 'flex-end',
+        color: theme.textPrimary
     },
     share_btn: {
         minWidth: scaleSize(75),
-        paddingHorizontal: scaleSize(12),
+        paddingHorizontal: scaleSize(14),
         height: scaleSize(32),
-        borderRadius: scaleSize(12),
+        borderRadius: scaleSize(16),
         backgroundColor: theme.primary,
         justifyContent: 'center',
-        alignItems: 'center',
+        alignItems: 'center'
     },
     share_btn_text: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(14.5),
-        color: '#fff',
+        color: '#fff'
     },
     share_btn_disabled: {
-        opacity: 0.5,
+        opacity: 0.4
     },
     body_scrollview: {
-        paddingTop: scaleSize(20),
+        flex: 1,
         backgroundColor: theme.surface
     },
-    post_preview_ctnr: {
-        height: scaleSize(100),
-        flexDirection: 'row',
-        paddingHorizontal: scaleSize(15)
+    body_content: {
+        paddingHorizontal: composeHorizontalPadding,
+        paddingTop: scaleSize(18),
+        paddingBottom: scaleSize(40)
     },
-    post_preview_image: {
-        width: scaleSize(80),
-        aspectRatio: 1,
-        borderRadius: scaleSize(15)
-    },
-    caption_input_ctnr: {
-        flex: 1,
-        paddingTop: scaleSize(10),
-        marginLeft: scaleSize(15),
-    },
-    caption_text: {
-        fontSize: scaleSize(15),
-        fontFamily: 'Outfit_600SemiBold',
-        color: theme.textPrimary,
-    },
-    btn_ctnr: {
-        paddingVertical: scaleSize(4),
-        borderBottomWidth: 0.25,
-        borderColor: theme.hairline,
-        flexDirection: 'row',
-        paddingHorizontal: scaleSize(17),
-        justifyContent: 'space-between'
-    },
-    top_btn_ctnr: {
-        borderTopWidth: 0.25,
-        borderColor: theme.hairline,
-    },
-    btn_left: {
+    compose_row: {
         flexDirection: 'row'
     },
-    btn_text: {
-        fontFamily: 'Outfit_500Medium',
-        color: theme.textSecondary, // Default lighter color
-        fontSize: scaleSize(15),
-        paddingVertical: scaleSize(7),
+    avatar_ctnr: {
+        width: avatarSize
     },
-    dark_text: {
-        color: theme.textPrimary, // Darker color when workout is present
-        fontFamily: 'Outfit_600SemiBold',
+    avatar: {
+        width: avatarSize,
+        height: avatarSize,
+        borderRadius: avatarSize / 2,
+        backgroundColor: theme.surface
     },
-    btn_icon_ctnr: {
-        justifyContent: 'center',
-        alignContent: 'center',
-    },
-    workout_icon_ctnr: {
-        marginRight: scaleSize(9)
-    },
-    user_icon_ctnr: {
-        marginRight: scaleSize(11)
-    },
-    location_icon_ctnr: {
-        marginRight: scaleSize(12)
-    },
-    right_icon_ctnr: {
-        paddingHorizontal: scaleSize(8),
+    avatar_placeholder: {
+        width: avatarSize,
+        height: avatarSize,
+        borderRadius: avatarSize / 2,
+        backgroundColor: theme.hairline,
+        alignItems: 'center',
         justifyContent: 'center'
     },
-    // Bottom sheet styles
-    bottomSheetOuter: {
-        position: 'absolute',
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 100,
+    caption_ctnr: {
+        flex: 1,
+        marginLeft: scaleSize(12)
     },
-    handleIndicator: {
-        backgroundColor: theme.hairline,
-        width: scaleSize(44),
-        height: scaleSize(5),
-        borderRadius: scaleSize(3),
-    },
-    bottomSheetBackground: {
-        borderTopLeftRadius: scaleSize(25),
-        borderTopRightRadius: scaleSize(25),
-        backgroundColor: theme.surface,
-    },
-    sheetHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: scaleSize(18),
-        paddingTop: scaleSize(10),
-        paddingBottom: scaleSize(6),
-    },
-    sheetTitle: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(16),
-        color: theme.textPrimary,
-    },
-    clearAttach: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(13),
-        color: theme.primary,
-    },
-    emptyText: {
-        textAlign: 'center',
-        color: theme.textSecondary,
+    caption_text: {
+        fontSize: scaleSize(18),
         fontFamily: 'Outfit_500Medium',
-        paddingVertical: scaleSize(20),
+        color: theme.textPrimary,
+        minHeight: avatarSize
+    },
+    media_grid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        marginTop: scaleSize(18)
+    },
+    media_image: {
+        width: mediaImageWidth,
+        height: mediaImageHeight,
+        borderRadius: scaleSize(12),
+        marginBottom: mediaSpacing,
+        backgroundColor: theme.bg
+    },
+    media_image_single: {
+        width: singleImageWidth,
+        height: singleImageHeight,
+        borderRadius: scaleSize(16),
+        backgroundColor: theme.bg
+    },
+    media_image_left: {
+        marginRight: mediaSpacing
     }
 });

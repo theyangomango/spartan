@@ -1,13 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { SafeAreaView, StyleSheet, View, StatusBar } from "react-native";
+import { SafeAreaView, StyleSheet, View, StatusBar, ScrollView } from "react-native";
 import Footer from "../components/Footer";
-import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/ProfileBottomBottomSheet";
+import ProfileContentCards from "../components/5_Profile/ProfileBottom/ProfileContentCards";
 import ViewProfileRowButtons from "../components/ViewProfile/ViewProfileRowButtons";
 import { filterViewableWorkouts, canViewerAccessProfile } from "../utils/workoutPrivacy";
 import ViewProfileInfo from "../components/ViewProfile/ViewProfileInfo";
 import ViewProfileHeader from "../components/ViewProfile/ViewProfileHeader";
 import readDoc from "../../backend/helper/firebase/readDoc";
-import readDocsByIds from "../../backend/helper/firebase/readDocsByIds";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import createChat from "../../backend/messages/createChat";
@@ -28,15 +27,12 @@ export default function ViewProfile({ navigation, route }) {
     const user = route.params.user;
     const [profileUserData, setProfileUserData] = useState(null);
     const [blockedFromViewing, setBlockedFromViewing] = useState(false);
-    const [posts, setPosts] = useState([]);
-    const [selectedPanel, setSelectedPanel] = useState('posts');
     const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
     const [isFollowListVisible, setIsFollowListVisible] = useState(false);
     const [followListMode, setFollowListMode] = useState('followers');
     const [viewerWorkout, setViewerWorkout] = useState(null);
     const [viewerToggle, setViewerToggle] = useState(false);
     const [isOptionsVisible, setIsOptionsVisible] = useState(false);
-    const [profileTopHeight, setProfileTopHeight] = useState(null);
     const [isBlocked, setIsBlocked] = useState(false);
 
     useFocusEffect(
@@ -96,42 +92,6 @@ export default function ViewProfile({ navigation, route }) {
             setIsBlocked(false);
         }
     }, [profileUserData, user, (global?.userData?.blocked || []).length]);
-
-
-    async function getPosts() {
-        try {
-            const ids = Array.isArray(profileUserData?.posts) ? profileUserData.posts : [];
-            const n = ids.length;
-            setPosts([]); // allow skeleton to render immediately
-            if (!n) return;
-
-            const buffer = new Array(n);
-
-            // First screenful via a single batched read
-            const firstChunk = ids.slice(0, 10);
-            const tail = ids.slice(10);
-            const firstDocs = await readDocsByIds('posts', firstChunk);
-            firstDocs.forEach((doc, i) => { if (doc && !doc.pid) doc.pid = firstChunk[i]; buffer[i] = doc; });
-            setPosts(buffer.filter(Boolean));
-
-            // Remaining chunks concurrently, update as they land
-            const promises = [];
-            for (let i = 0; i < tail.length; i += 10) {
-                const group = tail.slice(i, i + 10);
-                const startIndex = 10 + i;
-                promises.push(
-                    readDocsByIds('posts', group).then((docs) => {
-                        docs.forEach((doc, j) => { const id = group[j]; if (doc && !doc.pid) doc.pid = id; buffer[startIndex + j] = doc; });
-                        setPosts(buffer.filter(Boolean));
-                    })
-                );
-            }
-            await Promise.all(promises);
-        } catch (e) {
-            // Swallow for now; keep whatever loaded
-        }
-    }
-
     async function toMessages() {
         // Normalize to avoid undefined fields in Firestore arrayUnion
         const normalizeRef = (u) => ({
@@ -177,19 +137,11 @@ export default function ViewProfile({ navigation, route }) {
     const headerHandle = profileUserData?.handle || user?.handle || user?.username || '';
     function handleOpenViewStats() { setIsViewStatsBottomSheetVisible(true); }
 
-    const handleProfileTopLayout = useCallback((event) => {
-        const nextHeight = event?.nativeEvent?.layout?.height || 0;
-        setProfileTopHeight((prev) => {
-            if (prev == null) return nextHeight;
-            return Math.abs(prev - nextHeight) > 1 ? nextHeight : prev;
-        });
-    }, []);
-
     if (blockedFromViewing) {
         return (
             <SafeAreaView style={styles.main_ctnr}>
                 <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
-                <View style={styles.body_ctnr} onLayout={handleProfileTopLayout}>
+                <View style={styles.body_ctnr}>
                     <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={() => {}} onOpenOptions={() => {}} />
                 </View>
                 <Footer currentScreenName={'Profile'} navigation={navigation} />
@@ -207,41 +159,51 @@ export default function ViewProfile({ navigation, route }) {
             : filterViewableWorkouts(profileUserData?.completedWorkouts || [], viewerUid, viewerData, profileUserData)
     ), [profileUserData?.completedWorkouts, viewerUid, viewerData, profileUserData, canViewContent]);
 
-    useEffect(() => {
-        if (!profileUserData) return;
-        if (!canViewContent) {
-            setPosts([]);
-            return;
-        }
-        getPosts();
-    }, [profileUserData, canViewContent]);
-
     return (
         <SafeAreaView style={styles.main_ctnr}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
-            <View style={styles.body_ctnr} onLayout={handleProfileTopLayout}>
-                <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={toMessages} onOpenOptions={() => setIsOptionsVisible(true)} />
-                <ViewProfileInfo
-                    userData={profileUserData}
-                    onPressFollowers={() => { setFollowListMode('followers'); setIsFollowListVisible(true); }}
-                    onPressFollowing={() => { setFollowListMode('following'); setIsFollowListVisible(true); }}
-                />
-                <ViewProfileRowButtons handleOpenViewStats={handleOpenViewStats} user={profileUserData || user} />
-                <WorkoutStats userData={profileUserData} />
-            </View>
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <View style={styles.body_ctnr}>
+                    <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={toMessages} onOpenOptions={() => setIsOptionsVisible(true)} />
+                    <ViewProfileInfo
+                        userData={profileUserData}
+                        onPressFollowers={() => { setFollowListMode('followers'); setIsFollowListVisible(true); }}
+                        onPressFollowing={() => { setFollowListMode('following'); setIsFollowListVisible(true); }}
+                    />
+                    <ViewProfileRowButtons handleOpenViewStats={handleOpenViewStats} user={profileUserData || user} />
+                    <WorkoutStats userData={profileUserData} />
+                </View>
 
-            <ProfileBottomBottomSheet selectedPanel={selectedPanel}
-                setSelectedPanel={setSelectedPanel}
-                posts={canViewContent ? posts : []}
-                templates={canViewContent ? profileUserData?.templates : []}
-                completedWorkouts={visibleCompletedWorkouts}
-                navigation={navigation}
-                onOpenWorkout={openViewer}
-                topContentHeight={profileTopHeight}
-                contentLocked={!canViewContent}
-                lockedSubtitle={profileUserData?.settings?.profilePrivate ? 'Only approved followers can see these posts, workouts, and templates.' : ''}
-                ownerData={profileUserData}
-            />
+                <View style={styles.cards_ctnr}>
+                    <ProfileContentCards
+                        onPressWorkoutsAndPosts={() => {
+                            if (!canViewContent) return;
+                            const targetUid = String(profileUserData?.uid || user?.uid || '');
+                            if (!targetUid) return;
+                            navigation.navigate('ProfileWorkoutsAndPosts', {
+                                targetUid,
+                                isViewingSelf: false,
+                                initialUser: profileUserData || user || null,
+                            });
+                        }}
+                        onPressTemplates={() => {
+                            if (!canViewContent) return;
+                            const targetUid = String(profileUserData?.uid || user?.uid || '');
+                            if (!targetUid) return;
+                            navigation.navigate('ProfileTemplates', {
+                                targetUid,
+                                isViewingSelf: false,
+                                initialUser: profileUserData || user || null,
+                            });
+                        }}
+                        postsCount={canViewContent && Array.isArray(profileUserData?.posts) ? profileUserData.posts.length : 0}
+                        workoutsCount={canViewContent ? visibleCompletedWorkouts.length : 0}
+                        templatesCount={canViewContent && Array.isArray(profileUserData?.templates) ? profileUserData.templates.length : 0}
+                        contentLocked={!canViewContent}
+                        lockedSubtitle={profileUserData?.settings?.profilePrivate ? 'Only approved followers can see these posts, workouts, and templates.' : ''}
+                    />
+                </View>
+            </ScrollView>
             <Footer currentScreenName={'Profile'} navigation={navigation} />
 
             <UserStatsBottomSheet
@@ -321,8 +283,15 @@ const styles = StyleSheet.create({
         // Match Feed background for cohesion
         backgroundColor: theme.bg,
     },
+    scrollContent: {
+        paddingBottom: scaleSize(120),
+    },
     body_ctnr: {
         paddingHorizontal: scaleSize(10),
         paddingBottom: scaleSize(14),
+    },
+    cards_ctnr: {
+        paddingHorizontal: scaleSize(14),
+        paddingTop: scaleSize(12),
     }
 });

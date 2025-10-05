@@ -153,10 +153,12 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
+        transform: [{ translateY: scaleSize(-5) }],
     },
     subtitleRow: {
         paddingHorizontal: scaleSize(22),
         alignItems: 'center',
+        transform: [{ translateY: scaleSize(-5) }],
     },
     headerTitle: {
         color: theme.textPrimary,

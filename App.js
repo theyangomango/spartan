@@ -54,6 +54,8 @@ import TermsOfService from './frontend/screens/TermsOfService';
 import Credits from './frontend/screens/Credits';
 import PrivateProfileInfo from './frontend/screens/PrivateProfileInfo';
 import DeleteAccount from './frontend/screens/DeleteAccount';
+import ProfileWorkoutsAndPostsScreen from './frontend/screens/ProfileWorkoutsAndPostsScreen';
+import ProfileTemplatesScreen from './frontend/screens/ProfileTemplatesScreen';
 // Dark theme palette
 import theme from './frontend/theme/mfpDark';
 import ActiveWorkoutBottomSheet from './frontend/components/3_Workout/NewWorkout/ActiveWorkoutBottomSheet';
@@ -1052,6 +1054,8 @@ export default function App() {
                         />
 
                         <RootStack.Screen name="Profile" component={Profile} />
+                        <RootStack.Screen name="ProfileWorkoutsAndPosts" component={ProfileWorkoutsAndPostsScreen} />
+                        <RootStack.Screen name="ProfileTemplates" component={ProfileTemplatesScreen} />
                         <RootStack.Screen name="Explore" component={Explore} />
 
                         {/* Messaging / social */}

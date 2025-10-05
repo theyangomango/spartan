@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { SafeAreaView, StyleSheet, View, StatusBar } from "react-native";
+import { SafeAreaView, StyleSheet, View, StatusBar, ScrollView } from "react-native";
 import ProfileHeader from "../components/5_Profile/ProfileTop/ProfileHeader";
 import ProfileInfo from "../components/5_Profile/ProfileTop/ProfileInfo";
 import ProfileRowButtons from "../components/5_Profile/ProfileTop/ProfileRowButtons";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
-import readDocsByIds from "../../backend/helper/firebase/readDocsByIds";
 import EditProfileBottomSheet from "../components/5_Profile/EditProfile/EditProfileBottomSheet";
 // ⬇️ swap OUT the old ViewStatsBottomSheet
 // import ViewStatsBottomSheet from "../components/5_Profile/ViewStats/ViewStatsBottomSheet";
@@ -13,6 +12,7 @@ import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStat
 import Footer from "../components/Footer";
 import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 import FollowListBottomSheet from "../components/FollowListBottomSheet";
+import ProfileContentCards from "../components/5_Profile/ProfileBottom/ProfileContentCards";
 
 import theme from "../theme/mfpDark";
 import { subscribeUserData } from "../utils/userDataEvents";
@@ -45,12 +45,10 @@ export default function Profile({ navigation }) {
         return () => off && off();
     }, []);
     const userData = global.userData || {};
-    const [posts, setPosts] = useState([]);
     const [templates, setTemplates] = useState(() => {
         const raw = userData?.templates;
         return Array.isArray(raw) ? raw : [];
     });
-    const [selectedPanel, setSelectedPanel] = useState("posts");
     const [isEditProfileBottomSheetVisible, setIsEditProfileBottomSheetVisible] = useState(false);
 
     // Reuse this flag to show the Competition-style UserStatsBottomSheet
@@ -88,15 +86,6 @@ export default function Profile({ navigation }) {
         // wipe the data so reopening is instant (mirrors Feed behaviour).
     }, []);
 
-    const [profileTopHeight, setProfileTopHeight] = useState(null);
-    const handleProfileTopLayout = useCallback((event) => {
-        const nextHeight = event?.nativeEvent?.layout?.height || 0;
-        setProfileTopHeight((prev) => {
-            if (prev == null) return nextHeight;
-            return Math.abs(prev - nextHeight) > 1 ? nextHeight : prev;
-        });
-    }, []);
-
     useEffect(() => {
         const unsubscribe = subscribeUserData((nextUser) => {
             const nextTemplates = Array.isArray(nextUser?.templates) ? nextUser.templates : [];
@@ -104,11 +93,6 @@ export default function Profile({ navigation }) {
         });
         return unsubscribe;
     }, []);
-
-    useEffect(() => {
-        getPosts();
-    }, []);
-
 
     // If another tab requests opening SelectPhotos, honor it on focus
     const lastOpenSigRef = React.useRef(0);
@@ -128,42 +112,6 @@ export default function Profile({ navigation }) {
         return unsub;
     }, [navigation]);
 
-    async function getPosts() {
-        try {
-            const ids = Array.isArray(userData.posts) ? userData.posts : [];
-            const n = ids.length;
-            if (!n) { setPosts([]); return; }
-
-            // Always stream results into a buffer in original order
-            const buffer = new Array(n);
-            setPosts([]);
-
-            // Fetch first screenful ASAP using a single `in` query
-            const firstChunk = ids.slice(0, 10);
-            const tail = ids.slice(10);
-
-            const firstDocs = await readDocsByIds('posts', firstChunk);
-            firstDocs.forEach((doc, i) => { if (doc && !doc.pid) doc.pid = firstChunk[i]; buffer[i] = doc; });
-            setPosts(buffer.filter(Boolean));
-
-            // Fetch the remainder concurrently in 10s; update as chunks return
-            const promises = [];
-            for (let i = 0; i < tail.length; i += 10) {
-                const group = tail.slice(i, i + 10);
-                const startIndex = 10 + i;
-                promises.push(
-                    readDocsByIds('posts', group).then((docs) => {
-                        docs.forEach((doc, j) => { const id = group[j]; if (doc && !doc.pid) doc.pid = id; buffer[startIndex + j] = doc; });
-                        setPosts(buffer.filter(Boolean));
-                    })
-                );
-            }
-            await Promise.all(promises);
-        } catch (e) {
-            // keep existing posts on failure
-        }
-    }
-
     function uploadPost() {
         navigation.navigate("SelectPhotos", {
             userData: userData,
@@ -182,42 +130,53 @@ export default function Profile({ navigation }) {
     return (
         <SafeAreaView style={styles.main_ctnr}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
-            <View style={styles.body_ctnr} onLayout={handleProfileTopLayout}>
-                <ProfileHeader
-                    onPressCreateBtn={uploadPost}
-                    onPressSettings={() => {
-                        try {
-                            const rootNav = navigation?.getParent?.('ROOT');
-                            if (rootNav?.navigate) rootNav.navigate('Settings', { transition: 'slide-from-right' });
-                            else navigation.navigate('Settings', { transition: 'slide-from-right' });
-                        } catch { navigation.navigate('Settings'); }
-                    }}
-                />
-                <ProfileInfo
-                    userData={userData}
-                    pfp={pfp}
-                    onPressFollowers={() => { setFollowListMode('followers'); setIsFollowListVisible(true); }}
-                    onPressFollowing={() => { setFollowListMode('following'); setIsFollowListVisible(true); }}
-                />
-                <ProfileRowButtons
-                    handleOpenEditProfile={handleOpenEditProfile}
-                    handleOpenViewStats={handleOpenViewStats}
-                />
-                <WorkoutStats userData={userData} />
-            </View>
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+                <View style={styles.body_ctnr}>
+                    <ProfileHeader
+                        onPressCreateBtn={uploadPost}
+                        onPressSettings={() => {
+                            try {
+                                const rootNav = navigation?.getParent?.('ROOT');
+                                if (rootNav?.navigate) rootNav.navigate('Settings', { transition: 'slide-from-right' });
+                                else navigation.navigate('Settings', { transition: 'slide-from-right' });
+                            } catch { navigation.navigate('Settings'); }
+                        }}
+                    />
+                    <ProfileInfo
+                        userData={userData}
+                        pfp={pfp}
+                        onPressFollowers={() => { setFollowListMode('followers'); setIsFollowListVisible(true); }}
+                        onPressFollowing={() => { setFollowListMode('following'); setIsFollowListVisible(true); }}
+                    />
+                    <ProfileRowButtons
+                        handleOpenEditProfile={handleOpenEditProfile}
+                        handleOpenViewStats={handleOpenViewStats}
+                    />
+                    <WorkoutStats userData={userData} />
+                </View>
 
-            <ProfileBottomBottomSheet
-                selectedPanel={selectedPanel}
-                setSelectedPanel={setSelectedPanel}
-                posts={posts}
-                templates={templates}
-                completedWorkouts={(global?.userData?.completedWorkouts || [])}
-                navigation={navigation}
-                onOpenWorkout={openWorkoutViewer}
-                topContentHeight={profileTopHeight}
-                contentLocked={false}
-                ownerData={userData}
-            />
+                <View style={styles.cards_ctnr}>
+                    <ProfileContentCards
+                        onPressWorkoutsAndPosts={() => {
+                            navigation.navigate('ProfileWorkoutsAndPosts', {
+                                targetUid: String(userData?.uid || ''),
+                                isViewingSelf: true,
+                                initialUser: userData || null,
+                            });
+                        }}
+                        onPressTemplates={() => {
+                            navigation.navigate('ProfileTemplates', {
+                                targetUid: String(userData?.uid || ''),
+                                isViewingSelf: true,
+                                initialUser: userData || null,
+                            });
+                        }}
+                        postsCount={Array.isArray(userData?.posts) ? userData.posts.length : 0}
+                        workoutsCount={Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts.length : 0}
+                        templatesCount={Array.isArray(templates) ? templates.length : 0}
+                    />
+                </View>
+            </ScrollView>
 
             <EditProfileBottomSheet
                 isVisible={isEditProfileBottomSheetVisible}
@@ -255,10 +214,6 @@ export default function Profile({ navigation }) {
     );
 }
 
-// If this import was in your original file, keep it.
-// It was referenced above but not shown in your snippet.
-import ProfileBottomBottomSheet from "../components/5_Profile/ProfileBottom/ProfileBottomBottomSheet";
-
 import scaleSize from "../helper/scaleSize";
 
 const styles = StyleSheet.create({
@@ -267,8 +222,15 @@ const styles = StyleSheet.create({
         // Match Feed background for cohesion
         backgroundColor: theme.bg,
     },
+    scrollContent: {
+        paddingBottom: scaleSize(120),
+    },
     body_ctnr: {
         paddingHorizontal: scaleSize(10),
         paddingBottom: scaleSize(14),
+    },
+    cards_ctnr: {
+        paddingHorizontal: scaleSize(14),
+        paddingTop: scaleSize(12),
     },
 });
