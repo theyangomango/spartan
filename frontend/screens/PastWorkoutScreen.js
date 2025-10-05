@@ -329,6 +329,8 @@ const styles = StyleSheet.create({
     },
     detailSection: {
         marginTop: scaleSize(16),
+        paddingVertical: scaleSize(14),
+        backgroundColor: theme.surface
     },
     logsHeader: {
         flexDirection: "row",
