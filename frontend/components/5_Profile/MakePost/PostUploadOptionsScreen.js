@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Pressable, SafeAreaView, Dimensions, FlatList } from "react-native";
+import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Pressable, Dimensions, FlatList } from "react-native";
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome6, AntDesign } from '@expo/vector-icons';
 import { Location, Weight } from 'iconsax-react-native';
 import { Feather } from '@expo/vector-icons';
@@ -39,6 +40,8 @@ export default function PostOptionsScreen({ navigation, route }) {
     const workoutSheetRef = useRef(null);
     const sharePromiseRef = useRef(null);
     const isMountedRef = useRef(true);
+    const insets = useSafeAreaInsets();
+    const headerTopPadding = useMemo(() => scaleSize(6) + Math.max(0, insets.top), [insets.top]);
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -191,25 +194,23 @@ export default function PostOptionsScreen({ navigation, route }) {
 
     return (
         <View style={styles.main_ctnr}>
-            <SafeAreaView>
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={withStrongPress(goBack)} style={styles.back_icon_ctnr}>
-                        <FontAwesome6 name='chevron-left' size={scaleSize(17)} color={theme.textSecondary} />
-                    </TouchableOpacity>
-                    <View style={styles.title_text_ctnr}>
-                        <Text style={styles.header_text}>New Post</Text>
-                    </View>
-                    <View style={styles.share_button_ctnr}>
-                        <TouchableOpacity
-                            onPress={withStrongPress(beginShare)}
-                            style={[styles.share_btn, (caption.length === 0 || isSharing) && styles.share_btn_disabled]}
-                            disabled={caption.length === 0 || isSharing}
-                        >
-                            <Text style={styles.share_btn_text}>{isSharing ? 'Sharing...' : 'Share'}</Text>
-                        </TouchableOpacity>
-                    </View>
+            <View style={[styles.header, { paddingTop: headerTopPadding }]}>
+                <TouchableOpacity onPress={withStrongPress(goBack)} style={styles.back_icon_ctnr}>
+                    <FontAwesome6 name='chevron-left' size={scaleSize(17)} color={theme.textSecondary} />
+                </TouchableOpacity>
+                <View style={styles.title_text_ctnr}>
+                    <Text style={styles.header_text}>New Post</Text>
                 </View>
-            </SafeAreaView>
+                <View style={styles.share_button_ctnr}>
+                    <TouchableOpacity
+                        onPress={withStrongPress(beginShare)}
+                        style={[styles.share_btn, (caption.length === 0 || isSharing) && styles.share_btn_disabled]}
+                        disabled={caption.length === 0 || isSharing}
+                    >
+                        <Text style={styles.share_btn_text}>{isSharing ? 'Sharing...' : 'Share'}</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
 
             <ScrollView style={styles.body_scrollview}>
                 <View style={styles.post_preview_ctnr}>
@@ -337,7 +338,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(12),
         flexDirection: 'row',
         backgroundColor: theme.bg,
-        paddingTop: scaleSize(2),
         paddingBottom: scaleSize(10)
     },
     back_icon_ctnr: {
