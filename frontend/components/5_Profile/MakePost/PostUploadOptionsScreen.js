@@ -17,6 +17,7 @@ import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import WorkoutHistoryCard from "../ProfileBottom/History/WorkoutHistoryCard";
 import theme from '../../../theme/mfpDark';
 import { withStrongPress } from "../../../utils/haptics";
+import { linkCompletedWorkoutToPost, syncLocalCompletedWorkoutsPost } from "../../../utils/workoutLinking";
 
 import scaleSize1 from "../../../helper/scaleSize";
 import DismissableTextInput from "../../common/DismissableTextInput";
@@ -133,6 +134,10 @@ export default function PostOptionsScreen({ navigation, route }) {
                 const uid = global?.userData?.uid;
                 if (!uid) throw new Error('Missing user UID for createPost');
 
+                const workoutForPost = selectedWorkout
+                    ? { ...selectedWorkout, postPid: pid }
+                    : null;
+
                 await createPost(
                     uid,
                     global?.userData?.handle,
@@ -140,13 +145,25 @@ export default function PostOptionsScreen({ navigation, route }) {
                     caption,
                     media,
                     pid,
-                    selectedWorkout
+                    workoutForPost
                 );
 
                 await Promise.allSettled([
                     arrayAppend('users', uid, 'posts', pid),
                     arrayAppend('global', 'posts', 'PIDs', pid),
                 ]);
+
+                if (selectedWorkout) {
+                    try {
+                        await linkCompletedWorkoutToPost(uid, selectedWorkout, pid);
+                        syncLocalCompletedWorkoutsPost(selectedWorkout, pid);
+                        if (isMountedRef.current) {
+                            setSelectedWorkout((prev) => (prev ? { ...prev, postPid: pid } : prev));
+                        }
+                    } catch (error) {
+                        console.error('linkCompletedWorkoutToPost failed', error);
+                    }
+                }
             } catch (error) {
                 console.error('sharePost failed', error);
                 if (appendedOptimistically && global?.userData) {

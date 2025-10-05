@@ -276,10 +276,6 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         return { wid, privacyMode: 'global' };
     }, [user?.completedWorkouts, user?.uid]);
 
-    const handleOpenWorkoutCard = useCallback((workout) => {
-        if (!workout) return;
-        openWorkoutViewer(workout);
-    }, [openWorkoutViewer]);
     const closeViewer = () => {
         try {
             Animated.timing(viewerTranslateX, { toValue: screenWidth, duration: 220, useNativeDriver: true }).start(({ finished }) => {
@@ -477,7 +473,6 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                 workouts={detailWorkouts}
                 loading={detailLoading}
                 onClose={closeDetail}
-                onPressWorkout={handleOpenWorkoutCard}
             />
             <UserStatsWorkoutViewerScreen
                 visible={viewerOpen}

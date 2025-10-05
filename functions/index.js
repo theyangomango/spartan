@@ -891,6 +891,7 @@ export const onCompletedWorkoutAutoPost = onDocumentWritten(
             const postsCollection = adminDb.collection("posts");
             const batch = adminDb.batch();
             const postIds = [];
+            const postIdByWorkoutKey = new Map();
 
             newWorkouts.forEach((workout) => {
                 const workoutSnapshot = sanitizeWorkoutSnapshot(workout);
@@ -947,6 +948,17 @@ export const onCompletedWorkoutAutoPost = onDocumentWritten(
 
                 const postRef = postsCollection.doc();
                 const pid = postRef.id;
+                const rawWorkoutKey = workoutIdentityKey(workout);
+                const snapshotWorkoutKey = workoutIdentityKey(workoutSnapshot);
+                if (rawWorkoutKey) {
+                    postIdByWorkoutKey.set(rawWorkoutKey, pid);
+                }
+                if (snapshotWorkoutKey) {
+                    postIdByWorkoutKey.set(snapshotWorkoutKey, pid);
+                }
+
+                workoutSnapshot.postPid = pid;
+
                 const postPayload = {
                     pid,
                     uid,
@@ -977,6 +989,42 @@ export const onCompletedWorkoutAutoPost = onDocumentWritten(
             if (!postIds.length) return;
 
             await batch.commit();
+
+            if (postIdByWorkoutKey.size > 0) {
+                const userRefLink = adminDb.doc(`users/${uid}`);
+                const linkedAt = Date.now();
+                try {
+                    await adminDb.runTransaction(async (txn) => {
+                        const snap = await txn.get(userRefLink);
+                        if (!snap.exists) return;
+                        const workoutsArr = Array.isArray(snap.get("completedWorkouts"))
+                            ? snap.get("completedWorkouts")
+                            : [];
+                        let changed = false;
+                        const updatedArr = workoutsArr.map((entry) => {
+                            const key = workoutIdentityKey(entry);
+                            if (!key) return entry;
+                            const pid = postIdByWorkoutKey.get(key);
+                            if (!pid) return entry;
+                            if (entry?.postPid === pid) return entry;
+                            changed = true;
+                            return {
+                                ...entry,
+                                postPid: pid,
+                                postPidLinkedAt: linkedAt,
+                            };
+                        });
+                        if (changed) {
+                            txn.update(userRefLink, { completedWorkouts: updatedArr });
+                        }
+                    });
+                } catch (error) {
+                    logger.warn("onCompletedWorkoutAutoPost: failed to attach postPid to completedWorkouts", {
+                        uid,
+                        error,
+                    });
+                }
+            }
 
             const userRef = adminDb.doc(`users/${uid}`);
             try {
