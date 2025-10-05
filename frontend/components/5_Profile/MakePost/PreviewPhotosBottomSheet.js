@@ -8,7 +8,7 @@ import scaleSize from "../../../helper/scaleSize";
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
-const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, clearSelection, isLimited, onRequestMoreAccess, collapsedHeight }) => {
+const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, isLimited, onRequestMoreAccess, collapsedHeight }) => {
     const bottomSheetRef = useRef(null);
     const expandedHeight = useMemo(() => Math.round(SCREEN_HEIGHT * 0.94), []);
     const snapPoints = useMemo(() => {
@@ -70,7 +70,6 @@ const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSele
                 loadMoreAssets={loadMoreAssets}
                 loading={loading}
                 hasNextPage={hasNextPage}
-                clearSelection={clearSelection}
                 isLimited={isLimited}
                 onRequestMoreAccess={onRequestMoreAccess}
             />

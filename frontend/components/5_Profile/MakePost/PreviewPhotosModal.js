@@ -11,7 +11,7 @@ const screenWidth = Dimensions.get('window').width;
 const NUM_COLUMNS = 3;
 const ITEM_SIZE = screenWidth / NUM_COLUMNS;
 
-const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, clearSelection, isLimited, onRequestMoreAccess }) => {
+const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, isLimited, onRequestMoreAccess }) => {
     const renderPhoto = useCallback(({ item }) => {
         const order = selectedOrderMap.get(item.uri) || 0;
         const selected = order > 0;
@@ -57,29 +57,14 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
 
     return (
         <View style={styles.container}>
-            <View style={styles.headerRow}>
-                <View style={styles.headerLeft}>
-                    {isLimited && (
-                        <Pressable onPress={withStrongPress(onRequestMoreAccess)} hitSlop={10} style={styles.allowMorePill} android_disableSound>
-                            <Ionicons name="images-outline" size={16} color={theme.accentBlue} style={{ marginRight: scaleSize(6) }} />
-                            <Text style={styles.allowMoreText}>Allow More Photos</Text>
-                        </Pressable>
-                    )}
-                    {images.length > 0 && (
-                        <Pressable onPress={withStrongPress(clearSelection)} hitSlop={10} style={styles.clearPill} android_disableSound>
-                            <Ionicons name="close" size={16} color={theme.textSecondary} style={{ marginRight: scaleSize(6) }} />
-                            <Text style={styles.clearPillText}>Clear</Text>
-                        </Pressable>
-                    )}
+            {isLimited && (
+                <View style={styles.headerRow}>
+                    <Pressable onPress={withStrongPress(onRequestMoreAccess)} hitSlop={10} style={styles.allowMorePill} android_disableSound>
+                        <Ionicons name="images-outline" size={16} color={theme.accentBlue} style={{ marginRight: scaleSize(6) }} />
+                        <Text style={styles.allowMoreText}>Allow More Photos</Text>
+                    </Pressable>
                 </View>
-                <View style={styles.headerRight}>
-                    {images.length > 0 && (
-                        <View style={styles.selectionPill}>
-                            <Text style={styles.selectionPillText}>{images.length} selected</Text>
-                        </View>
-                    )}
-                </View>
-            </View>
+            )}
             <BottomSheetFlatList
                 data={assets}
                 renderItem={renderPhoto}
@@ -133,20 +118,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(12),
         paddingVertical: scaleSize(10),
         flexDirection: 'row',
-        justifyContent: 'space-between',
+        justifyContent: 'flex-start',
         alignItems: 'center',
         backgroundColor: theme.surface,
-    },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    headerRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        flexShrink: 0,
     },
     allowMorePill: {
         flexDirection: 'row',
@@ -163,32 +137,6 @@ const styles = StyleSheet.create({
         fontFamily: 'Mulish_700Bold',
         fontSize: scaleSize(13),
         color: theme.accentBlue,
-    },
-    clearPill: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingHorizontal: scaleSize(14),
-        height: scaleSize(36),
-        borderRadius: scaleSize(18),
-        backgroundColor: theme.field,
-        borderWidth: scaleSize(1),
-        borderColor: theme.primaryHairline,
-    },
-    clearPillText: {
-        fontFamily: 'Mulish_700Bold',
-        fontSize: scaleSize(14),
-        color: theme.textPrimary,
-    },
-    selectionPill: {
-        backgroundColor: theme.primary,
-        borderRadius: scaleSize(18),
-        paddingHorizontal: scaleSize(16),
-        paddingVertical: scaleSize(9),
-    },
-    selectionPillText: {
-        fontFamily: 'Mulish_700Bold',
-        fontSize: scaleSize(14),
-        color: '#fff',
     },
 });
 

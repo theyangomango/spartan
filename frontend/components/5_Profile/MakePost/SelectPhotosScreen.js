@@ -130,6 +130,12 @@ export default function SelectPhotosScreen({ navigation, route }) {
         });
     }, []);
 
+    const clearSelection = useCallback(() => {
+        setImages([]);
+        setCroppedMap({});
+        setActiveIndex(0);
+    }, []);
+
     const openCropper = useCallback(() => {
         if (!images.length) return;
         const idx = Math.max(0, Math.min(activeIndex, images.length - 1));
@@ -211,10 +217,21 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 )}
 
                 {selectedImages.length > 0 && (
-                    <TouchableOpacity style={styles.crop_btn} onPress={withStrongPress(openCropper)}>
-                        <Ionicons name='crop' size={scaledSize(20)} color={'#fff'} />
-                        <Text style={styles.crop_btn_text}>Crop</Text>
-                    </TouchableOpacity>
+                    <>
+                        <View style={styles.preview_action_row}>
+                            <TouchableOpacity style={styles.clear_btn} onPress={withStrongPress(clearSelection)}>
+                                <Ionicons name='trash-outline' size={scaledSize(18)} color={'#fff'} />
+                                <Text style={styles.clear_btn_text}>Clear</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.crop_btn} onPress={withStrongPress(openCropper)}>
+                                <Ionicons name='crop' size={scaledSize(20)} color={'#fff'} />
+                                <Text style={styles.crop_btn_text}>Crop</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.preview_footer_info}>
+                            <Text style={styles.preview_footer_text}>{`${Math.min(images.length, activeIndex + 1)} of ${images.length}`}</Text>
+                        </View>
+                    </>
                 )}
             </View>
             <PreviewPhotosBottomSheet
@@ -225,7 +242,6 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 loadMoreAssets={loadMoreAssets}
                 loading={loading}
                 hasNextPage={hasNextPage}
-                clearSelection={() => setImages([])}
                 isLimited={limited}
                 onRequestMoreAccess={async () => {
                     try {
@@ -303,19 +319,52 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     crop_btn: {
-        position: 'absolute',
-        right: scaledSize(14),
-        top: scaledSize(14),
         paddingHorizontal: scaledSize(10),
         paddingVertical: scaledSize(6),
         borderRadius: scaledSize(12),
-        backgroundColor: 'rgba(0,0,0,0.45)',
+        backgroundColor: 'rgba(32,133,255,0.85)',
         flexDirection: 'row',
         alignItems: 'center',
     },
     crop_btn_text: {
         color: '#fff',
         marginLeft: scaledSize(8),
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(12),
+    },
+    clear_btn: {
+        paddingHorizontal: scaledSize(10),
+        paddingVertical: scaledSize(6),
+        borderRadius: scaledSize(12),
+        backgroundColor: 'rgba(239,68,68,0.9)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginRight: scaledSize(8),
+    },
+    clear_btn_text: {
+        color: '#fff',
+        marginLeft: scaledSize(6),
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(12),
+    },
+    preview_action_row: {
+        position: 'absolute',
+        right: scaledSize(14),
+        top: scaledSize(14),
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    preview_footer_info: {
+        position: 'absolute',
+        right: scaledSize(14),
+        bottom: scaledSize(14),
+        paddingHorizontal: scaledSize(12),
+        paddingVertical: scaledSize(6),
+        borderRadius: scaledSize(12),
+        backgroundColor: 'rgba(0,0,0,0.45)'
+    },
+    preview_footer_text: {
+        color: '#fff',
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(12),
     }
