@@ -495,13 +495,6 @@ export default function Feed({ navigation, route }) {
         postData={commentsVisible ? activePost : null}
         commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
         toViewProfile={toViewProfileComments}
-        collapseSignal={0}
-        reopenSignal={0}
-        interactiveProgress={0}
-        interactiveProgressSV={null}
-        interactiveScale={1}
-        openPositionPx={undefined}
-        unfocusGestureActive={false}
         onShowLikesSheet={showLikesSheet}
         onDismiss={dismissCommentsModal}
       />

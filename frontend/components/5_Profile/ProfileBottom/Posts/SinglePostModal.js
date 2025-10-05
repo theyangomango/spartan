@@ -324,11 +324,10 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                             postData={post}
                             commentsBottomSheetExpandFlag={commentsExpandFlag}
                             toViewProfile={() => { }}
-                            collapseSignal={collapseSignal}
-                            reopenSignal={reopenSignal}
-                            interactiveProgressSV={interactiveProgressSV}
-                            interactiveScale={3.0}
-                            openPositionPx={openPositionPx}
+                            onDismiss={() => {
+                                setCommentsExpandFlag(false);
+                                setSheetVisible(false);
+                            }}
                         />
                     )}
                     <ShareBottomSheet

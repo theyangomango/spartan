@@ -388,6 +388,11 @@ const SimpleFeedPost = ({
     const likeColor = isLiked ? "#FE5555" : theme.textPrimary;
     const keyExtractor = useCallback((item, idx) => `${item?.uri || 'media'}-${idx}`, []);
 
+    const handlePressWorkout = useCallback(() => {
+        if (!workout) return;
+        onPressWorkout?.(index, data);
+    }, [workout, onPressWorkout, index, data]);
+
     return (
         <View style={styles.wrapper}>
             <View style={styles.card}>
@@ -436,21 +441,34 @@ const SimpleFeedPost = ({
                         </Pressable>
                     </View>
 
-                    <View style={styles.titleBlock}>
-                        <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
-                            {title}
-                        </Text>
-                        {shouldShowSubtitle ? (
-                            <Text style={styles.captionText} numberOfLines={3}>
-                                {caption}
+                    {workout ? (
+                        <Pressable onPress={handlePressWorkout} style={styles.titleBlock} hitSlop={{ top: scaleSize(6), bottom: scaleSize(6) }}>
+                            <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
+                                {title}
                             </Text>
-                        ) : null}
-                    </View>
+                            {shouldShowSubtitle ? (
+                                <Text style={styles.captionText} numberOfLines={3}>
+                                    {caption}
+                                </Text>
+                            ) : null}
+                        </Pressable>
+                    ) : (
+                        <View style={styles.titleBlock}>
+                            <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
+                                {title}
+                            </Text>
+                            {shouldShowSubtitle ? (
+                                <Text style={styles.captionText} numberOfLines={3}>
+                                    {caption}
+                                </Text>
+                            ) : null}
+                        </View>
+                    )}
                 </View>
 
                 {workout ? (
                     <Pressable
-                        onPress={() => onPressWorkout?.(index, data)}
+                        onPress={handlePressWorkout}
                         style={styles.metricsRow}
                     >
                         <View style={styles.metricsLeft}>
@@ -478,7 +496,7 @@ const SimpleFeedPost = ({
                 ) : null}
 
                 {workout && mediaList.length === 0 && exerciseSummaries.length > 0 ? (
-                    <View style={styles.workoutSummaryBlock}>
+                    <Pressable style={styles.workoutSummaryBlock} onPress={handlePressWorkout}>
                         <View style={styles.workoutSummaryHeader}>
                             <Text style={[styles.workoutSummaryHeaderText, styles.workoutSummaryHeaderExercise]}>Exercise</Text>
                             <Text style={[styles.workoutSummaryHeaderText, styles.workoutSummaryHeaderBest]}>Best Set</Text>
@@ -496,7 +514,7 @@ const SimpleFeedPost = ({
                                 </View>
                             );
                         })}
-                    </View>
+                    </Pressable>
                 ) : null}
 
                 {mediaList.length > 0 ? (
@@ -649,11 +667,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     avatarWrap: {
-        width: scaleSize(36),
+        width: scaleSize(34),
         aspectRatio: 1,
         borderRadius: scaleSize(23),
         overflow: "hidden",
-        marginRight: scaleSize(12),
+        marginRight: scaleSize(10),
     },
     avatar: {
         width: "100%",
@@ -677,7 +695,7 @@ const styles = StyleSheet.create({
     nameText: {
         color: theme.textPrimary,
         fontFamily: "Poppins_600SemiBold",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(13),
     },
     timestampText: {
         color: theme.textSecondary,
@@ -690,13 +708,13 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(4),
     },
     titleBlock: {
-        marginTop: scaleSize(14),
+        marginTop: scaleSize(12),
         paddingBottom: scaleSize(5)
     },
     titleText: {
         color: theme.textPrimary,
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(16),
+        fontSize: scaleSize(15),
     },
     workoutTitleText: {
         color: '#74abf7ff',
@@ -751,7 +769,7 @@ const styles = StyleSheet.create({
     workoutSummaryHeaderText: {
         color: theme.textSecondary,
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(12),
         letterSpacing: 0.2,
         textTransform: 'uppercase',
     },
@@ -777,7 +795,7 @@ const styles = StyleSheet.create({
         paddingRight: scaleSize(12),
         color: theme.textPrimary,
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(13),
     },
     workoutSummaryBest: {
         minWidth: scaleSize(96),
@@ -785,7 +803,7 @@ const styles = StyleSheet.create({
         textAlign: 'right',
         color: theme.textSecondary,
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(13),
     },
     recordsValueRow: {
         flexDirection: 'row',

@@ -74,6 +74,12 @@ export default function ExpandedExploreList({ posts, onClose }) {
         setCommentsBottomSheetExpandFlag(prev => !prev);
     };
 
+    const handleDismissComments = () => {
+        setCommentsBottomSheetExpandFlag(false);
+        setIsSomePostFocused(false);
+        animateList(0);
+    };
+
     // Toggle Share modal
     const openShareModal = () => {
         setShareBottomSheetExpandFlag(prev => !prev);
@@ -145,6 +151,7 @@ export default function ExpandedExploreList({ posts, onClose }) {
                         : posts[focusedPostIndex.current]
                 }
                 commentsBottomSheetExpandFlag={commentsBottomSheetExpandFlag}
+                onDismiss={handleDismissComments}
             />
 
             {/* Share Bottom Sheet */}
