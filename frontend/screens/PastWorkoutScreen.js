@@ -306,11 +306,6 @@ const PastWorkoutScreen = () => {
                     </View>
                 )}
 
-                {workout ? (
-                    <View style={styles.metaSection}>
-                        <Text style={styles.sectionTitle}>Workout Details</Text>
-                    </View>
-                ) : null}
 
                 {workout && exercises.length > 0 ? (
                     <View style={styles.detailSection}>
