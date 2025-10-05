@@ -5,7 +5,6 @@ import {
     DOTS_H,
     TPL_CARD_H,
     TPL_HEIGHT,
-    BLUE,
 } from "./workoutTheme";
 import { Weight } from "iconsax-react-native";
 import scaleSize, { ts } from "../../../helper/scaleSize";
@@ -85,12 +84,12 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                         <View style={styles.emptyShadow}>
                             <View style={[styles.cardBase, styles.cardEmpty]}>
                                 <View style={styles.emptyIconWrap}>
-                                    <Ionicons name="add" size={22} color={BLUE.ACCENT} />
+                                    <Ionicons name="add" size={22} color={ACCENT_NEUTRAL} />
                                 </View>
                                 <View style={styles.emptyTextColumn}>
                                     <Text numberOfLines={1} style={styles.emptyTitle}>{item.name}</Text>
                                     <View style={styles.emptySubWrap}>
-                                        <Ionicons name="sparkles-outline" size={14} color={BLUE.ACCENT} />
+                                        <Ionicons name="sparkles-outline" size={14} color={ACCENT_NEUTRAL} />
                                         <Text style={styles.emptySubtitle}>Tap to create</Text>
                                     </View>
                                 </View>
@@ -105,7 +104,7 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                                 <View style={styles.templateTextColumn}>
                                     <Text numberOfLines={1} style={styles.templateTitle}>{item.name}</Text>
                                     <View style={styles.templateSubWrap}>
-                                        <Ionicons name="sparkles-outline" size={14} color={BLUE.ACCENT} />
+                                        <Ionicons name="sparkles-outline" size={14} color={ACCENT_NEUTRAL} />
                                         <Text style={styles.templateSubtitle}>Tap to edit</Text>
                                     </View>
                                 </View>
@@ -182,23 +181,28 @@ const eq = (a, b) => {
 
 export default memo(TemplatesRail, eq);
 
-const EMPTY_CARD_BG = "rgba(38, 56, 88, 0.88)";
-const EMPTY_CARD_BORDER = "rgba(126, 186, 246, 0.58)";
-const TEMPLATE_CARD_BG = "rgba(24, 42, 70, 0.94)";
-const TEMPLATE_CARD_BORDER = "rgba(126, 186, 246, 0.62)";
-const TEMPLATE_ICON_BG = "rgba(128, 198, 255, 0.24)";
-const TEMPLATE_ICON_BORDER = "rgba(148, 212, 255, 0.55)";
-const TEMPLATE_ICON_COLOR = "#C6E2FF";
-const TEMPLATE_SUBTITLE_COLOR = "#C7DCF8";
-const META_BADGE_BG = "rgba(136, 205, 255, 0.22)";
-const META_BADGE_BORDER = "rgba(160, 218, 255, 0.45)";
-const META_BADGE_TEXT = "#E0EEFF";
+const ACCENT_NEUTRAL = "#D1D5DB";
+const EMPTY_CARD_BG = "rgba(46, 47, 56, 0.9)";
+const EMPTY_CARD_BORDER = "rgba(174, 177, 190, 0.54)";
+const TEMPLATE_CARD_BG = "rgba(36, 37, 46, 0.94)";
+const TEMPLATE_CARD_BORDER = "rgba(174, 177, 190, 0.58)";
+const TEMPLATE_ICON_BG = "rgba(189, 193, 206, 0.22)";
+const TEMPLATE_ICON_BORDER = "rgba(198, 202, 214, 0.52)";
+const TEMPLATE_ICON_COLOR = "#E8EAEE";
+const TEMPLATE_TITLE_COLOR = "#F3F4F7";
+const TEMPLATE_SUBTITLE_COLOR = "#D0D3DB";
+const META_BADGE_BG = "rgba(196, 200, 212, 0.18)";
+const META_BADGE_BORDER = "rgba(204, 208, 220, 0.38)";
+const META_BADGE_TEXT = "#F2F3F6";
 const FONT_META_BADGE = ts(10);
 const CARD_RADIUS = scaleSize(28);
 const CARD_MIN_HEIGHT = scaleSize(78);
-const CARD_SHADOW_COLOR = "rgba(11, 32, 58, 0.55)";
+const CARD_SHADOW_COLOR = "rgba(12, 13, 18, 0.55)";
 const CARD_SHADOW_OFFSET = scaleSize(10);
 const CARD_SHADOW_RADIUS = scaleSize(20);
+const EMPTY_ICON_BG = "rgba(78, 80, 92, 0.72)";
+const EMPTY_TITLE_COLOR = "#F5F6F8";
+const EMPTY_SUBTITLE_COLOR = "#CBCFD8";
 
 const styles = StyleSheet.create({
     wrap: { justifyContent: "space-between" },
@@ -280,7 +284,7 @@ const styles = StyleSheet.create({
     templateTitle: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(15),
-        color: "#EEF5FF",
+        color: TEMPLATE_TITLE_COLOR,
         includeFontPadding: false,
     },
     templateSubWrap: {
@@ -336,7 +340,7 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(22),
         borderWidth: scaleSize(1.3),
         borderColor: EMPTY_CARD_BORDER,
-        backgroundColor: "rgba(46, 74, 120, 0.72)",
+        backgroundColor: EMPTY_ICON_BG,
         alignItems: "center",
         justifyContent: "center",
         marginLeft: scaleSize(10),
@@ -345,7 +349,7 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(15),
-        color: "#E9F1FF",
+        color: EMPTY_TITLE_COLOR,
         includeFontPadding: false,
     },
     emptySubWrap: {
@@ -356,7 +360,7 @@ const styles = StyleSheet.create({
     emptySubtitle: {
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(12.5),
-        color: "#B4C7E4",
+        color: EMPTY_SUBTITLE_COLOR,
         includeFontPadding: false,
     },
     dotsRow: {
@@ -371,5 +375,5 @@ const styles = StyleSheet.create({
         gap: scaleSize(6),
         paddingHorizontal: scaleSize(16),
     },
-    dash: { height: scaleSize(4), borderRadius: scaleSize(999), backgroundColor: BLUE.ACCENT },
+    dash: { height: scaleSize(4), borderRadius: scaleSize(999), backgroundColor: ACCENT_NEUTRAL },
 });

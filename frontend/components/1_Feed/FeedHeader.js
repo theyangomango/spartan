@@ -37,8 +37,8 @@ const s = (n) => Math.round(n * scale);
 const METRICS = (() => {
     const paddingH = dynamicStyles.paddingHorizontal;
     const paddingTop = s(0);
-    const paddingBottom = s(2);
-    const centerH = s(42);
+    const paddingBottom = s(4);
+    const centerH = s(45);
     // Remove the extra top margin so the header sits flush with other screens
     const marginTop = 0;
     const icon = dynamicStyles.iconSize;
@@ -580,11 +580,24 @@ const styles = StyleSheet.create({
         paddingBottom: Math.max(METRICS.paddingBottom - FOCUSED_HEADER_OFFSET, 0),
     },
 
-    leftArea: { position: "absolute", left: METRICS.paddingH, top: METRICS.iconTop },
+    leftArea: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        height: METRICS.centerH,
+        position: "relative",
+    },
 
-    centerArea: { justifyContent: "center", alignItems: "center" },
+    centerArea: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        height: METRICS.centerH,
+        position: "relative",
+    },
 
-    centerSlot: { paddingHorizontal: scaleSize(s(14)), height: METRICS.centerH, minWidth: scaleSize(s(156)), alignItems: "center", justifyContent: "center" },
+    centerSlot: { paddingHorizontal: scaleSize(s(14)), height: "100%", minWidth: scaleSize(s(156)), alignItems: "center", justifyContent: "center" },
 
     // Nudge the logo down slightly to align with side icons
     logoWrap: { height: "100%", flexDirection: "row", alignItems: "center", paddingTop: METRICS.logoPadTop },
@@ -599,7 +612,14 @@ const styles = StyleSheet.create({
         ...Platform.select({ android: { lineHeight: scaleSize(s(19)) } }),
     },
 
-    right_icons: { flexDirection: "row", position: "absolute", right: METRICS.paddingH, top: METRICS.iconTop, alignItems: "center" },
+    right_icons: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        height: METRICS.centerH,
+        position: "relative",
+    },
 
     notificationBadge: { position: "absolute", right: scaleSize(-7.5), top: scaleSize(-5), backgroundColor: "#ef4444", borderRadius: scaleSize(8), width: scaleSize(16), height: scaleSize(16), justifyContent: "center", alignItems: "center" },
     notificationText: { color: "#fff", fontSize: scaleSize(8), fontFamily: "Outfit_600SemiBold" },
