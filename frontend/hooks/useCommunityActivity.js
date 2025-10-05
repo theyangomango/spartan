@@ -51,6 +51,12 @@ const chunk10 = (arr) => {
   return out;
 };
 
+const coerceWeeklyGoal = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num) || num <= 0) return 0;
+  return Math.round(num);
+};
+
 const normalizeCompletedWorkout = (w, profile) => {
   if (!w || typeof w !== 'object') return null;
   const created = toMillis(w?.created ?? w?.createdAt ?? w?.date);
@@ -66,6 +72,7 @@ const normalizeCompletedWorkout = (w, profile) => {
     handle: profile.handle || '',
     pfp: profile.pfp || '',
     pfpVersion: profile.pfpVersion ?? 0,
+    weeklyGoal: coerceWeeklyGoal(profile?.weeklyWorkoutGoal ?? profile?.weeklyGoal ?? profile?.goal),
     live: false,
     created: created || 0,
     finishedAt:
@@ -107,6 +114,7 @@ const normalizeLiveWorkout = (cw, profile) => {
     handle: profile.handle || '',
     pfp: profile.pfp || '',
     pfpVersion: profile.pfpVersion ?? 0,
+    weeklyGoal: coerceWeeklyGoal(profile?.weeklyWorkoutGoal ?? profile?.weeklyGoal ?? profile?.goal),
     live: true,
     startedAt: started || Date.now(),
     created: started || Date.now(),
@@ -162,6 +170,7 @@ export default function useCommunityActivity(user, enabled = true) {
             pfpVersion: data.pfpVersion ?? data.version ?? 0,
             currentWorkout: data?.currentWorkout || null,
             completedWorkouts: Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [],
+            weeklyWorkoutGoal: coerceWeeklyGoal(data?.weeklyWorkoutGoal),
           });
         });
       }
@@ -209,6 +218,7 @@ export default function useCommunityActivity(user, enabled = true) {
           handle: viewerData?.handle || '',
           pfp: viewerData?.pfp || viewerData?.image || viewerData?.photoURL || '',
           pfpVersion: viewerData?.pfpVersion ?? viewerData?.version ?? 0,
+          weeklyWorkoutGoal: coerceWeeklyGoal(viewerData?.weeklyWorkoutGoal),
         };
 
         const myCompleted = Array.isArray(viewerData?.completedWorkouts) ? viewerData.completedWorkouts : [];

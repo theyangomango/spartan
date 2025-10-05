@@ -35,7 +35,7 @@ const s = (n) => Math.round(n * scale);
 
 // Static separators to avoid re-creating functions each render
 const CARD_GAP = 14;
-const LIST_HORIZONTAL_PADDING = scaleSize(s(18));
+const LIST_HORIZONTAL_PADDING = scaleSize(s(14));
 const SectionSeparator = () => <View style={{ height: scaleSize(CARD_GAP) }} />;
 
 const COLORS = {
@@ -211,6 +211,12 @@ const formatStatNumber = (value) => {
     }
 };
 
+const coerceWeeklyGoal = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num) || num <= 0) return 0;
+    return Math.round(num);
+};
+
 const friendMetaFrom = (value) => {
     if (!value) return null;
     if (typeof value === "string" || typeof value === "number") {
@@ -226,6 +232,7 @@ const friendMetaFrom = (value) => {
             name: value?.name || value?.displayName || "",
             pfp: value?.pfp || value?.pfpUri || value?.photoURL || value?.photo || value?.avatar || value?.image || "",
             pfpVersion: value?.pfpVersion ?? value?.version ?? 0,
+            weeklyGoal: coerceWeeklyGoal(value?.weeklyGoal ?? value?.weeklyWorkoutGoal ?? value?.workoutGoal ?? value?.goal),
         };
     }
     return null;
@@ -237,6 +244,11 @@ const mergeMetaIntoEntry = (entry, meta) => {
     if (meta.handle && !entry.handle) entry.handle = meta.handle;
     if (meta.pfp && !entry.pfp) entry.pfp = meta.pfp;
     if ((meta.pfpVersion ?? 0) > (entry.pfpVersion ?? 0)) entry.pfpVersion = meta.pfpVersion ?? 0;
+    const incomingGoal = coerceWeeklyGoal(meta?.weeklyGoal ?? meta?.weeklyWorkoutGoal ?? meta?.goal ?? meta?.workoutGoal);
+    if (incomingGoal > 0) {
+        const currentGoal = coerceWeeklyGoal(entry?.weeklyGoal);
+        if (currentGoal <= 0) entry.weeklyGoal = incomingGoal;
+    }
     return entry;
 };
 
@@ -368,6 +380,24 @@ const ContributionRow = memo(({ entry, isFirst = false }) => {
         { key: "volume", label: "lbs", value: formatStatNumber(volume) },
         { key: "prs", label: "prs", value: formatStatNumber(pbs) },
     ]), [volume, reps, pbs]);
+    const weeklyGoal = coerceWeeklyGoal(entry?.weeklyGoal ?? entry?.weeklyWorkoutGoal ?? entry?.goal);
+    const workoutsCompleted = useMemo(() => {
+        const raw = Number(entry?.workouts);
+        if (!Number.isFinite(raw) || raw <= 0) return 0;
+        return Math.round(raw);
+    }, [entry?.workouts]);
+    const contributionSubtext = useMemo(() => {
+        let str = '';
+        if (workoutsCompleted <= 0) {
+            str = weeklyGoal > 0 ? `0/${weeklyGoal} workouts` : "No workouts";
+        }
+        else if (weeklyGoal > 0) {
+            str = `${workoutsCompleted}/${weeklyGoal} workouts`;
+        }
+        else if (workoutsCompleted === 1) str = "1 workout";
+        else str = `${workoutsCompleted} workouts`;
+        return str;
+    }, [weeklyGoal, workoutsCompleted]);
     const handleLabel = (() => {
         const raw = handleText(entry);
         if (raw) return raw.replace(/^@/, "");
@@ -396,7 +426,10 @@ const ContributionRow = memo(({ entry, isFirst = false }) => {
                             </View>
                         )}
                     </View>
-                    <Text style={styles.contributionHandle} numberOfLines={1} ellipsizeMode="tail">{handleLabel}</Text>
+                    <View style={styles.contributionHandleTextWrap}>
+                        <Text style={styles.contributionHandle} numberOfLines={1} ellipsizeMode="tail">{handleLabel}</Text>
+                        <Text style={styles.contributionHandleSubtext} numberOfLines={1} ellipsizeMode="tail">{contributionSubtext}</Text>
+                    </View>
                 </View>
 
                 <View style={styles.contributionStatsRow}>
@@ -831,6 +864,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                     reps: 0,
                     pbs: 0,
                     workouts: 0,
+                    weeklyGoal: 0,
                 });
             }
             return map.get(safeUid);
@@ -854,6 +888,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                 handle: item?.handle || item?.username,
                 pfp: getPfpUri(item),
                 pfpVersion: item?.pfpVersion ?? 0,
+                weeklyGoal: coerceWeeklyGoal(item?.weeklyGoal ?? item?.weeklyWorkoutGoal ?? item?.goal),
             });
             const overlay = item?.uid ? liveOverlays[String(item.uid)] : undefined;
             const stats = computeWorkoutStats(item, overlay);
@@ -861,6 +896,10 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
             entry.reps += stats.reps;
             entry.pbs += stats.pbs;
             entry.workouts += 1;
+            if (entry.weeklyGoal <= 0) {
+                const goal = coerceWeeklyGoal(item?.weeklyGoal ?? item?.weeklyWorkoutGoal ?? item?.goal);
+                if (goal > 0) entry.weeklyGoal = goal;
+            }
         };
 
         for (const item of sortedItems) {
@@ -878,6 +917,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                 handle: viewerData?.handle || "",
                 pfp: viewerData?.pfp || viewerData?.image || viewerData?.photoURL || "",
                 pfpVersion: viewerData?.pfpVersion ?? viewerData?.version ?? 0,
+                weeklyGoal: coerceWeeklyGoal(viewerData?.weeklyWorkoutGoal),
             });
         }
 
@@ -1226,22 +1266,32 @@ const styles = StyleSheet.create({
         flexShrink: 1,
         minWidth: 0,
     },
+    contributionHandleTextWrap: {
+        flexShrink: 1,
+        minWidth: 0,
+    },
     contributionAvatarWrap: {
         borderRadius: scaleSize(s(14)),
         backgroundColor: "rgba(255,255,255,0.04)",
         alignItems: "center",
         justifyContent: "center",
-        marginRight: scaleSize(s(9)),
+        marginRight: scaleSize(s(11)),
     },
-    contributionPfp: { width: scaleSize(s(30)), aspectRatio: 1, borderRadius: scaleSize(s(100)), backgroundColor: "#E2E8F0" },
+    contributionPfp: { width: scaleSize(s(36)), aspectRatio: 1, borderRadius: scaleSize(s(100)), backgroundColor: "#E2E8F0" },
     contributionPfpFallback: { alignItems: "center", justifyContent: "center" },
     contributionPfpInitials: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(s(11)), color: COLORS.text },
     contributionHandle: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(s(13)),
+        fontSize: scaleSize(s(13.5)),
         color: COLORS.text,
         maxWidth: scaleSize(s(150)),
         flexShrink: 1,
+    },
+    contributionHandleSubtext: {
+        marginTop: scaleSize(s(2)),
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(s(12)),
+        color: COLORS.subtext,
     },
     contributionStatsRow: {
         flexDirection: "row",
@@ -1249,7 +1299,7 @@ const styles = StyleSheet.create({
         justifyContent: "flex-end",
         marginLeft: 'auto',
         gap: 0,
-        width: '60%'
+        width: '57%'
     },
     contributionStatCellFlat: {
         flexBasis: 0,
