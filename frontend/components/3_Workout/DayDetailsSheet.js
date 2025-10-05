@@ -18,7 +18,7 @@ import { extractWid } from "../2_Competition/UserStats/userStatsUtils";
 import { FoodDetailInline } from "../../screens/FoodDetail";
 import DateHeader from "./DayDetails/DateHeader";
 import OverlayContainer from "./DayDetails/OverlayContainer";
-import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from "../../utils/nutrition";
+import { parseMacrosFromDescription, parseExtraNutrientsFromDescription, summarizeFood } from "../../utils/nutrition";
 // No foodLogs usage: macros derive only from global.userData.loggedFoods
 import { canViewWorkout } from "../../utils/workoutPrivacy";
 
@@ -27,6 +27,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { strong as haptic } from "../../utils/haptics";
 import { FlashList } from "@shopify/flash-list";
+import MealItemCard from "../2_MacroTracking/MealItemCard";
 
 const HEADER_HEIGHT = scaleSize(48);
 const EDGE_BACK_GESTURE_WIDTH = 200; // px area from left edge to trigger back swipe
@@ -48,6 +49,13 @@ const dayKey = (d) => {
     if (Number.isNaN(x.getTime())) return "";
     x.setHours(0, 0, 0, 0);
     return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
+};
+
+const FOOD_CARD_COLORS = {
+    card: theme.surface,
+    text: theme.textPrimary,
+    subtext: theme.textSecondary,
+    hairline: theme.hairline,
 };
 
 // shift a date by delta days, normalized to start of day
@@ -1180,15 +1188,19 @@ const DayDetailsSheet = ({
                         if (typeof it?.qty === 'number') return it.qty;
                         if (typeof it?.quantity === 'number') return it.quantity;
                         const parsed = Number(it?.qty ?? it?.quantity);
-                        return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+                        return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
                     })();
+                    const macros = it?.macros || parseMacrosFromDescription(it?.desc || '', qty);
                     out.push({
+                        ...it,
                         name: it?.name || "Food",
                         desc: it?.desc || "",
                         qty,
                         bucket: b,
                         brand: it?.brand || '',
                         foodId: it?.foodId || it?.food_id || '',
+                        macros,
+                        key: it?.key || `${b}-${out.length}`,
                     });
                 }
             }
@@ -1196,6 +1208,14 @@ const DayDetailsSheet = ({
         }, [dayMeals]);
 
         const calsToShowPage = Number(dayTotals?.calories || dayCalories || 0);
+
+        const renderFoodSummary = useCallback((entry) => {
+            const qty = Number(entry?.qty ?? entry?.quantity ?? 1) || 1;
+            const detailRaw = summarizeFood(entry?.desc || '', entry?.brand || '', qty);
+            const detail = detailRaw.replace(/^\s*\d+(?:\.\d+)?\s*(?:kcal|cal(?:ories)?)\s*,?\s*/i, '').trim();
+            const bucketLabel = entry?.bucket ? String(entry.bucket) : '';
+            return [bucketLabel, detail].filter(Boolean).join(' · ');
+        }, []);
 
         const workoutFeedPosts = useMemo(() => {
             if (!Array.isArray(dayWorkouts) || dayWorkouts.length === 0) return [];
@@ -1283,22 +1303,18 @@ const DayDetailsSheet = ({
                     </View>
                 ) : (
                     <View style={styles.foodListCol}>
-                        {foodsList.map((it, idx) => {
-                            const kcal = Math.round((it?.macros?.calories) || parseMacrosFromDescription(it?.desc || '', it?.qty ?? 1).calories || 0);
-                            return (
-                                <Pressable
-                                    key={`${it.name}-${idx}`}
-                                    style={styles.foodRowCard}
-                                    onPress={() => { try { haptic(); } catch {} openFood(it); }}
-                                >
-                                    <View style={{ flex: 1, paddingRight: scaleSize(12) }}>
-                                        <Text style={styles.foodRowName} numberOfLines={1}>{it.name}</Text>
-                                        <Text style={styles.foodRowBucketLine} numberOfLines={1}>{it.bucket}</Text>
-                                    </View>
-                                    <Text style={styles.foodRowCals}>{kcal}</Text>
-                                </Pressable>
-                            );
-                        })}
+                        {foodsList.map((it, idx) => (
+                            <MealItemCard
+                                key={it?.key || `${it.bucket || 'food'}-${idx}`}
+                                entry={it}
+                                COLORS={FOOD_CARD_COLORS}
+                                cardStyle={[styles.foodCard, idx === 0 ? styles.foodCardFirst : null]}
+                                showCaloriesRight
+                                onPress={openFood}
+                                renderSummary={renderFoodSummary}
+                                enableSwipe={false}
+                            />
+                        ))}
                     </View>
                 )}
 
@@ -1695,24 +1711,27 @@ const styles = StyleSheet.create({
 
     
 
-    // New food card grid
-    foodListCol: { marginBottom: 0, marginHorizontal: -scaleSize(16) },
-    foodRowCard: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: scaleSize(12),
-        paddingHorizontal: scaleSize(16),
-        backgroundColor: theme.surface,
-        borderRadius: 0,
+    // Food cards mimic MacroTracking under-meal list styling
+    foodListCol: {
+        marginBottom: 0,
+        marginHorizontal: -scaleSize(16),
+        paddingHorizontal: 0,
+    },
+    foodCard: {
         borderWidth: 0,
+        borderRadius: 0,
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(26),
+        marginVertical: 0,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        marginVertical: 0,
+        shadowOpacity: 0,
+        elevation: 0,
+        backgroundColor: theme.surface,
     },
-    foodRowName: { flex: 1, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(12), color: theme.textPrimary },
-    foodRowBucketLine: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12), color: theme.textSecondary, marginTop: scaleSize(2) },
-    foodRowCals: { marginLeft: scaleSize(12), fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(14), color: theme.textPrimary },
+    foodCardFirst: {
+        borderTopWidth: StyleSheet.hairlineWidth,
+    },
 
     // Food details overlay
     // Obsolete inline detail styles kept for reference

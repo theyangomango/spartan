@@ -3,6 +3,7 @@ import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "
 import {
     View,
     Text,
+    Pressable,
     StyleSheet,
     SectionList,
     Animated,
@@ -16,6 +17,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSharedValue, runOnJS } from 'react-native-reanimated';
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import theme from "../../theme/mfpDark";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import NewWorkoutModal from "./NewWorkout/NewWorkoutModal";
 import { getPfpUrl } from "../../pfpCache";
 import { onSnapshot, doc, getDoc } from "firebase/firestore";
@@ -153,6 +155,53 @@ const sumVolumeReps = (exercises) => {
     return { volume: volumeTotal, reps: repsTotal };
 };
 
+const formatDuration = (durationMs) => {
+    const ms = Number(durationMs);
+    if (!Number.isFinite(ms) || ms <= 0) return "--";
+    const totalMinutes = Math.max(0, Math.round(ms / 60000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
+    if (hours > 0) return `${hours}h`;
+    if (minutes > 0) return `${minutes}m`;
+    const totalSeconds = Math.max(0, Math.round(ms / 1000));
+    if (totalSeconds >= 60) {
+        const mins = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${mins}m ${seconds}s`;
+    }
+    return `${totalSeconds}s`;
+};
+
+const formatNumber = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return "--";
+    try {
+        return num.toLocaleString();
+    } catch {
+        return String(num);
+    }
+};
+
+const resolveWorkoutTitle = (workout, fallback) => (
+    workout?.templateName ||
+    workout?.template?.name ||
+    workout?.name ||
+    fallback ||
+    "Workout"
+);
+
+const resolveWeightUnit = () => {
+    try {
+        const raw = global?.userData?.settings?.units || global?.userData?.units;
+        if (!raw) return "lb";
+        const normalized = String(raw).toLowerCase();
+        return normalized === "kg" ? "kg" : "lb";
+    } catch {
+        return "lb";
+    }
+};
+
 const computeWorkoutStats = (item, overlay) => {
     const liveOverlay = overlay || {};
     let volume = liveOverlay.volume;
@@ -284,6 +333,210 @@ const shallowArrayEqual = (a, b) => {
     return true;
 };
 
+const LiveWorkoutPost = memo(({
+    item,
+    overlay,
+    onPress,
+    highlight = false,
+    pfpUri,
+    exerciseSummaries = [],
+    durationSeconds = 0,
+}) => {
+    const handlePress = useCallback(() => {
+        onPress?.();
+    }, [onPress]);
+
+    const resolvedPfp = usePfp(
+        item?.uid ? String(item.uid) : "",
+        item?.pfpVersion ?? 0,
+        pfpUri || getPfpUri(item)
+    );
+
+    const displayName = useMemo(() => {
+        const name = (item?.name || "").trim();
+        if (name) return name;
+        const handle = (
+            item?.handle ??
+            item?.username ??
+            item?.userName ??
+            ""
+        );
+        const normalized = String(handle).trim();
+        if (normalized) return normalized;
+        return "Friend";
+    }, [item?.name, item?.handle, item?.username, item?.userName]);
+
+    const timestamp = useMemo(() => dateTimeLabel(bestTimestamp(item)), [item]);
+
+    const workout = item?.workout || null;
+    const caption = (item?.caption || "").trim();
+    const title = resolveWorkoutTitle(workout, caption);
+    const workoutName = useMemo(() => {
+        if (!workout) return "";
+        const candidate =
+            workout?.templateName ||
+            workout?.template?.name ||
+            workout?.name ||
+            "";
+        return typeof candidate === "string" ? candidate.trim() : String(candidate || "").trim();
+    }, [workout]);
+
+    const isWorkoutTitle = useMemo(() => {
+        if (!workoutName) return false;
+        const normalizedTitle = (title || "").trim();
+        if (!normalizedTitle) return false;
+        return normalizedTitle.toLowerCase() === workoutName.toLowerCase();
+    }, [title, workoutName]);
+
+    const shouldShowSubtitle = useMemo(() => {
+        if (!caption) return false;
+        const normalizedCaption = caption.toLowerCase();
+        const normalizedTitle = (title || "").trim().toLowerCase();
+        if (!normalizedTitle) return true;
+        return normalizedCaption !== normalizedTitle;
+    }, [caption, title]);
+
+    const weightUnit = resolveWeightUnit();
+
+    const stats = useMemo(() => computeWorkoutStats(item, overlay), [item, overlay]);
+
+    const durationLabel = useMemo(() => {
+        const seconds = Number(durationSeconds);
+        if (Number.isFinite(seconds) && seconds > 0) {
+            return formatDuration(seconds * 1000);
+        }
+        const fallbackMs = Number(workout?.duration);
+        return formatDuration(Number.isFinite(fallbackMs) ? fallbackMs : 0);
+    }, [durationSeconds, workout?.duration]);
+
+    const volumeLabel = useMemo(() => formatNumber(stats.volume), [stats.volume]);
+    const recordsLabel = useMemo(() => formatNumber(stats.pbs ?? 0), [stats.pbs]);
+
+    const fallbackInitials = useMemo(() => {
+        const basis = (item?.name || item?.handle || item?.username || "").replace(/^@/, "");
+        return initials(basis);
+    }, [item?.name, item?.handle, item?.username]);
+
+    const hasSummaries = Array.isArray(exerciseSummaries) && exerciseSummaries.length > 0;
+
+    const cardStyle = useMemo(() => [
+        livePostStyles.card,
+        highlight && livePostStyles.cardHighlight,
+    ], [highlight]);
+
+    const volumeDisplay = useMemo(() => {
+        if (!volumeLabel || volumeLabel === "--") return "--";
+        return `${volumeLabel} ${weightUnit}`;
+    }, [volumeLabel, weightUnit]);
+
+    return (
+        <Pressable
+            onPress={onPress ? handlePress : undefined}
+            style={({ pressed }) => (
+                pressed
+                    ? [...cardStyle, livePostStyles.cardPressed]
+                    : cardStyle
+            )}
+        >
+            <View style={livePostStyles.sectionTop}>
+                <View style={livePostStyles.headerRow}>
+                    <View style={livePostStyles.headerLeft}>
+                        <View style={livePostStyles.avatarWrap}>
+                            {resolvedPfp ? (
+                                <FastImage
+                                    source={{
+                                        uri: resolvedPfp,
+                                        priority: FastImage.priority.high,
+                                        cache: FastImage.cacheControl.immutable,
+                                    }}
+                                    style={livePostStyles.avatar}
+                                    resizeMode={FastImage.resizeMode.cover}
+                                />
+                            ) : (
+                                <View style={[livePostStyles.avatar, livePostStyles.avatarFallback]}>
+                                    <Text style={livePostStyles.avatarInitials}>{fallbackInitials}</Text>
+                                </View>
+                            )}
+                        </View>
+                        <View style={livePostStyles.headerTextCol}>
+                            <Text style={livePostStyles.nameText} numberOfLines={1}>
+                                {displayName}
+                            </Text>
+                            {!!timestamp && (
+                                <Text style={livePostStyles.timestampText} numberOfLines={1}>
+                                    {timestamp}
+                                </Text>
+                            )}
+                        </View>
+                    </View>
+
+                    <View style={livePostStyles.liveBadge}>
+                        <View style={livePostStyles.liveBadgeDot} />
+                        <Text style={livePostStyles.liveBadgeText}>LIVE</Text>
+                    </View>
+                </View>
+
+                <View style={livePostStyles.titleBlock}>
+                    <Text style={[livePostStyles.titleText, isWorkoutTitle ? livePostStyles.workoutTitleText : null]} numberOfLines={2}>
+                        {title}
+                    </Text>
+                    {shouldShowSubtitle ? (
+                        <Text style={livePostStyles.captionText} numberOfLines={3}>
+                            {caption}
+                        </Text>
+                    ) : null}
+                </View>
+            </View>
+
+            <View style={livePostStyles.metricsRow}>
+                <View style={livePostStyles.metricsLeft}>
+                    <View style={livePostStyles.metricColumnLeft}>
+                        <Text style={livePostStyles.metricLabel}>Duration</Text>
+                        <Text style={livePostStyles.metricValue}>{durationLabel}</Text>
+                    </View>
+
+                    <View style={[livePostStyles.metricColumnLeft, livePostStyles.metricCenter]}>
+                        <Text style={livePostStyles.metricLabel}>Volume</Text>
+                        <Text style={livePostStyles.metricValue}>{volumeDisplay}</Text>
+                    </View>
+                </View>
+
+                <View style={[livePostStyles.metricColumn, livePostStyles.metricRight]}>
+                    <Text style={livePostStyles.metricLabel}>Records</Text>
+                    <View style={livePostStyles.recordsValueRow}>
+                        <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" style={livePostStyles.recordsIconFirst} />
+                        <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#C0C0C0" style={livePostStyles.recordsIcon} />
+                        <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#CD7F32" style={livePostStyles.recordsIcon} />
+                        <Text style={[livePostStyles.metricValue, livePostStyles.recordsValueText]}>{recordsLabel}</Text>
+                    </View>
+                </View>
+            </View>
+
+            {hasSummaries ? (
+                <View style={livePostStyles.workoutSummaryBlock}>
+                    <View style={livePostStyles.workoutSummaryHeader}>
+                        <Text style={[livePostStyles.workoutSummaryHeaderText, livePostStyles.workoutSummaryHeaderExercise]}>Exercise</Text>
+                        <Text style={[livePostStyles.workoutSummaryHeaderText, livePostStyles.workoutSummaryHeaderBest]}>Best Set</Text>
+                    </View>
+                    {exerciseSummaries.map((row, idx) => {
+                        const key = `${row.exercise || 'exercise'}-${idx}`;
+                        const isLast = idx === exerciseSummaries.length - 1;
+                        return (
+                            <View
+                                style={[livePostStyles.workoutSummaryRow, !isLast && livePostStyles.workoutSummaryRowBorder]}
+                                key={key}
+                            >
+                                <Text style={livePostStyles.workoutSummaryExercise} numberOfLines={1}>{row.exercise || 'Exercise'}</Text>
+                                <Text style={livePostStyles.workoutSummaryBest} numberOfLines={1}>{row.bestSet || '--'}</Text>
+                            </View>
+                        );
+                    })}
+                </View>
+            ) : null}
+        </Pressable>
+    );
+});
+
 /* ---------------- row ---------------- */
 const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
     const isLive = !!item?.live;
@@ -317,9 +570,25 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
     if (dateTime) metaParts.push(dateTime);
     const exerciseSummaries = buildExerciseSummaries(item?.workout);
 
+    const handleSelect = useCallback(() => onSelect?.(item, pfpUri), [onSelect, item, pfpUri]);
+
+    if (isLive) {
+        return (
+            <LiveWorkoutPost
+                item={item}
+                overlay={overlay}
+                onPress={handleSelect}
+                highlight={highlight}
+                pfpUri={pfpUri}
+                exerciseSummaries={exerciseSummaries}
+                durationSeconds={durationSec}
+            />
+        );
+    }
+
     return (
         <WorkoutPanelCard
-            onPress={() => onSelect?.(item, pfpUri)}
+            onPress={handleSelect}
             highlight={highlight}
             uid={item?.uid}
             pfpVersion={item?.pfpVersion || 0}
@@ -1161,6 +1430,219 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
     );
 };
 
+const livePostStyles = StyleSheet.create({
+    card: {
+        width: '100%',
+        backgroundColor: theme.surface,
+        borderRadius: 0,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.08)',
+        overflow: 'hidden',
+        paddingBottom: scaleSize(12),
+    },
+    cardHighlight: {
+        borderColor: 'rgba(147,197,253,0.55)',
+        borderWidth: scaleSize(1.4),
+    },
+    cardPressed: {
+        opacity: 0.92,
+    },
+    sectionTop: {
+        paddingHorizontal: scaleSize(18),
+        paddingTop: scaleSize(14),
+    },
+    headerRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        minWidth: 0,
+    },
+    avatarWrap: {
+        width: scaleSize(34),
+        aspectRatio: 1,
+        borderRadius: scaleSize(23),
+        overflow: 'hidden',
+        marginRight: scaleSize(10),
+    },
+    avatar: {
+        width: '100%',
+        height: '100%',
+        borderRadius: scaleSize(23),
+        backgroundColor: theme.field,
+    },
+    avatarFallback: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    avatarInitials: {
+        color: theme.textPrimary,
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: scaleSize(15),
+    },
+    headerTextCol: {
+        flex: 1,
+        minWidth: 0,
+    },
+    nameText: {
+        color: theme.textPrimary,
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: scaleSize(13),
+    },
+    timestampText: {
+        color: theme.textSecondary,
+        fontFamily: 'Outfit_400Regular',
+        fontSize: scaleSize(11.5),
+        marginTop: scaleSize(2),
+    },
+    liveBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(5),
+        borderRadius: scaleSize(999),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(248,113,113,0.55)',
+        backgroundColor: 'rgba(239,68,68,0.14)',
+        marginLeft: scaleSize(12),
+    },
+    liveBadgeDot: {
+        width: scaleSize(7),
+        height: scaleSize(7),
+        borderRadius: scaleSize(3.5),
+        backgroundColor: '#EF4444',
+        marginRight: scaleSize(6),
+    },
+    liveBadgeText: {
+        color: '#F87171',
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(11.5),
+        letterSpacing: 0.2,
+    },
+    titleBlock: {
+        marginTop: scaleSize(12),
+        paddingBottom: scaleSize(5),
+    },
+    titleText: {
+        color: theme.textPrimary,
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(14),
+    },
+    workoutTitleText: {
+        color: '#74abf7ff',
+    },
+    captionText: {
+        color: theme.textPrimary,
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(13),
+        marginTop: scaleSize(4),
+    },
+    metricsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingVertical: scaleSize(6),
+        marginHorizontal: scaleSize(20),
+    },
+    metricsLeft: {
+        flexDirection: 'row',
+        flex: 1,
+    },
+    metricColumnLeft: {
+        width: '32%',
+    },
+    metricCenter: {
+        paddingHorizontal: scaleSize(1),
+    },
+    metricColumn: {
+        flexShrink: 0,
+    },
+    metricRight: {
+        alignItems: 'flex-end',
+    },
+    metricLabel: {
+        color: 'rgba(255,255,255,0.58)',
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(12),
+        letterSpacing: 0.2,
+        paddingBottom: scaleSize(1.5),
+    },
+    metricValue: {
+        color: theme.textPrimary,
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(15.5),
+    },
+    recordsValueRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    recordsIconFirst: {
+        marginRight: scaleSize(4),
+    },
+    recordsIcon: {
+        marginRight: scaleSize(4),
+    },
+    recordsValueText: {
+        marginLeft: scaleSize(2),
+    },
+    workoutSummaryBlock: {
+        marginTop: scaleSize(6),
+        marginHorizontal: scaleSize(20),
+        paddingTop: scaleSize(10),
+        paddingBottom: scaleSize(4),
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.14)',
+    },
+    workoutSummaryHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        paddingBottom: scaleSize(2),
+    },
+    workoutSummaryHeaderText: {
+        color: theme.textSecondary,
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(12),
+        letterSpacing: 0.2,
+        textTransform: 'uppercase',
+    },
+    workoutSummaryHeaderExercise: {
+        flex: 1,
+        paddingRight: scaleSize(12),
+    },
+    workoutSummaryHeaderBest: {
+        minWidth: scaleSize(96),
+        textAlign: 'right',
+    },
+    workoutSummaryRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: scaleSize(4),
+    },
+    workoutSummaryRowBorder: {
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+    workoutSummaryExercise: {
+        flex: 1,
+        paddingRight: scaleSize(12),
+        color: theme.textPrimary,
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(13),
+    },
+    workoutSummaryBest: {
+        minWidth: scaleSize(96),
+        flexShrink: 0,
+        textAlign: 'right',
+        color: theme.textSecondary,
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(13),
+    },
+});
+
 const styles = StyleSheet.create({
     outer: { position: "absolute", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1 },
     sheetBg: { backgroundColor: COLORS.bg, borderTopLeftRadius: scaleSize(22), borderTopRightRadius: scaleSize(22) },
@@ -1237,7 +1719,7 @@ const styles = StyleSheet.create({
     statTextCol: { flex: 1, minWidth: 0 },
 
     liveItemWrap: {
-        paddingHorizontal: LIST_HORIZONTAL_PADDING,
+        paddingHorizontal: 0,
         marginBottom: scaleSize(s(14)),
     },
     liveItemWrapLast: {
@@ -1299,7 +1781,7 @@ const styles = StyleSheet.create({
         justifyContent: "flex-end",
         marginLeft: 'auto',
         gap: 0,
-        width: '57%'
+        width: '55%'
     },
     contributionStatCellFlat: {
         flexBasis: 0,

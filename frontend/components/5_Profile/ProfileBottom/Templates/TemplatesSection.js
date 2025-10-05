@@ -287,9 +287,6 @@ const TemplatesSection = ({ templates, isVisible, isBottomSheetExpanded, onScrol
                                 <Text style={styles.cardSubtitle} numberOfLines={1}>{metaSubtitle}</Text>
                             </View>
                         ) : null}
-                        {lastUsedLabel ? (
-                            <Text style={styles.cardLastUsed} numberOfLines={1}>Last used {lastUsedLabel}</Text>
-                        ) : null}
                     </View>
                 </Pressable>
             </View>

@@ -27,17 +27,17 @@ export default function WorkoutStats({ userData }) {
                 </Text>
                 <Text style={styles.workout_stat_text}>Workouts</Text>
             </View>
-            <View style={[styles.workout_stat, styles.total_volume_stat_ctnr]}>
-                <Text style={[styles.workout_stat_number, styles.total_volume_stat_number]}>
-                    {formatNumber(userData?.statsTotalVolume)}
-                </Text>
-                <Text style={styles.workout_stat_text}>Lbs Lifted</Text>
-            </View>
             <View style={[styles.workout_stat, styles.gym_time_stat_ctnr]}>
                 <Text style={[styles.workout_stat_number, styles.gym_time_stat_number]}>
                     {(Number(userData?.statsTotalHours) || 0).toFixed(1)}
                 </Text>
                 <Text style={styles.workout_stat_text}>Hours in Gym</Text>
+            </View>
+            <View style={[styles.workout_stat, styles.total_volume_stat_ctnr]}>
+                <Text style={[styles.workout_stat_number, styles.total_volume_stat_number]}>
+                    {formatNumber(userData?.statsTotalVolume)}
+                </Text>
+                <Text style={styles.workout_stat_text}>Lbs Lifted</Text>
             </View>
         </View>
     );
@@ -58,10 +58,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
-    // Slightly brighter tinted backgrounds for better visibility
-    total_workouts_stat_ctnr: { backgroundColor: 'rgba(4,153,254,0.28)' }, // matches #0499FE
-    total_volume_stat_ctnr: { backgroundColor: 'rgba(61,197,117,0.28)' },  // matches #3DC575
-    gym_time_stat_ctnr: { backgroundColor: 'rgba(233,80,96,0.28)' },       // matches #E95060
+    // Match Macro Tracking palette (protein, carbs, fat)
+    total_workouts_stat_ctnr: { backgroundColor: 'rgba(108,152,252,0.24)' },
+    gym_time_stat_ctnr: { backgroundColor: 'rgba(255,124,181,0.22)' },
+    total_volume_stat_ctnr: { backgroundColor: 'rgba(255,200,116,0.25)' },
     workout_stat_text: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: scaleSize(11.5),
@@ -73,12 +73,12 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(16),
     },
     total_workouts_stat_number: {
-        color: '#0499FE',
-    },
-    total_volume_stat_number: {
-        color: '#3DC575',
+        color: '#6C98FC',
     },
     gym_time_stat_number: {
-        color: '#E95060',
+        color: '#FF7CB5',
+    },
+    total_volume_stat_number: {
+        color: '#FFC874',
     },
 });

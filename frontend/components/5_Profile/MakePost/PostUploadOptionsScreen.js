@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Dimensions } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Dimensions, FlatList } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import FastImage from 'react-native-fast-image';
 import makeID from "../../../../backend/helper/makeID";
 // Storage handled via native resumable helper to avoid RN Blob issues
 import * as ImageManipulator from 'expo-image-manipulator';
@@ -23,24 +24,67 @@ function scaleSize(size) {
 }
 
 const composeHorizontalPadding = scaleSize(18);
-const mediaSpacing = scaleSize(8);
-const mediaImageWidth = Math.round((screenWidth - composeHorizontalPadding * 2 - mediaSpacing) / 2);
-const mediaImageHeight = Math.round(mediaImageWidth * 1.1);
-const singleImageWidth = screenWidth - composeHorizontalPadding * 2;
-const singleImageHeight = Math.round(singleImageWidth * 0.75);
-const avatarSize = scaleSize(42);
+const avatarSize = scaleSize(36);
+const headerBottomPadding = scaleSize(12);
 
 export default function PostOptionsScreen({ navigation, route }) {
-    const { images = [] } = route.params ?? {};
+    const routeImages = useMemo(() => {
+        const incoming = route?.params?.images;
+        return Array.isArray(incoming) ? incoming.filter(Boolean) : [];
+    }, [route?.params?.images]);
+    const workoutParam = route?.params?.workout;
 
     const [caption, setCaption] = useState('');
     const [isSharing, setIsSharing] = useState(false);
     const [honestyVisible, setHonestyVisible] = useState(false);
+    const [mediaIndex, setMediaIndex] = useState(0);
+    const [mediaWidth, setMediaWidth] = useState(screenWidth);
+    const [selectedImages, setSelectedImages] = useState(routeImages);
     const sharePromiseRef = useRef(null);
     const isMountedRef = useRef(true);
     const insets = useSafeAreaInsets();
     const headerTopPadding = useMemo(() => scaleSize(6) + Math.max(0, insets.top), [insets.top]);
     const userImage = global?.userData?.image;
+
+    useEffect(() => {
+        setSelectedImages(routeImages);
+    }, [routeImages]);
+
+    const mediaList = useMemo(
+        () => (Array.isArray(selectedImages) ? selectedImages.filter(Boolean) : []),
+        [selectedImages]
+    );
+    const hasMedia = mediaList.length > 0;
+
+    const keyExtractor = useCallback((item, idx) => `${item}-${idx}`, []);
+
+    const handleMediaLayout = useCallback((event) => {
+        const width = event?.nativeEvent?.layout?.width;
+        if (!width) return;
+        if (Math.abs(width - mediaWidth) < 0.5) return;
+        setMediaWidth(width);
+    }, [mediaWidth]);
+
+    const updateMediaIndexFromOffset = useCallback((offsetX) => {
+        if (!mediaWidth) return;
+        const nextIndex = Math.round(offsetX / mediaWidth);
+        if (Number.isFinite(nextIndex)) setMediaIndex(nextIndex);
+    }, [mediaWidth]);
+
+    const handleMediaScroll = useCallback((event) => {
+        const offsetX = event?.nativeEvent?.contentOffset?.x ?? 0;
+        updateMediaIndexFromOffset(offsetX);
+    }, [updateMediaIndexFromOffset]);
+
+    const renderMediaItem = useCallback(({ item }) => (
+        <View style={[styles.media_slide, { width: mediaWidth, height: mediaWidth }]}>
+            <Image
+                source={{ uri: item }}
+                style={styles.media_image}
+                resizeMode="cover"
+            />
+        </View>
+    ), [mediaWidth]);
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -50,17 +94,31 @@ export default function PostOptionsScreen({ navigation, route }) {
         };
     }, []);
 
+    useEffect(() => {
+        if (mediaIndex >= mediaList.length) {
+            setMediaIndex(0);
+        }
+    }, [mediaIndex, mediaList.length]);
+
     function goBack() {
         navigation.goBack();
     }
 
     const beginShare = () => setHonestyVisible(true);
 
+    const handleOpenSelectPhotos = useCallback(() => {
+        const params = { initialImages: mediaList };
+        if (typeof workoutParam !== 'undefined') params.workout = workoutParam;
+        navigation.navigate('SelectPhotos', params);
+    }, [mediaList, navigation, workoutParam]);
+
     async function sharePost() {
         if (isSharing || sharePromiseRef.current) return;
-        if (!images || images.length === 0) return;
 
         setIsSharing(true);
+
+        const currentImages = mediaList;
+        const hasImagesToUpload = currentImages.length > 0;
 
         const pid = makeID();
         const previousPosts = global?.userData && Array.isArray(global.userData.posts)
@@ -77,7 +135,7 @@ export default function PostOptionsScreen({ navigation, route }) {
 
         const runShare = async () => {
             try {
-                const uploads = await Promise.all(images.map(async (image, index) => {
+                const uploads = hasImagesToUpload ? await Promise.all(currentImages.map(async (image, index) => {
                     try {
                         let compressedUri = await compressUnder250KB(image);
                         if (!compressedUri || !compressedUri.startsWith('file://')) {
@@ -102,16 +160,14 @@ export default function PostOptionsScreen({ navigation, route }) {
                         console.error(`Error processing image ${index + 1}:`, error);
                         return null;
                     }
-                }));
+                })) : [];
 
-                const media = uploads
-                    .filter(Boolean)
-                    .sort((a, b) => a.index - b.index)
-                    .map(({ url }) => ({ uri: url, type: 'image' }));
-
-                if (media.length === 0) {
-                    throw new Error('No media uploaded successfully');
-                }
+                const media = hasImagesToUpload
+                    ? uploads
+                        .filter(Boolean)
+                        .sort((a, b) => a.index - b.index)
+                        .map(({ url }) => ({ uri: url, type: 'image' }))
+                    : [];
 
                 const uid = global?.userData?.uid;
                 if (!uid) throw new Error('Missing user UID for createPost');
@@ -160,16 +216,24 @@ export default function PostOptionsScreen({ navigation, route }) {
     return (
         <View style={styles.main_ctnr}>
             <View style={[styles.header, { paddingTop: headerTopPadding }]}>
-                <TouchableOpacity onPress={withStrongPress(goBack)} style={styles.cancel_btn}>
-                    <Text style={styles.cancel_text}>Cancel</Text>
+                <TouchableOpacity onPress={withStrongPress(goBack)} style={styles.cancel_btn} hitSlop={HIT_SLOP}>
+                    <Feather name="x" size={scaleSize(20)} color={theme.textSecondary} />
                 </TouchableOpacity>
-                <Text style={styles.header_text}>New Post</Text>
+                <View
+                    style={[styles.header_title_ctnr, { top: headerTopPadding, bottom: headerBottomPadding }]}
+                    pointerEvents="none"
+                >
+                    <Text style={styles.header_text}>New Post</Text>
+                </View>
                 <TouchableOpacity
                     onPress={withStrongPress(beginShare)}
-                    style={[styles.share_btn, shareDisabled && styles.share_btn_disabled]}
+                    style={styles.share_btn}
+                    hitSlop={HIT_SLOP}
                     disabled={shareDisabled}
                 >
-                    <Text style={styles.share_btn_text}>{isSharing ? 'Posting...' : 'Post'}</Text>
+                    <Text style={[styles.share_btn_text, shareDisabled && styles.share_btn_text_disabled]}>
+                        {isSharing ? 'Posting...' : 'Post'}
+                    </Text>
                 </TouchableOpacity>
             </View>
 
@@ -181,7 +245,11 @@ export default function PostOptionsScreen({ navigation, route }) {
                 <View style={styles.compose_row}>
                     <View style={styles.avatar_ctnr}>
                         {userImage ? (
-                            <Image source={{ uri: userImage }} style={styles.avatar} />
+                            <FastImage
+                                source={{ uri: userImage }}
+                                style={styles.avatar}
+                                resizeMode={FastImage.resizeMode.cover}
+                            />
                         ) : (
                             <View style={styles.avatar_placeholder}>
                                 <Feather name="user" size={scaleSize(20)} color={theme.textSecondary} />
@@ -190,7 +258,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     </View>
                     <View style={styles.caption_ctnr}>
                         <DismissableTextInput
-                            placeholder="What's happening?"
+                            placeholder="What's popping?"
                             placeholderTextColor={theme.textSecondary}
                             value={caption}
                             onChangeText={setCaption}
@@ -202,19 +270,60 @@ export default function PostOptionsScreen({ navigation, route }) {
                     </View>
                 </View>
 
-                {images.length > 0 && (
-                    <View style={styles.media_grid}>
-                        {images.map((uri, index) => (
-                            <Image
-                                key={`${uri}-${index}`}
-                                source={{ uri }}
-                                style={[
-                                    images.length === 1 ? styles.media_image_single : styles.media_image,
-                                    images.length > 1 && index % 2 === 0 ? styles.media_image_left : null
-                                ]}
-                            />
-                        ))}
+                {hasMedia ? (
+                    <View style={styles.media_carousel_wrapper}>
+                        <View
+                            style={[styles.media_container, mediaWidth ? { height: mediaWidth } : null]}
+                            onLayout={handleMediaLayout}
+                        >
+                            {mediaWidth > 0 && (
+                                <FlatList
+                                    data={mediaList}
+                                    horizontal
+                                    pagingEnabled
+                                    snapToInterval={mediaWidth}
+                                    decelerationRate="fast"
+                                    bounces={false}
+                                    alwaysBounceHorizontal={false}
+                                    overScrollMode="never"
+                                    showsHorizontalScrollIndicator={false}
+                                    keyExtractor={keyExtractor}
+                                    renderItem={renderMediaItem}
+                                    style={styles.media_list}
+                                    onScroll={handleMediaScroll}
+                                    onMomentumScrollEnd={handleMediaScroll}
+                                    scrollEventThrottle={16}
+                                    nestedScrollEnabled
+                                />
+                            )}
+                        </View>
+                        {mediaList.length > 1 && (
+                            <View style={styles.media_indicator_row} pointerEvents="none">
+                                {mediaList.map((_, idx) => (
+                                    <View
+                                        key={`${idx}-indicator`}
+                                        style={idx === mediaIndex ? styles.media_dash : styles.media_dot}
+                                    />
+                                ))}
+                            </View>
+                        )}
+                        <TouchableOpacity
+                            style={styles.media_manage_btn}
+                            onPress={withStrongPress(handleOpenSelectPhotos)}
+                        >
+                            <Feather name="image" size={scaleSize(18)} color={theme.primary} />
+                            <Text style={styles.media_manage_text}>Edit photos</Text>
+                        </TouchableOpacity>
                     </View>
+                ) : (
+                    <TouchableOpacity
+                        style={styles.add_media_cta}
+                        onPress={withStrongPress(handleOpenSelectPhotos)}
+                    >
+                        <Feather name="image" size={scaleSize(22)} color={theme.primary} />
+                        <Text style={styles.add_media_title}>Add photos (optional)</Text>
+                        <Text style={styles.add_media_subtitle}>Share your progress with an image</Text>
+                    </TouchableOpacity>
                 )}
             </ScrollView>
 
@@ -227,6 +336,8 @@ export default function PostOptionsScreen({ navigation, route }) {
     );
 }
 
+const HIT_SLOP = { top: scaleSize(8), bottom: scaleSize(8), left: scaleSize(8), right: scaleSize(8) };
+
 const styles = StyleSheet.create({
     main_ctnr: {
         flex: 1,
@@ -238,18 +349,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         backgroundColor: theme.bg,
-        paddingBottom: scaleSize(12),
+        paddingBottom: headerBottomPadding,
         borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: theme.hairline
+        borderBottomColor: theme.hairline,
+        position: 'relative'
     },
     cancel_btn: {
         paddingVertical: scaleSize(6),
         paddingHorizontal: scaleSize(8)
     },
-    cancel_text: {
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(14),
-        color: theme.textSecondary
+    header_title_ctnr: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        justifyContent: 'center'
     },
     header_text: {
         fontFamily: 'Outfit_600SemiBold',
@@ -258,21 +372,16 @@ const styles = StyleSheet.create({
         color: theme.textPrimary
     },
     share_btn: {
-        minWidth: scaleSize(75),
-        paddingHorizontal: scaleSize(14),
-        height: scaleSize(32),
-        borderRadius: scaleSize(16),
-        backgroundColor: theme.primary,
         justifyContent: 'center',
         alignItems: 'center'
     },
     share_btn_text: {
-        fontFamily: 'Outfit_700Bold',
+        fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(14.5),
-        color: '#fff'
+        color: theme.primary
     },
-    share_btn_disabled: {
-        opacity: 0.4
+    share_btn_text_disabled: {
+        color: theme.textSecondary
     },
     body_scrollview: {
         flex: 1,
@@ -313,25 +422,82 @@ const styles = StyleSheet.create({
         color: theme.textPrimary,
         minHeight: avatarSize
     },
-    media_grid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        marginTop: scaleSize(18)
+    media_carousel_wrapper: {
+        marginTop: scaleSize(18),
+        marginHorizontal: -composeHorizontalPadding,
+        alignItems: 'center'
+    },
+    media_container: {
+        width: '100%',
+        backgroundColor: theme.field,
+        overflow: 'hidden'
+    },
+    media_list: {
+        width: '100%',
+        height: '100%'
+    },
+    media_slide: {
+        justifyContent: 'center',
+        alignItems: 'center'
     },
     media_image: {
-        width: mediaImageWidth,
-        height: mediaImageHeight,
-        borderRadius: scaleSize(12),
-        marginBottom: mediaSpacing,
-        backgroundColor: theme.bg
+        width: '100%',
+        height: '100%',
+        borderRadius: 0
     },
-    media_image_single: {
-        width: singleImageWidth,
-        height: singleImageHeight,
+    media_indicator_row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: scaleSize(8)
+    },
+    media_manage_btn: {
+        marginTop: scaleSize(16),
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    media_manage_text: {
+        marginLeft: scaleSize(8),
+        color: theme.primary,
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(14)
+    },
+    add_media_cta: {
+        marginTop: scaleSize(18),
+        marginHorizontal: -composeHorizontalPadding,
+        paddingVertical: scaleSize(32),
+        paddingHorizontal: composeHorizontalPadding,
         borderRadius: scaleSize(16),
-        backgroundColor: theme.bg
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
+        backgroundColor: theme.surface,
+        alignItems: 'center'
     },
-    media_image_left: {
-        marginRight: mediaSpacing
+    add_media_title: {
+        marginTop: scaleSize(12),
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(16),
+        color: theme.textPrimary
+    },
+    add_media_subtitle: {
+        marginTop: scaleSize(6),
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(13),
+        color: theme.textSecondary
+    },
+    media_dot: {
+        width: scaleSize(6),
+        height: scaleSize(4.5),
+        borderRadius: 100,
+        backgroundColor: 'rgba(255,255,255,0.22)',
+        marginHorizontal: scaleSize(3)
+    },
+    media_dash: {
+        width: scaleSize(22),
+        height: scaleSize(4.5),
+        borderRadius: 100,
+        backgroundColor: 'rgba(255,255,255,0.6)',
+        marginHorizontal: scaleSize(3)
     }
 });

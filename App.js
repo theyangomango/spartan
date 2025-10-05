@@ -1098,7 +1098,33 @@ export default function App() {
 
                         {/* Creator */}
                         <RootStack.Screen name="SelectPhotos" component={SelectPhotosScreen} />
-                        <RootStack.Screen name="PostOptions" component={PostUploadOptionsScreen} />
+                        <RootStack.Screen
+                            name="PostOptions"
+                            component={PostUploadOptionsScreen}
+                            options={Platform.select({
+                                ios: {
+                                    headerShown: false,
+                                    gestureEnabled: false,
+                                    presentation: 'modal',
+                                    cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
+                                    transitionSpec: {
+                                        open: TransitionSpecs.TransitionIOSSpec,
+                                        close: TransitionSpecs.TransitionIOSSpec,
+                                    },
+                                },
+                                android: {
+                                    headerShown: false,
+                                    presentation: 'fullScreenModal',
+                                    animation: 'slide_from_bottom',
+                                    gestureEnabled: false,
+                                    fullScreenGestureEnabled: false,
+                                },
+                                default: {
+                                    headerShown: false,
+                                    gestureEnabled: false,
+                                },
+                            })}
+                        />
                         {/* Nutrition */}
                         <RootStack.Screen name="FoodDetail" component={FoodDetail} />
                     </RootStack.Navigator>

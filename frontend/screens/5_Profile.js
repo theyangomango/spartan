@@ -106,14 +106,15 @@ export default function Profile({ navigation }) {
             const sig = Number(global?.profileOpenSelectPhotosSignal || 0);
             if (sig && sig !== lastOpenSigRef.current) {
                 lastOpenSigRef.current = sig;
-                try { navigation.navigate('SelectPhotos'); } catch {}
+                try { navigation.navigate('PostOptions', { images: [] }); } catch {}
             }
         });
         return unsub;
     }, [navigation]);
 
     function uploadPost() {
-        navigation.navigate("SelectPhotos", {
+        navigation.navigate('PostOptions', {
+            images: [],
             userData: userData,
         });
     }
@@ -130,7 +131,11 @@ export default function Profile({ navigation }) {
     return (
         <SafeAreaView style={styles.main_ctnr}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+                scrollEnabled={false}
+            >
                 <View style={styles.body_ctnr}>
                     <ProfileHeader
                         onPressCreateBtn={uploadPost}

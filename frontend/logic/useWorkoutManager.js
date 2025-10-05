@@ -809,7 +809,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         try {
             const { jumpToTab } = require('../../navigationRef');
             jumpToTab('Profile');
-            navigation.navigate('SelectPhotos', { workout: completedWorkout });
+            navigation.navigate('PostOptions', { images: [], workout: completedWorkout });
         } catch { }
     }, [completedWorkout, navigation]);
 

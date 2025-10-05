@@ -16,6 +16,7 @@ export default function MealItemCard({
     renderSummary,
     showCaloriesRight = false,
     compact = false,
+    enableSwipe = true,
 }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
@@ -77,7 +78,7 @@ export default function MealItemCard({
         </Pressable>
     );
 
-    if (compact) return CardInner; // Skip swipe container for near pages to mount instantly
+    if (compact || !enableSwipe) return CardInner; // Skip swipe when disabled or in compact mode
 
     return (
         <Swipeable

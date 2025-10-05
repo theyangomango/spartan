@@ -15,7 +15,7 @@ const formatCount = (value, singular) => {
 const formatWorkoutsCompleted = (value) => {
     const count = Number.isFinite(value) ? value : Number(value) || 0;
     const safeCount = count < 0 ? 0 : count;
-    const unit = safeCount === 1 ? 'Workout Completed' : 'Workouts Completed';
+    const unit = safeCount === 1 ? 'Workout' : 'Workouts';
     return `${safeCount} ${unit}`;
 };
 
@@ -30,7 +30,7 @@ const ProfileContentCards = ({
 }) => {
     const workoutsCompletedSubtitle = useMemo(() => formatWorkoutsCompleted(workoutsCount), [workoutsCount]);
 
-    const templatesSubtitle = useMemo(() => formatCount(templatesCount, 'Template') + ' Saved', [templatesCount]);
+    const templatesSubtitle = useMemo(() => formatCount(templatesCount, 'Template'), [templatesCount]);
 
     if (contentLocked) {
         return (
@@ -95,12 +95,12 @@ const CARD_BORDER = 'rgba(194, 208, 238, 0.32)';
 
 const styles = StyleSheet.create({
     container: {
-        gap: scaleSize(14),
+        gap: scaleSize(10),
     },
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: scaleSize(16),
+        paddingVertical: scaleSize(18),
         paddingHorizontal: scaleSize(18),
         borderRadius: CARD_RADIUS,
         backgroundColor: CARD_BACKGROUND,
@@ -128,12 +128,12 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(168, 188, 224, 0.28)',
     },
     workoutsBadge: {
-        backgroundColor: 'rgba(90, 162, 255, 0.22)',
-        borderColor: 'rgba(142, 186, 255, 0.5)',
+        backgroundColor: 'rgba(108, 152, 252, 0.28)',
+        borderColor: 'rgba(141, 183, 255, 0.52)',
     },
     templatesBadge: {
-        backgroundColor: 'rgba(182, 136, 255, 0.22)',
-        borderColor: 'rgba(214, 190, 255, 0.48)',
+        backgroundColor: 'rgba(182, 156, 255, 0.28)',
+        borderColor: 'rgba(210, 189, 255, 0.5)',
     },
     cardTextWrap: {
         flex: 1,

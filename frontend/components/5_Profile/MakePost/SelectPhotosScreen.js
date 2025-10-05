@@ -14,8 +14,12 @@ const scaledSize = (size) => scaleSize(size);
 const FEED_ASPECT_RATIO = 1; // square crop across selection & preview
 
 export default function SelectPhotosScreen({ navigation, route }) {
+    const initialSelection = useMemo(() => {
+        const provided = route?.params?.initialImages;
+        return Array.isArray(provided) ? provided.filter(Boolean) : [];
+    }, [route?.params?.initialImages]);
     const [assets, setAssets] = useState([]);
-    const [images, setImages] = useState([]); // selected URIs, ordered
+    const [images, setImages] = useState(initialSelection); // selected URIs, ordered
     const [loading, setLoading] = useState(false);
     const [endCursor, setEndCursor] = useState(null);
     const [hasNextPage, setHasNextPage] = useState(true);
@@ -37,6 +41,12 @@ export default function SelectPhotosScreen({ navigation, route }) {
     useEffect(() => {
         getInitialAssets();
     }, []);
+
+    useEffect(() => {
+        setImages(initialSelection);
+        setCroppedMap({});
+        setActiveIndex(0);
+    }, [initialSelection]);
 
     const getInitialAssets = useCallback(async () => {
         setLoading(true);
@@ -95,12 +105,15 @@ export default function SelectPhotosScreen({ navigation, route }) {
     }
 
     function next() {
-        if (images.length === 0) return;
         const finalImages = images.map((u) => (croppedMap?.[u] || u));
-        navigation.navigate('PostOptions', {
-            userData: global.userData,
-            images: finalImages,
-            workout: (('workout' in route.params) ? route.params.workout : null)
+        const params = { images: finalImages };
+        if (route?.params && Object.prototype.hasOwnProperty.call(route.params, 'workout')) {
+            params.workout = route.params.workout;
+        }
+        navigation.navigate({
+            name: 'PostOptions',
+            params,
+            merge: true,
         });
     }
 

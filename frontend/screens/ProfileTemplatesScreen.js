@@ -20,11 +20,6 @@ import { canViewerAccessProfile } from "../utils/workoutPrivacy";
 import { clearFooterSuppression } from "../state/footerSuppressionStore";
 import { withStrongPress } from "../utils/haptics";
 
-const formatCount = (value) => {
-    const num = Number.isFinite(value) ? value : Number(value) || 0;
-    const safe = num < 0 ? 0 : num;
-    return `${safe} ${safe === 1 ? 'Template' : 'Templates'}`;
-};
 
 const LockedView = ({ subtitle }) => (
     <View style={styles.lockedContainer}>
@@ -100,13 +95,6 @@ export default function ProfileTemplatesScreen({ navigation, route }) {
         navigation.goBack();
     }, [navigation]);
 
-    const headerSubtitle = useMemo(() => {
-        if (!userData) return '';
-        if (userData.handle) return `@${userData.handle}`;
-        if (userData.name) return userData.name;
-        return '';
-    }, [userData?.handle, userData?.name]);
-
     let mainContent = null;
     if (!targetUid) {
         mainContent = (
@@ -137,28 +125,21 @@ export default function ProfileTemplatesScreen({ navigation, route }) {
         );
     }
 
-    const templateCount = templates.length;
-
     return (
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
             <View style={styles.contentWrap}>
                 <View style={styles.headerContainer}>
                     <View style={styles.headerRow}>
-                        <Pressable onPress={withStrongPress(handleBack)} style={styles.headerBackButton} hitSlop={8}>
+                        <Pressable
+                            onPress={withStrongPress(handleBack)}
+                            style={styles.headerBackButton}
+                            hitSlop={12}
+                        >
                             <Ionicons name="chevron-back" size={scaleSize(22)} color={theme.textPrimary} />
                         </Pressable>
-                        <View style={styles.headerTitleWrap}>
-                            <Text style={styles.headerTitle}>Templates</Text>
-                            {headerSubtitle ? (
-                                <Text style={styles.headerSubtitle} numberOfLines={1}>{headerSubtitle}</Text>
-                            ) : null}
-                        </View>
+                        <Text style={styles.headerTitle}>Templates</Text>
                         <View style={styles.headerRightSpacer} />
-                    </View>
-                    <View style={styles.sectionHeaderRow}>
-                        <Text style={styles.sectionTitle}>Templates</Text>
-                        <Text style={styles.countLabel}>{formatCount(templateCount)}</Text>
                     </View>
                 </View>
                 {mainContent}
@@ -176,17 +157,18 @@ const styles = StyleSheet.create({
     },
     contentWrap: {
         flex: 1,
-        paddingHorizontal: scaleSize(14),
         paddingBottom: scaleSize(16),
     },
     headerContainer: {
         paddingTop: scaleSize(8),
         paddingBottom: scaleSize(12),
+        paddingHorizontal: scaleSize(18),
     },
     headerRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: scaleSize(12),
+        justifyContent: 'space-between',
+        marginBottom: scaleSize(4),
     },
     headerBackButton: {
         width: scaleSize(34),
@@ -194,42 +176,16 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(17),
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.06)',
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,255,255,0.12)',
-    },
-    headerTitleWrap: {
-        flex: 1,
-        marginHorizontal: scaleSize(10),
     },
     headerTitle: {
+        flex: 1,
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(18),
         color: '#F1F5FF',
-    },
-    headerSubtitle: {
-        marginTop: scaleSize(2),
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(12.5),
-        color: theme.textSecondary,
+        textAlign: 'center',
     },
     headerRightSpacer: {
         width: scaleSize(34),
-    },
-    sectionHeaderRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    sectionTitle: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(15),
-        color: '#E8F0FF',
-    },
-    countLabel: {
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(12),
-        color: '#93A4C5',
     },
     templatesWrap: {
         flex: 1,

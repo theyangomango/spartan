@@ -464,6 +464,14 @@ export default function Feed({ navigation, route }) {
         />
     ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef]);
 
+    const handleCreatePost = useCallback(() => {
+        try {
+            navigation?.navigate('PostOptions', { images: [] });
+        } catch {
+            navigation?.navigate('PostOptions');
+        }
+    }, [navigation]);
+
     const commentsVisible = activeSheet === "comments" && activePostIndex >= 0;
     const shareSheetVisible = activeSheet === "share";
     const activePost = commentsVisible || shareSheetVisible
@@ -501,7 +509,7 @@ export default function Feed({ navigation, route }) {
                     { bottom: (insets.bottom || 0) + scaleSize(85) },
                 ]}
                 activeOpacity={0.85}
-                onPress={() => { }}
+                onPress={handleCreatePost}
                 accessibilityRole="button"
                 accessibilityLabel="Create a post"
             >

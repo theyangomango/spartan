@@ -820,9 +820,9 @@ export default function Workout({ navigation, route }) {
 
     const openCreatePost = useCallback(() => {
         try {
-            navigation?.navigate('SelectPhotos', { userData: global?.userData || {} });
+            navigation?.navigate('PostOptions', { images: [], userData: global?.userData || {} });
         } catch {
-            try { navigation?.navigate('SelectPhotos'); } catch { }
+            try { navigation?.navigate('PostOptions', { images: [] }); } catch { }
         }
     }, [navigation]);
 

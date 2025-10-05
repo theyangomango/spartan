@@ -7,6 +7,7 @@ import {
     Animated,
     FlatList,
     Dimensions,
+    ActivityIndicator,
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import { Heart, Messages1 } from "iconsax-react-native";
@@ -216,6 +217,39 @@ const SimpleFeedPost = ({
 
     const [mediaIndex, setMediaIndex] = useState(0);
     const [mediaSize, setMediaSize] = useState(0);
+    const [mediaLoadedCount, setMediaLoadedCount] = useState(0);
+    const [contentReady, setContentReady] = useState(mediaList.length === 0);
+
+    useEffect(() => {
+        if (mediaList.length === 0) {
+            setContentReady(true);
+            setMediaLoadedCount(0);
+        } else {
+            setContentReady(false);
+            setMediaLoadedCount(0);
+        }
+    }, [mediaList]);
+
+    useEffect(() => {
+        if (contentReady) return;
+        if (mediaList.length === 0) {
+            setContentReady(true);
+            return;
+        }
+        if (mediaLoadedCount >= mediaList.length) {
+            setContentReady(true);
+        }
+    }, [contentReady, mediaLoadedCount, mediaList.length]);
+
+    useEffect(() => {
+        if (contentReady || mediaList.length === 0) return () => { };
+        const timeout = setTimeout(() => setContentReady(true), 3000);
+        return () => clearTimeout(timeout);
+    }, [contentReady, mediaList.length]);
+
+    const handleMediaLoad = useCallback(() => {
+        setMediaLoadedCount((count) => count + 1);
+    }, []);
 
     useEffect(() => {
         if (mediaIndex >= mediaList.length) {
@@ -256,6 +290,7 @@ const SimpleFeedPost = ({
                         paused
                         repeat
                         muted
+                        onLoad={handleMediaLoad}
                     />
                 </View>
             );
@@ -270,10 +305,11 @@ const SimpleFeedPost = ({
                     }}
                     style={styles.mediaContent}
                     resizeMode={FastImage.resizeMode.cover}
+                    onLoad={handleMediaLoad}
                 />
             </View>
         );
-    }, [mediaSize]);
+    }, [handleMediaLoad, mediaSize]);
 
     const pfpUri = usePfp(
         data?.uid ? String(data.uid) : "",
@@ -388,6 +424,32 @@ const SimpleFeedPost = ({
     const likeColor = isLiked ? "#FE5555" : theme.textPrimary;
     const keyExtractor = useCallback((item, idx) => `${item?.uri || 'media'}-${idx}`, []);
 
+    const viewerUid = useMemo(() => {
+        try {
+            return global?.userData?.uid ? String(global.userData.uid) : '';
+        } catch {
+            return '';
+        }
+    }, []);
+
+    const postOwnerUid = useMemo(() => {
+        const candidates = [
+            data?.uid,
+            data?.creatorUid,
+            data?.creatorUID,
+            data?.ownerUid,
+            data?.userUid,
+        ];
+        for (const value of candidates) {
+            if (value === undefined || value === null) continue;
+            const str = String(value).trim();
+            if (str) return str;
+        }
+        return '';
+    }, [data?.uid, data?.creatorUid, data?.creatorUID, data?.ownerUid, data?.userUid]);
+
+    const isViewerOwner = viewerUid && postOwnerUid && viewerUid === postOwnerUid;
+
     const handlePressWorkout = useCallback(() => {
         if (!workout) return;
         onPressWorkout?.(index, data);
@@ -395,7 +457,7 @@ const SimpleFeedPost = ({
 
     return (
         <View style={styles.wrapper}>
-            <View style={styles.card}>
+            <View style={[styles.card, !contentReady && styles.cardHidden]}>
                 <View style={styles.sectionTop}>
                     <View style={styles.headerRow}>
                         <Pressable style={styles.avatarWrap} onPress={() => onPressProfile?.(index, data)}>
@@ -429,16 +491,18 @@ const SimpleFeedPost = ({
                             )}
                         </View>
 
-                        <Pressable
-                            style={styles.moreButton}
-                            onPress={() => {
-                                if (workout) onPressWorkout?.(index, data);
-                            }}
-                            disabled={!workout}
-                            hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
-                        >
-                            <MaterialCommunityIcons name="dots-vertical" size={scaleSize(20)} color={theme.textPrimary} />
-                        </Pressable>
+                        {isViewerOwner ? (
+                            <Pressable
+                                style={styles.moreButton}
+                                onPress={() => {
+                                    if (workout) onPressWorkout?.(index, data);
+                                }}
+                                disabled={!workout}
+                                hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                            >
+                                <MaterialCommunityIcons name="dots-vertical" size={scaleSize(20)} color={theme.textPrimary} />
+                            </Pressable>
+                        ) : null}
                     </View>
 
                     {workout ? (
@@ -631,6 +695,11 @@ const SimpleFeedPost = ({
                 pointerEvents="none"
                 style={[styles.highlightOverlay, { opacity: highlightOpacity }]}
             />
+            {!contentReady ? (
+                <View style={styles.loadingOverlay} pointerEvents="none">
+                    <ActivityIndicator size="small" color="#93C5FD" />
+                </View>
+            ) : null}
         </View>
     );
 };
@@ -645,6 +714,9 @@ const styles = StyleSheet.create({
     },
     card: {
         backgroundColor: theme.surface,
+    },
+    cardHidden: {
+        opacity: 0,
     },
     sectionTop: {
         paddingHorizontal: scaleSize(18),
@@ -917,5 +989,15 @@ const styles = StyleSheet.create({
         top: scaleSize(14),
         bottom: scaleSize(12),
         backgroundColor: "#FFF4B3",
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(17, 24, 39, 0.35)',
     },
 });
