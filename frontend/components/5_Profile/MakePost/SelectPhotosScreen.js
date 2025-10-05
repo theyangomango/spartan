@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, Image, SafeAreaView, useWindowDimensions } from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity, Image, SafeAreaView, useWindowDimensions, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome6, Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import Gallery from 'react-native-awesome-gallery';
@@ -29,6 +30,8 @@ export default function SelectPhotosScreen({ navigation, route }) {
     const [previewBottom, setPreviewBottom] = useState(null);
 
     const { height: windowHeight } = useWindowDimensions();
+    const insets = useSafeAreaInsets();
+    const headerTopPadding = useMemo(() => scaledSize(12) + (Platform.OS === 'android' ? Math.max(0, insets.top) : 0), [insets.top]);
 
     useEffect(() => {
         getInitialAssets();
@@ -154,7 +157,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
 
     return (
         <SafeAreaView style={styles.container}>
-            <View style={styles.header_ctnr}>
+            <View style={[styles.header_ctnr, { paddingTop: headerTopPadding }]}>
                 <TouchableOpacity onPress={withStrongPress(goBack)}>
                     <View style={styles.close_icon_ctnr}>
                         <Ionicons name='close' size={scaledSize(23)} color={theme.textSecondary} />
@@ -254,7 +257,6 @@ const styles = StyleSheet.create({
     header_ctnr: {
         alignItems: 'center',
         paddingHorizontal: scaledSize(5),
-        paddingTop: scaledSize(5),
         paddingBottom: scaledSize(15),
         flexDirection: 'row',
         justifyContent: 'space-between',

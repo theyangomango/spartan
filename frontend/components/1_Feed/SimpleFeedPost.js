@@ -447,7 +447,7 @@ const SimpleFeedPost = ({
                                 {title}
                             </Text>
                             {shouldShowSubtitle ? (
-                                <Text style={styles.captionText} numberOfLines={3}>
+                                <Text style={styles.captionText} numberOfLines={4}>
                                     {caption}
                                 </Text>
                             ) : null}
@@ -711,15 +711,15 @@ const styles = StyleSheet.create({
     titleText: {
         color: theme.textPrimary,
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(14),
     },
     workoutTitleText: {
         color: '#74abf7ff',
     },
     captionText: {
-        color: theme.textSecondary,
-        fontFamily: "Outfit_400Regular",
-        fontSize: scaleSize(13),
+        color: theme.textPrimary,
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(14),
         marginTop: scaleSize(4),
     },
     metricsLeft: {
