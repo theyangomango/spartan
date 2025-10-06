@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
     },
     templateTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(14),
         color: "#EEF5FF",
         includeFontPadding: false,
     },
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     emptyTextColumn: { flex: 1, minWidth: 0, gap: scaleSize(4) },
     emptyTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(14),
         color: "#E9F1FF",
         includeFontPadding: false,
     },

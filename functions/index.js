@@ -958,6 +958,9 @@ export const onCompletedWorkoutAutoPost = onDocumentWritten(
                 }
 
                 workoutSnapshot.postPid = pid;
+                if (!workoutSnapshot.pid) {
+                    workoutSnapshot.pid = pid;
+                }
 
                 const postPayload = {
                     pid,
@@ -1008,11 +1011,15 @@ export const onCompletedWorkoutAutoPost = onDocumentWritten(
                             if (!pid) return entry;
                             if (entry?.postPid === pid) return entry;
                             changed = true;
-                            return {
+                            const patched = {
                                 ...entry,
                                 postPid: pid,
                                 postPidLinkedAt: linkedAt,
                             };
+                            if (patched.pid !== pid) {
+                                patched.pid = pid;
+                            }
+                            return patched;
                         });
                         if (changed) {
                             txn.update(userRefLink, { completedWorkouts: updatedArr });

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { View, Text, ActivityIndicator, Animated, FlatList, Pressable } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { collection, doc, getDoc, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, limit, onSnapshot, query, where } from 'firebase/firestore';
 import scaleSize from '../../../helper/scaleSize';
 import { styles, COLORS, scaledSize } from './UserStatsStyles';
 import { withStrongPress } from '../../../utils/haptics';
@@ -147,10 +147,10 @@ export default function UserStatsExerciseDetailScreen({
     onClose,
 }) {
     const headerName = detailName || 'Exercise';
-    const [feedItems, setFeedItems] = useState([]);
     const [postsLoading, setPostsLoading] = useState(false);
-    const postCacheRef = useRef(new Map());
-    const postPidByWidRef = useRef(new Map());
+    const [postsByPid, setPostsByPid] = useState({});
+    const listenersRef = useRef({});
+    const widToPidRef = useRef({});
     const commentTargetRef = useRef(null);
     const [commentsVisible, setCommentsVisible] = useState(false);
     const [commentTarget, setCommentTarget] = useState(null);
@@ -159,229 +159,245 @@ export default function UserStatsExerciseDetailScreen({
     const [likesSheetUsers, setLikesSheetUsers] = useState([]);
     const [likesSheetTitle, setLikesSheetTitle] = useState('Liked by');
 
-    const buildFeedItem = useCallback((workout, post, index) => {
-        if (!workout && !post) return null;
+    const buildFeedItem = useCallback((workout, post) => {
+        if (!post || typeof post !== 'object') return null;
+        const pid = String(post.pid || '');
+        if (!pid || pid.startsWith('workout:')) return null;
 
-        const workoutClone = workout && typeof workout === 'object' ? { ...workout } : null;
+        const workoutClone = workout && typeof workout === 'object' ? { ...workout } : {};
         const widRaw = workoutClone ? extractWid(workoutClone) : null;
         const wid = widRaw ? String(widRaw) : '';
-        const cachedPid = wid ? postPidByWidRef.current.get(wid) : '';
 
-        const pid = stringCandidates([
-            post?.pid,
-            workoutClone?.postPid,
-            cachedPid,
-            workoutClone?.pid,
-            `workout:${wid || index}`,
-        ]);
-
-        if (wid && pid && !String(pid).startsWith('workout:') && cachedPid !== pid) {
-            postPidByWidRef.current.set(wid, pid);
-        }
-        if (workoutClone && pid && workoutClone.postPid !== pid) {
-            workoutClone.postPid = pid;
+        if (workoutClone) {
+            if (!workoutClone.postPid) workoutClone.postPid = pid;
+            if (!workoutClone.pid) workoutClone.pid = pid;
         }
 
-        const ownerUid = stringCandidates([
-            post?.uid,
-            workoutClone?.uid,
-            workoutClone?.creatorUid,
-            workoutClone?.creatorUID,
-            workoutClone?.ownerUid,
-        ]);
+        const mergedWorkout = {
+            ...(post.workout || {}),
+            ...(workoutClone || {}),
+            postPid: pid,
+            pid,
+        };
 
-        const handle = ensureHandle(post?.handle ?? workoutClone?.handle ?? workoutClone?.username ?? '');
-        const fallbackName = stringCandidates([
-            post?.name,
-            workoutClone?.ownerName,
-            workoutClone?.name,
-            workoutClone?.templateName,
-        ]);
-        const created = Number(post?.created) || resolveWorkoutCreatedAt(workoutClone);
-        const captionFromPost = typeof post?.caption === 'string' ? post.caption : '';
-        const captionFromWorkout = typeof workoutClone?.caption === 'string' ? workoutClone.caption : '';
-        const caption = captionFromPost || captionFromWorkout || workoutClone?.templateName || workoutClone?.name || '';
-
-        const media = mergeMediaSources(post, workoutClone);
-        const likes = Array.isArray(post?.likes) ? post.likes : [];
-        const likeCount = Number.isFinite(Number(post?.likeCount)) ? Number(post.likeCount) : likes.length;
-        const comments = Array.isArray(post?.comments) ? post.comments : (
-            caption
-                ? [{
-                    content: caption,
-                    handle,
-                    isCaption: true,
-                    pfp: post?.pfp ?? workoutClone?.pfp ?? workoutClone?.pfpUrl ?? '',
-                    timestamp: created || Date.now(),
-                    uid: ownerUid || null,
-                }]
-                : []
-        );
-        const commentCount = Number.isFinite(Number(post?.commentCount))
-            ? Number(post.commentCount)
-            : comments.length;
-
-        return {
+        const feedItem = {
+            ...post,
             pid,
             id: pid,
-            uid: ownerUid,
-            handle,
-            name: fallbackName,
-            pfp: post?.pfp ?? workoutClone?.pfp ?? workoutClone?.pfpUrl ?? workoutClone?.photoURL ?? workoutClone?.photo ?? '',
-            pfpVersion: post?.pfpVersion ?? workoutClone?.pfpVersion ?? 0,
-            created,
-            caption,
-            workout: workoutClone,
-            media,
-            images: Array.isArray(post?.images) ? post.images : [],
-            likes,
-            likeCount,
-            comments,
-            commentCount,
-            shareCount: Number(post?.shareCount) || 0,
-            tags: Array.isArray(post?.tags) ? post.tags : [],
-            tagged: Array.isArray(post?.tagged) ? post.tagged : [],
-            __linkedWid: wid,
-            __source: 'user-stats-detail',
+            workout: mergedWorkout,
         };
-    }, [postPidByWidRef]);
+
+        if (!feedItem.uid) {
+            feedItem.uid = stringCandidates([
+                workoutClone?.creatorUID,
+                workoutClone?.creatorUid,
+                workoutClone?.uid,
+                post.uid,
+            ]);
+        }
+
+        const handle = ensureHandle(feedItem.handle ?? workoutClone?.handle ?? workoutClone?.username ?? '');
+        feedItem.handle = handle;
+
+        if (!feedItem.name) {
+            feedItem.name = stringCandidates([
+                workoutClone?.ownerName,
+                workoutClone?.name,
+                workoutClone?.templateName,
+                feedItem.handle,
+            ]) || feedItem.name;
+        }
+
+        if (!feedItem.caption) {
+            const captionFallback = stringCandidates([
+                workoutClone?.caption,
+                workoutClone?.templateName,
+                workoutClone?.name,
+            ]);
+            if (captionFallback) feedItem.caption = captionFallback;
+        }
+
+        if (!Array.isArray(feedItem.media) || !feedItem.media.length) {
+            feedItem.media = mergeMediaSources(feedItem, mergedWorkout);
+        }
+        if (!Array.isArray(feedItem.images)) {
+        feedItem.images = Array.isArray(post.images) ? post.images : [];
+        }
+
+        feedItem.__linkedWid = wid;
+        feedItem.__source = 'user-stats-detail';
+
+        return feedItem;
+    }, []);
 
     useEffect(() => {
-        let cancelled = false;
+        const list = Array.isArray(workouts) ? workouts : [];
 
-        const resolvePosts = async () => {
-            if (!visible) {
-                setFeedItems([]);
-                setPostsLoading(false);
-                return;
-            }
-
-            const list = Array.isArray(workouts) ? workouts : [];
-            if (!list.length) {
-                setFeedItems([]);
-                setPostsLoading(false);
-                return;
-            }
-
-            const fetchQueue = [];
-            const widQueue = [];
-            const pidByIndex = new Map();
-
-            list.forEach((wk, index) => {
-                let pid = extractPidFromWorkout(wk);
-                const widRaw = extractWid(wk);
-                const wid = widRaw ? String(widRaw) : '';
-
-                if (!pid && wid) {
-                    const cachedPid = postPidByWidRef.current.get(wid);
-                    if (cachedPid) pid = cachedPid;
-                }
-
-                if (pid) {
-                    pidByIndex.set(index, pid);
-                    if (!postCacheRef.current.has(pid)) {
-                        fetchQueue.push({ pid });
-                    }
-                } else if (wid) {
-                    widQueue.push({ wid, index });
-                }
+        const detachAll = () => {
+            Object.values(listenersRef.current).forEach((unsub) => {
+                try { unsub(); } catch { }
             });
-
-            if (fetchQueue.length) setPostsLoading(true);
-
-            if (fetchQueue.length) {
-                try {
-                    await Promise.all(fetchQueue.map(async ({ pid }) => {
-                        if (cancelled) return;
-                        try {
-                            const snap = await getDoc(doc(db, 'posts', pid));
-                            if (snap.exists()) {
-                                const payload = snap.data() || {};
-                                postCacheRef.current.set(pid, { pid, ...payload });
-                                if (payload?.workoutWid) {
-                                    const widKey = String(payload.workoutWid);
-                                    postPidByWidRef.current.set(widKey, pid);
-                                }
-                            } else {
-                                postCacheRef.current.set(pid, null);
-                            }
-                        } catch (error) {
-                            console.warn('UserStatsExerciseDetailScreen: failed to fetch post', { pid, error });
-                            postCacheRef.current.set(pid, null);
-                        }
-                    }));
-                } catch { }
-                if (cancelled) return;
-            }
-
-            if (widQueue.length) setPostsLoading(true);
-
-            if (widQueue.length) {
-                try {
-                    await Promise.all(widQueue.map(async ({ wid }) => {
-                        if (cancelled) return;
-                        if (postPidByWidRef.current.has(wid)) return;
-                        try {
-                            const primary = await getDocs(query(
-                                collection(db, 'posts'),
-                                where('workoutWid', '==', wid),
-                                limit(1)
-                            ));
-
-                            let docSnap = primary.empty ? null : primary.docs[0];
-
-                            if (!docSnap) {
-                                const secondary = await getDocs(query(
-                                    collection(db, 'posts'),
-                                    where('workout.wid', '==', wid),
-                                    limit(1)
-                                ));
-                                docSnap = secondary.empty ? null : secondary.docs[0];
-                            } 
-
-                            if (docSnap) {
-                                const data = docSnap.data() || {};
-                                const resolvedPid = data?.pid || docSnap.id;
-                                postPidByWidRef.current.set(wid, resolvedPid);
-                                postCacheRef.current.set(resolvedPid, { pid: resolvedPid, ...data });
-                            } else {
-                                postPidByWidRef.current.set(wid, null);
-                            }
-                        } catch (error) {
-                            console.warn('UserStatsExerciseDetailScreen: failed to query post by wid', { wid, error });
-                            postPidByWidRef.current.set(wid, null);
-                        }
-                    }));
-                } catch { }
-                if (cancelled) return;
-
-                widQueue.forEach(({ wid, index }) => {
-                    const pid = postPidByWidRef.current.get(wid);
-                    if (pid) {
-                        pidByIndex.set(index, pid);
-                    }
-                });
-            }
-
-            const items = list
-                .map((workout, index) => {
-                    const pid = pidByIndex.get(index);
-                    const post = pid ? postCacheRef.current.get(pid) : null;
-                    return buildFeedItem(workout, post, index);
-                })
-                .filter(Boolean);
-
-            if (!cancelled) {
-                setFeedItems(items);
-                setPostsLoading(false);
-            }
+            listenersRef.current = {};
         };
 
-        resolvePosts();
+        if (!visible) {
+            detachAll();
+            widToPidRef.current = {};
+            setPostsByPid({});
+            setPostsLoading(false);
+            return;
+        }
+
+        if (!list.length) {
+            detachAll();
+            widToPidRef.current = {};
+            setPostsByPid({});
+            setPostsLoading(false);
+            return;
+        }
+
+        let cancelled = false;
+        setPostsLoading(true);
+
+        (async () => {
+            const desiredPids = new Set();
+            const widLookups = new Set();
+
+            list.forEach((wk) => {
+                const directPid = extractPidFromWorkout(wk);
+                if (directPid && !String(directPid).startsWith('workout:')) {
+                    desiredPids.add(String(directPid));
+                    return;
+                }
+                const wid = extractWid(wk);
+                if (!wid) return;
+                const stored = widToPidRef.current[String(wid)];
+                if (stored === null) return;
+                if (stored) {
+                    desiredPids.add(String(stored));
+                    return;
+                }
+                widLookups.add(String(wid));
+            });
+
+            await Promise.all(Array.from(widLookups).map(async (wid) => {
+                if (widToPidRef.current[wid] !== undefined) {
+                    const mapped = widToPidRef.current[wid];
+                    if (mapped) desiredPids.add(String(mapped));
+                    return;
+                }
+                try {
+                    let querySnap = await getDocs(query(collection(db, 'posts'), where('workoutWid', '==', wid), limit(1)));
+                    if (querySnap.empty) {
+                        querySnap = await getDocs(query(collection(db, 'posts'), where('workout.wid', '==', wid), limit(1)));
+                    }
+                    if (!querySnap.empty) {
+                        const docSnap = querySnap.docs[0];
+                        const data = docSnap.data() || {};
+                        const pid = String(data?.pid || docSnap.id || '');
+                        if (pid && !pid.startsWith('workout:')) {
+                            widToPidRef.current[wid] = pid;
+                            desiredPids.add(pid);
+                        } else {
+                            widToPidRef.current[wid] = null;
+                        }
+                    } else {
+                        widToPidRef.current[wid] = null;
+                    }
+                } catch (error) {
+                    console.warn('UserStatsExerciseDetailScreen: failed to resolve wid', { wid, error });
+                    widToPidRef.current[wid] = null;
+                }
+            }));
+
+            if (cancelled) return;
+
+            Object.keys(listenersRef.current).forEach((pid) => {
+                if (desiredPids.has(pid)) return;
+                try { listenersRef.current[pid]?.(); } catch { }
+                delete listenersRef.current[pid];
+                setPostsByPid((prev) => {
+                    if (!Object.prototype.hasOwnProperty.call(prev, pid)) return prev;
+                    const next = { ...prev };
+                    delete next[pid];
+                    return next;
+                });
+            });
+
+            desiredPids.forEach((pid) => {
+                if (listenersRef.current[pid]) return;
+                listenersRef.current[pid] = onSnapshot(doc(db, 'posts', pid), (snapshot) => {
+                    if (!snapshot.exists()) {
+                        setPostsByPid((prev) => {
+                            if (!Object.prototype.hasOwnProperty.call(prev, pid)) return prev;
+                            const next = { ...prev };
+                            delete next[pid];
+                            return next;
+                        });
+                        Object.keys(widToPidRef.current).forEach((widKey) => {
+                            if (widToPidRef.current[widKey] === pid) {
+                                delete widToPidRef.current[widKey];
+                            }
+                        });
+                        return;
+                    }
+                    const data = snapshot.data() || {};
+                    const wid = data?.workoutWid ?? extractWid(data?.workout);
+                    if (wid) widToPidRef.current[String(wid)] = pid;
+                    setPostsByPid((prev) => ({ ...prev, [pid]: { pid, ...data } }));
+                }, (error) => {
+                    console.warn('UserStatsExerciseDetailScreen: post subscription failed', { pid, error });
+                });
+            });
+
+            if (!cancelled) setPostsLoading(false);
+        })();
+
         return () => {
             cancelled = true;
         };
-    }, [visible, workouts, buildFeedItem]);
+    }, [visible, workouts, extractPidFromWorkout, extractWid]);
+
+    useEffect(() => () => {
+        Object.values(listenersRef.current).forEach((unsub) => {
+            try { unsub(); } catch { }
+        });
+        listenersRef.current = {};
+    }, []);
+
+    const feedItems = useMemo(() => {
+        if (!visible) return [];
+        const list = Array.isArray(workouts) ? workouts : [];
+        if (!list.length) return [];
+
+        return list
+            .map((workout) => {
+                const directPid = extractPidFromWorkout(workout);
+                const wid = extractWid(workout);
+
+                let post = null;
+                if (directPid && postsByPid[directPid]) {
+                    post = postsByPid[directPid];
+                }
+
+                if (!post && wid) {
+                    const mapped = widToPidRef.current[String(wid)];
+                    if (mapped && postsByPid[mapped]) {
+                        post = postsByPid[mapped];
+                    } else {
+                        post = Object.values(postsByPid).find((entry) => {
+                            if (!entry) return false;
+                            const entryWid = entry.workoutWid ?? extractWid(entry.workout);
+                            return entryWid && String(entryWid) === String(wid);
+                        }) || null;
+                    }
+                }
+
+                if (!post) return null;
+                return buildFeedItem(workout, post);
+            })
+            .filter(Boolean);
+    }, [visible, workouts, postsByPid, buildFeedItem, extractPidFromWorkout, extractWid]);
 
     useEffect(() => {
         if (!visible) {
@@ -505,12 +521,6 @@ export default function UserStatsExerciseDetailScreen({
 
     const closeComments = useCallback(() => {
         setCommentsVisible(false);
-        const targetPid = commentTargetRef.current?.pid;
-        if (targetPid) {
-            setFeedItems((items) => items.map((item) => (
-                item.pid === targetPid ? { ...item } : item
-            )));
-        }
         commentTargetRef.current = null;
         setTimeout(() => setCommentTarget(null), 180);
     }, []);

@@ -13,7 +13,11 @@ export default async function createPost(uid, handle, pfp, caption, media, pid, 
         : [];
 
     const workoutPayload = workout && typeof workout === 'object'
-        ? { ...workout, postPid: pid }
+        ? {
+            ...workout,
+            postPid: pid,
+            pid: workout?.pid ?? pid,
+        }
         : null;
 
     const comments = caption

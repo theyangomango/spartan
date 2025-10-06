@@ -255,9 +255,8 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
     const [commentsVisible, setCommentsVisible] = useState(false);
     const [commentsExpandFlag, setCommentsExpandFlag] = useState(false);
     const [activeFeedItem, setActiveFeedItem] = useState(null);
-    const workoutPostsRef = useRef(new Map());
-    const workoutPidByWidRef = useRef(new Map());
-    const [workoutPostsVersion, setWorkoutPostsVersion] = useState(0);
+    const [workoutPostsState, setWorkoutPostsState] = useState({ byPid: {}, byWid: {} });
+    const [workoutPostsLoading, setWorkoutPostsLoading] = useState(false);
 
     const insets = useSafeAreaInsets();
 
@@ -376,274 +375,154 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
     }, [userData, canViewContent, viewerUid, viewerData]);
 
     useEffect(() => {
+        const workouts = Array.isArray(visibleWorkouts) ? visibleWorkouts : [];
         let cancelled = false;
 
-        const fetchPostsForWorkouts = async () => {
-            const list = Array.isArray(visibleWorkouts) ? visibleWorkouts : [];
-            if (!list.length) return;
+        if (!workouts.length) {
+            setWorkoutPostsState({ byPid: {}, byWid: {} });
+            setWorkoutPostsLoading(false);
+            return () => { cancelled = true; };
+        }
 
-            const pidQueue = new Set();
-            const widQueue = new Set();
+        const hydratePosts = async () => {
+            setWorkoutPostsLoading(true);
+            const byPid = {};
+            const byWid = {};
+            const pidSet = new Set();
+            const widSet = new Set();
 
-            list.forEach((workout) => {
-                const pid = extractPidFromWorkout(workout);
-                const wid = extractWidFromWorkout(workout);
+            workouts.forEach((wk) => {
+                const pid = extractPidFromWorkout(wk);
+                if (pid) pidSet.add(String(pid));
+                const wid = extractWidFromWorkout(wk);
+                if (wid) widSet.add(String(wid));
+            });
 
-                if (wid) {
-                    const cachedPid = workoutPidByWidRef.current.get(wid);
-                    if (cachedPid) {
-                        const post = postsByPid.get(cachedPid) || workoutPostsRef.current.get(cachedPid);
-                        if (!post && !pidQueue.has(cachedPid)) pidQueue.add(cachedPid);
-                    } else {
-                        widQueue.add(wid);
-                    }
-                }
-
-                if (pid) {
-                    if (wid) workoutPidByWidRef.current.set(wid, pid);
-                    if (!postsByPid.has(pid) && !workoutPostsRef.current.has(pid)) {
-                        pidQueue.add(pid);
+            pidSet.forEach((pid) => {
+                if (postsByPid.has(pid)) {
+                    const data = postsByPid.get(pid);
+                    if (data) {
+                        byPid[pid] = data;
+                        const wid = stringCandidates([data?.workoutWid, data?.workout?.wid]);
+                        if (wid) byWid[String(wid)] = pid;
                     }
                 }
             });
 
-            if (!pidQueue.size && !widQueue.size) return;
+            await Promise.all(
+                Array.from(pidSet).map(async (pid) => {
+                    if (byPid[pid]) return;
+                    try {
+                        const snap = await getDoc(doc(db, 'posts', pid));
+                        if (!snap.exists()) return;
+                        const payload = snap.data() || {};
+                        byPid[pid] = { pid, ...payload };
+                        const wid = stringCandidates([payload?.workoutWid, payload?.workout?.wid]);
+                        if (wid) byWid[String(wid)] = pid;
+                    } catch (error) {
+                        console.warn('ProfileWorkoutsAndPostsScreen: failed to fetch post', { pid, error });
+                    }
+                })
+            );
 
-            let updated = false;
-
-            if (pidQueue.size) {
+            for (const wid of widSet) {
+                if (Object.prototype.hasOwnProperty.call(byWid, wid)) continue;
                 try {
-                    await Promise.all(Array.from(pidQueue).map(async (pid) => {
-                        if (cancelled) return;
-                        if (workoutPostsRef.current.has(pid) || postsByPid.has(pid)) return;
-                        try {
-                            const snapshot = await getDoc(doc(db, 'posts', pid));
-                            if (cancelled) return;
-                            if (snapshot.exists()) {
-                                const data = snapshot.data() || {};
-                                const resolvedPid = data?.pid || snapshot.id || pid;
-                                workoutPostsRef.current.set(resolvedPid, { pid: resolvedPid, ...data });
-                                const wid = stringCandidates([data?.workoutWid, data?.workout?.wid]);
-                                if (wid) workoutPidByWidRef.current.set(wid, resolvedPid);
-                                updated = true;
-                            } else {
-                                workoutPostsRef.current.set(pid, null);
-                            }
-                        } catch (error) {
-                            console.warn('ProfileWorkoutsAndPostsScreen: failed to fetch post', { pid, error });
-                        }
-                    }));
-                } catch { }
+                    let querySnap = await getDocs(query(collection(db, 'posts'), where('workoutWid', '==', wid), limit(1)));
+                    if (querySnap.empty) {
+                        querySnap = await getDocs(query(collection(db, 'posts'), where('workout.wid', '==', wid), limit(1)));
+                    }
+                    if (!querySnap.empty) {
+                        const docSnap = querySnap.docs[0];
+                        const data = docSnap.data() || {};
+                        const pid = String(data?.pid || docSnap.id);
+                        byPid[pid] = { pid, ...data };
+                        byWid[wid] = pid;
+                    } else {
+                        byWid[wid] = null;
+                    }
+                } catch (error) {
+                    console.warn('ProfileWorkoutsAndPostsScreen: failed to query post by wid', { wid, error });
+                    byWid[wid] = null;
+                }
             }
 
-            if (widQueue.size) {
-                try {
-                    await Promise.all(Array.from(widQueue).map(async (wid) => {
-                        if (cancelled) return;
-                        if (workoutPidByWidRef.current.has(wid)) return;
-                        try {
-                            let docSnap = null;
-                            const primary = await getDocs(query(collection(db, 'posts'), where('workoutWid', '==', wid), limit(1)));
-                            if (!primary.empty) docSnap = primary.docs[0];
-                            if (!docSnap) {
-                                const secondary = await getDocs(query(collection(db, 'posts'), where('workout.wid', '==', wid), limit(1)));
-                                if (!secondary.empty) docSnap = secondary.docs[0];
-                            }
-                            if (cancelled) return;
-                            if (docSnap) {
-                                const data = docSnap.data() || {};
-                                const resolvedPid = data?.pid || docSnap.id;
-                                workoutPidByWidRef.current.set(wid, resolvedPid);
-                                workoutPostsRef.current.set(resolvedPid, { pid: resolvedPid, ...data });
-                                updated = true;
-                            } else {
-                                workoutPidByWidRef.current.set(wid, null);
-                            }
-                        } catch (error) {
-                            console.warn('ProfileWorkoutsAndPostsScreen: failed to query post by wid', { wid, error });
-                            workoutPidByWidRef.current.set(wid, null);
-                        }
-                    }));
-                } catch { }
-            }
-
-            if (!cancelled && updated) {
-                setWorkoutPostsVersion((v) => v + 1);
+            if (!cancelled) {
+                setWorkoutPostsState({ byPid, byWid });
+                setWorkoutPostsLoading(false);
             }
         };
 
-        fetchPostsForWorkouts();
-        return () => { cancelled = true; };
+        hydratePosts();
+
+        return () => {
+            cancelled = true;
+        };
     }, [visibleWorkouts, postsByPid]);
+
+    const findPostForWorkout = useCallback((workout) => {
+        if (!workout) return null;
+        const pid = extractPidFromWorkout(workout);
+        const wid = extractWidFromWorkout(workout);
+        const candidatePids = [];
+        if (pid) candidatePids.push(String(pid));
+        if (wid) {
+            const mapped = workoutPostsState.byWid[String(wid)];
+            if (mapped) candidatePids.push(String(mapped));
+        }
+        for (const candidate of candidatePids) {
+            if (postsByPid.has(candidate)) return postsByPid.get(candidate);
+            const fetched = workoutPostsState.byPid[candidate];
+            if (fetched) return fetched;
+        }
+        if (wid) {
+            const mapped = workoutPostsState.byWid[String(wid)];
+            if (mapped === null) return null;
+        }
+        return null;
+    }, [extractPidFromWorkout, extractWidFromWorkout, postsByPid, workoutPostsState]);
 
     const workoutFeedItems = useMemo(() => {
         if (!visibleWorkouts.length) return [];
 
-        const ownerUid = userData?.uid ? String(userData.uid) : (targetUid ? String(targetUid) : '');
-        const ownerHandleRaw = userData?.handle || userData?.username || '';
-        const ownerHandle = ensureHandle(ownerHandleRaw);
-        const ownerName = userData?.name || userData?.displayName || '';
-        const ownerImage = userData?.image || userData?.pfp || userData?.pfpUrl || userData?.photoURL || '';
-        const ownerPfpVersion = Number(userData?.pfpVersion || 0);
+        return visibleWorkouts.map((workout) => {
+            const matchedPost = findPostForWorkout(workout);
+            if (!matchedPost || typeof matchedPost !== 'object') return null;
+            const resolvedPid = matchedPost.pid || matchedPost.id;
+            if (!resolvedPid || String(resolvedPid).startsWith('workout:')) return null;
 
-        return visibleWorkouts.map((workout, idx) => {
-            const widRaw = extractWidFromWorkout(workout);
-            const wid = widRaw ? String(widRaw) : '';
-            const postPid = extractPidFromWorkout(workout);
-            const mappedPid = wid ? workoutPidByWidRef.current.get(wid) : '';
-            let pidKey = stringCandidates([mappedPid, postPid]);
-            let matchedPost = pidKey ? (postsByPid.get(pidKey) || workoutPostsRef.current.get(pidKey)) : null;
-
-            if (!matchedPost && postPid && postPid !== pidKey) {
-                pidKey = postPid;
-                matchedPost = postsByPid.get(postPid) || workoutPostsRef.current.get(postPid) || null;
-            }
-
-            if (!matchedPost && mappedPid && mappedPid !== pidKey) {
-                pidKey = mappedPid;
-                matchedPost = postsByPid.get(mappedPid) || workoutPostsRef.current.get(mappedPid) || null;
-            }
-
-            if (matchedPost?.pid && wid) {
-                const recorded = workoutPidByWidRef.current.get(wid);
-                if (recorded !== matchedPost.pid) workoutPidByWidRef.current.set(wid, matchedPost.pid);
-            }
-
-            const fallbackPost = buildFeedPostData(workout, idx) || {};
-            const combined = { ...fallbackPost, ...matchedPost };
             const mergedWorkout = {
-                ...(fallbackPost.workout || {}),
-                ...(matchedPost?.workout || {}),
+                ...(matchedPost.workout || {}),
                 ...(workout || {}),
+                postPid: matchedPost.postPid ?? resolvedPid,
+                pid: resolvedPid,
             };
 
-            if (wid && !mergedWorkout.wid) mergedWorkout.wid = wid;
+            const post = {
+                ...matchedPost,
+                pid: resolvedPid,
+                id: resolvedPid,
+                workout: mergedWorkout,
+            };
 
-            const resolvedPid = stringCandidates([
-                combined.pid,
-                combined.id,
-                pidKey,
-                fallbackPost.pid,
-                wid ? `workout:${wid}` : '',
-            ]) || buildWorkoutPid(ownerUid, workout, idx);
-
-            if (wid && resolvedPid && !String(resolvedPid).startsWith('workout:')) {
-                workoutPidByWidRef.current.set(wid, resolvedPid);
+            if (!post.uid) {
+                post.uid = String(
+                    workout?.uid ??
+                    mergedWorkout?.creatorUID ??
+                    mergedWorkout?.creatorUid ??
+                    userData?.uid ??
+                    targetUid ??
+                    ''
+                );
             }
 
-            combined.pid = resolvedPid;
-            combined.id = resolvedPid;
+            if (!post.handle && workout?.handle) post.handle = workout.handle;
+            if (!post.name && workout?.name) post.name = workout.name;
+            if (!post.pfp && workout?.pfp) post.pfp = workout.pfp;
 
-            const resolvedUid = stringCandidates([
-                combined.uid,
-                mergedWorkout.uid,
-                mergedWorkout.creatorUid,
-                mergedWorkout.creatorUID,
-                ownerUid,
-            ]);
-
-            combined.uid = resolvedUid ? String(resolvedUid) : '';
-
-            const resolvedHandle = ensureHandle(
-                combined.handle ??
-                combined.username ??
-                mergedWorkout.handle ??
-                mergedWorkout.username ??
-                ownerHandle
-            );
-
-            combined.handle = resolvedHandle;
-            combined.username = resolvedHandle;
-
-            const resolvedName = stringCandidates([
-                combined.name,
-                mergedWorkout.ownerName,
-                mergedWorkout.name,
-                ownerName,
-                resolvedHandle,
-            ]) || 'Athlete';
-
-            combined.name = resolvedName;
-
-            const resolvedImage = combined.image ?? combined.photo ?? mergedWorkout.photo ?? mergedWorkout.photoURL ?? ownerImage;
-            combined.image = resolvedImage || ownerImage;
-            combined.pfp = combined.pfp || combined.pfpUrl || resolvedImage || ownerImage;
-            combined.pfpVersion = Number.isFinite(Number(combined.pfpVersion))
-                ? Number(combined.pfpVersion)
-                : ownerPfpVersion;
-
-            const createdFromPost = Number(combined.created ?? combined.createdAt ?? combined.timestamp);
-            const workoutCreated = resolveWorkoutCreatedAt(mergedWorkout) || getWorkoutTimestamp(workout);
-            const resolvedCreated = Number.isFinite(createdFromPost) && createdFromPost > 0
-                ? createdFromPost
-                : (workoutCreated || Date.now());
-
-            combined.created = resolvedCreated;
-            combined.createdAt = combined.createdAt ?? resolvedCreated;
-
-            mergedWorkout.created = mergedWorkout.created ?? workoutCreated ?? resolvedCreated;
-            if (combined.uid) {
-                mergedWorkout.creatorUID = mergedWorkout.creatorUID || combined.uid;
-                mergedWorkout.creatorUid = mergedWorkout.creatorUid || combined.uid;
-            }
-            if (resolvedHandle) mergedWorkout.handle = mergedWorkout.handle || resolvedHandle;
-            if (resolvedPid) {
-                mergedWorkout.postPid = mergedWorkout.postPid || resolvedPid;
-                mergedWorkout.pid = mergedWorkout.pid || resolvedPid;
-            }
-
-            combined.workout = mergedWorkout;
-
-            const captionFromPost = typeof matchedPost?.caption === 'string' ? matchedPost.caption : '';
-            const captionFromFallback = typeof fallbackPost.caption === 'string' ? fallbackPost.caption : '';
-            combined.caption = captionFromPost || captionFromFallback || mergedWorkout.templateName || mergedWorkout.name || '';
-
-            const likes = Array.isArray(matchedPost?.likes)
-                ? matchedPost.likes
-                : (Array.isArray(combined.likes) ? combined.likes : Array.isArray(fallbackPost.likes) ? fallbackPost.likes : []);
-            combined.likes = likes;
-            combined.likeCount = Number.isFinite(Number(matchedPost?.likeCount ?? combined.likeCount))
-                ? Number(matchedPost?.likeCount ?? combined.likeCount)
-                : likes.length;
-
-            const comments = Array.isArray(matchedPost?.comments)
-                ? matchedPost.comments
-                : (Array.isArray(combined.comments) ? combined.comments : Array.isArray(fallbackPost.comments) ? fallbackPost.comments : []);
-            combined.comments = comments;
-            combined.commentCount = Number.isFinite(Number(matchedPost?.commentCount ?? combined.commentCount))
-                ? Number(matchedPost?.commentCount ?? combined.commentCount)
-                : comments.length;
-
-            combined.media = mergeMediaSources(
-                matchedPost?.media,
-                matchedPost?.images,
-                combined.media,
-                combined.images,
-                workout?.media,
-                workout?.images
-            );
-
-            combined.images = Array.isArray(matchedPost?.images)
-                ? matchedPost.images
-                : (Array.isArray(fallbackPost.images) ? fallbackPost.images : []);
-
-            combined.shareCount = Number.isFinite(Number(matchedPost?.shareCount ?? combined.shareCount))
-                ? Number(matchedPost?.shareCount ?? combined.shareCount)
-                : Number(fallbackPost.shareCount ?? 0);
-
-            combined.tags = Array.isArray(matchedPost?.tags)
-                ? matchedPost.tags
-                : (Array.isArray(combined.tags) ? combined.tags : Array.isArray(fallbackPost.tags) ? fallbackPost.tags : []);
-
-            combined.tagged = Array.isArray(matchedPost?.tagged)
-                ? matchedPost.tagged
-                : (Array.isArray(combined.tagged) ? combined.tagged : Array.isArray(fallbackPost.tagged) ? fallbackPost.tagged : []);
-
-            combined.__synthetic = matchedPost ? Boolean(matchedPost.__synthetic) : Boolean(fallbackPost.__synthetic ?? true);
-
-            return combined.pid ? combined : null;
+            return post;
         }).filter(Boolean);
-    }, [visibleWorkouts, postsByPid, workoutPostsVersion, targetUid, userData]);
+    }, [visibleWorkouts, findPostForWorkout, targetUid, userData?.uid]);
 
     const handleBack = useCallback(() => {
         navigation.goBack();
@@ -657,8 +536,8 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         if (!item) return null;
         const pidKey = item?.pid ? String(item.pid) : (item?.id ? String(item.id) : (item?.postPid ? String(item.postPid) : null));
         if (!pidKey) return item;
-        return postsByPid.get(pidKey) || workoutPostsRef.current.get(pidKey) || item;
-    }, [postsByPid, workoutPostsVersion]);
+        return postsByPid.get(pidKey) || workoutPostsState.byPid[pidKey] || item;
+    }, [postsByPid, workoutPostsState]);
 
     const openPastWorkout = useCallback((feedItemInput) => {
         const feedItem = resolveFeedItem(feedItemInput);
@@ -927,7 +806,14 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
                 data={workoutFeedItems}
                 renderItem={renderPost}
                 keyExtractor={keyExtractor}
-                ListEmptyComponent={workoutsEmptyComponent}
+                ListEmptyComponent={() => (
+                    workoutPostsLoading ? (
+                        <View style={styles.loadingWrap}>
+                            <ActivityIndicator size="small" color="#93C5FD" />
+                            <Text style={styles.loadingNote}>Syncing workouts…</Text>
+                        </View>
+                    ) : workoutsEmptyComponent
+                )}
                 contentContainerStyle={styles.workoutListContent}
                 style={styles.list}
                 showsVerticalScrollIndicator={false}
@@ -1101,6 +987,12 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    loadingNote: {
+        marginTop: scaleSize(8),
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(12),
+        color: '#9CA3AF',
     },
     errorContainer: {
         flex: 1,

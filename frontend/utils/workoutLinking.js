@@ -78,11 +78,15 @@ export async function linkCompletedWorkoutToPost(uid, workout, pid) {
             if (entryKey !== key) return entry;
             if (entry?.postPid === pid) return entry;
             changed = true;
-            return {
+            const updatedEntry = {
                 ...entry,
                 postPid: pid,
                 postPidLinkedAt: linkedAt,
             };
+            if (updatedEntry.pid !== pid) {
+                updatedEntry.pid = pid;
+            }
+            return updatedEntry;
         });
         if (!changed) return;
         txn.update(userRef, { completedWorkouts: updated });
@@ -106,11 +110,15 @@ export function syncLocalCompletedWorkoutsPost(workout, pid) {
             if (entryKey !== key) return entry;
             if (entry?.postPid === pid) return entry;
             changed = true;
-            return {
+            const updatedEntry = {
                 ...entry,
                 postPid: pid,
                 postPidLinkedAt: linkedAt,
             };
+            if (updatedEntry.pid !== pid) {
+                updatedEntry.pid = pid;
+            }
+            return updatedEntry;
         });
         if (changed) {
             global.userData.completedWorkouts = updated;

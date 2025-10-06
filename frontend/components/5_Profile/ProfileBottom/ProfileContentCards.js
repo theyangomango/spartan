@@ -140,7 +140,7 @@ const styles = StyleSheet.create({
     },
     cardTitle: {
         fontFamily: 'Nunito_800ExtraBold',
-        fontSize: scaleSize(14.6),
+        fontSize: scaleSize(13),
         color: '#F6F8FF',
         marginBottom: scaleSize(1),
         letterSpacing: scaleSize(0.1),

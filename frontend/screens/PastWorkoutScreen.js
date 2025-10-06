@@ -18,6 +18,7 @@ import theme from "../theme/mfpDark";
 import scaleSize from "../helper/scaleSize";
 import makeID from "../../backend/helper/makeID";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
+import readDoc from "../../backend/helper/firebase/readDoc";
 import FastImage from "react-native-fast-image";
 import isThisUser from "../helper/isThisUser";
 import { usePfp } from "../helper/usePFPs";
@@ -43,6 +44,39 @@ const PastWorkoutScreen = () => {
     const copyTimeoutRef = useRef(null);
     const [commentsVisible, setCommentsVisible] = useState(false);
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
+    const [fetchedPost, setFetchedPost] = useState(null);
+    const postPid = useMemo(() => {
+        const rawPid = postMeta?.pid ?? postMeta?.id ?? null;
+        if (!rawPid && workout?.postPid) return String(workout.postPid);
+        return rawPid ? String(rawPid) : "";
+    }, [postMeta?.pid, postMeta?.id, workout?.postPid]);
+
+    useEffect(() => {
+        let cancelled = false;
+        if (!postPid) {
+            setFetchedPost(null);
+            return () => { cancelled = true; };
+        }
+
+        (async () => {
+            try {
+                const data = await readDoc("posts", postPid);
+                if (cancelled) return;
+                if (data) {
+                    setFetchedPost({ pid: data?.pid ?? postPid, ...data });
+                } else {
+                    setFetchedPost(null);
+                }
+            } catch {
+                if (!cancelled) setFetchedPost(null);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [postPid]);
+
     const [likesSheetVisible, setLikesSheetVisible] = useState(false);
     const [likesSheetUsers, setLikesSheetUsers] = useState([]);
     const [likesSheetTitle, setLikesSheetTitle] = useState("Liked by");
@@ -76,7 +110,7 @@ const PastWorkoutScreen = () => {
         ownerPfp || owner?.image || owner?.photoURL || ""
     );
 
-    const cardData = useMemo(() => {
+    const fallbackCardData = useMemo(() => {
         if (!workout) return null;
 
         const pid = String(postMeta?.pid
@@ -117,7 +151,69 @@ const PastWorkoutScreen = () => {
             tags: Array.isArray(postMeta?.tags) ? postMeta.tags : [],
             tagged: Array.isArray(postMeta?.tagged) ? postMeta.tagged : [],
         };
-    }, [workout, postMeta?.pid, postMeta?.created, postMeta?.likes, postMeta?.likeCount, postMeta?.comments, postMeta?.commentCount, postMeta?.media, postMeta?.images, postMeta?.shareCount, postMeta?.tags, postMeta?.tagged, owner?.uid, owner?.name, owner?.pfpVersion, ownerHandle, ownerPfp, caption]);
+    }, [workout, postMeta?.pid, postMeta?.id, postMeta?.created, postMeta?.likes, postMeta?.likeCount, postMeta?.comments, postMeta?.commentCount, postMeta?.media, postMeta?.images, postMeta?.shareCount, postMeta?.tags, postMeta?.tagged, owner?.uid, owner?.name, owner?.pfpVersion, ownerHandle, ownerPfp, caption]);
+
+    const cardData = useMemo(() => {
+        if (fetchedPost && fetchedPost.pid) {
+            const pid = String(fetchedPost.pid);
+            const handleValue = ownerHandle.startsWith("@") ? ownerHandle.slice(1) : ownerHandle;
+            const mergedWorkout = {
+                ...(fetchedPost.workout || {}),
+                ...(workout || {}),
+                postPid: pid,
+                pid,
+            };
+
+            const likes = Array.isArray(fetchedPost.likes) ? fetchedPost.likes : [];
+            const likeCount = Number.isFinite(Number(fetchedPost.likeCount))
+                ? Number(fetchedPost.likeCount)
+                : likes.length;
+
+            const baseCaption = typeof fetchedPost.caption === "string"
+                ? fetchedPost.caption
+                : (fallbackCardData?.caption || "");
+
+            const comments = Array.isArray(fetchedPost.comments) && fetchedPost.comments.length
+                ? fetchedPost.comments
+                : (baseCaption
+                    ? [{
+                        content: baseCaption,
+                        handle: handleValue,
+                        isCaption: true,
+                        pfp: fetchedPost.pfp ?? ownerPfp ?? "",
+                        timestamp: fetchedPost.created ?? mergedWorkout.created ?? Date.now(),
+                        uid: owner?.uid ? String(owner.uid) : null,
+                    }]
+                    : []);
+
+            const commentCount = Number.isFinite(Number(fetchedPost.commentCount))
+                ? Number(fetchedPost.commentCount)
+                : comments.length;
+
+            return {
+                pid,
+                id: pid,
+                uid: String(fetchedPost.uid ?? owner?.uid ?? fallbackCardData?.uid ?? ""),
+                handle: fetchedPost.handle ?? handleValue,
+                name: fetchedPost.name ?? owner?.name ?? fallbackCardData?.name ?? "",
+                pfp: fetchedPost.pfp ?? ownerPfp ?? fallbackCardData?.pfp ?? "",
+                pfpVersion: Number(fetchedPost.pfpVersion ?? owner?.pfpVersion ?? fallbackCardData?.pfpVersion ?? 0),
+                created: fetchedPost.created ?? fallbackCardData?.created ?? mergedWorkout.created ?? Date.now(),
+                caption: baseCaption,
+                workout: mergedWorkout,
+                likes,
+                likeCount,
+                comments,
+                commentCount,
+                media: Array.isArray(fetchedPost.media) ? fetchedPost.media : [],
+                images: Array.isArray(fetchedPost.images) ? fetchedPost.images : [],
+                shareCount: Number(fetchedPost.shareCount ?? fallbackCardData?.shareCount ?? 0),
+                tags: Array.isArray(fetchedPost.tags) ? fetchedPost.tags : [],
+                tagged: Array.isArray(fetchedPost.tagged) ? fetchedPost.tagged : [],
+            };
+        }
+        return fallbackCardData;
+    }, [fetchedPost, fallbackCardData, owner?.uid, owner?.name, owner?.pfpVersion, ownerHandle, ownerPfp, workout]);
 
     const showLikesSheet = useCallback((users, title = "Liked by") => {
         const processed = Array.isArray(users)
