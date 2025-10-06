@@ -1,27 +1,15 @@
 // components/3_Workout/DayDetailsSheet.jsx
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
 import { View, Text, StyleSheet, Pressable, Animated, useWindowDimensions, VirtualizedList, Easing, Modal, ScrollView, InteractionManager } from "react-native";
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture } from 'react-native-gesture-handler';
 import { useSharedValue, runOnJS } from 'react-native-reanimated';
 import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from "@gorhom/bottom-sheet";
 import theme from "../../theme/mfpDark";
-import NewWorkoutModal from "./NewWorkout/NewWorkoutModal";
-import CopyTemplateToast from "./ui/CopyTemplateToast";
-import updateDoc from "../../../backend/helper/firebase/updateDoc";
-import makeID from "../../../backend/helper/makeID";
-import { useNavigation } from "@react-navigation/native";
-import SimpleFeedPost from "../1_Feed/SimpleFeedPost";
-import { navigateOneWay } from "../../../navigationRef";
-import { db } from "../../../firebase.config";
-import { doc, getDoc, collection, query, where, limit, getDocs } from "firebase/firestore";
-import { extractWid } from "../2_Competition/UserStats/userStatsUtils";
 import { FoodDetailInline } from "../../screens/FoodDetail";
 import DateHeader from "./DayDetails/DateHeader";
 import OverlayContainer from "./DayDetails/OverlayContainer";
 import { parseMacrosFromDescription, parseExtraNutrientsFromDescription, summarizeFood } from "../../utils/nutrition";
 // No foodLogs usage: macros derive only from global.userData.loggedFoods
-import { canViewWorkout } from "../../utils/workoutPrivacy";
-
 import scaleSize from "../../helper/scaleSize";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -65,119 +53,6 @@ const shiftDate = (d, delta) => {
     base.setHours(0, 0, 0, 0);
     base.setDate(base.getDate() + (delta || 0));
     return base;
-};
-
-const toMillis = (value) => {
-    if (!value && value !== 0) return undefined;
-    if (typeof value === 'number') return value;
-    if (value?.toMillis) return value.toMillis();
-    const t = new Date(value).getTime();
-    return Number.isFinite(t) ? t : undefined;
-};
-
-const bestTimestamp = (workout) => Math.max(
-    toMillis(workout?.finishedAt) ?? 0,
-    toMillis(workout?.completedAt) ?? 0,
-    toMillis(workout?.startedAt) ?? 0,
-    toMillis(workout?.createdAt) ?? 0,
-    toMillis(workout?.created) ?? 0,
-);
-
-const buildWorkoutPid = (uid, workout, fallbackIndex) => {
-    const safeUid = uid ? String(uid) : 'self';
-    const baseId = workout?.wid ?? workout?.id ?? workout?.workoutId ?? workout?.logId ?? workout?.sessionId;
-    const suffix = baseId ? String(baseId) : String(bestTimestamp(workout) || fallbackIndex || Date.now());
-    return `workout:${safeUid}:${suffix}`;
-};
-
-const toNumber = (value, fallback = 0) => {
-    const num = Number(value);
-    return Number.isFinite(num) ? num : fallback;
-};
-
-const sanitizeEntry = (entry) => {
-    if (!entry || typeof entry !== 'object') return entry;
-    try {
-        return JSON.parse(JSON.stringify(entry, (_key, val) => (typeof val === 'function' ? undefined : val)));
-    } catch {
-        return { ...entry };
-    }
-};
-
-const ensureHandle = (value) => {
-    if (!value) return '';
-    const str = String(value).trim();
-    return str.startsWith('@') ? str.slice(1) : str;
-};
-
-const ensureAtHandle = (value) => {
-    const base = ensureHandle(value);
-    return base ? `@${base}` : '';
-};
-
-const buildFeedPostData = (workout, fallbackIndex = 0) => {
-    if (!workout || typeof workout !== 'object') return null;
-
-    const viewer = (() => { try { return global?.userData || null; } catch { return null; } })();
-    const ownerUid = workout?.uid ?? workout?.userUid ?? workout?.creatorUid ?? workout?.creatorUID ?? viewer?.uid ?? 'self';
-    const handle = workout?.handle || workout?.username || viewer?.handle || '';
-    const name = workout?.name || viewer?.name || handle || 'You';
-    const pfp = workout?.pfp || workout?.pfpUrl || workout?.photoURL || workout?.photo || viewer?.image || viewer?.pfp || viewer?.pfpUrl || '';
-    const pfpVersion = workout?.pfpVersion ?? workout?.pfp_version ?? viewer?.pfpVersion ?? viewer?.pfp_version ?? 0;
-    const created = bestTimestamp(workout);
-
-    return {
-        pid: buildWorkoutPid(ownerUid, workout, fallbackIndex),
-        uid: String(ownerUid || ''),
-        handle,
-        name,
-        pfp,
-        pfpVersion,
-        workout,
-        created,
-        createdAt: created,
-        likes: Array.isArray(workout?.likes) ? workout.likes : [],
-        likeCount: Number(workout?.likeCount ?? workout?.likesCount ?? 0) || 0,
-        comments: Array.isArray(workout?.comments) ? workout.comments : [],
-        commentCount: Number(workout?.commentCount ?? workout?.commentsCount ?? 0) || 0,
-        media: Array.isArray(workout?.media) ? workout.media : [],
-        images: Array.isArray(workout?.images) ? workout.images : [],
-        caption: workout?.caption || workout?.templateName || workout?.template?.name || workout?.name || '',
-        __synthetic: true,
-    };
-};
-
-const sanitizeWorkoutForRoute = (workout) => {
-    if (!workout || typeof workout !== 'object') return null;
-
-    const replacer = (_key, value) => (typeof value === 'function' ? undefined : value);
-
-    try {
-        return JSON.parse(JSON.stringify(workout, replacer));
-    } catch {
-        const clone = { ...workout };
-        clone.exercises = Array.isArray(workout.exercises)
-            ? workout.exercises.map((exercise) => {
-                if (!exercise || typeof exercise !== 'object') return {};
-                const sets = Array.isArray(exercise.sets)
-                    ? exercise.sets.map((set) => {
-                        if (!set || typeof set !== 'object') return {};
-                        const { weight, reps, unit, units, weightUnit, kg, lbs, ...rest } = set;
-                        const normalized = {
-                            ...rest,
-                            weight: Number(weight ?? kg ?? lbs ?? 0) || 0,
-                            reps: Number(reps ?? set?.rep ?? set?.r ?? 0) || 0,
-                        };
-                        const resolvedUnit = unit || units || weightUnit || (kg != null ? 'kg' : undefined);
-                        if (resolvedUnit) normalized.unit = resolvedUnit;
-                        return normalized;
-                    })
-                    : [];
-                return { ...exercise, sets };
-            })
-            : [];
-        return clone;
-    }
 };
 
 const MONTH_NAMES = [
@@ -646,11 +521,6 @@ const DayDetailsSheet = ({
     onChangeDate,
 }) => {
     const bottomSheetRef = useRef(null);
-    const navigation = useNavigation();
-    const postCacheRef = useRef(new Map());
-    const widToPidRef = useRef(new Map());
-    const pendingFetchRef = useRef(new Set());
-    const [postCacheVersion, setPostCacheVersion] = useState(0);
     const viewerData = (() => {
         try { return global?.userData || null; } catch { return null; }
     })();
@@ -661,27 +531,12 @@ const DayDetailsSheet = ({
     const [headerDate, setHeaderDate] = useState(date);
     const [headerHeight, setHeaderHeight] = useState(HEADER_HEIGHT);
     const snapPoints = useMemo(() => ["95%"], []);
-    // Viewer overlay (for workout detail)
-    const [selectedWorkout, setSelectedWorkout] = useState(null);
+    // Viewer overlay for inline detail panes
     const [viewerReady, setViewerReady] = useState(false);
     const listOpacity = useRef(new Animated.Value(1)).current;
-    const viewerOpacity = useRef(new Animated.Value(0)).current;
     const viewerTranslateX = useRef(new Animated.Value(screenWidth)).current;
     // Yellow handle accent fades with viewer slide progress
-    const HANDLE_ACCENT = "#E0A500";
-    const HANDLE_BG = "#e0a4002c";
     const HANDLE_NEUTRAL = "#D0D7E2";
-    const handleAccentOpacity = useMemo(() => (
-        viewerTranslateX.interpolate({
-            inputRange: [0, screenWidth],
-            outputRange: [1, 0],
-            extrapolate: 'clamp',
-        })
-    ), [viewerTranslateX, screenWidth]);
-    const timerRef = useRef("");
-    // Copy Template toast
-    const toastAnim = useRef(new Animated.Value(0)).current;
-    const [toastText, setToastText] = useState("Template added");
     // Food viewer state
     const [selectedFood, setSelectedFood] = useState(null);
     // Horizontal pager ref
@@ -748,16 +603,15 @@ const DayDetailsSheet = ({
 
     const handleClose = useCallback(() => {
         // reset viewer if open
-        if (selectedWorkout || selectedFood) {
-            setSelectedWorkout(null);
+        if (selectedFood) {
             setSelectedFood(null);
-            try { listOpacity.setValue(1); viewerOpacity.setValue(0); } catch { }
+            try { listOpacity.setValue(1); } catch { }
         }
         setIsExpanded(false);
         const queue = openSessionsRef.current;
         const closingSession = queue.shift();
         onClose?.(closingSession);
-    }, [onClose, selectedWorkout, selectedFood, listOpacity, viewerOpacity]);
+    }, [onClose, selectedFood, listOpacity]);
 
     const isToday = useMemo(() => dayKey(date) === dayKey(new Date()), [date]);
     const titleScale = useRef(new Animated.Value(1)).current;
@@ -788,254 +642,15 @@ const DayDetailsSheet = ({
         onStartWorkout?.();
     }, [onStartWorkout]);
 
-    const bumpPostCacheVersion = useCallback(() => {
-        setPostCacheVersion((v) => v + 1);
-    }, []);
-
-    const extractPostPidCandidates = useCallback((workout) => {
-        const candidates = new Set();
-        const add = (value) => {
-            if (value === undefined || value === null) return;
-            const str = String(value).trim();
-            if (str) candidates.add(str);
-        };
-
-        add(workout?.postPid);
-        add(workout?.post_id);
-        add(workout?.postId);
-        add(workout?.linkedPostPid);
-        add(workout?.linkedPostId);
-        add(workout?.post?.pid);
-        add(workout?.post?.postPid);
-        add(workout?.linkedPost?.pid);
-        add(workout?.feedItem?.pid);
-        if (typeof workout?.pid === 'string' && workout.pid.startsWith('post:')) add(workout.pid);
-        add(workout?.postMeta?.pid);
-
-        return Array.from(candidates);
-    }, []);
-
-    const cachePost = useCallback((postData) => {
-        if (!postData) return;
-        const pid = String(postData?.pid || '').trim();
-        if (pid) {
-            postCacheRef.current.set(pid, postData);
-        }
-        const linkedWorkout = postData?.workout || {};
-        const wid = extractWid(linkedWorkout) || (postData?.workoutWid ? String(postData.workoutWid) : '');
-        if (wid) {
-            widToPidRef.current.set(wid, pid || null);
-        }
-        bumpPostCacheVersion();
-    }, [bumpPostCacheVersion]);
-
-    const markNoPostForWid = useCallback((wid) => {
-        if (!wid) return;
-        widToPidRef.current.set(wid, null);
-        bumpPostCacheVersion();
-    }, [bumpPostCacheVersion]);
-
-    const ensurePostDataForWorkout = useCallback(async (workout) => {
-        if (!workout || typeof workout !== 'object') return;
-
-        const pidCandidates = extractPostPidCandidates(workout);
-        const wid = extractWid(workout);
-
-        for (const pid of pidCandidates) {
-            if (postCacheRef.current.has(pid)) return;
-        }
-
-        if (wid) {
-            const mappedPid = widToPidRef.current.get(wid);
-            if (mappedPid !== undefined) {
-                if (mappedPid === null) return;
-                if (postCacheRef.current.has(mappedPid)) return;
-            }
-        }
-
-        for (const pid of pidCandidates) {
-            const key = `pid:${pid}`;
-            if (!pid || pendingFetchRef.current.has(key)) continue;
-            pendingFetchRef.current.add(key);
-            try {
-                const docSnap = await getDoc(doc(db, 'posts', pid));
-                if (docSnap.exists()) {
-                    const data = docSnap.data() || {};
-                    cachePost({ pid, ...data });
-                    pendingFetchRef.current.delete(key);
-                    return;
-                }
-                postCacheRef.current.set(pid, null);
-                bumpPostCacheVersion();
-            } catch (error) {
-                console.warn('DayDetailsSheet: failed to fetch post by pid', pid, error);
-            }
-            pendingFetchRef.current.delete(key);
-        }
-
-        if (!wid) return;
-
-        if (widToPidRef.current.has(wid) && widToPidRef.current.get(wid) === null) {
-            return;
-        }
-
-        const widKey = `wid:${wid}`;
-        if (pendingFetchRef.current.has(widKey)) return;
-
-        pendingFetchRef.current.add(widKey);
-        try {
-            let querySnap = await getDocs(query(collection(db, 'posts'), where('workoutWid', '==', wid), limit(1)));
-            if (querySnap.empty) {
-                querySnap = await getDocs(query(collection(db, 'posts'), where('workout.wid', '==', wid), limit(1)));
-            }
-            if (!querySnap.empty) {
-                const docSnap = querySnap.docs[0];
-                const data = docSnap.data() || {};
-                const pid = String(data?.pid || docSnap.id);
-                cachePost({ pid, ...data });
-                widToPidRef.current.set(wid, pid);
-            } else {
-                markNoPostForWid(wid);
-            }
-        } catch (error) {
-            console.warn('DayDetailsSheet: failed to query post by wid', wid, error);
-        }
-        pendingFetchRef.current.delete(widKey);
-    }, [cachePost, extractPostPidCandidates, markNoPostForWid]);
-
-    const getCachedPostForWorkout = useCallback((workout) => {
-        if (!workout || typeof workout !== 'object') return undefined;
-        const pidCandidates = extractPostPidCandidates(workout);
-        for (const pid of pidCandidates) {
-            if (postCacheRef.current.has(pid)) {
-                return postCacheRef.current.get(pid);
-            }
-        }
-        const wid = extractWid(workout);
-        if (wid) {
-            const mappedPid = widToPidRef.current.get(wid);
-            if (mappedPid === null) return null;
-            if (mappedPid && postCacheRef.current.has(mappedPid)) {
-                return postCacheRef.current.get(mappedPid);
-            }
-        }
-        return undefined;
-    }, [extractPostPidCandidates]);
-
-    const openPastWorkoutScreen = useCallback((postData, fallbackWorkout) => {
-        const workoutInput = postData?.workout || fallbackWorkout;
-        if (!workoutInput) return;
-
-        const fallback = {
-            wid: workoutInput?.wid || workoutInput?.id,
-            creatorUID: workoutInput?.creatorUID || workoutInput?.creatorUid || postData?.uid || global?.userData?.uid || '',
-            created: workoutInput?.created || workoutInput?.createdAt || Date.now(),
-            exercises: Array.isArray(workoutInput?.exercises) ? workoutInput.exercises : [],
-            duration: workoutInput?.duration,
-            volume: workoutInput?.volume,
-            reps: workoutInput?.reps,
-            PBs: workoutInput?.PBs ?? workoutInput?.pbs ?? 0,
-            templateName: workoutInput?.templateName || workoutInput?.template?.name,
-        };
-
-        const mergedWorkout = { ...fallback, ...workoutInput };
-
-        const ownerUid = String(postData?.uid || mergedWorkout.creatorUID || mergedWorkout.creatorUid || global?.userData?.uid || '');
-        const ownerHandle = ensureAtHandle(postData?.handle || mergedWorkout.handle || mergedWorkout.username || '');
-        const ownerName = postData?.name || mergedWorkout.ownerName || mergedWorkout.name || '';
-        const ownerPfp = postData?.pfp || mergedWorkout.pfp || mergedWorkout.pfpUrl || mergedWorkout.photoURL || mergedWorkout.photo || '';
-        const ownerPfpVersion = postData?.pfpVersion ?? mergedWorkout.pfpVersion ?? mergedWorkout.version ?? 0;
-
-        const sanitizedWorkout = sanitizeWorkoutForRoute({
-            ...mergedWorkout,
-            creatorUID: ownerUid || mergedWorkout.creatorUID,
-            creatorUid: ownerUid || mergedWorkout.creatorUid,
-            handle: ownerHandle || mergedWorkout.handle,
-            pfp: ownerPfp,
-            pfpUrl: ownerPfp,
-            pfpVersion: ownerPfpVersion,
-            ownerName,
-        });
-
-        if (!sanitizedWorkout) return;
-
-        const likeCount = Array.isArray(postData?.likes) ? postData.likes.length : toNumber(postData?.likeCount);
-        const commentCount = Array.isArray(postData?.comments)
-            ? Math.max(0, postData.comments.length - 1)
-            : toNumber(postData?.commentCount);
-
-        const likesForRoute = Array.isArray(postData?.likes) ? postData.likes.map(sanitizeEntry) : [];
-        const mediaForRoute = Array.isArray(postData?.media) ? postData.media.map(sanitizeEntry) : [];
-        const imagesForRoute = Array.isArray(postData?.images) ? postData.images.map(sanitizeEntry) : [];
-        const tagsForRoute = Array.isArray(postData?.tags) ? [...postData.tags] : [];
-        const taggedForRoute = Array.isArray(postData?.tagged) ? [...postData.tagged] : [];
-
-        const params = {
-            workout: sanitizedWorkout,
-            owner: {
-                uid: ownerUid,
-                handle: ownerHandle,
-                name: ownerName,
-                pfp: ownerPfp,
-                pfpVersion: ownerPfpVersion,
-            },
-            postMeta: {
-                pid: postData?.pid ?? postData?.id ?? `${ownerUid}:${sanitizedWorkout?.wid ?? sanitizedWorkout?.id ?? ''}`,
-                caption: typeof postData?.caption === 'string' ? postData.caption : '',
-                created: postData?.created ?? postData?.createdAt ?? sanitizedWorkout?.created ?? null,
-                likeCount,
-                commentCount,
-                likes: likesForRoute,
-                media: mediaForRoute,
-                images: imagesForRoute,
-                shareCount: toNumber(postData?.shareCount),
-                tags: tagsForRoute,
-                tagged: taggedForRoute,
-            },
-        };
-
-        const routed = navigateOneWay('PastWorkout', { animation: 'slide-from-right', params });
-        if (!routed) {
-            navigation?.navigate?.('PastWorkout', params);
-        }
-    }, [navigation]);
-
-    const openProfileFromPost = useCallback((postData, fallbackWorkout) => {
-        const source = postData || {};
-        const workoutSource = fallbackWorkout || source?.workout || {};
-        const targetUid = String(source.uid || workoutSource.uid || workoutSource.creatorUID || workoutSource.creatorUid || '');
-        if (!targetUid) return;
-
-        const rawHandle = source.handle || workoutSource.handle || workoutSource.username || '';
-        const cleanHandle = ensureHandle(rawHandle);
-        const name = source.name || workoutSource.ownerName || workoutSource.name || '';
-        const pfp = source.pfp || workoutSource.pfp || workoutSource.pfpUrl || workoutSource.photoURL || workoutSource.photo || '';
-
-        const meUid = String(global?.userData?.uid || '');
-        try { bottomSheetRef.current?.close?.(); } catch {}
-
-        const rootNav = navigation?.getParent?.('ROOT');
-        if (targetUid && targetUid === meUid) {
-            if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
-            else navigation?.navigate?.('Profile', { transition: 'slide-from-right' });
-            return;
-        }
-
-        const routeParams = { user: { uid: targetUid, handle: cleanHandle, name, pfp } };
-        if (rootNav?.navigate) rootNav.navigate('ViewProfile', routeParams);
-        else navigation?.navigate?.('ViewProfile', routeParams);
-    }, [navigation]);
-
     const closeViewer = useCallback(() => {
         // Slide out overlay; header remains visible (always part of main screen)
         Animated.timing(viewerTranslateX, { toValue: screenWidth, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start(({ finished }) => {
             if (finished) {
-                setSelectedWorkout(null);
                 setSelectedFood(null);
                 setViewerReady(false);
             }
         });
-    }, [listOpacity, viewerOpacity, viewerTranslateX, screenWidth]);
+    }, [viewerTranslateX, screenWidth]);
 
     // Avoid mounting heavy pager until expanded or explicitly visible
     const shouldRenderContent = isExpanded || !!visible;
@@ -1115,15 +730,6 @@ const DayDetailsSheet = ({
         return { meals: buckets, totals };
     }, [normalizeMealBucket]);
 
-    const buildWorkoutsFromGlobal = useCallback((d) => {
-        const dk = dayKey(d);
-        const list = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
-        return list.filter((w) => {
-            const created = w?.created ?? w?.createdAt ?? 0;
-            return dayKey(created) === dk;
-        });
-    }, []);
-
     const loggedFoodsCount = useMemo(() => {
         const map = global?.userData?.loggedFoods || {};
         try {
@@ -1132,52 +738,31 @@ const DayDetailsSheet = ({
             let n = 0; Object.values(map).forEach((m) => { n += Object.keys(m || {}).length; }); return n;
         } catch { return 0; }
     }, [global?.__loggedFoodsSig]);
-    const completedWorkoutsCount = useMemo(() => (global?.userData?.completedWorkouts || []).length, [(global?.userData?.completedWorkouts || [])]);
 
     const calendarMarkedSet = useMemo(() => {
-        const set = new Set();
-        const addKey = (value) => {
-            if (value === null || value === undefined) return;
-            if (typeof value === 'string' && value.includes('-')) {
-                set.add(value);
-                return;
-            }
-            const key = dayKey(value);
-            if (key) set.add(key);
-        };
-
-        try {
-            // Only completed workouts contribute calendar marks.
-            const completed = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
-            completed.forEach((w) => {
-                addKey(w?.finishedAt ?? w?.completedAt ?? w?.createdAt ?? w?.created ?? 0);
-            });
-        } catch { }
-
-        return set;
-    }, [completedWorkoutsCount]);
+        return new Set();
+    }, []);
 
     // Current, prev, next day data from global (instant render)
     const prevDate = useMemo(() => shiftDate(date, -1), [date]);
     const nextDate = useMemo(() => shiftDate(date, 1), [date]);
     const currentData = useMemo(() => ({
-        workouts: buildWorkoutsFromGlobal(date),
+        workouts: [],
         ...buildMealsFromGlobal(date),
-    }), [date, buildWorkoutsFromGlobal, buildMealsFromGlobal, completedWorkoutsCount, loggedFoodsCount]);
+    }), [date, buildMealsFromGlobal, loggedFoodsCount]);
     const prevData = useMemo(() => ({
-        workouts: buildWorkoutsFromGlobal(prevDate),
+        workouts: [],
         ...buildMealsFromGlobal(prevDate),
-    }), [prevDate, buildWorkoutsFromGlobal, buildMealsFromGlobal, completedWorkoutsCount, loggedFoodsCount]);
+    }), [prevDate, buildMealsFromGlobal, loggedFoodsCount]);
     const nextData = useMemo(() => ({
-        workouts: buildWorkoutsFromGlobal(nextDate),
+        workouts: [],
         ...buildMealsFromGlobal(nextDate),
-    }), [nextDate, buildWorkoutsFromGlobal, buildMealsFromGlobal, completedWorkoutsCount, loggedFoodsCount]);
+    }), [nextDate, buildMealsFromGlobal, loggedFoodsCount]);
 
     // No prefetch from Firestore: rely on global.userData.loggedFoods only
 
     // Inner component: one day's details page
-    const DayDetailsPage = useCallback(({ d, dayWorkouts, dayMeals, dayTotals, dayCalories }) => {
-        const isTodayPage = useMemo(() => dayKey(d) === dayKey(new Date()), [d]);
+    const DayDetailsPage = useCallback(({ dayMeals, dayTotals, dayCalories }) => {
         const foodsList = useMemo(() => {
             const buckets = ["Breakfast", "Lunch", "Dinner", "Snacks"];
             const out = [];
@@ -1217,51 +802,6 @@ const DayDetailsSheet = ({
             return [bucketLabel, detail].filter(Boolean).join(' · ');
         }, []);
 
-        const workoutFeedPosts = useMemo(() => {
-            if (!Array.isArray(dayWorkouts) || dayWorkouts.length === 0) return [];
-            return dayWorkouts.slice(0, 3).map((wk, idx) => {
-                const fallbackPost = buildFeedPostData(wk, idx);
-                if (!fallbackPost) return null;
-                const key = fallbackPost.pid || `${wk?.wid || wk?.id || idx}`;
-                const cached = getCachedPostForWorkout(wk);
-                if (cached && typeof cached === 'object') {
-                    const mergedLikeCount = Number(cached.likeCount ?? fallbackPost.likeCount ?? 0);
-                    const mergedCommentCount = Number(cached.commentCount ?? fallbackPost.commentCount ?? 0);
-                    return {
-                        key,
-                        post: {
-                            ...fallbackPost,
-                            ...cached,
-                            uid: String(cached.uid ?? fallbackPost.uid ?? ''),
-                            handle: cached.handle ?? fallbackPost.handle ?? '',
-                            name: cached.name ?? fallbackPost.name ?? '',
-                            pfp: cached.pfp ?? fallbackPost.pfp ?? '',
-                            pfpVersion: cached.pfpVersion ?? fallbackPost.pfpVersion ?? 0,
-                            caption: typeof cached.caption === 'string' ? cached.caption : fallbackPost.caption,
-                            workout: { ...(cached?.workout || {}), ...wk },
-                            likeCount: mergedLikeCount,
-                            commentCount: mergedCommentCount,
-                            likes: Array.isArray(cached.likes) ? cached.likes : fallbackPost.likes,
-                            comments: Array.isArray(cached.comments) ? cached.comments : fallbackPost.comments,
-                            media: Array.isArray(cached.media) ? cached.media : fallbackPost.media,
-                            images: Array.isArray(cached.images) ? cached.images : fallbackPost.images,
-                        },
-                        workout: wk,
-                    };
-                }
-                return { key, post: fallbackPost, workout: wk };
-            }).filter(Boolean);
-        }, [dayWorkouts, getCachedPostForWorkout, postCacheVersion]);
-
-        useEffect(() => {
-            const workouts = Array.isArray(dayWorkouts) ? dayWorkouts.slice(0, 3) : [];
-            if (!workouts.length) return;
-            const hydrate = async () => {
-                await Promise.all(workouts.map((wk) => ensurePostDataForWorkout(wk)));
-            };
-            hydrate();
-        }, [dayWorkouts, ensurePostDataForWorkout]);
-
         return (
             <View style={styles.ctnr}>
                 {/* Header is static above; this page starts with section content */}
@@ -1270,26 +810,9 @@ const DayDetailsSheet = ({
                     <Text style={styles.sectionHdr}>Training</Text>
                 </View>
 
-                {(!dayWorkouts || dayWorkouts.length === 0) ? (
-                    <View style={styles.emptyCard}>
-                        <Text style={styles.emptyText}>No completed workouts for this day.</Text>
-                    </View>
-                ) : (
-                    workoutFeedPosts.map(({ key, post, workout }, idx) => (
-                        <View key={key} style={styles.feedPostWrapper}>
-                            <SimpleFeedPost
-                                data={post}
-                                index={idx}
-                                highlightPid={null}
-                                highlightSignal={0}
-                                onPressWorkout={(_, data) => openPastWorkoutScreen(data || post, workout)}
-                                onPressComments={(_, data) => openPastWorkoutScreen(data || post, workout)}
-                                onPressLikes={(_, data) => openPastWorkoutScreen(data || post, workout)}
-                                onPressProfile={(_, data) => openProfileFromPost(data || post, workout)}
-                            />
-                        </View>
-                    ))
-                )}
+                <View style={styles.emptyCard}>
+                    <Text style={styles.emptyText}>No completed workouts for this day.</Text>
+                </View>
 
                 {/* ------- Foods ------- */}
                 <View style={[styles.sectionHdrRow, { marginTop: scaleSize(20) }]}>
@@ -1337,7 +860,7 @@ const DayDetailsSheet = ({
                 </View> */}
             </View>
         );
-    }, [handleOpenMacros, handleStartWorkout, handleTitlePress, onChangeDate, openFood, openPastWorkoutScreen, openProfileFromPost, titleScale, workoutOn, ensurePostDataForWorkout, getCachedPostForWorkout, postCacheVersion]);
+    }, [openFood]);
 
     // Static header (doesn't move when swiping pages)
     useEffect(() => {
@@ -1402,48 +925,9 @@ const DayDetailsSheet = ({
         );
     }, [headerDate, handleTitlePress, titleScale, headerHeight, slideBy, openCalendar]);
 
-    const showToast = useCallback((msg) => {
-        setToastText(msg || "Template added");
-        try {
-            Animated.sequence([
-                Animated.timing(toastAnim, { toValue: 1, duration: 180, useNativeDriver: true }),
-                Animated.delay(1500),
-                Animated.timing(toastAnim, { toValue: 0, duration: 200, useNativeDriver: true }),
-            ]).start();
-        } catch { }
-    }, [toastAnim]);
-
-    const handleCopyTemplate = useCallback((wk) => {
-        try {
-            const uid = String(global?.userData?.uid || "");
-            if (!wk || !uid) return;
-            const tid = makeID();
-            const name = wk?.templateName || wk?.template?.name || "Copied Template";
-            const exercises = (Array.isArray(wk?.exercises) ? wk.exercises : []).map((ex) => ({
-                name: ex?.name || "",
-                muscle: ex?.muscle || "",
-                sets: (Array.isArray(ex?.sets) ? ex.sets : []).map((s) => ({
-                    weight: Number(s?.weight) || 0,
-                    reps: Number(s?.reps) || 0,
-                    type: (() => {
-                        const raw = typeof s?.type === 'string' ? s.type.toLowerCase() : '';
-                        return raw === 'warmup' || raw === 'dropset' || raw === 'failure' ? raw : null;
-                    })(),
-                })),
-            }));
-            const newTemplate = { id: tid, tid, name, exercises, lastDate: null };
-            const prev = Array.isArray(global?.userData?.templates) ? global.userData.templates : [];
-            updateDoc("users", uid, { templates: [...prev, newTemplate] }).catch(() => { });
-            try { global.userData.templates = [...prev, newTemplate]; } catch { }
-            showToast("Template copied ✓");
-        } catch { }
-    }, [showToast]);
-
     // Open food details overlay
     const openFood = useCallback((entry) => {
         if (!entry) return;
-        // Ensure only one overlay is active at a time
-        try { setSelectedWorkout(null); } catch {}
         const qty = typeof entry?.qty === 'number' ? entry.qty : (Number(entry?.qty) || 1);
         const macros = entry?.macros || parseMacrosFromDescription(entry?.desc || '', qty);
         const extras = parseExtraNutrientsFromDescription(entry?.desc || '', qty);
@@ -1453,7 +937,7 @@ const DayDetailsSheet = ({
         try {
             Animated.timing(viewerTranslateX, { toValue: 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
         } catch { }
-    }, [listOpacity, viewerOpacity, viewerTranslateX, screenWidth]);
+    }, [viewerTranslateX, screenWidth]);
 
     return (
         <>
@@ -1477,16 +961,6 @@ const DayDetailsSheet = ({
                     backdropComponent={renderBackdrop}
                     handleComponent={() => (
                     <View style={styles.handleWrap}>
-                        {/* Fading yellow background when viewer is open */}
-                        <Animated.View
-                            style={[StyleSheet.absoluteFillObject, {
-                                backgroundColor: HANDLE_BG,
-                                opacity: selectedWorkout ? handleAccentOpacity : 0,
-                                borderTopLeftRadius: scaleSize(20),
-                                borderTopRightRadius: scaleSize(20),
-                            }]}
-                            pointerEvents="none"
-                        />
                         <View style={{ alignItems: 'center', paddingVertical: scaleSize(8) }}>
                             <View
                                 style={{
@@ -1494,24 +968,8 @@ const DayDetailsSheet = ({
                                     height: scaleSize(4),
                                     borderRadius: scaleSize(2),
                                     backgroundColor: HANDLE_NEUTRAL,
-                                    overflow: 'hidden',
                                 }}
-                            >
-                                {/* Yellow handle bar (only shown while viewer slides in) */}
-                                <Animated.View
-                                    style={{
-                                        position: 'absolute',
-                                        left: 0,
-                                        right: 0,
-                                        top: 0,
-                                        bottom: 0,
-                                        backgroundColor: HANDLE_ACCENT,
-                                        opacity: selectedWorkout ? handleAccentOpacity : 0,
-                                        borderRadius: scaleSize(2),
-                                    }}
-                                    pointerEvents="none"
-                                />
-                            </View>
+                            />
                         </View>
                     </View>
                     )}
@@ -1573,7 +1031,7 @@ const DayDetailsSheet = ({
                                 const offset = index - baseIndex;
                                 const d = shiftDate(date, offset);
                                 const data = offset === -1 ? prevData : offset === 0 ? currentData : offset === 1 ? nextData : {
-                                    workouts: buildWorkoutsFromGlobal(d),
+                                    workouts: [],
                                     ...buildMealsFromGlobal(d),
                                 };
                                 return (
@@ -1585,8 +1043,6 @@ const DayDetailsSheet = ({
                                         showsVerticalScrollIndicator={false}
                                     >
                                         <DayDetailsPage
-                                            d={d}
-                                            dayWorkouts={data.workouts}
                                             dayMeals={data.meals}
                                             dayTotals={data.totals}
                                             dayCalories={data.totals?.calories || 0}
@@ -1603,56 +1059,8 @@ const DayDetailsSheet = ({
                 </BottomSheetView>
 
                 {/* Viewer overlay */}
-                <OverlayContainer translateX={viewerTranslateX} gesture={backPan} visible={(selectedWorkout || selectedFood)}>
+                <OverlayContainer translateX={viewerTranslateX} gesture={backPan} visible={!!selectedFood}>
                         <View style={{ flex: 1 }}>
-                            {/* header is fixed above; overlay now sits flush to top without extra spacer */}
-                            {!selectedWorkout || !viewerReady ? null : (
-                                <View style={{ flex: 1 }}>
-                                    {canViewWorkout(selectedWorkout, viewerUid, viewerData) ? (
-                                        <>
-                                            <NewWorkoutModal
-                                                timerRef={timerRef}
-                                                workout={selectedWorkout}
-                                                cancelWorkout={() => { }}
-                                                updateWorkout={() => { }}
-                                                finishWorkout={() => { }}
-                                                showGroupModal={() => { }}
-                                                userWorkoutStats={global?.userData?.statsExercises || {}}
-                                                onPressBack={closeViewer}
-                                                onCheer={() => { }}
-                                                onCopyTemplate={handleCopyTemplate}
-                                                onPressPfp={() => {
-                                                    try { bottomSheetRef.current?.close(); } catch { }
-                                                    const uid = String(selectedWorkout?.__friendUid || selectedWorkout?.creatorUID || '');
-                                                    if (!uid) return;
-                                                    const meUid = String(global?.userData?.uid || '');
-                                                    const rootNav = navigation?.getParent?.('ROOT');
-                                                    if (uid === meUid) {
-                                                        if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
-                                                        else navigation.navigate('Profile', { transition: 'slide-from-right' });
-                                                    } else {
-                                                        if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid } });
-                                                        else navigation.navigate('ViewProfile', { user: { uid } });
-                                                    }
-                                                }}
-                                                forceViewingFriend={String(selectedWorkout.__friendUid || selectedWorkout.creatorUID || "")}
-                                                friendPfp={selectedWorkout.__friendPfp || null}
-                                                streamLive={false}
-                                            />
-                                            {/* Copy Template toast centered near top of overlay */}
-                                            <View pointerEvents="none" style={styles.toastWrap}>
-                                                <CopyTemplateToast anim={toastAnim} text={toastText} />
-                                            </View>
-                                        </>
-                                    ) : (
-                                        <View style={styles.lockedWrap}>
-                                            <Text style={styles.lockedTitle}>Workout is private</Text>
-                                            <Text style={styles.lockedSubtitle}>You do not have permission to view this workout.</Text>
-                                        </View>
-                                    )}
-                                </View>
-                            )}
-                            {/* Food details overlay */}
                             {!selectedFood || !viewerReady ? null : (
                                 <FoodDetailInline
                                     entry={{
