@@ -676,29 +676,19 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                                 if (best1RM > Number(prev['1RM'] || 0)) { localPatch[name]['1RM'] = best1RM; if (bestSet) localPatch[name].bestSet = bestSet; }
                             }
 
-                            // Persist minimal stats deltas + completed totals + clear currentWorkout in one update
+                            // Persist minimal stats deltas (currentWorkout already cleared in base update)
                             if (uid && namesTouched.size > 0) {
                                 const uref = doc(db, 'users', uid);
-                                const incVol = Number(completed?.volume || 0);
-                                const incHrs = Number(completed?.duration || 0) / 3600000;
                                 const combined = {
                                     ...atomic,
                                     currentWorkout: null,
-                                    completedWorkouts: arrayUnion(completed),
-                                    statsTotalWorkouts: increment(1),
-                                    statsTotalVolume: increment(incVol),
-                                    statsTotalHours: increment(incHrs),
                                 };
                                 try {
                                     await fsUpdateDoc(uref, combined);
                                 } catch (e) {
                                     await updateDoc('users', uid, {
-                                        ...{ currentWorkout: null },
+                                        currentWorkout: null,
                                         statsExercises: localPatch,
-                                        completedWorkouts: arrayUnion(completed),
-                                        statsTotalWorkouts: increment(1),
-                                        statsTotalVolume: increment(incVol),
-                                        statsTotalHours: increment(incHrs),
                                     });
                                 }
                             }

@@ -16,6 +16,12 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { strong as haptic } from "../../utils/haptics";
 import { FlashList } from "@shopify/flash-list";
 import MealItemCard from "../2_MacroTracking/MealItemCard";
+import { useNavigation } from "@react-navigation/native";
+import SimpleFeedPost from "../1_Feed/SimpleFeedPost";
+import CommentsBottomSheet from "../1_Feed/Comments/CommentsBottomSheet";
+import { navigateOneWay } from "../../../navigationRef";
+import { db } from "../../../firebase.config";
+import { doc, onSnapshot, collection, query, where, limit, getDocs } from "firebase/firestore";
 
 const HEADER_HEIGHT = scaleSize(48);
 const EDGE_BACK_GESTURE_WIDTH = 200; // px area from left edge to trigger back swipe
@@ -53,6 +59,145 @@ const shiftDate = (d, delta) => {
     base.setHours(0, 0, 0, 0);
     base.setDate(base.getDate() + (delta || 0));
     return base;
+};
+
+const toMillis = (value) => {
+    if (!value && value !== 0) return undefined;
+    if (typeof value === "number") return value;
+    if (value?.toMillis) return value.toMillis();
+    const t = new Date(value).getTime();
+    return Number.isFinite(t) ? t : undefined;
+};
+
+const bestTimestamp = (workout) => Math.max(
+    toMillis(workout?.finishedAt) ?? 0,
+    toMillis(workout?.completedAt) ?? 0,
+    toMillis(workout?.startedAt) ?? 0,
+    toMillis(workout?.createdAt) ?? 0,
+    toMillis(workout?.created) ?? 0,
+);
+
+const buildWorkoutPid = (uid, workout, fallbackIndex) => {
+    const safeUid = uid ? String(uid) : "self";
+    const baseId = workout?.pid
+        ?? workout?.wid
+        ?? workout?.id
+        ?? workout?.workoutId
+        ?? workout?.logId
+        ?? workout?.sessionId;
+    const suffix = baseId ? String(baseId) : String(bestTimestamp(workout) || fallbackIndex || Date.now());
+    return `workout:${safeUid}:${suffix}`;
+};
+
+const sanitizeEntry = (entry) => {
+    if (!entry || typeof entry !== "object") return entry;
+    try {
+        return JSON.parse(JSON.stringify(entry, (_key, val) => (typeof val === "function" ? undefined : val)));
+    } catch {
+        return { ...entry };
+    }
+};
+
+const ensureHandle = (value) => {
+    if (!value) return "";
+    const str = String(value).trim();
+    return str.startsWith("@") ? str.slice(1) : str;
+};
+
+const ensureAtHandle = (value) => {
+    const base = ensureHandle(value);
+    return base ? `@${base}` : "";
+};
+
+const sanitizeWorkoutForRoute = (workout) => {
+    if (!workout || typeof workout !== "object") return null;
+
+    const replacer = (_key, value) => (typeof value === "function" ? undefined : value);
+
+    try {
+        return JSON.parse(JSON.stringify(workout, replacer));
+    } catch {
+        const clone = { ...workout };
+        clone.exercises = Array.isArray(workout.exercises)
+            ? workout.exercises.map((exercise) => {
+                if (!exercise || typeof exercise !== "object") return {};
+                const sets = Array.isArray(exercise.sets)
+                    ? exercise.sets.map((set) => {
+                        if (!set || typeof set !== "object") return {};
+                        const { weight, reps, unit, units, weightUnit, kg, lbs, ...rest } = set;
+                        const normalized = {
+                            ...rest,
+                            weight: Number(weight ?? kg ?? lbs ?? 0) || 0,
+                            reps: Number(reps ?? set?.rep ?? set?.r ?? 0) || 0,
+                        };
+                        const resolvedUnit = unit || units || weightUnit || (kg != null ? "kg" : undefined);
+                        if (resolvedUnit) normalized.unit = resolvedUnit;
+                        return normalized;
+                    })
+                    : [];
+                return { ...exercise, sets };
+            })
+            : [];
+        return clone;
+    }
+};
+
+const toNumber = (value, fallback = 0) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+};
+
+const extractPidFromWorkout = (workout) => {
+    if (!workout || typeof workout !== "object") return "";
+    const candidates = [
+        workout.pid,
+        workout.postPid,
+        workout.post_id,
+        workout.postId,
+        workout.linkedPostPid,
+        workout.linkedPostId,
+        workout.post?.pid,
+        workout.feedItem?.pid,
+    ];
+    for (const candidate of candidates) {
+        if (!candidate && candidate !== 0) continue;
+        const str = String(candidate).trim();
+        if (str) return str;
+    }
+    return "";
+};
+
+const buildFeedPostData = (workout, fallbackIndex = 0) => {
+    if (!workout || typeof workout !== "object") return null;
+
+    const viewer = (() => { try { return global?.userData || null; } catch { return null; } })();
+    const ownerUid = workout?.uid ?? workout?.userUid ?? workout?.creatorUid ?? workout?.creatorUID ?? viewer?.uid ?? "self";
+    const handle = workout?.handle || workout?.username || viewer?.handle || "";
+    const name = workout?.name || viewer?.name || handle || "You";
+    const pfp = workout?.pfp || workout?.pfpUrl || workout?.photoURL || workout?.photo || viewer?.image || viewer?.pfp || viewer?.pfpUrl || "";
+    const pfpVersion = workout?.pfpVersion ?? workout?.pfp_version ?? viewer?.pfpVersion ?? viewer?.pfp_version ?? 0;
+    const created = bestTimestamp(workout);
+    const pid = extractPidFromWorkout(workout) || buildWorkoutPid(ownerUid, workout, fallbackIndex);
+
+    return {
+        pid,
+        uid: String(ownerUid || ""),
+        handle,
+        name,
+        pfp,
+        pfpVersion,
+        workout,
+        created,
+        createdAt: created,
+        likes: Array.isArray(workout?.likes) ? workout.likes : [],
+        likeCount: Number(workout?.likeCount ?? workout?.likesCount ?? 0) || 0,
+        comments: Array.isArray(workout?.comments) ? workout.comments : [],
+        commentCount: Number(workout?.commentCount ?? workout?.commentsCount ?? 0) || 0,
+        media: Array.isArray(workout?.media) ? workout.media : [],
+        images: Array.isArray(workout?.images) ? workout.images : [],
+        caption: workout?.caption || workout?.templateName || workout?.template?.name || workout?.name || "",
+        __synthetic: true,
+    };
 };
 
 const MONTH_NAMES = [
@@ -521,6 +666,13 @@ const DayDetailsSheet = ({
     onChangeDate,
 }) => {
     const bottomSheetRef = useRef(null);
+    const navigation = useNavigation();
+    const postCacheRef = useRef(new Map());
+    const postSubscriptionsRef = useRef(new Map());
+    const [postCacheVersion, setPostCacheVersion] = useState(0);
+    const [activeCommentsPost, setActiveCommentsPost] = useState(null);
+    const [commentsVisible, setCommentsVisible] = useState(false);
+    const [commentsExpandSignal, setCommentsExpandSignal] = useState(0);
     const viewerData = (() => {
         try { return global?.userData || null; } catch { return null; }
     })();
@@ -568,6 +720,124 @@ const DayDetailsSheet = ({
             }
         };
         tryExpand();
+    }, []);
+
+    const completedWorkouts = useMemo(() => (
+        Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : []
+    ), [(global?.userData?.completedWorkouts || [])]);
+
+    const completedWorkoutsSignature = useMemo(() => {
+        if (!completedWorkouts.length) return "empty";
+        try {
+            return completedWorkouts
+                .map((w) => `${extractPidFromWorkout(w)}:${bestTimestamp(w) || 0}`)
+                .join("|");
+        } catch {
+            return String(completedWorkouts.length);
+        }
+    }, [completedWorkouts]);
+
+    const workoutPids = useMemo(() => {
+        if (!completedWorkouts.length) return [];
+        const set = new Set();
+        completedWorkouts.forEach((w) => {
+            const pid = extractPidFromWorkout(w);
+            if (pid) set.add(pid);
+        });
+        return Array.from(set);
+    }, [completedWorkouts, completedWorkoutsSignature]);
+
+    const workoutPidsSignature = useMemo(() => {
+        if (!workoutPids.length) return "none";
+        try {
+            return workoutPids.join("|");
+        } catch {
+            return String(workoutPids.length);
+        }
+    }, [workoutPids]);
+
+    const subscribeToPost = useCallback((pid) => {
+        if (!pid) return () => {};
+        const postRef = doc(db, "posts", pid);
+        let isActive = true;
+        let attemptedFallback = false;
+
+        const applyData = (sourcePid, data) => {
+            if (!isActive) return;
+            const payload = data ? { pid: sourcePid, ...data } : null;
+            postCacheRef.current.set(pid, payload);
+            setPostCacheVersion((v) => v + 1);
+        };
+
+        const fetchByField = async () => {
+            if (attemptedFallback || !isActive) return;
+            attemptedFallback = true;
+            try {
+                const q = query(collection(db, "posts"), where("pid", "==", pid), limit(1));
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    applyData(pid, null);
+                    return;
+                }
+                const docSnap = snap.docs[0];
+                const data = docSnap.data() || {};
+                const resolvedPid = String(data?.pid || docSnap.id || pid);
+                applyData(resolvedPid, data);
+            } catch (error) {
+                console.warn("DayDetailsSheet: failed fallback fetch for post", pid, error);
+            }
+        };
+
+        const unsubscribe = onSnapshot(
+            postRef,
+            (snap) => {
+                if (!isActive) return;
+                if (!snap.exists()) {
+                    fetchByField();
+                    return;
+                }
+                const data = snap.data() || {};
+                const resolvedPid = String(data?.pid || snap.id || pid);
+                applyData(resolvedPid, data);
+            },
+            (error) => {
+                console.warn("DayDetailsSheet: post subscription error", pid, error);
+                fetchByField();
+            },
+        );
+
+        return () => {
+            isActive = false;
+            try { unsubscribe?.(); } catch { }
+        };
+    }, [setPostCacheVersion]);
+
+    useEffect(() => {
+        const subs = postSubscriptionsRef.current;
+        const targetSet = new Set(workoutPids);
+
+        subs.forEach((unsubscribe, pid) => {
+            if (!targetSet.has(pid)) {
+                try { unsubscribe?.(); } catch { }
+                subs.delete(pid);
+                postCacheRef.current.delete(pid);
+            }
+        });
+
+        workoutPids.forEach((pid) => {
+            if (!pid || subs.has(pid)) return;
+            const unsubscribe = subscribeToPost(pid);
+            subs.set(pid, unsubscribe);
+        });
+
+        return () => { };
+    }, [workoutPidsSignature, workoutPids, subscribeToPost]);
+
+    useEffect(() => () => {
+        postSubscriptionsRef.current.forEach((unsubscribe) => {
+            try { unsubscribe?.(); } catch { }
+        });
+        postSubscriptionsRef.current.clear();
     }, []);
 
     // explicit visible
@@ -652,6 +922,174 @@ const DayDetailsSheet = ({
         });
     }, [viewerTranslateX, screenWidth]);
 
+    const openCommentsForPost = useCallback((postData) => {
+        if (!postData || !postData.pid) return;
+        setActiveCommentsPost(postData);
+        setCommentsVisible(true);
+        setCommentsExpandSignal(Date.now());
+    }, []);
+
+    const closeComments = useCallback(() => {
+        setCommentsVisible(false);
+        setActiveCommentsPost(null);
+    }, []);
+
+    useEffect(() => {
+        if (!isExpanded) {
+            closeComments();
+        }
+    }, [isExpanded, closeComments]);
+
+    const openPastWorkoutScreen = useCallback((postData, fallbackWorkout) => {
+        const workoutInput = postData?.workout || fallbackWorkout;
+        if (!workoutInput) return;
+
+        const fallback = {
+            wid: workoutInput?.wid || workoutInput?.id,
+            creatorUID: workoutInput?.creatorUID || workoutInput?.creatorUid || postData?.uid || viewerUid || "",
+            created: workoutInput?.created || workoutInput?.createdAt || Date.now(),
+            exercises: Array.isArray(workoutInput?.exercises) ? workoutInput.exercises : [],
+            duration: workoutInput?.duration,
+            volume: workoutInput?.volume,
+            reps: workoutInput?.reps,
+            PBs: workoutInput?.PBs ?? workoutInput?.pbs ?? 0,
+            templateName: workoutInput?.templateName || workoutInput?.template?.name,
+        };
+
+        const mergedWorkout = { ...fallback, ...workoutInput };
+
+        const ownerUid = String(postData?.uid || mergedWorkout.creatorUID || mergedWorkout.creatorUid || viewerUid || "");
+        const ownerHandle = ensureAtHandle(postData?.handle || mergedWorkout.handle || mergedWorkout.username || "");
+        const ownerName = postData?.name || mergedWorkout.ownerName || mergedWorkout.name || "";
+        const ownerPfp = postData?.pfp || mergedWorkout.pfp || mergedWorkout.pfpUrl || mergedWorkout.photoURL || mergedWorkout.photo || "";
+        const ownerPfpVersion = postData?.pfpVersion ?? mergedWorkout.pfpVersion ?? mergedWorkout.version ?? 0;
+
+        const sanitizedWorkout = sanitizeWorkoutForRoute({
+            ...mergedWorkout,
+            creatorUID: ownerUid || mergedWorkout.creatorUID,
+            creatorUid: ownerUid || mergedWorkout.creatorUid,
+            handle: ownerHandle || mergedWorkout.handle,
+            pfp: ownerPfp,
+            pfpUrl: ownerPfp,
+            pfpVersion: ownerPfpVersion,
+            ownerName,
+        });
+
+        if (!sanitizedWorkout) return;
+
+        const likeCount = Array.isArray(postData?.likes) ? postData.likes.length : toNumber(postData?.likeCount);
+        const commentCount = Array.isArray(postData?.comments)
+            ? Math.max(0, postData.comments.length - 1)
+            : toNumber(postData?.commentCount);
+        const likesForRoute = Array.isArray(postData?.likes) ? postData.likes.map(sanitizeEntry) : [];
+        const mediaForRoute = Array.isArray(postData?.media) ? postData.media.map(sanitizeEntry) : [];
+        const imagesForRoute = Array.isArray(postData?.images) ? postData.images.map(sanitizeEntry) : [];
+        const tagsForRoute = Array.isArray(postData?.tags) ? [...postData.tags] : [];
+        const taggedForRoute = Array.isArray(postData?.tagged) ? [...postData.tagged] : [];
+
+        const params = {
+            workout: sanitizedWorkout,
+            owner: {
+                uid: ownerUid,
+                handle: ownerHandle,
+                name: ownerName,
+                pfp: ownerPfp,
+                pfpVersion: ownerPfpVersion,
+            },
+            postMeta: {
+                pid: postData?.pid ?? postData?.id ?? `${ownerUid}:${sanitizedWorkout?.wid ?? sanitizedWorkout?.id ?? ""}`,
+                caption: typeof postData?.caption === "string" ? postData.caption : "",
+                created: postData?.created ?? postData?.createdAt ?? sanitizedWorkout?.created ?? null,
+                likeCount,
+                commentCount,
+                likes: likesForRoute,
+                media: mediaForRoute,
+                images: imagesForRoute,
+                shareCount: toNumber(postData?.shareCount),
+                tags: tagsForRoute,
+                tagged: taggedForRoute,
+            },
+        };
+
+        const routed = navigateOneWay("PastWorkout", { animation: "slide-from-right", params });
+        if (!routed) {
+            navigation?.navigate?.("PastWorkout", params);
+        }
+    }, [navigation, viewerUid]);
+
+    const openProfileFromPost = useCallback((postData, fallbackWorkout) => {
+        const source = postData || {};
+        const workoutSource = fallbackWorkout || source?.workout || {};
+        const targetUid = String(source.uid || workoutSource.uid || workoutSource.creatorUID || workoutSource.creatorUid || "");
+        if (!targetUid) return;
+
+        const rawHandle = source.handle || workoutSource.handle || workoutSource.username || "";
+        const cleanHandle = ensureHandle(rawHandle);
+        const name = source.name || workoutSource.ownerName || workoutSource.name || "";
+        const pfp = source.pfp || workoutSource.pfp || workoutSource.pfpUrl || workoutSource.photoURL || workoutSource.photo || "";
+
+        const meUid = String(global?.userData?.uid || "");
+        const rootNav = navigation?.getParent?.("ROOT");
+
+        if (targetUid === meUid) {
+            if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
+            else navigation?.navigate?.("Profile", { transition: "slide-from-right" });
+            return;
+        }
+
+        const routeParams = { user: { uid: targetUid, handle: cleanHandle, name, pfp } };
+        if (rootNav?.navigate) rootNav.navigate("ViewProfile", routeParams);
+        else navigation?.navigate?.("ViewProfile", routeParams);
+    }, [navigation]);
+
+    const openProfileFromComment = useCallback((user) => {
+        if (!user) return;
+        const uid = String(user.uid || "");
+        if (!uid) return;
+        const meUid = String(global?.userData?.uid || "");
+        const handle = ensureHandle(user.handle);
+        const name = user.name || "";
+        const pfp = user.pfp || user.pfpUrl || user.image || user.photoURL || "";
+        const rootNav = navigation?.getParent?.("ROOT");
+
+        if (uid === meUid) {
+            if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
+            else navigation?.navigate?.("Profile", { transition: "slide-from-right" });
+            return;
+        }
+
+        const routeParams = { user: { uid, handle, name, pfp } };
+        if (rootNav?.navigate) rootNav.navigate("ViewProfile", routeParams);
+        else navigation?.navigate?.("ViewProfile", routeParams);
+    }, [navigation]);
+
+    useEffect(() => {
+        if (!activeCommentsPost?.pid) return;
+        const latest = postCacheRef.current.get(activeCommentsPost.pid);
+        if (latest === null) {
+            setActiveCommentsPost(null);
+            setCommentsVisible(false);
+            return;
+        }
+        if (latest && latest !== activeCommentsPost) {
+            setActiveCommentsPost(latest);
+        }
+    }, [postCacheVersion, activeCommentsPost]);
+
+    // Open food details overlay
+    const openFood = useCallback((entry) => {
+        if (!entry) return;
+        const qty = typeof entry?.qty === 'number' ? entry.qty : (Number(entry?.qty) || 1);
+        const macros = entry?.macros || parseMacrosFromDescription(entry?.desc || '', qty);
+        const extras = parseExtraNutrientsFromDescription(entry?.desc || '', qty);
+        setSelectedFood({ ...entry, qty, macros, extras });
+        setViewerReady(true);
+        try { viewerTranslateX.setValue(screenWidth); } catch {}
+        try {
+            Animated.timing(viewerTranslateX, { toValue: 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+        } catch { }
+    }, [viewerTranslateX, screenWidth]);
+
     // Avoid mounting heavy pager until expanded or explicitly visible
     const shouldRenderContent = isExpanded || !!visible;
 
@@ -683,6 +1121,18 @@ const DayDetailsSheet = ({
     ), [backEligible, onBackEnd, onBackUpdateX]);
 
     // --- Helpers: build day data from global.userData ---
+    const buildWorkoutsFromGlobal = useCallback((d) => {
+        const targetKey = dayKey(d);
+        if (!targetKey) return [];
+        return completedWorkouts.filter((workout) => {
+            const ts = bestTimestamp(workout) || workout?.created || workout?.createdAt || workout?.startedAt || workout?.finishedAt || workout?.completedAt || 0;
+            const keyFromTimestamp = dayKey(ts);
+            if (keyFromTimestamp) return keyFromTimestamp === targetKey;
+            const explicitKey = typeof workout?.dayKey === "string" ? workout.dayKey : "";
+            return explicitKey === targetKey;
+        });
+    }, [completedWorkouts, completedWorkoutsSignature]);
+
     const normalizeMealBucket = useCallback((m) => {
         const t = String(m || '').toLowerCase();
         if (t.startsWith('break')) return 'Breakfast';
@@ -740,29 +1190,34 @@ const DayDetailsSheet = ({
     }, [global?.__loggedFoodsSig]);
 
     const calendarMarkedSet = useMemo(() => {
-        return new Set();
-    }, []);
+        const set = new Set();
+        completedWorkouts.forEach((w) => {
+            const key = dayKey(bestTimestamp(w) || w?.created || w?.createdAt || w?.dayKey || 0);
+            if (key) set.add(key);
+        });
+        return set;
+    }, [completedWorkouts, completedWorkoutsSignature]);
 
     // Current, prev, next day data from global (instant render)
     const prevDate = useMemo(() => shiftDate(date, -1), [date]);
     const nextDate = useMemo(() => shiftDate(date, 1), [date]);
     const currentData = useMemo(() => ({
-        workouts: [],
+        workouts: buildWorkoutsFromGlobal(date),
         ...buildMealsFromGlobal(date),
-    }), [date, buildMealsFromGlobal, loggedFoodsCount]);
+    }), [date, buildMealsFromGlobal, buildWorkoutsFromGlobal, loggedFoodsCount, completedWorkoutsSignature]);
     const prevData = useMemo(() => ({
-        workouts: [],
+        workouts: buildWorkoutsFromGlobal(prevDate),
         ...buildMealsFromGlobal(prevDate),
-    }), [prevDate, buildMealsFromGlobal, loggedFoodsCount]);
+    }), [prevDate, buildMealsFromGlobal, buildWorkoutsFromGlobal, loggedFoodsCount, completedWorkoutsSignature]);
     const nextData = useMemo(() => ({
-        workouts: [],
+        workouts: buildWorkoutsFromGlobal(nextDate),
         ...buildMealsFromGlobal(nextDate),
-    }), [nextDate, buildMealsFromGlobal, loggedFoodsCount]);
+    }), [nextDate, buildMealsFromGlobal, buildWorkoutsFromGlobal, loggedFoodsCount, completedWorkoutsSignature]);
 
     // No prefetch from Firestore: rely on global.userData.loggedFoods only
 
     // Inner component: one day's details page
-    const DayDetailsPage = useCallback(({ dayMeals, dayTotals, dayCalories }) => {
+    const DayDetailsPage = useCallback(({ dayWorkouts, dayMeals, dayTotals, dayCalories }) => {
         const foodsList = useMemo(() => {
             const buckets = ["Breakfast", "Lunch", "Dinner", "Snacks"];
             const out = [];
@@ -802,6 +1257,34 @@ const DayDetailsSheet = ({
             return [bucketLabel, detail].filter(Boolean).join(' · ');
         }, []);
 
+        const workoutFeedPosts = useMemo(() => {
+            if (!Array.isArray(dayWorkouts) || dayWorkouts.length === 0) return [];
+            const list = dayWorkouts.slice(0, 3);
+            return list.map((wk, idx) => {
+                const pid = extractPidFromWorkout(wk);
+                const cached = pid ? postCacheRef.current.get(pid) : undefined;
+                const fallbackPost = buildFeedPostData(wk, idx);
+
+                let postForRender = null;
+                if (cached && typeof cached === "object") {
+                    if (!cached.pid && fallbackPost?.pid) cached.pid = fallbackPost.pid;
+                    if (wk) {
+                        const mergedWorkout = { ...(cached.workout || {}), ...wk };
+                        cached.workout = mergedWorkout;
+                    }
+                    postForRender = cached;
+                } else if (cached === null) {
+                    postForRender = fallbackPost;
+                } else {
+                    postForRender = fallbackPost;
+                }
+
+                if (!postForRender) return null;
+                const key = postForRender.pid || pid || `${wk?.wid || wk?.id || idx}`;
+                return { key, post: postForRender, workout: wk };
+            }).filter(Boolean);
+        }, [dayWorkouts, postCacheVersion]);
+
         return (
             <View style={styles.ctnr}>
                 {/* Header is static above; this page starts with section content */}
@@ -810,9 +1293,27 @@ const DayDetailsSheet = ({
                     <Text style={styles.sectionHdr}>Training</Text>
                 </View>
 
-                <View style={styles.emptyCard}>
-                    <Text style={styles.emptyText}>No completed workouts for this day.</Text>
-                </View>
+                {(Array.isArray(dayWorkouts) && dayWorkouts.length > 0 && workoutFeedPosts.length > 0) ? (
+                    workoutFeedPosts.map(({ key, post, workout }, idx) => (
+                        <View key={key} style={styles.feedPostWrapper}>
+                            <SimpleFeedPost
+                                data={post}
+                                index={idx}
+                                highlightPid={null}
+                                highlightSignal={0}
+                                onPressWorkout={(_, data) => openPastWorkoutScreen(data || post, workout)}
+                                onPressComments={(_, data) => openCommentsForPost(data || post)}
+                                onPressLikes={() => { }}
+                                onPressProfile={(_, data) => openProfileFromPost(data || post, workout)}
+                                onPressShare={() => { }}
+                            />
+                        </View>
+                    ))
+                ) : (
+                    <View style={styles.emptyCard}>
+                        <Text style={styles.emptyText}>No completed workouts for this day.</Text>
+                    </View>
+                )}
 
                 {/* ------- Foods ------- */}
                 <View style={[styles.sectionHdrRow, { marginTop: scaleSize(20) }]}>
@@ -860,7 +1361,7 @@ const DayDetailsSheet = ({
                 </View> */}
             </View>
         );
-    }, [openFood]);
+    }, [openFood, postCacheVersion, openPastWorkoutScreen, openCommentsForPost, openProfileFromPost]);
 
     // Static header (doesn't move when swiping pages)
     useEffect(() => {
@@ -924,20 +1425,6 @@ const DayDetailsSheet = ({
             />
         );
     }, [headerDate, handleTitlePress, titleScale, headerHeight, slideBy, openCalendar]);
-
-    // Open food details overlay
-    const openFood = useCallback((entry) => {
-        if (!entry) return;
-        const qty = typeof entry?.qty === 'number' ? entry.qty : (Number(entry?.qty) || 1);
-        const macros = entry?.macros || parseMacrosFromDescription(entry?.desc || '', qty);
-        const extras = parseExtraNutrientsFromDescription(entry?.desc || '', qty);
-        setSelectedFood({ ...entry, qty, macros, extras });
-        setViewerReady(true);
-        try { viewerTranslateX.setValue(screenWidth); } catch {}
-        try {
-            Animated.timing(viewerTranslateX, { toValue: 0, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-        } catch { }
-    }, [viewerTranslateX, screenWidth]);
 
     return (
         <>
@@ -1031,7 +1518,7 @@ const DayDetailsSheet = ({
                                 const offset = index - baseIndex;
                                 const d = shiftDate(date, offset);
                                 const data = offset === -1 ? prevData : offset === 0 ? currentData : offset === 1 ? nextData : {
-                                    workouts: [],
+                                    workouts: buildWorkoutsFromGlobal(d),
                                     ...buildMealsFromGlobal(d),
                                 };
                                 return (
@@ -1043,6 +1530,7 @@ const DayDetailsSheet = ({
                                         showsVerticalScrollIndicator={false}
                                     >
                                         <DayDetailsPage
+                                            dayWorkouts={data.workouts}
                                             dayMeals={data.meals}
                                             dayTotals={data.totals}
                                             dayCalories={data.totals?.calories || 0}
@@ -1081,6 +1569,14 @@ const DayDetailsSheet = ({
                 </OverlayContainer>
                 </BottomSheet>
             </View>
+            <CommentsBottomSheet
+                isVisible={commentsVisible && !!activeCommentsPost}
+                postData={activeCommentsPost}
+                commentsBottomSheetExpandFlag={commentsExpandSignal}
+                toViewProfile={openProfileFromComment}
+                onShowLikesSheet={() => {}}
+                onDismiss={closeComments}
+            />
         </>
     );
 };
