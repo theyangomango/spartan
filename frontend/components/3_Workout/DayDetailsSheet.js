@@ -1261,29 +1261,51 @@ const DayDetailsSheet = ({
             if (!Array.isArray(dayWorkouts) || dayWorkouts.length === 0) return [];
             const list = dayWorkouts.slice(0, 3);
             return list.map((wk, idx) => {
-                const pid = extractPidFromWorkout(wk);
-                const cached = pid ? postCacheRef.current.get(pid) : undefined;
                 const fallbackPost = buildFeedPostData(wk, idx);
+                const cacheKey = fallbackPost?.pid || extractPidFromWorkout(wk) || `${wk?.wid || wk?.id || idx}`;
+                if (!cacheKey) return null;
 
-                let postForRender = null;
-                if (cached && typeof cached === "object") {
-                    if (!cached.pid && fallbackPost?.pid) cached.pid = fallbackPost.pid;
-                    if (wk) {
-                        const mergedWorkout = { ...(cached.workout || {}), ...wk };
-                        cached.workout = mergedWorkout;
+                let cached = postCacheRef.current.get(cacheKey);
+                if (cached === undefined) {
+                    if (fallbackPost) {
+                        postCacheRef.current.set(cacheKey, fallbackPost);
+                        cached = fallbackPost;
+                    } else {
+                        cached = null;
                     }
-                    postForRender = cached;
-                } else if (cached === null) {
-                    postForRender = fallbackPost;
-                } else {
-                    postForRender = fallbackPost;
                 }
 
-                if (!postForRender) return null;
-                const key = postForRender.pid || pid || `${wk?.wid || wk?.id || idx}`;
-                return { key, post: postForRender, workout: wk };
+                if (cached === null) return null;
+
+                if (fallbackPost?.pid && !cached.pid) cached.pid = fallbackPost.pid;
+                cached.workout = wk || cached.workout || null;
+                if (cached.pid && cacheKey !== cached.pid) {
+                    postCacheRef.current.set(cached.pid, cached);
+                    if (cacheKey !== cached.pid) {
+                        postCacheRef.current.delete(cacheKey);
+                    }
+                }
+
+                return { key: cached.pid || cacheKey, post: cached };
             }).filter(Boolean);
         }, [dayWorkouts, postCacheVersion]);
+
+        const handleWorkoutPress = useCallback((_, post) => {
+            if (!post) return;
+            openPastWorkoutScreen(post, post?.workout);
+        }, [openPastWorkoutScreen]);
+
+        const handleCommentsPress = useCallback((_, post) => {
+            if (!post) return;
+            openCommentsForPost(post);
+        }, [openCommentsForPost]);
+
+        const handleProfilePress = useCallback((_, post) => {
+            if (!post) return;
+            openProfileFromPost(post, post?.workout);
+        }, [openProfileFromPost]);
+
+        const noopHandler = useCallback(() => {}, []);
 
         return (
             <View style={styles.ctnr}>
@@ -1294,18 +1316,18 @@ const DayDetailsSheet = ({
                 </View>
 
                 {(Array.isArray(dayWorkouts) && dayWorkouts.length > 0 && workoutFeedPosts.length > 0) ? (
-                    workoutFeedPosts.map(({ key, post, workout }, idx) => (
+                    workoutFeedPosts.map(({ key, post }, idx) => (
                         <View key={key} style={styles.feedPostWrapper}>
                             <SimpleFeedPost
                                 data={post}
                                 index={idx}
                                 highlightPid={null}
                                 highlightSignal={0}
-                                onPressWorkout={(_, data) => openPastWorkoutScreen(data || post, workout)}
-                                onPressComments={(_, data) => openCommentsForPost(data || post)}
-                                onPressLikes={() => { }}
-                                onPressProfile={(_, data) => openProfileFromPost(data || post, workout)}
-                                onPressShare={() => { }}
+                                onPressWorkout={handleWorkoutPress}
+                                onPressComments={handleCommentsPress}
+                                onPressLikes={noopHandler}
+                                onPressProfile={handleProfilePress}
+                                onPressShare={noopHandler}
                             />
                         </View>
                     ))
