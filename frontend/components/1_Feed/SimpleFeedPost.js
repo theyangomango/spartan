@@ -116,6 +116,23 @@ const normalizeMediaEntry = (entry) => {
     return null;
 };
 
+const mediaSignatureFor = (entry) => {
+    if (!entry) return "null";
+    const type = entry.type || "image";
+    const uri = (() => {
+        if (typeof entry.uri === "string") return entry.uri;
+        if (entry.uri && typeof entry.uri === "object") {
+            try {
+                return JSON.stringify(entry.uri);
+            } catch {
+                return "";
+            }
+        }
+        return "";
+    })();
+    return `${type}:${uri}`;
+};
+
 const initialsFrom = (name = "") => {
     const parts = String(name).trim().split(/\s+/).filter(Boolean);
     if (!parts.length) return "";
@@ -220,15 +237,25 @@ const SimpleFeedPost = ({
     const [mediaLoadedCount, setMediaLoadedCount] = useState(0);
     const [contentReady, setContentReady] = useState(mediaList.length === 0);
 
+    const mediaFingerprint = useMemo(() => {
+        if (mediaList.length === 0) return "empty";
+        return mediaList.map(mediaSignatureFor).join("|");
+    }, [mediaList]);
+
+    const previousMediaFingerprintRef = useRef(mediaFingerprint);
+
     useEffect(() => {
+        if (previousMediaFingerprintRef.current === mediaFingerprint) return;
+        previousMediaFingerprintRef.current = mediaFingerprint;
+
         if (mediaList.length === 0) {
             setContentReady(true);
             setMediaLoadedCount(0);
-        } else {
-            setContentReady(false);
-            setMediaLoadedCount(0);
+            return;
         }
-    }, [mediaList]);
+        setContentReady(false);
+        setMediaLoadedCount(0);
+    }, [mediaFingerprint, mediaList.length]);
 
     useEffect(() => {
         if (contentReady) return;

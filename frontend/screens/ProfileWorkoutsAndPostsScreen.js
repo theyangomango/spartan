@@ -235,6 +235,27 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
     const [postsLoading, setPostsLoading] = useState(false);
     const [postsError, setPostsError] = useState(null);
 
+    const normalizedPostIds = useMemo(() => {
+        if (!Array.isArray(userData?.posts)) return [];
+        return userData.posts
+            .map((entry) => {
+                if (entry == null) return null;
+                if (typeof entry === 'object') {
+                    const candidate = entry?.pid ?? entry?.id ?? entry?.uid ?? entry;
+                    return candidate == null ? null : String(candidate).trim();
+                }
+                return String(entry).trim();
+            })
+            .filter((value) => !!value);
+    }, [userData?.posts]);
+
+    const postIdsKey = useMemo(
+        () => (normalizedPostIds.length ? normalizedPostIds.join('|') : ''),
+        [normalizedPostIds]
+    );
+
+    const previousPostIdsKeyRef = useRef(null);
+
     const postsByPid = useMemo(() => {
         const map = new Map();
         posts.forEach((post) => {
@@ -248,6 +269,8 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         const requested = typeof params?.initialTab === 'string' ? params.initialTab : '';
         return requested === 'All Posts' ? 'All Posts' : 'Workouts';
     });
+
+    const shouldRefreshOnFocusRef = useRef(false);
 
     const [likesSheetVisible, setLikesSheetVisible] = useState(false);
     const [likesSheetUsers, setLikesSheetUsers] = useState([]);
@@ -263,8 +286,62 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
     useFocusEffect(
         useCallback(() => {
             clearFooterSuppression();
-            return undefined;
-        }, [])
+
+            let cancelled = false;
+
+            if (shouldRefreshOnFocusRef.current && canViewContent && normalizedPostIds.length) {
+                const ids = [...normalizedPostIds];
+                shouldRefreshOnFocusRef.current = false;
+
+                (async () => {
+                    const buffer = new Array(ids.length);
+                    const chunkSize = 10;
+
+                    for (let start = 0; start < ids.length; start += chunkSize) {
+                        const chunk = ids.slice(start, start + chunkSize);
+                        await Promise.all(
+                            chunk.map(async (pid, idx) => {
+                                try {
+                                    const snap = await getDoc(doc(db, 'posts', pid));
+                                    if (!snap.exists()) return;
+                                    const data = snap.data() || {};
+                                    buffer[start + idx] = { pid, ...data };
+                                } catch (error) {
+                                    console.warn('ProfileWorkoutsAndPostsScreen: silent refresh failed', { pid, error });
+                                }
+                            })
+                        );
+                        if (cancelled) return;
+                    }
+
+                    if (cancelled) return;
+
+                    setPosts((current) => {
+                        const fallback = new Map();
+                        current.forEach((post) => {
+                            const pid = post?.pid ?? post?.id;
+                            if (pid) fallback.set(String(pid), post);
+                        });
+
+                        const merged = buffer.map((entry, idx) => {
+                            if (entry) return entry;
+                            const pid = ids[idx];
+                            return fallback.get(String(pid)) || null;
+                        }).filter(Boolean);
+
+                        if (!merged.length) return current;
+                        return sortPostsByCreated(merged);
+                    });
+                })();
+            } else {
+                shouldRefreshOnFocusRef.current = false;
+            }
+
+            return () => {
+                cancelled = true;
+                shouldRefreshOnFocusRef.current = true;
+            };
+        }, [canViewContent, normalizedPostIds])
     );
 
     useEffect(() => {
@@ -307,15 +384,28 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
             setPosts([]);
             setPostsLoading(false);
             setPostsError(null);
+            previousPostIdsKeyRef.current = null;
             return;
         }
-        const ids = Array.isArray(userData?.posts) ? userData.posts : [];
+
+        const ids = normalizedPostIds;
+        const idsKey = postIdsKey;
+
         if (!ids.length) {
             setPosts([]);
             setPostsLoading(false);
             setPostsError(null);
+            previousPostIdsKeyRef.current = idsKey;
             return;
         }
+
+        const prevKey = previousPostIdsKeyRef.current;
+        const hasLoadedPosts = posts.length > 0;
+        if (prevKey === idsKey && hasLoadedPosts) {
+            return;
+        }
+        previousPostIdsKeyRef.current = idsKey;
+
         let cancelled = false;
         const buffer = new Array(ids.length);
         const updateFromBuffer = () => {
@@ -323,9 +413,21 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
             const next = sortPostsByCreated(buffer.filter(Boolean));
             setPosts(next);
         };
+
         setPostsLoading(true);
-        setPosts([]);
         setPostsError(null);
+
+        if (prevKey !== idsKey) {
+            setPosts((current) => {
+                if (!current.length) return current;
+                const whitelist = new Set(ids);
+                const preserved = current.filter((post) => {
+                    const pid = post?.pid ?? post?.id;
+                    return pid ? whitelist.has(String(pid)) : false;
+                });
+                return preserved;
+            });
+        }
 
         const fetchChunk = async (chunkIds, startIndex) => {
             if (!chunkIds.length) return;
@@ -361,7 +463,7 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         return () => {
             cancelled = true;
         };
-    }, [userData, canViewContent]);
+    }, [canViewContent, normalizedPostIds, postIdsKey, posts.length, userData]);
 
     const visibleWorkouts = useMemo(() => {
         if (!userData || !canViewContent) return [];
