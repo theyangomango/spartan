@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Animated } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
-import NewWorkoutModal from '../../3_Workout/NewWorkout/NewWorkoutModal';
+import SpectatingWorkoutModal from '../../3_Workout/NewWorkout/SpectatingWorkoutModal';
 import { canViewWorkout } from '../../../utils/workoutPrivacy';
 import { styles } from './UserStatsStyles';
 
@@ -31,13 +31,9 @@ export default function UserStatsWorkoutViewerScreen({
                 {workout ? (
                     <View style={{ flex: 1 }}>
                         {canView ? (
-                            <NewWorkoutModal
+                            <SpectatingWorkoutModal
                                 timerRef={timerRef}
                                 workout={workout}
-                                cancelWorkout={() => { }}
-                                updateWorkout={() => { }}
-                                finishWorkout={() => { }}
-                                showGroupModal={() => { }}
                                 userWorkoutStats={statsForViewer || undefined}
                                 onPressBack={onClose}
                                 onCheer={() => { }}

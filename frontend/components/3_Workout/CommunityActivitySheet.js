@@ -18,7 +18,7 @@ import { useSharedValue, runOnJS } from 'react-native-reanimated';
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import theme from "../../theme/mfpDark";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import NewWorkoutModal from "./NewWorkout/NewWorkoutModal";
+import SpectatingWorkoutModal from "./NewWorkout/SpectatingWorkoutModal";
 import { getPfpUrl } from "../../pfpCache";
 import { onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "../../../firebase.config";
@@ -1382,13 +1382,9 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                             <View style={{ flex: 1 }}>
                                 <View style={{ flex: 1 }}>
                                     {canViewWorkout(selectedItem.workout, viewerUid, viewerData) ? (
-                                        <NewWorkoutModal
+                                        <SpectatingWorkoutModal
                                             timerRef={timerRef}
                                             workout={selectedItem.workout}
-                                            cancelWorkout={noop}
-                                            updateWorkout={noop}
-                                            finishWorkout={noop}
-                                            showGroupModal={noop}
                                             userWorkoutStats={viewerStatsRef.current || undefined}
                                             onPressBack={closeViewer}
                                             onCheer={noopCheer}

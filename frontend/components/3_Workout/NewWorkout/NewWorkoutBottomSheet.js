@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from "
 import { View, ActivityIndicator } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import theme from "../../../theme/mfpDark";
-import NewWorkoutModal from "./NewWorkoutModal";
+import SpectatingWorkoutModal from "./SpectatingWorkoutModal";
 import useWorkoutStore from "../../../state/workoutStore";
 import { useNavigation } from "@react-navigation/native";
 
@@ -21,7 +21,6 @@ const NewWorkoutBottomSheet = ({
     timerRef,
     showGroupModal,
     userWorkoutStats,
-    registerInviteHandler,
 }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
@@ -99,7 +98,7 @@ const NewWorkoutBottomSheet = ({
     const effectiveWorkout = workout || workoutFromStore;
     const navigation = useNavigation();
 
-    // Stable wrappers so NewWorkoutModal doesn't rerender due to changing function identities
+    // Stable wrappers so SpectatingWorkoutModal doesn't rerender due to changing function identities
     const onCancelWorkout = useCallback(() => {
         cancelNewWorkout();
         try { setIsVisible(false); } catch {}
@@ -111,10 +110,6 @@ const NewWorkoutBottomSheet = ({
         try { setIsVisible(false); } catch {}
         try { bottomSheetRef.current?.close(); } catch {}
     }, [finishNewWorkout, setIsVisible]);
-
-    const onRegisterInviteHandler = useCallback((fn) => {
-        if (typeof registerInviteHandler === 'function') registerInviteHandler(fn);
-    }, [registerInviteHandler]);
 
     const onPressPfp = useCallback(() => {
         try { bottomSheetRef.current?.close(); } catch {}
@@ -165,19 +160,14 @@ const NewWorkoutBottomSheet = ({
         >
             {mountContent && (
                 effectiveWorkout ? (
-                    <NewWorkoutModal
+                    <SpectatingWorkoutModal
                         key={`nw-${contentKey}-${String(effectiveWorkout?.wid || 'now')}`}
                         timerRef={timerRef}
                         workout={effectiveWorkout}
-                        cancelWorkout={onCancelWorkout}
-                        updateWorkout={updateNewWorkout}
-                        finishWorkout={onFinishWorkout}
-                        showGroupModal={showGroupModal}
                         userWorkoutStats={userWorkoutStats}
                         // NEW: tell us whether we're viewing self or friend
                         onViewingChange={setIsViewingSelf}
                         onPressPfp={onPressPfp}
-                        registerInviteHandler={onRegisterInviteHandler}
                         // Allow on-demand live streaming (hook enables only after menu opens)
                         streamLive={true}
                     />

@@ -1,4 +1,4 @@
-// components/3_Workout/NewWorkout/NewWorkoutModal
+// components/3_Workout/NewWorkout/ActiveWorkoutModal
 import React, { useEffect, useState, useRef, useMemo, useCallback, memo } from "react";
 import {
     StyleSheet,

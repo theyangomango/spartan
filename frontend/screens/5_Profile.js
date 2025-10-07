@@ -63,7 +63,7 @@ export default function Profile({ navigation }) {
     const [profileWorkoutExpandToggle, setProfileWorkoutExpandToggle] = useState(false);
     const openWorkoutViewer = useCallback((wk) => {
         if (!wk) { setProfileSelectedWorkout(null); return; }
-        // Normalize minimal fields expected by NewWorkoutModal
+        // Normalize minimal fields expected by SpectatingWorkoutModal
         const fallback = {
             wid: wk?.wid || wk?.id,
             creatorUID: wk?.creatorUID || wk?.creatorUid || (global?.userData?.uid || ''),

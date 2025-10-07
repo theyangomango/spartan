@@ -280,7 +280,7 @@ export default function SinglePostModal({ visible, post, onClose, onOpenWorkout 
                                             try {
                                                 const w = post?.workout;
                                                 if (!w) return;
-                                                // Normalize minimal fields expected by NewWorkoutModal
+                                                // Normalize minimal fields expected by SpectatingWorkoutModal
                                                 const fallback = {
                                                     wid: w?.wid || w?.id,
                                                     creatorUID: w?.creatorUID || w?.creatorUid || post?.uid || (global?.userData?.uid || ''),

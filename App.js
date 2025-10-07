@@ -19,6 +19,7 @@ import { useSharedValue, runOnUI, withTiming, Easing } from 'react-native-reanim
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens, enableFreeze } from 'react-native-screens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
@@ -64,6 +65,7 @@ import MainTabs from './frontend/navigation/MainTabs';
 import useFooterSuppressionStore, { setFooterSuppressed, clearFooterSuppression } from './frontend/state/footerSuppressionStore';
 import { preloadMessagesForUid, resetMessagesState } from './frontend/logic/messagesPreloader';
 import { ensureNotificationsListener, stopNotificationsListener } from './frontend/state/notificationsStore';
+import WorkoutInviteOverlay from './frontend/components/WorkoutInviteOverlay';
 
 const AUTH_BACKGROUND_ASSET = require('./frontend/assets/AUTH_BACKGROUND.jpg');
 
@@ -867,7 +869,9 @@ export default function App() {
     // While loading, keep a minimal root mounted for onLayout, but don't render UI
     if (!appReady) {
         return (
-            <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#ffffff' }} onLayout={onLayoutRootView} />
+            <SafeAreaProvider>
+                <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#ffffff' }} onLayout={onLayoutRootView} />
+            </SafeAreaProvider>
         );
     }
 
@@ -887,7 +891,8 @@ export default function App() {
     };
 
 
-    return (
+return (
+    <SafeAreaProvider>
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.bg }} onLayout={onLayoutRootView}>
             {authChecked && (
                 <NavigationContainer
@@ -1130,6 +1135,7 @@ export default function App() {
                     </RootStack.Navigator>
                 </NavigationContainer>
             )}
+            <WorkoutInviteOverlay enabled={authChecked && isAuthenticated} />
             {authChecked && isAuthenticated && (
                 <ActiveWorkoutBottomSheet
                     hideForFocus={isFeedPostFocused}
@@ -1180,7 +1186,8 @@ export default function App() {
                 </Pressable>
             </Modal>
         </GestureHandlerRootView>
-    );
+    </SafeAreaProvider>
+);
 }
 
 const restStyles = StyleSheet.create({

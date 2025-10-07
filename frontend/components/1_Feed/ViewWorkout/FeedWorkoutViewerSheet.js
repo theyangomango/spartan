@@ -3,7 +3,7 @@ import { View, StyleSheet, InteractionManager, Animated, ActivityIndicator, Text
 import { useNavigation } from "@react-navigation/native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import PagerView from "react-native-pager-view";
-import NewWorkoutModal from "../../3_Workout/NewWorkout/NewWorkoutModal";
+import SpectatingWorkoutModal from "../../3_Workout/NewWorkout/SpectatingWorkoutModal";
 import { getDoc, doc } from "firebase/firestore";
 import { db } from "../../../../firebase.config";
 import CopyTemplateToast from "../../3_Workout/ui/CopyTemplateToast";
@@ -17,7 +17,7 @@ import scaleSize from "../../../helper/scaleSize";
 const HANDLE_FRIEND_ACCENT = "#E0A500";
 const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
 
-// Feed-specific wrapper to view a workout using NewWorkoutModal inside a bottom sheet
+// Feed-specific wrapper to view a workout using SpectatingWorkoutModal inside a bottom sheet
 // Not full-screen; slides up to ~94% height. Locked to friend/past view.
 const FeedWorkoutViewerSheet = ({
   expandToggle,
@@ -98,7 +98,7 @@ const FeedWorkoutViewerSheet = ({
     []
   );
 
-  // Close handler for back chevron inside NewWorkoutModal’s GroupHeader
+  // Close handler for back chevron inside SpectatingWorkoutModal’s GroupHeader
   const handleBack = useCallback(() => {
     bottomSheetRef.current?.close();
   }, []);
@@ -205,7 +205,7 @@ const FeedWorkoutViewerSheet = ({
         enablePanDownToClose
         onClose={onClose}
         onChange={handleSheetChange}
-        // Dark surface background to match NewWorkoutModal's transparent sections
+        // Dark surface background to match SpectatingWorkoutModal's transparent sections
         backgroundStyle={{ backgroundColor: theme.surface }}
         // Styled like friend-view (warm accent) since this sheet is locked to past/friend view
         handleIndicatorStyle={{ backgroundColor: HANDLE_FRIEND_ACCENT }}
@@ -240,13 +240,9 @@ const FeedWorkoutViewerSheet = ({
                   <View key={key} style={styles.page} collapsable={false}>
                     {workoutEntry ? (
                       canViewWorkout(workoutEntry, viewerUid, viewerData) ? (
-                        <NewWorkoutModal
+                        <SpectatingWorkoutModal
                           timerRef={timerRef}
                           workout={workoutEntry}
-                          cancelWorkout={noop}
-                          updateWorkout={noop}
-                          finishWorkout={noop}
-                          showGroupModal={noop}
                           userWorkoutStats={stats}
                           onPressBack={handleBack}
                           onCheer={noop}

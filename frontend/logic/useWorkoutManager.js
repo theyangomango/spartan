@@ -863,7 +863,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 });
                 // Tag locally as just started/joined so UI can show reminder once.
                 localJoined = { ...joined, __justStarted: true };
-                // Also set a global one-shot flag for safety (consumed by NewWorkoutModal)
+                // Also set a global one-shot flag for safety (consumed by ActiveWorkoutModal)
                 try { global.__showWorkoutReminderForWid = String(wid); } catch {}
             }
 
@@ -874,7 +874,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             startTimer(createdForTimer);
             try { global.isCurrentlyWorkingOut = true; } catch {}
             try { if (global?.userData) global.userData.currentWorkout = localJoined; } catch { }
-            // Signal NewWorkoutModal to enable live streaming/presence immediately for this wid
+            // Signal ActiveWorkoutModal to enable live streaming/presence immediately for this wid
             try { global.__enableLiveForWid = String(wid); } catch {}
 
             // Persist to user doc
@@ -885,7 +885,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 try { await updateDoc("users", me, { currentWorkout: joined }); } catch { }
             }
 
-            // Auto-publish presence right away (best-effort); ongoing lifecycle handled by NewWorkoutModal hook
+            // Auto-publish presence right away (best-effort); ongoing lifecycle handled by ActiveWorkoutModal hook
             try {
                 await setDoc(
                     doc(db, "workouts", String(wid), "live", String(me)),

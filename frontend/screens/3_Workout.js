@@ -29,7 +29,6 @@ import EditTemplateBottomSheet from "../components/3_Workout/Template/EditTempla
 import WorkoutSummaryModal from "../components/3_Workout/WorkoutSummaryModal";
 import DayDetailsSheet from "../components/3_Workout/DayDetailsSheet";
 import CommunityActivitySheet from "../components/3_Workout/CommunityActivitySheet";
-import InviteBanner from "../components/3_Workout/InviteBanner";
 import UserStatsAfterWorkoutSheet from "../components/2_Competition/UserStats/UserStatsAfterWorkoutSheet";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import { onHexagonUpdate } from "../utils/hexagonEvents";
@@ -51,7 +50,6 @@ import useUserDoc from "../hooks/useUserDoc";
 import useCommunityActivity from "../hooks/useCommunityActivity";
 import useTemplates from "../hooks/useTemplates";
 import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
-import useWorkoutInvites from "../hooks/useWorkoutInvites";
 
 // Backend utils
 import updateDoc from "../../backend/helper/firebase/updateDoc";
@@ -588,8 +586,19 @@ export default function Workout({ navigation, route }) {
         updateNewWorkout,
         cancelWorkout,
         finishWorkout,
-        joinExternalWorkout, // used by InviteBanner accept
+        joinExternalWorkout,
     } = useWorkoutManager({ uid, navigation, millisToHMS: millisToHoursMinutesSeconds });
+
+    useEffect(() => {
+        try { global.__joinExternalWorkoutDirect = joinExternalWorkout; } catch { }
+        return () => {
+            try {
+                if (global.__joinExternalWorkoutDirect === joinExternalWorkout) {
+                    global.__joinExternalWorkoutDirect = null;
+                }
+            } catch { }
+        };
+    }, [joinExternalWorkout]);
 
     const setSheetHandlers = useWorkoutStore((s) => s.setSheetHandlers);
 
@@ -950,40 +959,6 @@ export default function Workout({ navigation, route }) {
         try { return !!global?.__userDocHydrated; } catch { return false; }
     })();
 
-    /* ---------- Header height (for banner anchoring) ---------- */
-    const [headerHeight, setHeaderHeight] = useState(0);
-    const onHeaderLayout = useCallback((e) => {
-        const h = e?.nativeEvent?.layout?.height || 0;
-        if (h && h !== headerHeight) setHeaderHeight(h);
-    }, [headerHeight]);
-
-    /* ---------- force header rerender when workout clears ---------- */
-    // Header renders once; suggestions and timer update via refs and effects
-
-    /* ---------- Invites banner (shared hook) ---------- */
-    const {
-        currentInvite,
-        inviterPfpUri,
-        bannerY,
-        handleInviteLayout,
-        accept: acceptInvite,
-        decline: declineInvite,
-    } = useWorkoutInvites({
-        uid,
-        enabled: afterPaint,
-        onAccepted: async (wid, seed) => {
-            try { global.isCurrentlyWorkingOut = true; } catch { }
-            try {
-                if (typeof joinExternalWorkout === "function") {
-                    // Allow joinExternalWorkout to preserve any existing active workout
-                    await joinExternalWorkout({ wid, seedWorkout: seed || null, inviterUid: currentInvite?.fromUid });
-                }
-            } catch (e) {
-                console.log('join onAccepted error', e?.message || e);
-            }
-        },
-    });
-
     /* ---------------- render ---------------- */
     const shouldRenderDaySheet = daySheetVisible || hasMountedDaySheet;
     const shouldRenderFriendsSheet = friendsSheetVisible || hasMountedFriendsSheet;
@@ -993,8 +968,8 @@ export default function Workout({ navigation, route }) {
     return (
         <SafeAreaView style={styles.root}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
-            {/* Header measured for anchoring */}
-            <View onLayout={onHeaderLayout}>
+            {/* Header */}
+            <View>
                 <FeedHeader
                     toMessagesScreen={toMessagesScreenCb}
                     onOpenNotifications={toggleNotifications}
@@ -1010,24 +985,6 @@ export default function Workout({ navigation, route }) {
                     centerTextPreset="workout"
                 />
             </View>
-            {/* Invite banner (absolute, anchored below header & within SafeArea) */}
-            <Animated.View
-                style={[
-                    styles.inviteBannerWrap,
-                    {transform: [{ translateY: bannerY }] },
-                ]}
-                pointerEvents={currentInvite ? "auto" : "none"}
-                onLayout={handleInviteLayout}
-            >
-                {currentInvite && (
-                    <InviteBanner
-                        invite={currentInvite}
-                        pfpUri={inviterPfpUri}
-                        onAccept={acceptInvite}
-                        onDecline={declineInvite}
-                    />
-                )}
-            </Animated.View>
             <View style={styles.content}>
                 <View style={styles.mainContent}>
                     {/* WeekCalendar temporarily disabled */}
@@ -1272,14 +1229,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
 
-    // Invite banner wrapper (same positioning/animation as original)
-    inviteBannerWrap: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        zIndex: 30,
-        alignItems: "center",
-    },
     // Toast positioned above Templates rail
     toastWrap: {
         position: "absolute",
