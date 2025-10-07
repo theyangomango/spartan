@@ -114,9 +114,10 @@ function SetRow({
                             onPress={() => {
                                 if (readOnly) return;
                                 // Optimistic local toggle for immediate UI feedback
-                                setDoneLocal((d) => !d);
+                                const nextState = !doneLocal;
+                                setDoneLocal(nextState);
                                 // Then trigger upstream state update
-                                try { if (onToggleIsDoneById && sid) onToggleIsDoneById(sid); } catch {}
+                                try { if (onToggleIsDoneById && sid) onToggleIsDoneById(sid, nextState); } catch {}
                                 // Then dismiss keyboard; doing it second avoids missing the press
                                 try { Keyboard.dismiss(); } catch {}
                             }}

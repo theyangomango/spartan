@@ -27,7 +27,7 @@ import { useNavigation } from "@react-navigation/native";
 
 import scaleSize from "../../helper/scaleSize";
 import WorkoutPanelCard from "./ui/WorkoutPanelCard";
-import { canViewWorkout, sanitizeStatsForViewer } from "../../utils/workoutPrivacy";
+import { sanitizeStatsForViewer } from "../../utils/workoutPrivacy";
 import { buildExerciseSummaries } from "../../utils/workoutSummary";
 import { usePfp } from "../../helper/usePFPs";
 
@@ -999,10 +999,6 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
 
         const safeWorkout = wk ? { ...wk, privacyMode: wk?.privacyMode ?? 'global' } : null;
 
-        if (!canViewWorkout(safeWorkout, viewerUid, viewerData)) {
-            return;
-        }
-
         setSelectedItem({
             ...item,
             workout: safeWorkout,
@@ -1281,7 +1277,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
     // Fetch viewer's statsExercises once per friend when selected (non-blocking, no live stream)
     const viewerStatsRef = useRef(null);
     useEffect(() => {
-        if (!selectedItem?.friendUid || !canViewWorkout(selectedItem?.workout, viewerUid, viewerData)) {
+        if (!selectedItem?.friendUid) {
             viewerStatsRef.current = null;
             return;
         }
@@ -1302,7 +1298,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
             run();
         }
         return () => { cancelled = true; };
-    }, [selectedItem?.friendUid, selectedItem?.workout, viewerUid, viewerData]);
+    }, [selectedItem?.friendUid, viewerUid, viewerData]);
 
     // Edge back-swipe to close the inline viewer (iOS-like)
     const backEligible = useSharedValue(0);
@@ -1381,41 +1377,34 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                         <GestureDetector gesture={backPan}>
                             <View style={{ flex: 1 }}>
                                 <View style={{ flex: 1 }}>
-                                    {canViewWorkout(selectedItem.workout, viewerUid, viewerData) ? (
-                                        <SpectatingWorkoutModal
-                                            timerRef={timerRef}
-                                            workout={selectedItem.workout}
-                                            userWorkoutStats={viewerStatsRef.current || undefined}
-                                            onPressBack={closeViewer}
-                                            onCheer={noopCheer}
-                                            onCopyTemplate={handleCopyTemplateCb}
-                                            onPressPfp={() => {
-                                                try { bottomSheetRef.current?.close(); } catch { }
-                                                const uid = String(selectedItem?.friendUid || '');
-                                                if (!uid) return;
-                                                const meUid = String(global?.userData?.uid || '');
-                                                const rootNav = navigation?.getParent?.('ROOT');
-                                                if (uid === meUid) {
-                                                    if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
-                                                    else navigation.navigate('Profile', { transition: 'slide-from-right' });
-                                                } else {
-                                                    if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid } });
-                                                    else navigation.navigate('ViewProfile', { user: { uid } });
-                                                }
-                                            }}
-                                            /* 🔒 LOCK friend view so header/controls don't flip to self */
-                                            forceViewingFriend={selectedItem.friendUid}
-                                            friendPfp={selectedItem.friendPfp || null}
-                                            friendPfpVersion={selectedItem.friendPfpVersion || 0}
-                                            /* 🚀 Stream live only when the item is live */
-                                            streamLive={!!selectedItem.streamLive}
-                                        />
-                                    ) : (
-                                        <View style={styles.lockedWrap}>
-                                            <Text style={styles.lockedTitle}>Workout is private</Text>
-                                            <Text style={styles.lockedSubtitle}>You do not have permission to view this workout.</Text>
-                                        </View>
-                                    )}
+                                    <SpectatingWorkoutModal
+                                        timerRef={timerRef}
+                                        workout={selectedItem.workout}
+                                        userWorkoutStats={viewerStatsRef.current || undefined}
+                                        onPressBack={closeViewer}
+                                        onCheer={noopCheer}
+                                        onCopyTemplate={handleCopyTemplateCb}
+                                        onPressPfp={() => {
+                                            try { bottomSheetRef.current?.close(); } catch { }
+                                            const uid = String(selectedItem?.friendUid || '');
+                                            if (!uid) return;
+                                            const meUid = String(global?.userData?.uid || '');
+                                            const rootNav = navigation?.getParent?.('ROOT');
+                                            if (uid === meUid) {
+                                                if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+                                                else navigation.navigate('Profile', { transition: 'slide-from-right' });
+                                            } else {
+                                                if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: { uid } });
+                                                else navigation.navigate('ViewProfile', { user: { uid } });
+                                            }
+                                        }}
+                                        /* 🔒 LOCK friend view so header/controls don't flip to self */
+                                        forceViewingFriend={selectedItem.friendUid}
+                                        friendPfp={selectedItem.friendPfp || null}
+                                        friendPfpVersion={selectedItem.friendPfpVersion || 0}
+                                        /* 🚀 Stream live only when the item is live */
+                                        streamLive={!!selectedItem.streamLive}
+                                    />
                                 </View>
                             </View>
                         </GestureDetector>

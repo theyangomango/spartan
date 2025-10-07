@@ -172,7 +172,6 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
     /* ------------ persist currentWorkout (debounced) ------------ */
     const saveCurrentWorkoutDebouncedRef = useRef(null);
-    const lastPersistValueRef = useRef(null);
     const lastPersistSentAtRef = useRef(0);
     const lastPersistSentHashRef = useRef("");
     const lastPrevInjectAtRef = useRef(0);
@@ -185,9 +184,6 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     const persistCurrentWorkout = useCallback(
         (value) => {
             if (!uid) return;
-            // Track the most recent value; debounce computes from latest to avoid repeated heavy sanitize work.
-            lastPersistValueRef.current = value || null;
-
             if (!value) {
                 clearPersistDebounce();
                 (async () => {
@@ -202,70 +198,62 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             }
 
             clearPersistDebounce();
-            // Heavier trailing debounce to coalesce frequent edits
-            saveCurrentWorkoutDebouncedRef.current = setTimeout(() => {
-                const latest = lastPersistValueRef.current;
-                if (!latest) return;
-                const payload = sanitizeWorkout(latest);
 
-                // Enrich with "previous" sets per exercise so spectators have accurate context
-                try {
-                    const now = Date.now();
-                    if (now - (lastPrevInjectAtRef.current || 0) > 5000) {
-                        const completed = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
-                        const stats = (global?.userData?.statsExercises || {});
-                        const findPrevFromCompleted = (exName) => {
-                            for (let i = completed.length - 1; i >= 0; i--) {
-                                const wk = completed[i];
-                                const arr = Array.isArray(wk?.exercises) ? wk.exercises : [];
-                                const found = arr.find((e) => e?.name === exName && Array.isArray(e?.sets) && e.sets.length > 0);
-                                if (found) return (found.sets || []).map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 }));
-                            }
-                            return null;
-                        };
-                        const findPrevFromStats = (exName) => {
-                            const exStats = stats?.[exName];
-                            const sets = Array.isArray(exStats?.sets) ? exStats.sets : [];
-                            if (!sets.length) return null;
-                            const lastWid = sets[sets.length - 1]?.wid;
-                            const matching = [];
-                            for (let i = sets.length - 1; i >= 0; i--) {
-                                if (sets[i]?.wid !== lastWid) break;
-                                matching.push(sets[i]);
-                            }
-                            matching.reverse();
-                            return matching.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 }));
-                        };
-                        payload.exercises = (payload.exercises || []).map((ex) => {
-                            const prevA = findPrevFromCompleted(ex?.name);
-                            const prevB = prevA && prevA.length ? prevA : findPrevFromStats(ex?.name);
-                            return { ...ex, prev: prevB && prevB.length ? prevB : undefined };
-                        });
-                        lastPrevInjectAtRef.current = now;
-                    }
-                } catch { /* non-fatal */ }
-                // Hash and min-gap throttle to avoid spamming writes while typing
-                try {
-                    const now = Date.now();
-                    const minGap = 1500;
-                    const hash = JSON.stringify(payload);
-                    if (hash !== lastPersistSentHashRef.current && (now - (lastPersistSentAtRef.current || 0) > minGap)) {
-                        InteractionManager.runAfterInteractions(() => {
-                            (async () => {
-                                try {
-                                    await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true });
-                                } catch (e) {
-                                    console.log("setDoc users.currentWorkout (debounced) error", e);
-                                    try { await updateDoc("users", uid, { currentWorkout: payload }); } catch { }
-                                } finally {
-                                    lastPersistSentAtRef.current = Date.now();
-                                    lastPersistSentHashRef.current = hash;
-                                }
-                            })();
-                        });
-                    }
-                } catch { }
-            }, 1200);
+            const latest = value;
+            const payload = sanitizeWorkout(latest);
+
+            try {
+                const now = Date.now();
+                if (now - (lastPrevInjectAtRef.current || 0) > 5000) {
+                    const completed = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
+                    const stats = (global?.userData?.statsExercises || {});
+                    const findPrevFromCompleted = (exName) => {
+                        for (let i = completed.length - 1; i >= 0; i--) {
+                            const wk = completed[i];
+                            const arr = Array.isArray(wk?.exercises) ? wk.exercises : [];
+                            const found = arr.find((e) => e?.name === exName && Array.isArray(e?.sets) && e.sets.length > 0);
+                            if (found) return (found.sets || []).map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 }));
+                        }
+                        return null;
+                    };
+                    const findPrevFromStats = (exName) => {
+                        const exStats = stats?.[exName];
+                        const sets = Array.isArray(exStats?.sets) ? exStats.sets : [];
+                        if (!sets.length) return null;
+                        const lastWid = sets[sets.length - 1]?.wid;
+                        const matching = [];
+                        for (let i = sets.length - 1; i >= 0; i--) {
+                            if (sets[i]?.wid !== lastWid) break;
+                            matching.push(sets[i]);
+                        }
+                        matching.reverse();
+                        return matching.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 }));
+                    };
+                    payload.exercises = (payload.exercises || []).map((ex) => {
+                        const prevA = findPrevFromCompleted(ex?.name);
+                        const prevB = prevA && prevA.length ? prevA : findPrevFromStats(ex?.name);
+                        return { ...ex, prev: prevB && prevB.length ? prevB : undefined };
+                    });
+                    lastPrevInjectAtRef.current = now;
+                }
+            } catch { /* non-fatal */ }
+
+            try {
+                const hash = JSON.stringify(payload);
+                if (hash === lastPersistSentHashRef.current) return;
+                lastPersistSentHashRef.current = hash;
+                lastPersistSentAtRef.current = Date.now();
+                InteractionManager.runAfterInteractions(() => {
+                    (async () => {
+                        try {
+                            await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true });
+                        } catch (e) {
+                            console.log("setDoc users.currentWorkout error", e);
+                            try { await updateDoc("users", uid, { currentWorkout: payload }); } catch { }
+                        }
+                    })();
+                });
+            } catch { }
         },
         [uid, clearPersistDebounce]
     );

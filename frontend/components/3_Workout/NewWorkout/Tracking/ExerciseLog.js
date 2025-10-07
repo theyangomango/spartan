@@ -268,20 +268,21 @@ function ExerciseLog({
         flushNextFrame(next);
     });
 
-    const toggleIsDoneById = useCallback((sid) => {
+    const toggleIsDoneById = useCallback((sid, nextStateParam) => {
         const cur = setsRef.current || [];
         const idx = cur.findIndex((s) => s?.id === sid);
         if (idx < 0) return;
         const row = cur[idx];
-        // optional guard (keep your rule)
         if (!row.isDone && (isNaN(row.weight) || isNaN(row.reps))) return;
-        const next = cur.slice();
-        const toggledDone = !row.isDone;
-        next[idx] = { ...row, isDone: toggledDone };
+
+        const toggledDone = (typeof nextStateParam === "boolean") ? nextStateParam : !row.isDone;
+        if (!!row.isDone === toggledDone) return;
+
+        const next = cur.map((setItem, idxSet) => idxSet === idx ? { ...setItem, isDone: toggledDone } : setItem);
         setDraft(next);
         setsRef.current = next;
         flushNextFrame(next);
-        // Light haptic feedback only when completing a set
+
         if (toggledDone) { try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light); } catch {} }
     }, [flushNextFrame]);
 
