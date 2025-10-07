@@ -48,6 +48,7 @@ import useRestTimer from "./hooks/useRestTimer";
 import useWorkoutEditing from "./hooks/useWorkoutEditing";
 
 import scaleSize from "../../../helper/scaleSize";
+import { formatWorkoutTimestamp } from "../../../utils/date";
 import ConfirmWorkoutModal from "./components/ConfirmWorkoutModal";
 import WorkoutReminderModal from "./components/WorkoutReminderModal";
 
@@ -150,15 +151,22 @@ const ActiveWorkoutModal = ({
             : (forceViewingFriend ? friendUidFromWorkout : null);
     const lockFriend = !!forcedUid;
 
+    const forceSelfView = useMemo(() => {
+        try { return String(global?.__forceWorkoutSelfViewWid || "") === cardWid; }
+        catch { return false; }
+    }, [cardWid]);
+
     // Only auto-join when NOT locked to friend-view and wid matches my active wid
     const shouldAutoJoin = streamLive && !lockFriend && !!(myActiveWid && cardWid && myActiveWid === cardWid);
 
     // Decide initial target for the viewer hook
     const initialViewingUid = lockFriend
         ? forcedUid
-        : (shouldAutoJoin
+        : (forceSelfView
             ? meUid
-            : (friendUidFromWorkout && friendUidFromWorkout !== meUid ? friendUidFromWorkout : meUid));
+            : (shouldAutoJoin
+            ? meUid
+            : (friendUidFromWorkout && friendUidFromWorkout !== meUid ? friendUidFromWorkout : meUid)));
 
     // Gate heavy live streaming until user explicitly opens group menu or we lock to a friend
     // If a one-shot global flag matches this wid (set on invite accept), enable live immediately
@@ -171,6 +179,12 @@ const ActiveWorkoutModal = ({
         if (!initialLiveEnable) return;
         try { if (global.__enableLiveForWid === cardWid) global.__enableLiveForWid = null; } catch {}
     }, [initialLiveEnable, cardWid]);
+
+    useEffect(() => {
+        if (!forceSelfView) return;
+        try { if (String(global.__forceWorkoutSelfViewWid) === cardWid) global.__forceWorkoutSelfViewWid = null; }
+        catch { }
+    }, [forceSelfView, cardWid]);
 
     const {
         viewing,
@@ -198,8 +212,24 @@ const ActiveWorkoutModal = ({
         enabled: !!streamLive && (!!liveEnabled || lockFriend),
     });
 
+    useEffect(() => {
+        if (!forceSelfView) return;
+        const my = String(meUid || "");
+        if (!my) return;
+        if (String(viewing?.uid || viewing) !== my) {
+            setViewing(my);
+            onViewingChange?.(true);
+        }
+    }, [forceSelfView, viewing, setViewing, meUid, onViewingChange]);
+
     // Effective flags/content when locked
     const viewingSelfEffective = lockFriend ? false : viewingSelf;
+
+    useEffect(() => {
+        if (!streamLive) return;
+        if (!viewingSelfEffective) return;
+        setLiveEnabled((prev) => (prev ? prev : true));
+    }, [viewingSelfEffective, streamLive]);
 
     const {
         replaceIndex,
@@ -227,6 +257,11 @@ const ActiveWorkoutModal = ({
         ? workout
         : ((activeWorkout && String(activeWorkout?.wid || "") === cardWid) ? activeWorkout : workout);
 
+    const workoutCreatedDisplay = useMemo(() => {
+        const label = formatWorkoutTimestamp(baseWorkout?.created ?? baseWorkout?.createdAt);
+        return label || null;
+    }, [baseWorkout?.created, baseWorkout?.createdAt]);
+
     const workoutNameValue = String(workout?.name ?? '');
     const baseWorkoutName = String(baseWorkout?.name ?? '');
 
@@ -253,6 +288,9 @@ const ActiveWorkoutModal = ({
                         autoCorrect
                         autoCapitalize="words"
                     />
+                    {workoutCreatedDisplay ? (
+                        <Text style={styles.titleDisplaySubText}>{workoutCreatedDisplay}</Text>
+                    ) : null}
                 </View>
             );
         }
@@ -263,9 +301,12 @@ const ActiveWorkoutModal = ({
         return (
             <View style={styles.titleDisplayContainer}>
                 <Text style={styles.titleDisplayText} numberOfLines={2}>{trimmedDisplay}</Text>
+                {workoutCreatedDisplay ? (
+                    <Text style={styles.titleDisplaySubText}>{workoutCreatedDisplay}</Text>
+                ) : null}
             </View>
         );
-    }, [viewingSelfEffective, workoutNameValue, baseWorkoutName, handleChangeWorkoutTitle]);
+    }, [viewingSelfEffective, workoutNameValue, baseWorkoutName, handleChangeWorkoutTitle, workoutCreatedDisplay]);
 
     // Prefer friend's stats when viewing others; if live stats are absent (e.g., viewing a completed workout),
     // fall back to provided userWorkoutStats if available from the parent.
@@ -630,10 +671,11 @@ const ActiveWorkoutModal = ({
             : (viewingPfpUriHook || viewing?.image || friendPfp || ""));
 
     // Being “in an active group” = there is at least one participant other than me
-    const inActiveGroup = useMemo(
-        () => Array.isArray(participants) && participants.some((p) => String(p?.uid) !== meUid),
-        [participants, meUid]
-    );
+    const inActiveGroup = useMemo(() => {
+        const participantHasOther = Array.isArray(participants) && participants.some((p) => String(p?.uid) !== meUid);
+        if (participantHasOther) return true;
+        return Array.isArray(members) && members.some((uidVal) => String(uidVal) !== meUid);
+    }, [participants, members, meUid]);
     const inActiveGroupEffective = lockFriend ? false : inActiveGroup;
 
     // Friend workout state: treat as ongoing immediately when we know the source was live (streamLive)
@@ -1168,11 +1210,18 @@ const styles = StyleSheet.create({
     scrollview: { paddingTop: scaleSize(5), backgroundColor: 'transparent' },
     titleDisplayContainer: {
         paddingHorizontal: scaleSize(24),
+        marginBottom: scaleSize(12),
     },
     titleDisplayText: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(20),
         color: theme.textPrimary,
+    },
+    titleDisplaySubText: {
+        marginTop: scaleSize(2),
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(12.5),
+        color: theme.textSecondary,
     },
     titleDisplayInput: {
         width: '100%',

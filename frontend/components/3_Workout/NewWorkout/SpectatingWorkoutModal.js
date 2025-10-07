@@ -17,6 +17,7 @@ import { getFirestore, addDoc, collection, serverTimestamp, onSnapshot, query, o
 import { useGroupViewing } from "./Group/useGroupViewing";
 import GroupHeader from "./Group/GroupHeader";
 import scaleSize from "../../../helper/scaleSize";
+import { formatWorkoutTimestamp } from "../../../utils/date";
 
 const SpectatingWorkoutModal = ({
     workout,
@@ -87,14 +88,21 @@ const SpectatingWorkoutModal = ({
         : ((activeWorkout && String(activeWorkout?.wid || "") === cardWid) ? activeWorkout : workout);
 
     const workoutTitle = String(baseWorkout?.name ?? "").trim();
+    const workoutCreatedDisplay = useMemo(() => {
+        const label = formatWorkoutTimestamp(baseWorkout?.created ?? baseWorkout?.createdAt);
+        return label || null;
+    }, [baseWorkout?.created, baseWorkout?.createdAt]);
     const workoutTitleDisplay = useMemo(() => {
         if (!workoutTitle) return null;
         return (
             <View style={styles.titleDisplayContainer}>
                 <Text style={styles.titleDisplayText} numberOfLines={2}>{workoutTitle}</Text>
+                {workoutCreatedDisplay ? (
+                    <Text style={styles.titleDisplaySubText}>{workoutCreatedDisplay}</Text>
+                ) : null}
             </View>
         );
-    }, [workoutTitle]);
+    }, [workoutTitle, workoutCreatedDisplay]);
 
     const statsForPrevious = useMemo(() => {
         if (viewingSelfEffective) return userWorkoutStats || activeStats || {};
@@ -414,6 +422,13 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(20),
         color: theme.textPrimary,
+        textAlign: "left",
+    },
+    titleDisplaySubText: {
+        marginTop: scaleSize(2),
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(12.5),
+        color: theme.textSecondary,
         textAlign: "left",
     },
     listWrap: { flex: 1 },

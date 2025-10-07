@@ -876,6 +876,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             try { if (global?.userData) global.userData.currentWorkout = localJoined; } catch { }
             // Signal ActiveWorkoutModal to enable live streaming/presence immediately for this wid
             try { global.__enableLiveForWid = String(wid); } catch {}
+            try { global.__forceWorkoutSelfViewWid = String(wid); } catch {}
 
             // Persist to user doc
             try {
