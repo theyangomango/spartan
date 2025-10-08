@@ -1,17 +1,20 @@
 // components/3_Workout/sections/StartCluster.jsx
 import React, { memo, useMemo, useCallback } from "react";
-import { View, StyleSheet, Animated, useWindowDimensions } from "react-native";
+import { View, StyleSheet, Animated, useWindowDimensions, Pressable } from "react-native";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import StartOpenButton from "../ui/StartOpenButton";
 import { ROW_WIDTH, SMALL_SIZE } from "./workoutTheme";
 import scaleSize from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
+import { strong as haptic } from "../../../utils/haptics";
 
 const StartCluster = ({
     scaleAnim,
     hasActiveWorkout,
     onStartWorkout,
     onOpenNewWorkout,
+    onOpenCreatePost,
+    onOpenBarcodeScanner,
     templateFocusIndex,
 }) => {
     const scale = scaleAnim || new Animated.Value(1);
@@ -28,12 +31,29 @@ const StartCluster = ({
         onStartWorkout?.("global");
     }, [onStartWorkout]);
 
+    const handleOpenCreatePost = useCallback(() => {
+        try { haptic(); } catch {}
+        onOpenCreatePost?.();
+    }, [onOpenCreatePost]);
+
+    const handleOpenBarcodeScanner = useCallback(() => {
+        try { haptic(); } catch {}
+        onOpenBarcodeScanner?.();
+    }, [onOpenBarcodeScanner]);
+
     return (
         <View style={[styles.wrap, containerStyle]} pointerEvents="box-none">
             <View style={styles.actionsRow} pointerEvents="box-none">
-                <View style={[styles.sideButton, styles.sideButtonOffset]}>
+                <Pressable
+                    style={[styles.sideButton, styles.sideButtonOffset]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Scan food barcode"
+                    android_ripple={{ color: "rgba(255,255,255,0.12)", borderless: false }}
+                    hitSlop={scaleSize(10)}
+                    onPress={handleOpenBarcodeScanner}
+                >
                     <Ionicons name="barcode-outline" size={24} color="#E5E7EB" />
-                </View>
+                </Pressable>
                 <Animated.View style={{ transform: [{ scale }] }}>
                     <StartOpenButton
                         hasActiveWorkout={hasActiveWorkout}
@@ -42,9 +62,16 @@ const StartCluster = ({
                         templateFocusIndex={templateFocusIndex}
                     />
                 </Animated.View>
-                <View style={[styles.sideButton, styles.sideButtonOffset]}>
+                <Pressable
+                    style={[styles.sideButton, styles.sideButtonOffset]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Create a post"
+                    android_ripple={{ color: "rgba(255,255,255,0.12)", borderless: false }}
+                    hitSlop={scaleSize(10)}
+                    onPress={handleOpenCreatePost}
+                >
                     <Feather name="plus" size={23} color="#E5E7EB" />
-                </View>
+                </Pressable>
             </View>
         </View>
     );

@@ -696,7 +696,7 @@ const styles = StyleSheet.create({
         maxWidth: '100%'
     },
     message: {
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(13),
         color: theme.textSecondary,
         fontFamily: "Outfit_400Regular",
         lineHeight: scaleSize(20),
@@ -725,7 +725,7 @@ const styles = StyleSheet.create({
     },
     actionLabel: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(11),
+        fontSize: scaleSize(12),
     },
     inviteAcceptBtn: {
         minWidth: scaleSize(74),

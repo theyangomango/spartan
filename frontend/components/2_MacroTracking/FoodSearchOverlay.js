@@ -38,6 +38,8 @@ export default function FoodSearchOverlay({
     COLORS,
     onSelectResult, // parent still handles add + closing overlay
     dayKey, // pass focused day key so details screen can add to correct date
+    scannerAutoOpenKey = null,
+    onScannerAutoOpenComplete,
 }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const navigation = useNavigation();
@@ -56,6 +58,9 @@ export default function FoodSearchOverlay({
     const [scanError, setScanError] = useState('');
     const [scanLocked, setScanLocked] = useState(false); // throttle duplicate scans
     const scanRetryTimeoutRef = useRef(null);
+    const autoOpenScheduledKeyRef = useRef(null);
+    const autoOpenTimerRef = useRef(null);
+    const autoOpenConsumedKeyRef = useRef(null);
 
     const clearScanRetry = useCallback(() => {
         if (scanRetryTimeoutRef.current) {
@@ -72,6 +77,31 @@ export default function FoodSearchOverlay({
         }, SCAN_RETRY_DELAY_MS);
     }, [clearScanRetry]);
 
+    const openScanner = useCallback(async (withHaptic = true) => {
+        if (withHaptic) {
+            try { haptic(); } catch {}
+        }
+        setScanError('');
+        try {
+            let perm = permission;
+            if (!perm || !perm.granted) {
+                const granted = await requestPermission();
+                perm = granted;
+                if (!granted?.granted) {
+                    return false;
+                }
+            }
+            clearScanRetry();
+            setScanLocked(false);
+            setScanBusy(false);
+            setScannerVisible(true);
+            try { Keyboard.dismiss(); } catch {}
+            return true;
+        } catch {
+            return false;
+        }
+    }, [permission, requestPermission, clearScanRetry]);
+
     useEffect(() => {
         if (!scannerVisible) {
             clearScanRetry();
@@ -83,6 +113,64 @@ export default function FoodSearchOverlay({
             clearScanRetry();
         };
     }, [scannerVisible, clearScanRetry]);
+
+    useEffect(() => {
+        if (!visible) return undefined;
+        if (scannerAutoOpenKey == null) return undefined;
+        if (autoOpenConsumedKeyRef.current === scannerAutoOpenKey) return undefined;
+
+        const key = scannerAutoOpenKey;
+        if (autoOpenTimerRef.current) {
+            clearTimeout(autoOpenTimerRef.current);
+            autoOpenTimerRef.current = null;
+        }
+        autoOpenScheduledKeyRef.current = key;
+        autoOpenTimerRef.current = setTimeout(() => {
+            autoOpenTimerRef.current = null;
+            autoOpenScheduledKeyRef.current = null;
+            openScanner(false)
+                .then((opened) => {
+                    if (opened) {
+                        autoOpenConsumedKeyRef.current = key;
+                    }
+                })
+                .finally(() => {
+                    onScannerAutoOpenComplete?.(key);
+                });
+        }, 220);
+
+        return () => {
+            if (autoOpenTimerRef.current) {
+                clearTimeout(autoOpenTimerRef.current);
+                autoOpenTimerRef.current = null;
+            }
+            if (autoOpenScheduledKeyRef.current === key) {
+                autoOpenScheduledKeyRef.current = null;
+            }
+        };
+    }, [visible, scannerAutoOpenKey, openScanner, onScannerAutoOpenComplete]);
+
+    useEffect(() => {
+        if (!visible) {
+            if (autoOpenTimerRef.current) {
+                clearTimeout(autoOpenTimerRef.current);
+                autoOpenTimerRef.current = null;
+            }
+            autoOpenScheduledKeyRef.current = null;
+            autoOpenConsumedKeyRef.current = null;
+        }
+    }, [visible]);
+
+    useEffect(() => {
+        if (scannerAutoOpenKey == null) {
+            if (autoOpenTimerRef.current) {
+                clearTimeout(autoOpenTimerRef.current);
+                autoOpenTimerRef.current = null;
+            }
+            autoOpenScheduledKeyRef.current = null;
+            autoOpenConsumedKeyRef.current = null;
+        }
+    }, [scannerAutoOpenKey]);
 
     const loadRecentFoods = useCallback(async () => {
         try {
@@ -213,20 +301,7 @@ export default function FoodSearchOverlay({
                     {/* Left: barcode scanner trigger */}
                     <Pressable
                         style={styles.headerLeft}
-                        onPress={async () => {
-                            try { haptic(); } catch {}
-                            setScanError('');
-                            if (!permission || !permission.granted) {
-                                const perm = await requestPermission();
-                                if (!perm?.granted) return;
-                            }
-                            clearScanRetry();
-                            setScanLocked(false);
-                            setScanBusy(false);
-                            setScannerVisible(true);
-                            // dismiss keyboard to reduce jank
-                            try { Keyboard.dismiss(); } catch {}
-                        }}
+                        onPress={() => { void openScanner(true); }}
                         hitSlop={8}
                         accessibilityLabel="Open barcode scanner"
                     >

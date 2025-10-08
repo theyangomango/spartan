@@ -22,6 +22,7 @@ import SectionDivider from "../components/3_Workout/ui/SectionDivider";
 import HubRow from "../components/3_Workout/sections/HubRow";
 import TribeStatsCard from "../components/3_Workout/sections/TribeStatsCard";
 import StartCluster from "../components/3_Workout/sections/StartCluster";
+import WorkoutBarcodeScannerModal from "../components/3_Workout/sections/WorkoutBarcodeScannerModal";
 
 // Modals / Sheets
 import GroupModalBottomSheet from "../components/3_Workout/NewWorkout/Group/GroupModalBottomSheet";
@@ -204,6 +205,7 @@ export default function Workout({ navigation, route }) {
         top: TPL_DIVIDER_MARGIN_TOP,
         bottom: TPL_DIVIDER_MARGIN_BOTTOM,
     }));
+    const [barcodeScannerVisible, setBarcodeScannerVisible] = useState(false);
     const feedInitOnceRef = useRef(false);
     useEffect(() => {
         // Register setters immediately to keep header hooks consistent across screens
@@ -836,6 +838,32 @@ export default function Workout({ navigation, route }) {
         }
     }, [navigation]);
 
+    const openBarcodeScanner = useCallback(() => {
+        setBarcodeScannerVisible(true);
+    }, []);
+
+    const handleBarcodeScannerClose = useCallback(() => {
+        setBarcodeScannerVisible(false);
+    }, []);
+
+    const handleBarcodeScanSuccess = useCallback((food) => {
+        if (!food) return;
+        setBarcodeScannerVisible(false);
+        requestAnimationFrame(() => {
+            try {
+                const now = new Date();
+                now.setHours(0, 0, 0, 0);
+                const dayKey = toDayKey(now);
+                navigation?.navigate('FoodDetail', {
+                    mode: 'add',
+                    food,
+                    mealName: 'Snacks',
+                    dayKey,
+                });
+            } catch { }
+        });
+    }, [navigation]);
+
     // Header prop identities kept stable to avoid header re-renders
     const headerScrollToTop = useCallback(() => { }, []);
     const headerOpenCurrentWorkout = useCallback(() => setIsNewWorkoutVisible(true), [setIsNewWorkoutVisible]);
@@ -1052,12 +1080,18 @@ export default function Workout({ navigation, route }) {
                             onStartWorkout={onStartWorkout}
                             onOpenNewWorkout={openNewWorkout}
                             onOpenCreatePost={openCreatePost}
+                            onOpenBarcodeScanner={openBarcodeScanner}
                             templateFocusIndex={activeIdx}
                         />
                     </View>
                 </View>
             </View>
             <Footer currentScreenName={"Workout"} navigation={navigation} />
+            <WorkoutBarcodeScannerModal
+                visible={barcodeScannerVisible}
+                onClose={handleBarcodeScannerClose}
+                onResult={handleBarcodeScanSuccess}
+            />
             {/* Day details (open via History button) */}
             {shouldRenderDaySheet && (
                 <View style={StyleSheet.absoluteFill} pointerEvents={daySheetVisible ? "auto" : "none"}>
