@@ -7,6 +7,7 @@ import ExerciseOptionsPanel from "../NewWorkout/Tracking/ExerciseOptionsPanel";
 import TemplateSetRow from "./TemplateSetRow";
 import theme from "../../../theme/mfpDark";
 import { withStrongPress } from "../../../utils/haptics";
+import workoutTypography from "../shared/workoutTypography";
 
 
 export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, readOnly = false }) {
@@ -71,7 +72,7 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
                     onPress={withStrongPress(togglePanel)}
                     disabled={readOnly}
                 >
-                    <Text style={styles.exercise_text} numberOfLines={1}>{name}</Text>
+                    <Text style={workoutTypography.exerciseName} numberOfLines={1}>{name}</Text>
                 </Pressable>
 
                 {/* <View style={styles.pfpContainer}>
@@ -82,16 +83,16 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
             </Animated.View>
             <Animated.View style={[styles.labels, { opacity: fadeAnim }]}>
                 <View style={styles.set_ctnr}>
-                    <Text style={styles.label_text}>Set</Text>
+                    <Text style={workoutTypography.columnLabel}>Set</Text>
                 </View>
                 <View style={styles.previous_ctnr}>
-                    <Text style={styles.label_text}>Previous</Text>
+                    <Text style={workoutTypography.columnLabel}>Previous</Text>
                 </View>
                 <View style={styles.weight_unit_ctnr}>
-                    <Text style={styles.label_text}>lbs</Text>
+                    <Text style={workoutTypography.columnLabel}>lbs</Text>
                 </View>
                 <View style={styles.reps_ctnr}>
-                    <Text style={styles.label_text}>Reps</Text>
+                    <Text style={workoutTypography.columnLabel}>Reps</Text>
                 </View>
             </Animated.View>
             <Animated.View style={{ opacity: fadeAnim }}>
@@ -112,7 +113,7 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
                 <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
                     <RNBounceable activeOpacity={0.5} onPress={withStrongPress(addSet)} style={styles.add_set_btn}>
                         <Entypo name="plus" size={scaleSize(18)} color={theme.primary} />
-                        <Text style={styles.add_set_text}>Add Set</Text>
+                        <Text style={[workoutTypography.addSet, styles.add_set_text]}>Add Set</Text>
                     </RNBounceable>
                 </Animated.View>
             )}
@@ -139,7 +140,6 @@ const styles = StyleSheet.create({
         flexShrink: 1,
         marginRight: scaleSize(10),
     },
-    exercise_text: { fontFamily: 'Mulish_800ExtraBold', color: theme.primary, fontSize: scaleSize(15), flexShrink: 1 },
     // muscle_ctnr and muscle_text removed
     pfpContainer: {
         flexDirection: 'row',
@@ -176,7 +176,6 @@ const styles = StyleSheet.create({
         width: '18%',
         alignItems: 'center',
     },
-    label_text: { fontFamily: 'Mulish_800ExtraBold', fontSize: scaleSize(15), color: theme.textPrimary },
     add_set_btn_ctnr: {
         paddingHorizontal: scaleSize(20),
     },
@@ -193,5 +192,5 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flexDirection: 'row',
     },
-    add_set_text: { fontFamily: 'Outfit_600SemiBold', color: theme.textPrimary, fontSize: scaleSize(15), marginLeft: scaleSize(1), marginRight: scaleSize(5) },
+    add_set_text: { marginLeft: scaleSize(1), marginRight: scaleSize(5) },
 });

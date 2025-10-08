@@ -10,6 +10,7 @@ import {
 import scaleSize from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
 import KeyboardDismissAccessory, { useKeyboardAccessoryId } from "../../common/KeyboardDismissAccessory";
+import workoutTypography from "../shared/workoutTypography";
 
 const { height: screenHeight } = Dimensions.get('window');
 export default function TemplateEditableStat({ placeholder = '0', value, setValue, readOnly = false }) {
@@ -69,7 +70,7 @@ export default function TemplateEditableStat({ placeholder = '0', value, setValu
                     placeholderTextColor={theme.textSecondary}
                     onFocus={() => !readOnly && setIsSelected(true)}
                     onEndEditing={() => setIsSelected(false)}
-                    style={[styles.text, readOnly && styles.readOnlyText]}
+                    style={[workoutTypography.statValue, styles.text, readOnly && styles.readOnlyText]}
                     value={value === '0' ? (readOnly ? '0' : '') : value.toString()}
                     onChangeText={handleChangeText}
                     blurOnSubmit={false}
@@ -88,6 +89,6 @@ const styles = StyleSheet.create({
     editing: { width: scaleSize(63), height: scaleSize(26), borderRadius: scaleSize(9), backgroundColor: theme.field, borderWidth: scaleSize(1), borderColor: 'rgba(255,255,255,0.30)' },
     selected: { borderColor: theme.primary },
     finished: { backgroundColor: theme.successBg },
-    text: { fontFamily: 'Poppins_700Bold', fontSize: scaleSize(15), flex: 1, textAlign: 'center', color: theme.textPrimary },
+    text: { flex: 1, textAlign: 'center' },
     readOnlyText: { color: theme.textPrimary },
 });

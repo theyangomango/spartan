@@ -420,14 +420,14 @@ const styles = StyleSheet.create({
     },
     titleDisplayText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(20),
+        fontSize: scaleSize(17),
         color: theme.textPrimary,
         textAlign: "left",
     },
     titleDisplaySubText: {
         marginTop: scaleSize(2),
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(12.5),
+        fontSize: scaleSize(11),
         color: theme.textSecondary,
         textAlign: "left",
     },
@@ -445,7 +445,7 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontFamily: "Nunito_600SemiBold",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12),
         color: theme.textSecondary,
     },
     bottomSpacer: { height: scaledSize(250) },

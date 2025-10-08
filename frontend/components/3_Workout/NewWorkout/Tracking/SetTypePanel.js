@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.surface,
     transform: [{ rotate: "45deg" }],
   },
-  header: { color: theme.textSecondary, fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(13), paddingHorizontal: scaleSize(6), paddingBottom: scaleSize(8) },
+  header: { color: theme.textSecondary, fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(11.5), paddingHorizontal: scaleSize(6), paddingBottom: scaleSize(8) },
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     borderRadius: scaleSize(12),
   },
   letterBadge: { width: scaleSize(24), height: scaleSize(24), borderRadius: scaleSize(6), alignItems: "center", justifyContent: "center" },
-  letterText: { color: "#FFFFFF", fontFamily: "Outfit_700Bold", fontSize: scaleSize(12) },
-  itemLabel: { color: theme.textPrimary, fontFamily: "Outfit_700Bold", fontSize: scaleSize(15) },
+  letterText: { color: "#FFFFFF", fontFamily: "Outfit_700Bold", fontSize: scaleSize(10.5) },
+  itemLabel: { color: theme.textPrimary, fontFamily: "Outfit_700Bold", fontSize: scaleSize(13) },
   separator: { height: scaleSize(1), backgroundColor: theme.hairline, marginHorizontal: scaleSize(8), marginVertical: scaleSize(4), borderRadius: scaleSize(1) },
 });

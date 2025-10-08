@@ -174,7 +174,7 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
             </View>
             {/* Sleek search */}
             <View style={styles.searchContainer}>
-                <Icon name="search" size={scaledSize(18)} color={theme.primary} style={styles.searchIcon} />
+                <Icon name="search" size={scaledSize(16)} color={theme.primary} style={styles.searchIcon} />
                 <TextInput
                     style={styles.searchBar}
                     placeholder="Search by handle or name"
@@ -185,7 +185,7 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
                 />
                 {searchQuery.length > 0 && (
                     <Pressable onPress={clearSearch} hitSlop={8}>
-                        <Icon name="close-circle" size={scaledSize(18)} color={theme.muted} />
+                        <Icon name="close-circle" size={scaledSize(16)} color={theme.muted} />
                     </Pressable>
                 )}
             </View>
@@ -225,7 +225,7 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
                     end={{ x: 1, y: 1 }}
                     style={styles.sendButton}
                 >
-                    <Icon name="person-add-outline" size={scaledSize(18)} color="#fff" style={{ marginRight: scaledSize(8) }} />
+                    <Icon name="person-add-outline" size={scaledSize(16)} color="#fff" style={{ marginRight: scaledSize(8) }} />
                     <Text style={styles.sendButtonText}>
                         {`Invite${selectedUsers.length > 0 ? ` (${selectedUsers.length})` : ""}`}
                     </Text>
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     },
     modalText: {
         fontFamily: "Nunito_800ExtraBold",
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(13),
         color: theme.textPrimary,
         includeFontPadding: false,
         letterSpacing: 0.2,
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingHorizontal: scaledSize(8),
         paddingVertical: scaledSize(6),
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12),
         color: theme.textPrimary,
         fontFamily: "Nunito_600SemiBold",
         includeFontPadding: false,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     sectionHeaderWrap: { width: "100%", paddingHorizontal: scaledSize(22), paddingTop: scaledSize(10), paddingBottom: scaledSize(6) },
     sectionHeaderText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(10.5),
         color: theme.textSecondary,
         letterSpacing: 0.3,
     },
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     },
     sendButtonText: {
         color: "#fff",
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(12.5),
         fontFamily: "Nunito_800ExtraBold",
         includeFontPadding: false,
         letterSpacing: 0.25,

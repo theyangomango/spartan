@@ -60,7 +60,7 @@ const selectExerciseModalStyles = StyleSheet.create({
     closeButtonText: {
         color: CLOSE_TEXT,
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12.5),
     },
     searchContainer: {
         flexDirection: 'row',
@@ -80,7 +80,7 @@ const selectExerciseModalStyles = StyleSheet.create({
     searchInput: {
         flex: 1,
         padding: scaledSize(8),
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12.5),
         color: TEXT_PRIMARY,
         fontFamily: 'Outfit_700Bold',
     },
@@ -107,7 +107,7 @@ const selectExerciseModalStyles = StyleSheet.create({
         borderColor: FIELD_BORDER,
     },
     filterButtonText: {
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(12.5),
         color: TEXT_PRIMARY,
         fontFamily: 'Outfit_700Bold',
         flexShrink: 1,
@@ -141,7 +141,7 @@ const selectExerciseModalStyles = StyleSheet.create({
         backgroundColor: ACCENT_SOFT,
     },
     dropdownItemText: {
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(12.5),
         color: TEXT_PRIMARY,
         fontFamily: 'Outfit_700Bold',
     },

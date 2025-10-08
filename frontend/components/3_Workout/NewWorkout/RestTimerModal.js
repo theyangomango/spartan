@@ -22,6 +22,22 @@ const scaledSize = (size) => scaleSize(size);
 const PRESETS = [30, 60, 90, 120];
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
+const CARD_BG = "#1E2536";
+const CARD_BORDER = "rgba(135, 185, 255, 0.22)";
+const HANDLE_COLOR = "rgba(255,255,255,0.28)";
+const RING_TRACK = "rgba(255,255,255,0.12)";
+const RING_GLOW = "#4C9BFF";
+const CHIP_BG = "rgba(148, 163, 184, 0.16)";
+const CHIP_BORDER = "rgba(199, 210, 229, 0.14)";
+const CHIP_ACTIVE_BG = "rgba(45, 158, 255, 0.28)";
+const CHIP_ACTIVE_BORDER = "rgba(56, 189, 248, 0.65)";
+const CHIP_ACTIVE_TEXT = "#CBE8FF";
+const GHOST_BG = "rgba(59, 130, 246, 0.16)";
+const GHOST_BORDER = "rgba(96, 165, 250, 0.42)";
+const GHOST_TEXT = "#A8D3FF";
+const PRIMARY_BG = "#3B82F6";
+const PRIMARY_SHADOW = "#60A5FA";
+
 const formatTime = (s = 0) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
@@ -51,7 +67,7 @@ const CountdownRing = ({ size = 160, stroke = 10, progress, pulse }) => {
                 cx={cx}
                 cy={cy}
                 r={radius}
-                stroke="rgba(255,255,255,0.08)"
+                stroke={RING_TRACK}
                 strokeWidth={stroke}
                 fill="transparent"
             />
@@ -60,7 +76,7 @@ const CountdownRing = ({ size = 160, stroke = 10, progress, pulse }) => {
                 cx={cx}
                 cy={cy}
                 r={radius}
-                stroke={theme.primary}
+                stroke={RING_GLOW}
                 strokeWidth={stroke}
                 fill="transparent"
                 strokeOpacity={pulseOpacity}
@@ -300,30 +316,30 @@ export default function RestTimerModal({
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: "rgba(15,23,42,0.55)", // slate overlay
+        backgroundColor: "rgba(8,12,23,0.65)",
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: scaledSize(20),
     },
     card: {
         width: "100%",
-        backgroundColor: theme.surface,
+        backgroundColor: CARD_BG,
         borderRadius: scaledSize(20),
         padding: scaledSize(18),
         alignItems: "center",
         borderWidth: scaleSize(1),
-        borderColor: theme.hairline,
+        borderColor: CARD_BORDER,
         shadowColor: "#000",
-        shadowOpacity: 0.08,
-        shadowRadius: scaleSize(24),
-        shadowOffset: { width: 0, height: scaleSize(10) },
-        elevation: 4,
+        shadowOpacity: 0.12,
+        shadowRadius: scaleSize(26),
+        shadowOffset: { width: 0, height: scaleSize(12) },
+        elevation: 6,
     },
     handle: {
         width: scaledSize(38),
         height: scaledSize(4),
         borderRadius: scaledSize(2),
-        backgroundColor: theme.hairline,
+        backgroundColor: HANDLE_COLOR,
         marginBottom: scaledSize(10),
     },
     closeBtn: {
@@ -335,11 +351,12 @@ const styles = StyleSheet.create({
         borderRadius: scaledSize(14),
         alignItems: "center",
         justifyContent: "center",
+        backgroundColor: "rgba(255,255,255,0.08)",
     },
     closeTxt: {
         fontSize: scaleSize(22),
         lineHeight: scaledSize(22),
-        color: theme.textSecondary,
+        color: "rgba(199, 210, 229, 0.85)",
     },
     title: {
         fontFamily: "Outfit_700Bold",
@@ -351,7 +368,7 @@ const styles = StyleSheet.create({
         marginTop: scaledSize(4),
         fontFamily: "Outfit_500Medium",
         fontSize: scaleSize(11.5),
-        color: theme.textSecondary,
+        color: "rgba(202,213,229,0.78)",
     },
     ringWrap: {
         width: "100%",
@@ -375,7 +392,7 @@ const styles = StyleSheet.create({
         marginTop: scaledSize(4),
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(12),
-        color: theme.textSecondary,
+        color: "rgba(198, 210, 229, 0.85)",
     },
     row: {
         width: "100%",
@@ -389,15 +406,20 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: scaledSize(10),
         borderRadius: scaledSize(12),
-        backgroundColor: theme.field,
+        backgroundColor: CHIP_BG,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: scaleSize(1),
-        borderColor: theme.hairline,
+        borderColor: CHIP_BORDER,
     },
     chipActive: {
-        backgroundColor: theme.addBtnBg,
-        borderColor: theme.primary,
+        backgroundColor: CHIP_ACTIVE_BG,
+        borderColor: CHIP_ACTIVE_BORDER,
+        shadowColor: RING_GLOW,
+        shadowOpacity: 0.25,
+        shadowRadius: scaleSize(10),
+        shadowOffset: { width: 0, height: scaleSize(4) },
+        elevation: 3,
     },
     chipText: {
         fontFamily: "Outfit_700Bold",
@@ -405,7 +427,7 @@ const styles = StyleSheet.create({
         color: theme.textPrimary,
     },
     chipTextActive: {
-        color: theme.primary,
+        color: CHIP_ACTIVE_TEXT,
     },
     controls: {
         flexDirection: "row",
@@ -417,35 +439,35 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingVertical: scaledSize(11),
         borderRadius: scaledSize(12),
-        backgroundColor: theme.addBtnBg,
+        backgroundColor: GHOST_BG,
         alignItems: "center",
         justifyContent: "center",
         borderWidth: scaleSize(1),
-        borderColor: theme.primary,
+        borderColor: GHOST_BORDER,
     },
     ghostBtnText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(14),
-        color: theme.primary,
-        letterSpacing: 0.2,
+        fontSize: scaleSize(13.5),
+        color: GHOST_TEXT,
+        letterSpacing: 0.25,
     },
     primaryBtn: {
         flex: 1,
         paddingVertical: scaledSize(11),
         borderRadius: scaledSize(12),
-        backgroundColor: theme.primary,
+        backgroundColor: PRIMARY_BG,
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: theme.primary,
-        shadowOpacity: 0.35,
-        shadowRadius: scaleSize(14),
-        shadowOffset: { width: 0, height: scaleSize(6) },
-        elevation: 3,
+        shadowColor: PRIMARY_SHADOW,
+        shadowOpacity: 0.32,
+        shadowRadius: scaleSize(16),
+        shadowOffset: { width: 0, height: scaleSize(7) },
+        elevation: 4,
     },
     primaryBtnText: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(14),
-        color: "#FFFFFF",
+        color: "#F5FAFF",
         letterSpacing: 0.2,
     },
 });

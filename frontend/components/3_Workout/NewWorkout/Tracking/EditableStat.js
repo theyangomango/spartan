@@ -3,6 +3,7 @@ import { TextInput, StyleSheet, Pressable, Dimensions, Keyboard, Platform } from
 import scaleSize from "../../../../helper/scaleSize";
 import theme from "../../../../theme/mfpDark";
 import KeyboardDismissAccessory, { useKeyboardAccessoryId } from "../../../common/KeyboardDismissAccessory";
+import workoutTypography from "../../shared/workoutTypography";
 
 const { height: screenHeight } = Dimensions.get('window');
 export default function EditableStat({ placeholder = '0', isFinished, value, setValue, onFocus }) {
@@ -64,7 +65,7 @@ export default function EditableStat({ placeholder = '0', isFinished, value, set
                     placeholderTextColor={'#888'}
                     onFocus={() => { setIsSelected(true); try { onFocus?.(); } catch {} }}
                     onBlur={() => setIsSelected(false)}
-                    style={styles.text}
+                    style={[workoutTypography.statValue, styles.text]}
                     value={value === '0' ? '' : value.toString()}
                     onChangeText={handleChangeText}
                     blurOnSubmit={false}
@@ -95,10 +96,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.successBg,
     },
     text: {
-        fontFamily: 'Poppins_700Bold',
-        fontSize: scaleSize(15),
         flex: 1,
         textAlign: 'center',
-        color: theme.textPrimary,
     },
 });

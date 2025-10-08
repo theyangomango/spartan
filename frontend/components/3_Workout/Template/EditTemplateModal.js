@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
     },
     iconButtonLabel: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(16),
+        fontSize: scaleSize(14),
         color: '#FFFFFF',
     },
     saveButton: {
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     },
     saveButtonText: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12),
         color: '#FFFFFF',
     },
     copyButton: {
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     },
     copyButtonText: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(13.5),
+        fontSize: scaleSize(12),
         color: '#E0EEFF',
         marginLeft: scaledSize(8),
     },
@@ -417,7 +417,7 @@ const styles = StyleSheet.create({
     },
     titleDisplayText: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(20),
+        fontSize: scaleSize(17),
         color: theme.textPrimary,
     },
     addExerciseButton: {
@@ -437,7 +437,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     addExerciseText: {
-        fontSize: scaleSize(16),
+        fontSize: scaleSize(13),
         fontFamily: 'Outfit_700Bold',
         color: '#FFFFFF',
         marginRight: scaledSize(4.5)
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     deleteButtonText: {
-        fontSize: scaleSize(16),
+        fontSize: scaleSize(13),
         fontFamily: 'Outfit_700Bold',
         color: '#FFFFFF',
         marginRight: scaledSize(4.5)
@@ -512,7 +512,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(239,68,68,0.36)',
     },
     modalTitle: {
-        fontSize: scaleSize(18.5),
+        fontSize: scaleSize(16),
         fontFamily: 'Outfit_700Bold',
         color: theme.textPrimary,
         textAlign: 'center',
@@ -520,12 +520,12 @@ const styles = StyleSheet.create({
         letterSpacing: 0.15,
     },
     modalBody: {
-        fontSize: scaleSize(13.8),
+        fontSize: scaleSize(11.5),
         fontFamily: 'Outfit_500Medium',
         color: theme.textSecondary,
         textAlign: 'center',
         marginBottom: scaledSize(22),
-        lineHeight: scaledSize(20),
+        lineHeight: scaleSize(18),
     },
     modalAction: {
         width: '100%',
@@ -551,13 +551,13 @@ const styles = StyleSheet.create({
     },
     modalActionText: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12),
         color: '#F8FAFC',
         letterSpacing: 0.2,
     },
     modalActionSecondaryText: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(13.5),
+        fontSize: scaleSize(11.5),
         color: theme.textPrimary,
         letterSpacing: 0.25,
     },

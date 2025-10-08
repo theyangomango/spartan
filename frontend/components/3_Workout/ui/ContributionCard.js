@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(11),
     },
     pfp: {
-        width: scaleSize(36),
+        width: scaleSize(32),
         aspectRatio: 1,
         borderRadius: scaleSize(100),
         backgroundColor: "#E2E8F0",

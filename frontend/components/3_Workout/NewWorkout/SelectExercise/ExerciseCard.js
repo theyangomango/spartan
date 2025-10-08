@@ -92,7 +92,7 @@ const styles = StyleSheet.create({
     selected: { backgroundColor: COLORS.selectedBg },
     exerciseName: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12.5),
         color: COLORS.text,
         marginVertical: scaledSize(3),
         flexWrap: 'wrap',
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
     },
     lastDone: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(12.5),
+        fontSize: scaleSize(10.5),
         color: COLORS.subtext,
     },
     rightContainer: {
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     },
     timesCompleted: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(14.5),
+        fontSize: scaleSize(12.5),
         marginRight: scaledSize(8),
         color: COLORS.accent,
     },

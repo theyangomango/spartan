@@ -25,7 +25,7 @@ const TimerDisplay = ({ timerRef }) => {
 const styles = StyleSheet.create({
     timer_text: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(18),
+        fontSize: scaleSize(16),
         color: theme.textPrimary, // higher contrast for timer
         textAlign: 'center',
     }

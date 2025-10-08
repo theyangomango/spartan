@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
+import workoutTypography from "../3_Workout/shared/workoutTypography";
 
 const formatNumber = (value, fallback = "0") => {
   const num = Number(value);
@@ -66,15 +67,15 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0 }) => {
     <View style={styles.mainContainer}>
       <View style={styles.header}>
         <View style={styles.nameContainer}>
-          <Text style={styles.exerciseName} numberOfLines={1}>{name}</Text>
+          <Text style={workoutTypography.exerciseName} numberOfLines={1}>{name}</Text>
         </View>
       </View>
 
       <View style={styles.labelsRow}>
-        <View style={styles.setColumn}><Text style={styles.labelText}>Set</Text></View>
-        <View style={styles.previousColumn}><Text style={styles.labelText}>Previous</Text></View>
-        <View style={styles.weightColumn}><Text style={styles.labelText}>lbs</Text></View>
-        <View style={styles.repsColumn}><Text style={styles.labelText}>Reps</Text></View>
+        <View style={styles.setColumn}><Text style={workoutTypography.columnLabel}>Set</Text></View>
+        <View style={styles.previousColumn}><Text style={workoutTypography.columnLabel}>Previous</Text></View>
+        <View style={styles.weightColumn}><Text style={workoutTypography.columnLabel}>lbs</Text></View>
+        <View style={styles.repsColumn}><Text style={workoutTypography.columnLabel}>Reps</Text></View>
         <View style={styles.doneColumn} />
       </View>
 
@@ -85,8 +86,8 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0 }) => {
           const type = set?.type || null;
           const letter = type ? typeLetter(type) : String(idx + 1);
           const pillStyle = type ? [styles.setPill, typePillBg(type)] : styles.setPill;
-          const letterStyle = type ? [styles.setNumberText, styles.setLetterText, typePillText(type)] : styles.setNumberText;
-          const previousStyle = done ? [styles.previousValueText, styles.previousValueTextDone] : styles.previousValueText;
+          const letterStyle = type ? [workoutTypography.setNumber, workoutTypography.setLetter, typePillText(type)] : workoutTypography.setNumber;
+          const previousStyle = done ? [workoutTypography.previousStat, styles.previousValueTextDone] : workoutTypography.previousStat;
           return (
             <View style={[styles.statRow, done && styles.doneRow]} key={`${name}-set-${idx}`}>
               <View style={pillStyle}>
@@ -100,13 +101,13 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0 }) => {
               </View>
 
               <View style={styles.weightValueContainer}>
-                <Text style={done ? [styles.statValueText, styles.statValueTextDone] : styles.statValueText} numberOfLines={1}>
+                <Text style={done ? [workoutTypography.statValue, styles.statValueText, styles.statValueTextDone] : [workoutTypography.statValue, styles.statValueText]} numberOfLines={1}>
                   {formatWeight(set)}
                 </Text>
               </View>
 
               <View style={styles.repsValueContainer}>
-                <Text style={done ? [styles.statValueText, styles.statValueTextDone] : styles.statValueText} numberOfLines={1}>
+                <Text style={done ? [workoutTypography.statValue, styles.statValueText, styles.statValueTextDone] : [workoutTypography.statValue, styles.statValueText]} numberOfLines={1}>
                   {formatReps(set)}
                 </Text>
               </View>
@@ -125,7 +126,7 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0 }) => {
         })
       ) : (
         <View style={styles.emptyRow}>
-          <Text style={styles.emptyRowText}>No sets logged for this exercise.</Text>
+          <Text style={workoutTypography.emptyRow}>No sets logged for this exercise.</Text>
         </View>
       )}
     </View>
@@ -153,12 +154,6 @@ const styles = StyleSheet.create({
     marginRight: scaleSize(10),
     flex: 1,
   },
-  exerciseName: {
-    fontFamily: "Mulish_800ExtraBold",
-    color: theme.primary,
-    fontSize: scaleSize(15),
-    flexShrink: 1,
-  },
   labelsRow: {
     flexDirection: "row",
     paddingBottom: scaleSize(5),
@@ -184,11 +179,6 @@ const styles = StyleSheet.create({
   doneColumn: {
     width: "10.5%",
   },
-  labelText: {
-    fontFamily: "Mulish_800ExtraBold",
-    fontSize: scaleSize(15),
-    color: theme.textPrimary,
-  },
   statRow: {
     flexDirection: "row",
     paddingVertical: scaleSize(9),
@@ -210,24 +200,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  setNumberText: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: scaleSize(14),
-    color: theme.textPrimary,
-  },
-  setLetterText: {
-    fontFamily: "Outfit_700Bold",
-    fontSize: scaleSize(15),
-  },
   previousValueContainer: {
     width: "38%",
     alignItems: "center",
     justifyContent: "center",
-  },
-  previousValueText: {
-    fontFamily: "Poppins_700Bold",
-    fontSize: scaleSize(15),
-    color: theme.textPrimary,
   },
   previousValueTextDone: {
     color: "#afafaf",
@@ -242,21 +218,13 @@ const styles = StyleSheet.create({
   },
   statValueText: {
     fontFamily: "Outfit_700Bold",
-    fontSize: scaleSize(15.5),
-    color: theme.textPrimary,
   },
   statValueTextDone: {
     color: "#afafaf",
-    fontSize: scaleSize(15.5),
   },
   emptyRow: {
     paddingVertical: scaleSize(12),
     alignItems: "center",
-  },
-  emptyRowText: {
-    fontFamily: "Outfit_400Regular",
-    fontSize: scaleSize(13),
-    color: theme.textSecondary,
   },
   doneContainer: {
     width: "10.5%",

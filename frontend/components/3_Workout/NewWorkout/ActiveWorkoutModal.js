@@ -1190,20 +1190,20 @@ const styles = StyleSheet.create({
     },
     collapsedHudLabel: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12),
         color: theme.textPrimary,
         flexShrink: 1,
         textAlign: 'center',
     },
     collapsedHudSeparator: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12),
         color: theme.textPrimary,
         marginHorizontal: scaleSize(12),
     },
     collapsedHudTimer: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12),
         color: theme.textPrimary,
     },
     // Allow the BottomSheet background to show through
@@ -1214,13 +1214,13 @@ const styles = StyleSheet.create({
     },
     titleDisplayText: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(20),
+        fontSize: scaleSize(17),
         color: theme.textPrimary,
     },
     titleDisplaySubText: {
         marginTop: scaleSize(2),
         fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(12.5),
+        fontSize: scaleSize(11),
         color: theme.textSecondary,
     },
     titleDisplayInput: {
@@ -1252,7 +1252,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     add_exercise_text: {
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(13),
         fontFamily: "Outfit_700Bold",
         color: "#FFFFFF",
         marginRight: scaleSize(4.5),
@@ -1274,7 +1274,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     finish_btn_text: {
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(13),
         fontFamily: "Outfit_700Bold",
         color: "#FFFFFF",
         marginRight: scaleSize(4.5),
@@ -1296,7 +1296,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: scaleSize(3) },
         elevation: 2,
     },
-    cancel_btn_text: { fontSize: scaleSize(15), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(4.5) },
+    cancel_btn_text: { fontSize: scaleSize(13), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(4.5) },
 
 });
 

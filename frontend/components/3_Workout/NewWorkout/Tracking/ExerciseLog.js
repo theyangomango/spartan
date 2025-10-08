@@ -9,6 +9,7 @@ import theme from "../../../../theme/mfpDark";
 import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
 
 import scaleSize from "../../../../helper/scaleSize";
+import workoutTypography from "../../shared/workoutTypography";
 const ENABLE_LAYOUT_ANIM = false;
 const SYNC_DEBOUNCE_MS = 80;
 const RAF_FALLBACK_MS = 24;
@@ -304,7 +305,7 @@ function ExerciseLog({
                     onPress={(!showOptionsTriggerIcon && !readOnly) ? togglePanel : undefined}
                     disabled={readOnly || showOptionsTriggerIcon}
                 >
-                    <Text style={styles.exercise_text} numberOfLines={1}>{name}</Text>
+                    <Text style={workoutTypography.exerciseName} numberOfLines={1}>{name}</Text>
                 </Pressable>
                 {showOptionsTriggerIcon && !readOnly && (
                     <Pressable
@@ -319,10 +320,10 @@ function ExerciseLog({
             </Animated.View>
 
             <Animated.View style={[styles.labels, { opacity: fadeAnim }]}>
-                <View style={styles.set_col}><Text style={styles.label_text}>Set</Text></View>
-                <View style={styles.prev_col}><Text style={styles.label_text}>Previous</Text></View>
-                <View style={styles.w_col}><Text style={styles.label_text}>lbs</Text></View>
-                <View style={styles.r_col}><Text style={styles.label_text}>Reps</Text></View>
+                <View style={styles.set_col}><Text style={workoutTypography.columnLabel}>Set</Text></View>
+                <View style={styles.prev_col}><Text style={workoutTypography.columnLabel}>Previous</Text></View>
+                <View style={styles.w_col}><Text style={workoutTypography.columnLabel}>lbs</Text></View>
+                <View style={styles.r_col}><Text style={workoutTypography.columnLabel}>Reps</Text></View>
             </Animated.View>
 
             <Animated.View style={{ opacity: fadeAnim }}>
@@ -350,7 +351,7 @@ function ExerciseLog({
             {!readOnly && (
                 <Animated.View style={[styles.add_set_btn_ctnr, { opacity: fadeAnim }]}>
                     <RNBounceable activeOpacity={0.5} onPress={addSet} style={styles.add_set_btn}>
-                        <Text style={styles.add_set_text}>Add Set</Text>
+                        <Text style={[workoutTypography.addSet, styles.add_set_text]}>Add Set</Text>
                     </RNBounceable>
                 </Animated.View>
             )}
@@ -394,16 +395,11 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
     },
-    exercise_text: { fontFamily: "Mulish_800ExtraBold", color: theme.primary, fontSize: scaleSize(15), flexShrink: 1 },
-    muscle_ctnr: { borderRadius: scaleSize(15), height: scaleSize(23.5), paddingHorizontal: scaleSize(12), alignItems: "center", justifyContent: "center", marginLeft: scaleSize(5) },
-    muscle_text: { fontFamily: "Poppins_700Bold", fontSize: scaleSize(12), color: "#fff" },
     labels: { flexDirection: "row", paddingBottom: scaleSize(5), marginHorizontal: scaleSize(2.5) },
     set_col: { marginLeft: "5%", width: "8%", alignItems: "center" },
     prev_col: { width: "38%", alignItems: "center" },
     w_col: { width: "18%", alignItems: "center" },
     r_col: { width: "18%", alignItems: "center" },
-    // Increase contrast for readability in dark mode
-    label_text: { fontFamily: "Mulish_800ExtraBold", fontSize: scaleSize(15), color: theme.textPrimary },
     add_set_btn_ctnr: { paddingHorizontal: scaleSize(20) },
     add_set_btn: {
         width: "100%",
@@ -418,5 +414,5 @@ const styles = StyleSheet.create({
         alignItems: "center",
         flexDirection: "row",
     },
-    add_set_text: { fontFamily: "Outfit_600SemiBold", color: theme.textPrimary, fontSize: scaleSize(15), marginLeft: scaleSize(1), marginRight: scaleSize(5) },
+    add_set_text: { marginLeft: scaleSize(1), marginRight: scaleSize(5) },
 });

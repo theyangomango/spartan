@@ -8,6 +8,7 @@ import TemplateEditableStat from './TemplateEditableStat';
 import theme from "../../../theme/mfpDark";
 import SetTypePanel from "../NewWorkout/Tracking/SetTypePanel";
 import { withStrongPress } from "../../../utils/haptics";
+import workoutTypography from "../shared/workoutTypography";
 
 export default function TemplateSetRow({ set, updateSet, index, handleDelete, readOnly = false }) {
     const weight = Number(set?.weight ?? 0);
@@ -45,13 +46,13 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete, re
                         disabled
                         style={[styles.set_ctnr, set?.type && [styles.set_ctnr_typed, typePillBg(set?.type)]]}
                     >
-                        <Text style={[styles.set_number_text, set?.type && [styles.set_letter_text, typePillText(set?.type)]]}>
+                        <Text style={[workoutTypography.setNumber, set?.type && [workoutTypography.setLetter, typePillText(set?.type)]]}>
                             {set?.type ? typeLetter(set?.type) : (index + 1)}
                         </Text>
                     </Pressable>
 
                     <View style={styles.previous_ctnr}>
-                        <Text style={styles.previous_stat_text}>—</Text>
+                        <Text style={workoutTypography.previousStat}>—</Text>
                     </View>
 
                     <View style={styles.weight_unit_ctnr}>
@@ -92,13 +93,13 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete, re
                             onPress={withStrongPress(openTypePanel)}
                             style={[styles.set_ctnr, set?.type && [styles.set_ctnr_typed, typePillBg(set?.type)]]}
                         >
-                            <Text style={[styles.set_number_text, set?.type && [styles.set_letter_text, typePillText(set?.type)]]}>
+                            <Text style={[workoutTypography.setNumber, set?.type && [workoutTypography.setLetter, typePillText(set?.type)]]}>
                                 {set?.type ? typeLetter(set?.type) : (index + 1)}
                             </Text>
                         </Pressable>
 
                         <View style={styles.previous_ctnr}>
-                            <Text style={styles.previous_stat_text}>—</Text>
+                            <Text style={workoutTypography.previousStat}>—</Text>
                         </View>
 
                         <View style={styles.weight_unit_ctnr}>
@@ -173,12 +174,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     set_ctnr_typed: { backgroundColor: theme.field },
-    set_letter_text: { fontFamily: 'Outfit_700Bold', fontSize: scaleSize(14.8) },
     previous_ctnr: { width: '38%', alignItems: 'center', justifyContent: 'center' },
     weight_unit_ctnr: { width: '18%', alignItems: 'center' },
     reps_ctnr: { width: '18%', alignItems: 'center' },
-    set_number_text: { fontFamily: 'Poppins_700Bold', fontSize: scaleSize(14), color: theme.textPrimary },
-    previous_stat_text: { fontFamily: 'Poppins_700Bold', fontSize: scaleSize(15), color: theme.textPrimary },
     done_ctnr: { width: '10.5%', height: scaleSize(22), alignItems: 'center' },
     checkmark_ctnr: {
         paddingHorizontal: scaleSize(10),

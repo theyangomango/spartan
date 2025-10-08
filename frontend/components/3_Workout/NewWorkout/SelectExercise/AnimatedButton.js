@@ -44,7 +44,7 @@ const styles = StyleSheet.create({
     addButtonText: {
         color: '#fff',
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12),
     },
 });
 

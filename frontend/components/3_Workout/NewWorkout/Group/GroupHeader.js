@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     },
     iconWrapper: { flexDirection: "row", alignItems: "center" },
     countdownText: {
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(12),
         color: '#FFFFFF',
         fontFamily: "Outfit_700Bold",
         marginLeft: scaledSize(10),
@@ -237,9 +237,9 @@ const styles = StyleSheet.create({
     pfpFriend: { opacity: 0.85 },
 
     pfpWrap: {
-        width: scaledSize(28),
-        height: scaledSize(28),
-        borderRadius: scaledSize(20),
+        width: scaledSize(23),
+        aspectRatio: 1,
+        borderRadius: scaledSize(16),
         backgroundColor: theme.surface,
         justifyContent: "center",
         alignItems: "center",
@@ -252,13 +252,13 @@ const styles = StyleSheet.create({
         borderColor: theme.hairline,
         marginLeft: scaledSize(8),
     },
-    pfpLeftWrap: { width: scaledSize(32), height: scaledSize(32) },
+    pfpLeftWrap: { width: scaledSize(28), height: scaledSize(28) },
     pfpFriendRing: { borderColor: theme.primary },
     pfp: { width: "100%", height: "100%", borderRadius: scaledSize(20) },
 
     inviteText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(12.5),
         color: theme.textPrimary,
         includeFontPadding: false,
     },
@@ -278,7 +278,7 @@ const styles = StyleSheet.create({
     },
     finish_btn_text: {
         fontFamily: "Mulish_800ExtraBold",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12),
         color: "#ffffff",
     },
 
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     },
     cheer_btn_text: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(13.5),
+        fontSize: scaleSize(11.5),
         color: "#ffffff",
         includeFontPadding: false,
     },
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
     },
     copy_btn_text: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(13.5),
+        fontSize: scaleSize(11.5),
         color: "#ffffff",
         includeFontPadding: false,
     },
