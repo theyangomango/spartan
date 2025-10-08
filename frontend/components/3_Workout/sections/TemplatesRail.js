@@ -1,6 +1,7 @@
 import React, { useRef, memo, useCallback, useMemo } from "react";
 import { View, Text, StyleSheet, Pressable, Animated, Platform, useWindowDimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
 import {
     DOTS_H,
     TPL_CARD_H,
@@ -77,15 +78,22 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
             <View style={[styles.page, { width: pageWidth }]}>
                 <Pressable
                     onPress={handlePress}
-                    android_ripple={{ color: "rgba(0,0,0,0.08)" }}
+                    android_ripple={{ color: "rgba(99, 192, 255, 0.18)" }}
                     style={({ pressed }) => [styles.railTouchable, pressed && styles.railPressed]}
                     accessibilityRole="button"
                 >
                     {isNone ? (
                         <View style={styles.emptyShadow}>
                             <View style={[styles.cardBase, styles.cardEmpty]}>
+                                <LinearGradient
+                                    colors={EMPTY_CARD_GRADIENT}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.cardBackground}
+                                />
+                                <View style={styles.emptySheen} />
                                 <View style={styles.emptyIconWrap}>
-                                    <Ionicons name="add" size={18} color={'#fff'} />
+                                    <Ionicons name="add" size={18} color="#F4F8FF" />
                                 </View>
                                 <View style={styles.emptyTextColumn}>
                                     <Text numberOfLines={1} style={styles.emptyTitle}>{item.name}</Text>
@@ -99,6 +107,13 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                     ) : (
                         <View style={styles.selectedShadow}>
                             <View style={[styles.cardBase, styles.cardTemplate]}>
+                                <LinearGradient
+                                    colors={TEMPLATE_CARD_GRADIENT}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.cardBackground}
+                                />
+                                <View style={styles.templateSheen} />
                                 <View style={styles.templateIconWrap}>
                                     <Weight size={scaleSize(21)} color={TEMPLATE_ICON_COLOR} variant="Broken" />
                                 </View>
@@ -182,22 +197,25 @@ const eq = (a, b) => {
 
 export default memo(TemplatesRail, eq);
 
-const EMPTY_CARD_BG = "rgba(24, 40, 68, 0.92)";
-const EMPTY_CARD_BORDER = "rgba(124, 194, 255, 0.52)";
-const TEMPLATE_CARD_BG = "rgba(18, 34, 60, 0.94)";
-const TEMPLATE_CARD_BORDER = "rgba(134, 204, 255, 0.46)";
-const TEMPLATE_ICON_BG = "rgba(86, 160, 255, 0.2)";
-const TEMPLATE_ICON_BORDER = "rgba(138, 206, 255, 0.52)";
-const TEMPLATE_ICON_COLOR = "#D4E8FF";
-const TEMPLATE_SUBTITLE_COLOR = "#C5E1FF";
-const META_BADGE_BG = "rgba(84, 146, 226, 0.24)";
-const META_BADGE_BORDER = "rgba(140, 210, 255, 0.48)";
-const META_BADGE_TEXT = "#E6F2FF";
+const TEMPLATE_CARD_GRADIENT = ["#203662", "#101C34"];
+const TEMPLATE_CARD_BORDER = "rgba(126, 208, 255, 0.45)";
+const TEMPLATE_CARD_SHEEN = "rgba(102, 188, 255, 0.16)";
+const EMPTY_CARD_GRADIENT = ["rgba(28, 48, 78, 0.96)", "rgba(14, 26, 46, 0.96)"];
+const EMPTY_CARD_BORDER = "rgba(130, 204, 255, 0.46)";
+const EMPTY_CARD_SHEEN = "rgba(96, 174, 255, 0.14)";
+const TEMPLATE_ICON_BG = "rgba(82, 148, 232, 0.32)";
+const TEMPLATE_ICON_BORDER = "rgba(150, 212, 255, 0.5)";
+const TEMPLATE_ICON_COLOR = "#F4F8FF";
+const TEMPLATE_SUBTITLE_COLOR = "#D2E6FF";
+const META_BADGE_BG = "rgba(84, 146, 226, 0.22)";
+const META_BADGE_BORDER = "rgba(142, 208, 255, 0.42)";
+const META_BADGE_TEXT = "#E7F3FF";
 const FONT_META_BADGE = ts(10);
 const CARD_RADIUS = scaleSize(28);
-const CARD_MIN_HEIGHT = scaleSize(78);
-const CARD_SHADOW_COLOR = "rgba(10, 26, 52, 0.65)";
-const EMPTY_ICON_BG = "rgba(60, 100, 160, 0.52)";
+const CARD_MIN_HEIGHT = scaleSize(86);
+const CARD_SHADOW_COLOR = "rgba(8, 22, 44, 0.7)";
+const EMPTY_ICON_BG = "rgba(70, 120, 188, 0.32)";
+const DOT_ACTIVE = "#63C0FF";
 const CARD_SHADOW_OFFSET = scaleSize(10);
 const CARD_SHADOW_RADIUS = scaleSize(20);
 
@@ -211,7 +229,10 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
         justifyContent: "center",
     },
-    railPressed: { transform: [{ scale: 0.98 }] },
+    railPressed: {
+        transform: [{ scale: 0.98 }],
+        opacity: 0.92,
+    },
     emptyShadow: {
         flex: 1,
         borderRadius: scaleSize(22),
@@ -219,12 +240,12 @@ const styles = StyleSheet.create({
         width: "100%",
         ...Platform.select({
             ios: {
-                shadowColor: "#000",
-                shadowOpacity: 0.14,
-                shadowRadius: scaleSize(8),
-                shadowOffset: { width: 0, height: scaleSize(4) },
+                shadowColor: CARD_SHADOW_COLOR,
+                shadowOpacity: 0.18,
+                shadowRadius: scaleSize(9),
+                shadowOffset: { width: 0, height: scaleSize(5) },
             },
-            android: { elevation: 2 },
+            android: { elevation: 3 },
         }),
     },
     selectedShadow: {
@@ -250,16 +271,33 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(18),
         borderRadius: scaleSize(22),
         position: "relative",
+        overflow: "hidden",
     },
     cardTemplate: {
         flex: 1,
         minHeight: CARD_MIN_HEIGHT,
-        backgroundColor: TEMPLATE_CARD_BG,
-        borderWidth: scaleSize(1.4),
+        borderWidth: scaleSize(1.2),
         borderColor: TEMPLATE_CARD_BORDER,
         borderRadius: scaleSize(22),
         justifyContent: "flex-start",
         gap: scaleSize(18),
+    },
+    cardBackground: {
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: scaleSize(22),
+        pointerEvents: "none",
+    },
+    templateSheen: {
+        position: "absolute",
+        top: -scaleSize(60),
+        right: -scaleSize(14),
+        width: scaleSize(170),
+        height: scaleSize(170),
+        borderRadius: scaleSize(90),
+        backgroundColor: TEMPLATE_CARD_SHEEN,
+        opacity: 0.75,
+        transform: [{ rotate: "25deg" }],
+        pointerEvents: "none",
     },
     templateIconWrap: {
         width: scaleSize(32),
@@ -281,7 +319,7 @@ const styles = StyleSheet.create({
     templateTitle: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(14),
-        color: "#EEF5FF",
+        color: "#F5F8FF",
         includeFontPadding: false,
     },
     templateSubWrap: {
@@ -324,12 +362,23 @@ const styles = StyleSheet.create({
         textTransform: "uppercase",
     },
     cardEmpty: {
-        backgroundColor: EMPTY_CARD_BG,
         borderStyle: "dashed",
         borderColor: EMPTY_CARD_BORDER,
         borderWidth: scaleSize(1.5),
         justifyContent: "flex-start",
         gap: scaleSize(18),
+        overflow: "hidden",
+    },
+    emptySheen: {
+        position: "absolute",
+        bottom: -scaleSize(54),
+        left: -scaleSize(26),
+        width: scaleSize(150),
+        height: scaleSize(150),
+        borderRadius: scaleSize(75),
+        backgroundColor: EMPTY_CARD_SHEEN,
+        opacity: 0.75,
+        pointerEvents: "none",
     },
     emptyIconWrap: {
         width: scaleSize(32),
@@ -346,7 +395,7 @@ const styles = StyleSheet.create({
     emptyTitle: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(14),
-        color: "#E9F1FF",
+        color: "#F5F8FF",
         includeFontPadding: false,
     },
     emptySubWrap: {
@@ -357,7 +406,7 @@ const styles = StyleSheet.create({
     emptySubtitle: {
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(12.5),
-        color: "#B4C7E4",
+        color: "#D3E6FF",
         includeFontPadding: false,
     },
     dotsRow: {
@@ -372,5 +421,9 @@ const styles = StyleSheet.create({
         gap: scaleSize(6),
         paddingHorizontal: scaleSize(16),
     },
-    dash: { height: scaleSize(4), borderRadius: scaleSize(999), backgroundColor: BLUE.ACCENT },
+    dash: {
+        height: scaleSize(4),
+        borderRadius: scaleSize(999),
+        backgroundColor: DOT_ACTIVE,
+    },
 });

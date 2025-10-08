@@ -17,6 +17,7 @@ import {
     View,
     TouchableOpacity,
     Alert,
+    Text,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
@@ -629,6 +630,22 @@ export default function Feed({ navigation, route }) {
         />
     ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef]);
 
+    const renderEmptyList = () => (
+        <View style={styles.emptyState}>
+            <View style={styles.emptyIcon}>
+                <Feather
+                    name="users"
+                    size={scaleSize(28)}
+                    color={theme.primary}
+                />
+            </View>
+            <Text style={styles.emptyTitle}>Your feed is quiet</Text>
+            <Text style={styles.emptySubtitle}>
+                Follow friends or share your progress to see posts here.
+            </Text>
+        </View>
+    );
+
     const handleCreatePost = useCallback(() => {
         try {
             navigation?.navigate('PostOptions', { images: [] });
@@ -653,6 +670,7 @@ export default function Feed({ navigation, route }) {
                 keyExtractor={listKeyExtractor}
                 renderItem={renderPost}
                 style={styles.list}
+                ListEmptyComponent={renderEmptyList}
                 refreshControl={(
                     <RefreshControl
                         refreshing={refreshing}
@@ -662,9 +680,10 @@ export default function Feed({ navigation, route }) {
                         progressBackgroundColor={theme.bg}
                     />
                 )}
-                contentContainerStyle={{
-                    paddingBottom: LIST_BOTTOM_INSET + Math.max(0, insets.bottom || 0),
-                }}
+                contentContainerStyle={[
+                    styles.listContent,
+                    { paddingBottom: LIST_BOTTOM_INSET + Math.max(0, insets.bottom || 0) },
+                ]}
                 showsVerticalScrollIndicator={false}
             />
 
@@ -735,6 +754,9 @@ const styles = StyleSheet.create({
     list: {
         flex: 1,
     },
+    listContent: {
+        flexGrow: 1,
+    },
     createPostButton: {
         position: "absolute",
         right: scaleSize(24),
@@ -750,5 +772,34 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 6,
         shadowOffset: { width: 0, height: 3 },
+    },
+    emptyState: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: scaleSize(28),
+        paddingTop: scaleSize(36),
+    },
+    emptyIcon: {
+        width: scaleSize(60),
+        height: scaleSize(60),
+        borderRadius: scaleSize(30),
+        backgroundColor: theme.primaryDeep,
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: scaleSize(18),
+    },
+    emptyTitle: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(16),
+        color: theme.textPrimary,
+        marginBottom: scaleSize(6),
+    },
+    emptySubtitle: {
+        fontFamily: "Outfit_400Regular",
+        fontSize: scaleSize(13),
+        color: theme.textSecondary,
+        textAlign: "center",
+        lineHeight: scaleSize(18),
     },
 });
