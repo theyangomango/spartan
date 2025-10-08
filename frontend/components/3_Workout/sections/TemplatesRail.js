@@ -182,21 +182,22 @@ const eq = (a, b) => {
 
 export default memo(TemplatesRail, eq);
 
-const EMPTY_CARD_BG = "rgba(38, 56, 88, 0.88)";
-const EMPTY_CARD_BORDER = "rgba(126, 186, 246, 0.58)";
-const TEMPLATE_CARD_BG = "rgba(24, 42, 70, 0.94)";
-const TEMPLATE_CARD_BORDER = "rgba(126, 186, 246, 0.62)";
-const TEMPLATE_ICON_BG = "rgba(128, 198, 255, 0.24)";
-const TEMPLATE_ICON_BORDER = "rgba(148, 212, 255, 0.55)";
-const TEMPLATE_ICON_COLOR = "#C6E2FF";
-const TEMPLATE_SUBTITLE_COLOR = "#C7DCF8";
-const META_BADGE_BG = "rgba(136, 205, 255, 0.22)";
-const META_BADGE_BORDER = "rgba(160, 218, 255, 0.45)";
-const META_BADGE_TEXT = "#E0EEFF";
+const EMPTY_CARD_BG = "rgba(24, 40, 68, 0.92)";
+const EMPTY_CARD_BORDER = "rgba(124, 194, 255, 0.52)";
+const TEMPLATE_CARD_BG = "rgba(18, 34, 60, 0.94)";
+const TEMPLATE_CARD_BORDER = "rgba(134, 204, 255, 0.46)";
+const TEMPLATE_ICON_BG = "rgba(86, 160, 255, 0.2)";
+const TEMPLATE_ICON_BORDER = "rgba(138, 206, 255, 0.52)";
+const TEMPLATE_ICON_COLOR = "#D4E8FF";
+const TEMPLATE_SUBTITLE_COLOR = "#C5E1FF";
+const META_BADGE_BG = "rgba(84, 146, 226, 0.24)";
+const META_BADGE_BORDER = "rgba(140, 210, 255, 0.48)";
+const META_BADGE_TEXT = "#E6F2FF";
 const FONT_META_BADGE = ts(10);
 const CARD_RADIUS = scaleSize(28);
 const CARD_MIN_HEIGHT = scaleSize(78);
-const CARD_SHADOW_COLOR = "rgba(11, 32, 58, 0.55)";
+const CARD_SHADOW_COLOR = "rgba(10, 26, 52, 0.65)";
+const EMPTY_ICON_BG = "rgba(60, 100, 160, 0.52)";
 const CARD_SHADOW_OFFSET = scaleSize(10);
 const CARD_SHADOW_RADIUS = scaleSize(20);
 
@@ -336,7 +337,7 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(22),
         borderWidth: scaleSize(1.3),
         borderColor: EMPTY_CARD_BORDER,
-        backgroundColor: "rgba(46, 74, 120, 0.72)",
+        backgroundColor: EMPTY_ICON_BG,
         alignItems: "center",
         justifyContent: "center",
         marginLeft: scaleSize(10),

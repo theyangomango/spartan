@@ -14,11 +14,11 @@ const CARD_RADIUS = scaleSize(30);
 const MIN_WEEKLY_GOAL = 1;
 const MAX_WEEKLY_GOAL = 14;
 
-const CARD_GRADIENT = ["#26324B", "#1A2438"];
-const CARD_BORDER = "rgba(110, 184, 255, 0.38)";
-const CARD_SHEEN = "rgba(148, 208, 255, 0.18)";
-const PROGRESS_TRACK = "rgba(82, 126, 188, 0.46)";
-const PROGRESS_FILL = "#49AFFF";
+const CARD_GRADIENT = ["#1F2F54", "#101A30"];
+const CARD_BORDER = "rgba(126, 196, 255, 0.54)";
+const CARD_SHEEN = "rgba(92, 174, 255, 0.22)";
+const PROGRESS_TRACK = "rgba(74, 128, 211, 0.3)";
+const PROGRESS_FILL = "#58B8FF";
 const GOAL_MODAL_CARD_BG = theme.surface;
 const GOAL_MODAL_BORDER = "rgba(255, 255, 255, 0.08)";
 const GOAL_MODAL_ACCENT = theme.primary;
@@ -286,7 +286,7 @@ function HubRowCmp({
                 <Pressable
                     style={styles.pressable}
                     hitSlop={scaleSize(8)}
-                    android_ripple={{ color: "rgba(82, 150, 255, 0.18)", borderless: false }}
+                    android_ripple={{ color: "rgba(92, 174, 255, 0.2)", borderless: false }}
                     accessibilityRole="button"
                     accessibilityState={{ disabled: !interactive }}
                     onPress={handlePress}
@@ -481,7 +481,7 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
     },
     statEditPressablePressed: {
-        backgroundColor: "rgba(73, 175, 255, 0.16)",
+        backgroundColor: "rgba(88, 180, 255, 0.18)",
     },
     statLabel: {
         color: theme.textSecondary,
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
         backgroundColor: PROGRESS_FILL,
     },
     goalModalPrimaryButtonPressed: {
-        backgroundColor: "#64BEFF",
+        backgroundColor: "#6CC6FF",
     },
     goalModalSecondaryText: {
         color: theme.textPrimary,
