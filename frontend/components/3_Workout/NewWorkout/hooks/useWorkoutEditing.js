@@ -1,5 +1,6 @@
 // hooks/useWorkoutEditing.js
 import { useCallback, useEffect, useRef, useState } from "react";
+import useWorkoutStore from "../../../../state/workoutStore";
 
 /* ------------------------------ utils ------------------------------ */
 const genId = () => `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
@@ -18,6 +19,17 @@ const sameLength = (a = [], b = []) => a.length === b.length;
 const refEqualArray = (a = [], b = []) =>
     sameLength(a, b) && a.every((x, i) => x === b[i]);
 
+const setsEqualByValue = (a, b) => {
+    if (!a || !b) return false;
+    const idA = a.id ?? null;
+    const idB = b.id ?? null;
+    if (idA !== idB) return false;
+    if (Number(a.weight) !== Number(b.weight)) return false;
+    if (Number(a.reps) !== Number(b.reps)) return false;
+    if (!!a.isDone !== !!b.isDone) return false;
+    return (a.type ?? null) === (b.type ?? null);
+};
+
 /* ------------------------------ hook ------------------------------ */
 export default function useWorkoutEditing({ workout, updateWorkout, viewingSelf }) {
     // latest refs so callbacks stay stable
@@ -32,68 +44,21 @@ export default function useWorkoutEditing({ workout, updateWorkout, viewingSelf 
     // UI helper for replace flow
     const [replaceIndex, setReplaceIndex] = useState(null);
 
-    /* ----------- micro-batched commit (reduces re-renders) ----------- */
-    const pendingRef = useRef(null);  // last computed "next workout"
-    const flushHandleRef = useRef(null);
-    const flushUsingRafRef = useRef(false);
-
-    const clearScheduledFlush = useCallback(() => {
-        if (!flushHandleRef.current) return;
-        if (flushUsingRafRef.current && typeof cancelAnimationFrame === "function") {
-            cancelAnimationFrame(flushHandleRef.current);
-        } else {
-            clearTimeout(flushHandleRef.current);
-        }
-        flushHandleRef.current = null;
-        flushUsingRafRef.current = false;
-    }, []);
-
-    const flushPending = useCallback(() => {
-        const next = pendingRef.current;
-        pendingRef.current = null;
-        if (next) updateWorkoutRef.current(next);
-    }, []);
-
-    const scheduleFlush = useCallback(() => {
-        if (flushHandleRef.current) return;
-
-        const raf = (typeof requestAnimationFrame === "function")
-            ? requestAnimationFrame
-            : (typeof global !== "undefined" && typeof global.requestAnimationFrame === "function"
-                ? global.requestAnimationFrame
-                : null);
-
-        if (raf) {
-            flushUsingRafRef.current = true;
-            flushHandleRef.current = raf(() => {
-                flushHandleRef.current = null;
-                flushUsingRafRef.current = false;
-                flushPending();
-            });
-            return;
-        }
-
-        flushUsingRafRef.current = false;
-        flushHandleRef.current = setTimeout(() => {
-            flushHandleRef.current = null;
-            flushPending();
-        }, 32);
-    }, [flushPending]);
-
-    /** Queue an update in a short micro-batch window. If producer returns the *same* object, skip. */
+    /** Apply immediately so backend never misses an edit. */
     const commit = useCallback((producer) => {
         if (!viewingSelfRef.current) return; // block in read-only
         const current = workoutRef.current;
         const next = producer(current);
         if (!next || next === current) return; // nothing changed
-        pendingRef.current = next; // only the latest wins
-        scheduleFlush();
-    }, [scheduleFlush]);
-
-    // cancel pending timer on unmount
-    useEffect(() => () => {
-        clearScheduledFlush();
-    }, [clearScheduledFlush]);
+        workoutRef.current = next;
+        updateWorkoutRef.current(next);
+        try {
+            const persist = useWorkoutStore.getState().sheetHandlers?.persistWorkout;
+            if (persist) persist(next);
+        } catch {
+            // best effort; on subscription tick persistCurrentWorkout will run
+        }
+    }, []);
 
     /* ------------------------------ actions ------------------------------ */
 
@@ -149,7 +114,8 @@ export default function useWorkoutEditing({ workout, updateWorkout, viewingSelf 
 
             // If lengths differ, it's definitely a change; if equal and all refs equal, skip
             const noChange =
-                sameLength(nextSets, prevSets) && refEqualArray(nextSets, prevSets);
+                sameLength(nextSets, prevSets) &&
+                nextSets.every((set, index) => setsEqualByValue(set, prevSets[index]));
 
             if (noChange) return w;
 

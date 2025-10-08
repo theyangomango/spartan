@@ -186,6 +186,11 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             if (!uid) return;
             if (!value) {
                 clearPersistDebounce();
+                if (__DEV__) {
+                    try {
+                        console.debug("[WorkoutManager] Persist currentWorkout -> clearing");
+                    } catch { /* noop */ }
+                }
                 (async () => {
                     try {
                         await setDoc(doc(db, "users", uid), { currentWorkout: null }, { merge: true });
@@ -232,7 +237,10 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     payload.exercises = (payload.exercises || []).map((ex) => {
                         const prevA = findPrevFromCompleted(ex?.name);
                         const prevB = prevA && prevA.length ? prevA : findPrevFromStats(ex?.name);
-                        return { ...ex, prev: prevB && prevB.length ? prevB : undefined };
+                        if (prevB && prevB.length) {
+                            return { ...ex, prev: prevB };
+                        }
+                        return ex;
                     });
                     lastPrevInjectAtRef.current = now;
                 }
@@ -243,6 +251,15 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 if (hash === lastPersistSentHashRef.current) return;
                 lastPersistSentHashRef.current = hash;
                 lastPersistSentAtRef.current = Date.now();
+                if (__DEV__) {
+                    try {
+                        console.debug(
+                            "[WorkoutManager] Persist currentWorkout ->",
+                            payload?.wid || "(no wid)",
+                            payload?.name || ""
+                        );
+                    } catch { /* ignore console issues */ }
+                }
                 InteractionManager.runAfterInteractions(() => {
                     (async () => {
                         try {
@@ -912,6 +929,23 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [global?.userData?.currentWorkout]);
 
+    useEffect(() => {
+        const unsubscribe = useWorkoutStore.subscribe(
+            (state) => state.workout,
+            (next) => {
+                try {
+                    persistCurrentWorkout(next);
+                } catch { /* ignore transient issues */ }
+            }
+        );
+        try {
+            persistCurrentWorkout(useWorkoutStore.getState().workout);
+        } catch { /* best effort */ }
+        return () => {
+            try { unsubscribe?.(); } catch { }
+        };
+    }, [persistCurrentWorkout]);
+
     useEffect(() => () => stopTimer(), [stopTimer]);
 
     return {
@@ -926,5 +960,6 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         finishWorkout,
         postWorkout,
         joinExternalWorkout,
+        persistCurrentWorkout,
     };
 }

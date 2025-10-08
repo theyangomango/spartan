@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
         marginBottom: scaledSize(12),
     },
     modalActionText: {
-        fontFamily: "Outfit_700Bold",
+        fontFamily: "Nunito_800ExtraBold",
         fontSize: scaledSize(14.3),
         letterSpacing: 0.25,
     },
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
         marginBottom: 0,
     },
     modalActionSecondaryText: {
-        fontFamily: "Outfit_600SemiBold",
+        fontFamily: "Nunito_800ExtraBold",
         fontSize: scaledSize(13.4),
         color: theme.textPrimary,
         letterSpacing: 0.2,

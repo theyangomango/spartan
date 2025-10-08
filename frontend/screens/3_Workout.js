@@ -587,6 +587,7 @@ export default function Workout({ navigation, route }) {
         cancelWorkout,
         finishWorkout,
         joinExternalWorkout,
+        persistCurrentWorkout,
     } = useWorkoutManager({ uid, navigation, millisToHMS: millisToHoursMinutesSeconds });
 
     useEffect(() => {
@@ -889,6 +890,7 @@ export default function Workout({ navigation, route }) {
             timerRef,
             setIsVisible: setIsNewWorkoutVisible,
             getUserWorkoutStats: () => global?.userData?.statsExercises || {},
+            persistWorkout: persistCurrentWorkout,
         });
         return () => {
             setSheetHandlers({
@@ -900,6 +902,7 @@ export default function Workout({ navigation, route }) {
                 timerRef: null,
                 setIsVisible: () => {},
                 getUserWorkoutStats: () => ({}),
+                persistWorkout: () => {},
             });
         };
     }, [
@@ -911,6 +914,7 @@ export default function Workout({ navigation, route }) {
         registerInviteHandlerCb,
         timerRef,
         setIsNewWorkoutVisible,
+        persistCurrentWorkout,
     ]);
 
     /* ---------- Day sheet + meals ---------- */
