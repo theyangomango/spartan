@@ -4,6 +4,7 @@ import FastImage from "react-native-fast-image";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Heart, MessageCircle, AtSign, UserPlus, Activity, Check } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { doc, onSnapshot } from "firebase/firestore";
 
 import scaleSize from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
@@ -14,6 +15,7 @@ import cancelFollowRequest from "../../../../backend/user/cancelFollowRequest";
 import { usePfp } from "../../../helper/usePFPs";
 import { subscribeUserData } from "../../../utils/userDataEvents";
 import { strong as haptic, withStrongPress } from "../../../utils/haptics";
+import { db } from "../../../../firebase.config";
 
 /* -------- helpers -------- */
 const ellipsize = (str = "", max = 60) => {
@@ -134,6 +136,7 @@ export default function NotificationCard({
     const [respondingRequest, setRespondingRequest] = useState(false);
     const [followState, setFollowState] = useState('none');
     const [followBusy, setFollowBusy] = useState(false);
+    const [inviteExpired, setInviteExpired] = useState(false);
     const pfpUri = usePfp(item?.uid, item?.pfpVersion ?? 0, item?.pfp || "");
 
     const targetUid = useMemo(() => String(item?.uid || ''), [item?.uid]);
@@ -256,8 +259,70 @@ export default function NotificationCard({
     const showFollowRequestActions = item?.type === "follow-request" && typeof onAcceptFollowRequest === "function" && typeof onDeclineFollowRequest === "function";
     const requestHandled = showFollowRequestActions && (requestStatus === 'accepted' || requestStatus === 'declined');
 
+    useEffect(() => {
+        if (!showAcceptAction || inviteAccepted) {
+            setInviteExpired(false);
+            return undefined;
+        }
+
+        const wid = String(item?.wid || "");
+        const inviterUid = String(item?.uid || "");
+        if (!wid || !inviterUid) {
+            setInviteExpired(true);
+            return undefined;
+        }
+
+        let mounted = true;
+        const evaluate = (data) => {
+            if (!mounted) return;
+            const current = data?.currentWorkout || null;
+            const primaryWid = String(current?.wid || "");
+            const matchesPrimary = primaryWid === wid;
+
+            const rawCollection = data?.currentWorkouts;
+            let matchesCollection = false;
+            if (Array.isArray(rawCollection)) {
+                matchesCollection = rawCollection.some((entry) => {
+                    if (!entry) return false;
+                    if (typeof entry === "string") return String(entry) === wid;
+                    const candidate = entry?.wid || entry?.id || entry?.key;
+                    return String(candidate || "") === wid;
+                });
+            } else if (rawCollection && typeof rawCollection === "object") {
+                const values = Object.values(rawCollection);
+                matchesCollection = values.some((entry) => {
+                    if (!entry) return false;
+                    if (typeof entry === "string") return String(entry) === wid;
+                    const candidate = entry?.wid || entry?.id || entry?.key;
+                    return String(candidate || "") === wid;
+                }) || Object.keys(rawCollection).some((key) => String(key || "") === wid);
+            }
+
+            setInviteExpired(!(matchesPrimary || matchesCollection));
+        };
+
+        let unsubscribe;
+        try {
+            unsubscribe = onSnapshot(
+                doc(db, "users", inviterUid),
+                (snap) => evaluate(snap.data() || {}),
+                () => {
+                    if (mounted) setInviteExpired(false);
+                }
+            );
+        } catch {
+            setInviteExpired(false);
+            return undefined;
+        }
+
+        return () => {
+            mounted = false;
+            if (typeof unsubscribe === "function") unsubscribe();
+        };
+    }, [showAcceptAction, inviteAccepted, item?.wid, item?.uid]);
+
     const handleAcceptInvite = async () => {
-        if (!showAcceptAction || inviteAccepted || acceptingInvite) return;
+        if (!showAcceptAction || inviteAccepted || acceptingInvite || inviteExpired) return;
         try { haptic(); } catch {}
         setAcceptingInvite(true);
         try {
@@ -420,30 +485,36 @@ export default function NotificationCard({
 
     const workoutInviteAction = showAcceptAction
         ? (
-            <Pressable
-                style={[
-                    styles.actionButton,
-                    styles.inviteAcceptBtn,
-                    { backgroundColor: solidButtonBg, borderColor: buttonBorderActive },
-                    (inviteAccepted || acceptingInvite) && {
-                        backgroundColor: solidButtonBgDisabled,
-                        borderColor: buttonBorder,
-                    },
-                ]}
-                onPress={handleAcceptInvite}
-                disabled={inviteAccepted || acceptingInvite}
-                hitSlop={10}
-            >
-                <Text
-                    style={[
-                        styles.actionLabel,
-                        { color: theme.textPrimary },
-                        (inviteAccepted || acceptingInvite) && { color: withAlpha(theme.textPrimary, 0.8) },
-                    ]}
-                >
-                    {inviteAccepted ? "Accepted" : acceptingInvite ? "Accepting…" : "Accept"}
-                </Text>
-            </Pressable>
+            inviteAccepted
+                ? <Text style={[styles.requestHandledText, styles.actionHandledText, styles.requestHandledAcceptedText]}>Accepted</Text>
+                : inviteExpired
+                    ? <Text style={[styles.requestHandledText, styles.actionHandledText]}>Expired</Text>
+                    : (
+                        <Pressable
+                            style={[
+                                styles.actionButton,
+                                styles.inviteAcceptBtn,
+                                { backgroundColor: solidButtonBg, borderColor: buttonBorderActive },
+                                acceptingInvite && {
+                                    backgroundColor: solidButtonBgDisabled,
+                                    borderColor: buttonBorder,
+                                },
+                            ]}
+                            onPress={handleAcceptInvite}
+                            disabled={acceptingInvite}
+                            hitSlop={10}
+                        >
+                            <Text
+                                style={[
+                                    styles.actionLabel,
+                                    { color: theme.textPrimary },
+                                    acceptingInvite && { color: withAlpha(theme.textPrimary, 0.8) },
+                                ]}
+                            >
+                                {acceptingInvite ? "Accepting…" : "Accept"}
+                            </Text>
+                        </Pressable>
+                    )
         )
         : null;
 
@@ -451,7 +522,13 @@ export default function NotificationCard({
         ? (
             <View style={styles.requestActionsWrap}>
                 {requestHandled ? (
-                    <Text style={styles.requestHandledText}>
+                    <Text
+                        style={[
+                            styles.requestHandledText,
+                            styles.actionHandledText,
+                            requestStatus === 'accepted' && styles.requestHandledAcceptedText,
+                        ]}
+                    >
                         {requestStatus === 'accepted' ? 'Accepted' : 'Declined'}
                     </Text>
                 ) : (
@@ -667,5 +744,11 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(12),
         color: theme.muted,
+    },
+    requestHandledAcceptedText: {
+        color: theme.primary,
+    },
+    actionHandledText: {
+        marginLeft: scaleSize(12),
     },
 });

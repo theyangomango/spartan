@@ -8,6 +8,7 @@ import {
     FlatList,
     Dimensions,
     ActivityIndicator,
+    Modal,
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import { Heart, Messages1 } from "iconsax-react-native";
@@ -150,6 +151,8 @@ const SimpleFeedPost = ({
     onPressComments,
     onPressShare,
     onPressLikes,
+    onPressEditPost,
+    onPressDeletePost,
 }) => {
     const highlightOpacity = useRef(new Animated.Value(0)).current;
     const isHighlighted = useMemo(() => {
@@ -236,6 +239,8 @@ const SimpleFeedPost = ({
     const [mediaSize, setMediaSize] = useState(0);
     const [mediaLoadedCount, setMediaLoadedCount] = useState(0);
     const [contentReady, setContentReady] = useState(mediaList.length === 0);
+    const [isOptionsSheetVisible, setOptionsSheetVisible] = useState(false);
+    const optionsSheetAnim = useRef(new Animated.Value(0)).current;
 
     const mediaFingerprint = useMemo(() => {
         if (mediaList.length === 0) return "empty";
@@ -475,10 +480,83 @@ const SimpleFeedPost = ({
 
     const isViewerOwner = viewerUid && postOwnerUid && viewerUid === postOwnerUid;
 
+    useEffect(() => {
+        if (!isViewerOwner && isOptionsSheetVisible) {
+            optionsSheetAnim.stopAnimation();
+            optionsSheetAnim.setValue(0);
+            setOptionsSheetVisible(false);
+        }
+    }, [isViewerOwner, isOptionsSheetVisible, optionsSheetAnim]);
+
+    useEffect(() => {
+        if (!isOptionsSheetVisible) return;
+        optionsSheetAnim.stopAnimation();
+        optionsSheetAnim.setValue(0);
+        requestAnimationFrame(() => {
+            Animated.timing(optionsSheetAnim, {
+                toValue: 1,
+                duration: 220,
+                useNativeDriver: true,
+            }).start();
+        });
+    }, [isOptionsSheetVisible, optionsSheetAnim]);
+
+    useEffect(() => () => {
+        optionsSheetAnim.stopAnimation();
+    }, [optionsSheetAnim]);
+
     const handlePressWorkout = useCallback(() => {
         if (!workout) return;
         onPressWorkout?.(index, data);
     }, [workout, onPressWorkout, index, data]);
+
+    const openOptionsSheet = useCallback(() => {
+        if (!isViewerOwner) return;
+        setOptionsSheetVisible(true);
+    }, [isViewerOwner]);
+
+    const closeOptionsSheet = useCallback((afterClose) => {
+        if (!isOptionsSheetVisible) {
+            if (typeof afterClose === "function") afterClose();
+            return;
+        }
+        Animated.timing(optionsSheetAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+        }).start(() => {
+            setOptionsSheetVisible(false);
+            if (typeof afterClose === "function") {
+                afterClose();
+            }
+        });
+    }, [isOptionsSheetVisible, optionsSheetAnim]);
+
+    const handleBackdropPress = useCallback(() => {
+        closeOptionsSheet();
+    }, [closeOptionsSheet]);
+
+    const handlePressEditPost = useCallback(() => {
+        closeOptionsSheet(() => onPressEditPost?.(index, data));
+    }, [closeOptionsSheet, onPressEditPost, index, data]);
+
+    const handlePressDeletePost = useCallback(() => {
+        closeOptionsSheet(() => onPressDeletePost?.(index, data));
+    }, [closeOptionsSheet, onPressDeletePost, index, data]);
+
+    const optionsBackdropOpacity = useMemo(() => (
+        optionsSheetAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 0.45],
+        })
+    ), [optionsSheetAnim]);
+
+    const optionsSheetTranslateY = useMemo(() => (
+        optionsSheetAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [scaleSize(240), 0],
+        })
+    ), [optionsSheetAnim]);
 
     return (
         <View style={styles.wrapper}>
@@ -519,10 +597,7 @@ const SimpleFeedPost = ({
                         {isViewerOwner ? (
                             <Pressable
                                 style={styles.moreButton}
-                                onPress={() => {
-                                    if (workout) onPressWorkout?.(index, data);
-                                }}
-                                disabled={!workout}
+                                onPress={openOptionsSheet}
                                 hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
                             >
                                 <MaterialCommunityIcons name="dots-vertical" size={scaleSize(20)} color={theme.textPrimary} />
@@ -724,6 +799,35 @@ const SimpleFeedPost = ({
                 <View style={styles.loadingOverlay} pointerEvents="none">
                     <ActivityIndicator size="small" color="#93C5FD" />
                 </View>
+            ) : null}
+            {isViewerOwner ? (
+                <Modal
+                    transparent
+                    animationType="none"
+                    visible={isOptionsSheetVisible}
+                    onRequestClose={handleBackdropPress}
+                >
+                    <View style={styles.optionsModalRoot}>
+                        <AnimatedPressable
+                            style={[styles.optionsBackdrop, { opacity: optionsBackdropOpacity }]}
+                            onPress={handleBackdropPress}
+                        />
+                        <Animated.View
+                            style={[
+                                styles.optionsSheet,
+                                { transform: [{ translateY: optionsSheetTranslateY }] },
+                            ]}
+                        >
+                            <Pressable style={styles.optionsItem} onPress={handlePressEditPost}>
+                                <Text style={styles.optionsItemText}>Edit Post</Text>
+                            </Pressable>
+                            <View style={styles.optionsDivider} />
+                            <Pressable style={styles.optionsItem} onPress={handlePressDeletePost}>
+                                <Text style={[styles.optionsItemText, styles.optionsItemDeleteText]}>Delete Post</Text>
+                            </Pressable>
+                        </Animated.View>
+                    </View>
+                </Modal>
             ) : null}
         </View>
     );
@@ -1024,5 +1128,40 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: 'rgba(17, 24, 39, 0.35)',
+    },
+    optionsModalRoot: {
+        flex: 1,
+        justifyContent: 'flex-end',
+    },
+    optionsBackdrop: {
+        position: 'absolute',
+        top: 0,
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: '#000',
+    },
+    optionsSheet: {
+        backgroundColor: theme.surface,
+        paddingHorizontal: scaleSize(24),
+        paddingTop: scaleSize(20),
+        paddingBottom: scaleSize(30),
+        borderTopLeftRadius: scaleSize(24),
+        borderTopRightRadius: scaleSize(24),
+    },
+    optionsItem: {
+        paddingVertical: scaleSize(14),
+    },
+    optionsItemText: {
+        fontFamily: "Poppins_600SemiBold",
+        fontSize: scaleSize(16),
+        color: theme.textPrimary,
+    },
+    optionsItemDeleteText: {
+        color: '#FF5C5C',
+    },
+    optionsDivider: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: theme.hairline,
     },
 });

@@ -11,6 +11,8 @@ const PostListItem = memo(function PostListItem({
   openLikesSheet,
   toViewProfilePosts,
   openViewWorkoutModal,
+  onDeletePost,
+  onEditPost,
 }) {
   const handleProfile = useCallback(() => {
     if (typeof toViewProfilePosts === "function") {
@@ -42,6 +44,18 @@ const PostListItem = memo(function PostListItem({
     }
   }, [openLikesSheet, index]);
 
+  const handleDeletePost = useCallback(() => {
+    if (typeof onDeletePost === "function") {
+      onDeletePost(index);
+    }
+  }, [onDeletePost, index]);
+
+  const handleEditPost = useCallback(() => {
+    if (typeof onEditPost === "function") {
+      onEditPost(index);
+    }
+  }, [onEditPost, index]);
+
   return (
     <SimpleFeedPost
       data={item}
@@ -53,6 +67,8 @@ const PostListItem = memo(function PostListItem({
       onPressComments={handleComments}
       onPressShare={handleShare}
       onPressLikes={handleLikes}
+      onPressDeletePost={handleDeletePost}
+      onPressEditPost={typeof onEditPost === "function" ? handleEditPost : undefined}
     />
   );
 });

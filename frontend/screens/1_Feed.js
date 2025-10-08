@@ -16,6 +16,7 @@ import {
     RefreshControl,
     View,
     TouchableOpacity,
+    Alert,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
@@ -35,6 +36,7 @@ import isThisUser from "../helper/isThisUser";
 import useFilteredFeed from "../helper/useFilteredFeed";
 import useFeedUserData from "./feed/hooks/useFeedUserData";
 import { toMillis as toMillisSafe } from "../utils/friends";
+import deletePost from "../../backend/posts/deletePost";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -116,6 +118,7 @@ export default function Feed({ navigation, route }) {
     const [likesSheetVisible, setLikesSheetVisible] = useState(false);
     const [likesSheetUsers, setLikesSheetUsers] = useState([]);
     const [likesSheetTitle, setLikesSheetTitle] = useState("Liked by");
+    const [deletingPostPid, setDeletingPostPid] = useState(null);
 
     const highlightPidRef = useRef(null);
     const [highlightSignal, setHighlightSignal] = useState(0);
@@ -217,6 +220,77 @@ export default function Feed({ navigation, route }) {
         if (!post) return;
         showLikesSheet(post.likes, "Liked by");
     }, [listData, showLikesSheet]);
+
+    const handleDeletePost = useCallback((index) => {
+        if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
+            return;
+        }
+
+        const post = listData[index];
+        if (!post) return;
+
+        const pid = String(post?.pid || post?.id || "").trim();
+        if (!pid) return;
+
+        const ownerUidCandidates = [
+            post?.uid,
+            post?.creatorUid,
+            post?.creatorUID,
+            post?.ownerUid,
+            post?.userUid,
+        ];
+        const ownerUid = ownerUidCandidates
+            .map((value) => (value == null ? "" : String(value).trim()))
+            .find(Boolean);
+        const viewerUid = global?.userData?.uid ? String(global.userData.uid) : "";
+        const safeUid = ownerUid || viewerUid;
+
+        if (deletingPostPid && deletingPostPid === pid) {
+            return;
+        }
+
+        const executeDelete = async () => {
+            setDeletingPostPid(pid);
+            try {
+                await deletePost(pid, safeUid);
+                if (safeUid && global?.userData && String(global.userData.uid) === safeUid) {
+                    try {
+                        if (Array.isArray(global.userData.posts)) {
+                            global.userData.posts = global.userData.posts
+                                .map((value) => (value == null ? value : String(value)))
+                                .filter((value) => value && value !== pid);
+                        }
+                        if (typeof global.userData.postCount === "number") {
+                            global.userData.postCount = Math.max(0, global.userData.postCount - 1);
+                        }
+                    } catch (error) {
+                        console.warn("handleDeletePost: failed to update global userData cache", error);
+                    }
+                }
+            } catch (error) {
+                console.error("handleDeletePost: deletePost failed", error);
+                Alert.alert("Unable to delete post", "Please try again in a moment.");
+            } finally {
+                setDeletingPostPid((current) => (current === pid ? null : current));
+            }
+        };
+
+        Alert.alert(
+            "Delete post?",
+            "This will permanently remove the post and its comments.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: () => {
+                        if (deletingPostPid && deletingPostPid === pid) return;
+                        executeDelete();
+                    },
+                },
+            ]
+        );
+    }, [listData, deletingPostPid]);
 
     const handleOpenNotifications = useCallback(() => {
         try {
@@ -444,8 +518,9 @@ export default function Feed({ navigation, route }) {
             openLikesSheet={openLikesSheet}
             toViewProfilePosts={toViewProfilePosts}
             openViewWorkoutModal={openViewWorkoutModal}
+            onDeletePost={handleDeletePost}
         />
-    ), [highlightSignal, openCommentsModal, openShareModal, openLikesSheet, toViewProfilePosts, openViewWorkoutModal]);
+    ), [highlightSignal, openCommentsModal, openShareModal, openLikesSheet, toViewProfilePosts, openViewWorkoutModal, handleDeletePost]);
 
     const headerComponent = useMemo(() => (
         <FeedHeader
