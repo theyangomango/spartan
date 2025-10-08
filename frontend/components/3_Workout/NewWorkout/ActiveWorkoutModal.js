@@ -1190,20 +1190,20 @@ const styles = StyleSheet.create({
     },
     collapsedHudLabel: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(14),
         color: theme.textPrimary,
         flexShrink: 1,
         textAlign: 'center',
     },
     collapsedHudSeparator: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(14),
         color: theme.textPrimary,
         marginHorizontal: scaleSize(12),
     },
     collapsedHudTimer: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(14),
         color: theme.textPrimary,
     },
     // Allow the BottomSheet background to show through
