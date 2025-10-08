@@ -1,9 +1,12 @@
 // components/3_Workout/sections/StartCluster.jsx
 import React, { memo, useMemo, useCallback } from "react";
 import { View, StyleSheet, Animated, useWindowDimensions } from "react-native";
+import { AddSquare } from "iconsax-react-native";
+import { Feather } from "@expo/vector-icons";
 import StartOpenButton from "../ui/StartOpenButton";
-import { ROW_WIDTH } from "./workoutTheme";
+import { ROW_WIDTH, SMALL_SIZE } from "./workoutTheme";
 import scaleSize from "../../../helper/scaleSize";
+import theme from "../../../theme/mfpDark";
 
 const StartCluster = ({
     scaleAnim,
@@ -29,6 +32,9 @@ const StartCluster = ({
     return (
         <View style={[styles.wrap, containerStyle]} pointerEvents="box-none">
             <View style={styles.actionsRow} pointerEvents="box-none">
+                <View style={[styles.sideButton, styles.sideButtonOffset]}>
+                    <AddSquare size={24} color="#E5E7EB" />
+                </View>
                 <Animated.View style={{ transform: [{ scale }] }}>
                     <StartOpenButton
                         hasActiveWorkout={hasActiveWorkout}
@@ -37,6 +43,9 @@ const StartCluster = ({
                         templateFocusIndex={templateFocusIndex}
                     />
                 </Animated.View>
+                <View style={[styles.sideButton, styles.sideButtonOffset]}>
+                    <Feather name="users" size={21} color="#E5E7EB" />
+                </View>
             </View>
         </View>
     );
@@ -48,8 +57,19 @@ const styles = StyleSheet.create({
         width: ROW_WIDTH,
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "space-between",
         marginBottom: scaleSize(10),
+    },
+    sideButton: {
+        width: SMALL_SIZE,
+        height: SMALL_SIZE,
+        borderRadius: SMALL_SIZE / 2,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: theme.surface,
+    },
+    sideButtonOffset: {
+        transform: [{ translateY: -scaleSize(6) }],
     },
 });
 

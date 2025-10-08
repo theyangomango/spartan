@@ -9,6 +9,7 @@ import {
     Dimensions,
     ActivityIndicator,
     Modal,
+    Alert,
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import { Heart, Messages1 } from "iconsax-react-native";
@@ -20,6 +21,7 @@ import scaleSize from "../../helper/scaleSize";
 import { usePfp } from "../../helper/usePFPs";
 import usePostFooterInteractions from "./Posts/hooks/usePostFooterInteractions";
 import { buildExerciseSummaries } from "../../utils/workoutSummary";
+import deletePost from "../../../backend/posts/deletePost";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -241,6 +243,7 @@ const SimpleFeedPost = ({
     const [contentReady, setContentReady] = useState(mediaList.length === 0);
     const [isOptionsSheetVisible, setOptionsSheetVisible] = useState(false);
     const optionsSheetAnim = useRef(new Animated.Value(0)).current;
+    const [pendingDeletePid, setPendingDeletePid] = useState(null);
 
     const mediaFingerprint = useMemo(() => {
         if (mediaList.length === 0) return "empty";
@@ -248,6 +251,13 @@ const SimpleFeedPost = ({
     }, [mediaList]);
 
     const previousMediaFingerprintRef = useRef(mediaFingerprint);
+
+    const postPid = useMemo(() => {
+        const candidate = data?.pid ?? data?.id ?? null;
+        if (candidate === undefined || candidate === null) return "";
+        const str = String(candidate).trim();
+        return str;
+    }, [data?.pid, data?.id]);
 
     useEffect(() => {
         if (previousMediaFingerprintRef.current === mediaFingerprint) return;
@@ -532,6 +542,60 @@ const SimpleFeedPost = ({
         });
     }, [isOptionsSheetVisible, optionsSheetAnim]);
 
+    const runDefaultDelete = useCallback(() => {
+        if (!isViewerOwner) return;
+        if (!postPid) return;
+        if (pendingDeletePid) return;
+
+        const targetUid = postOwnerUid || viewerUid;
+        if (!targetUid) return;
+
+        const performDelete = () => {
+            if (pendingDeletePid) return;
+            setPendingDeletePid(postPid);
+            (async () => {
+                try {
+                    await deletePost(postPid, targetUid);
+                    if (targetUid && global?.userData && String(global.userData.uid) === targetUid) {
+                        try {
+                            if (Array.isArray(global.userData.posts)) {
+                                global.userData.posts = global.userData.posts
+                                    .map((value) => (value == null ? value : String(value)))
+                                    .filter((value) => value && value !== postPid);
+                            }
+                            if (typeof global.userData.postCount === "number") {
+                                global.userData.postCount = Math.max(0, global.userData.postCount - 1);
+                            }
+                        } catch (error) {
+                            console.warn("SimpleFeedPost: failed to update cached global.userData posts", error);
+                        }
+                    }
+                } catch (error) {
+                    console.error("SimpleFeedPost: deletePost failed", error);
+                    Alert.alert("Unable to delete post", "Please try again in a moment.");
+                } finally {
+                    setPendingDeletePid((current) => (current === postPid ? null : current));
+                }
+            })();
+        };
+
+        Alert.alert(
+            "Delete post?",
+            "This will permanently remove the post and its comments.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: () => {
+                        if (pendingDeletePid) return;
+                        performDelete();
+                    },
+                },
+            ]
+        );
+    }, [isViewerOwner, postPid, pendingDeletePid, postOwnerUid, viewerUid]);
+
     const handleBackdropPress = useCallback(() => {
         closeOptionsSheet();
     }, [closeOptionsSheet]);
@@ -541,8 +605,14 @@ const SimpleFeedPost = ({
     }, [closeOptionsSheet, onPressEditPost, index, data]);
 
     const handlePressDeletePost = useCallback(() => {
-        closeOptionsSheet(() => onPressDeletePost?.(index, data));
-    }, [closeOptionsSheet, onPressDeletePost, index, data]);
+        closeOptionsSheet(() => {
+            if (typeof onPressDeletePost === "function") {
+                onPressDeletePost(index, data);
+            } else {
+                runDefaultDelete();
+            }
+        });
+    }, [closeOptionsSheet, onPressDeletePost, index, data, runDefaultDelete]);
 
     const optionsBackdropOpacity = useMemo(() => (
         optionsSheetAnim.interpolate({
