@@ -27,6 +27,7 @@ import { useNavigation } from "@react-navigation/native";
 
 import scaleSize from "../../helper/scaleSize";
 import WorkoutPanelCard from "./ui/WorkoutPanelCard";
+import ContributionCard from "./ui/ContributionCard";
 import { sanitizeStatsForViewer } from "../../utils/workoutPrivacy";
 import { buildExerciseSummaries } from "../../utils/workoutSummary";
 import { usePfp } from "../../helper/usePFPs";
@@ -248,17 +249,6 @@ const getPfpUri = (item) => (
     item?.image ||
     ""
 );
-
-const formatStatNumber = (value) => {
-    if (value == null) return "0";
-    const numeric = Number(value) || 0;
-    const safe = numeric < 1000 ? Math.round(numeric) : Math.round(numeric);
-    try {
-        return safe.toLocaleString();
-    } catch {
-        return String(safe);
-    }
-};
 
 const coerceWeeklyGoal = (value) => {
     const num = Number(value);
@@ -625,99 +615,6 @@ const FriendPanel = memo(({ item, overlay, onSelect, highlight = false }) => {
         po.reps === no.reps &&
         po.PBs === no.PBs &&
         (po.exercises?.length || 0) === (no.exercises?.length || 0)
-    );
-});
-
-const ContributionRow = memo(({ entry, isFirst = false }) => {
-    if (!entry) return null;
-
-    const {
-        name = "",
-        handle = "",
-        pfp: entryPfp,
-        pfpUri: entryPfpUri,
-        volume = 0,
-        reps = 0,
-        pbs = 0,
-    } = entry;
-
-    const rawPfp = entryPfpUri || entryPfp || getPfpUri(entry);
-    const resolvedPfp = usePfp(entry?.uid, entry?.pfpVersion ?? 0, rawPfp || undefined);
-    const fallbackLabel = initials(name || handle);
-    const stats = useMemo(() => ([
-        { key: "reps", label: "reps", value: formatStatNumber(reps) },
-        { key: "volume", label: "lbs", value: formatStatNumber(volume) },
-        { key: "prs", label: "prs", value: formatStatNumber(pbs) },
-    ]), [volume, reps, pbs]);
-    const weeklyGoal = coerceWeeklyGoal(entry?.weeklyGoal ?? entry?.weeklyWorkoutGoal ?? entry?.goal);
-    const workoutsCompleted = useMemo(() => {
-        const raw = Number(entry?.workouts);
-        if (!Number.isFinite(raw) || raw <= 0) return 0;
-        return Math.round(raw);
-    }, [entry?.workouts]);
-    const contributionSubtext = useMemo(() => {
-        if (workoutsCompleted <= 0) return "No workouts";
-        if (workoutsCompleted === 1) return "1 workout";
-        return `${workoutsCompleted} workouts`;
-    }, [workoutsCompleted]);
-    const handleLabel = (() => {
-        const raw = handleText(entry);
-        if (raw) return raw.replace(/^@/, "");
-        if (name) return String(name);
-        return "Friend";
-    })();
-
-    const cardStyles = useMemo(() => (
-        isFirst ? [styles.contributionCard] : [styles.contributionCard, styles.contributionCardDivider]
-    ), [isFirst]);
-
-    return (
-        <View style={cardStyles}>
-            <View style={styles.contributionRow}>
-                <View style={styles.contributionHandleWrap}>
-                    <View style={styles.contributionAvatarWrap}>
-                        {resolvedPfp ? (
-                            <FastImage
-                                source={{ uri: resolvedPfp, priority: FastImage.priority.high, cache: FastImage.cacheControl.immutable }}
-                                style={styles.contributionPfp}
-                                resizeMode={FastImage.resizeMode.cover}
-                            />
-                        ) : (
-                            <View style={[styles.contributionPfp, styles.contributionPfpFallback]}>
-                                <Text style={styles.contributionPfpInitials}>{fallbackLabel}</Text>
-                            </View>
-                        )}
-                    </View>
-                    <View style={styles.contributionHandleTextWrap}>
-                        <Text style={styles.contributionHandle} numberOfLines={1} ellipsizeMode="tail">{handleLabel}</Text>
-                        <Text style={styles.contributionHandleSubtext} numberOfLines={1} ellipsizeMode="tail">{contributionSubtext}</Text>
-                    </View>
-                </View>
-
-                <View style={styles.contributionStatsRow}>
-                    <View style={styles.contributionStatCellFlat}>
-                        <View style={styles.contributionStatContentFlat}>
-                            <Text style={styles.contributionStatValue}>{stats[0].value}</Text>
-                            <Text style={styles.contributionStatLabel}>{String(stats[0].label || '').toUpperCase()}</Text>
-                        </View>
-                    </View>
-                    <View style={styles.contributionDivider} />
-                    <View style={styles.contributionStatCellFlat}>
-                        <View style={styles.contributionStatContentFlat}>
-                            <Text style={styles.contributionStatValue}>{stats[1].value}</Text>
-                            <Text style={styles.contributionStatLabel}>{String(stats[1].label || '').toUpperCase()}</Text>
-                        </View>
-                    </View>
-                    <View style={styles.contributionDivider} />
-                    <View style={styles.contributionStatCellFlat}>
-                        <View style={styles.contributionStatContentFlat}>
-                            <Text style={styles.contributionStatValue}>{stats[2].value}</Text>
-                            <Text style={styles.contributionStatLabel}>{String(stats[2].label || '').toUpperCase()}</Text>
-                        </View>
-                    </View>
-                </View>
-            </View>
-        </View>
     );
 });
 
@@ -1206,16 +1103,6 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
         return data;
     }, [liveItems, weeklyContributions]);
 
-    const weeklyContributorCount = useMemo(
-        () => weeklyContributions.filter((entry) => (
-            Number(entry?.workouts) > 0 ||
-            Number(entry?.volume) > 0 ||
-            Number(entry?.reps) > 0 ||
-            Number(entry?.pbs) > 0
-        )).length,
-        [weeklyContributions]
-    );
-
     const keyExtractor = useCallback((row, index) => {
         if (!row) return String(index);
         if (row.kind === "live") {
@@ -1264,7 +1151,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
             );
         }
         if (row.kind === "contribution") {
-            return <ContributionRow entry={row.entry} isFirst={index === 0} />;
+            return <ContributionCard entry={row.entry} isFirst={index === 0} />;
         }
         return null;
     }, [highlightWid, liveOverlays, openViewer]);
@@ -1276,7 +1163,6 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
         );
     }, []);
 
-    const liveCount = useMemo(() => sortedItems.filter((x) => x?.live).length, [sortedItems]);
     const noop = React.useCallback(() => { }, []);
     const noopCheer = React.useCallback(() => { }, []);
     const handleCopyTemplateCb = React.useCallback((wk) => onCopyTemplate?.(wk), [onCopyTemplate]);
@@ -1348,9 +1234,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                 <Animated.View style={{ flex: 1, opacity: listOpacity }} pointerEvents={selectedItem ? 'none' : 'auto'}>
                     <View style={styles.header}>
                         <Text style={styles.headerTitle}>Community Training</Text>
-                        <Text style={styles.headerSub}>
-                            Live: {liveCount} • Weekly contributors: {weeklyContributorCount}
-                        </Text>
+                        <Text style={styles.headerSub}>Catch live workouts and weekly highlights from your friends.</Text>
                     </View>
 
                     <SectionList
@@ -1741,95 +1625,6 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_500Medium",
         fontSize: scaleSize(s(12)),
         color: COLORS.subtext,
-    },
-
-    contributionCard: {
-        paddingLeft: LIST_HORIZONTAL_PADDING,
-        paddingRight: scaleSize(4),
-        paddingVertical: scaleSize(s(15)),
-        backgroundColor: theme.fieldDeep,
-        borderRadius: 0,
-    },
-    contributionCardDivider: {
-        borderTopWidth: 1.3,
-        borderColor: "rgba(255,255,255,0.12)",
-    },
-    contributionRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        gap: scaleSize(s(8)),
-    },
-    contributionHandleWrap: {
-        flexDirection: "row",
-        alignItems: "center",
-        flexShrink: 1,
-        minWidth: 0,
-    },
-    contributionHandleTextWrap: {
-        flexShrink: 1,
-        minWidth: 0,
-    },
-    contributionAvatarWrap: {
-        borderRadius: scaleSize(s(14)),
-        backgroundColor: "rgba(255,255,255,0.04)",
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: scaleSize(s(11)),
-    },
-    contributionPfp: { width: scaleSize(s(36)), aspectRatio: 1, borderRadius: scaleSize(s(100)), backgroundColor: "#E2E8F0" },
-    contributionPfpFallback: { alignItems: "center", justifyContent: "center" },
-    contributionPfpInitials: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(s(11)), color: COLORS.text },
-    contributionHandle: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(s(13.5)),
-        color: COLORS.text,
-        maxWidth: scaleSize(s(150)),
-        flexShrink: 1,
-    },
-    contributionHandleSubtext: {
-        marginTop: scaleSize(s(2)),
-        fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(s(12)),
-        color: COLORS.subtext,
-    },
-    contributionStatsRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        marginLeft: 'auto',
-        gap: 0,
-        width: '55%'
-    },
-    contributionStatCellFlat: {
-        flexBasis: 0,
-        flexGrow: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        paddingVertical: scaleSize(s(3)),
-    },
-    contributionStatContentFlat: {
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    contributionStatValue: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(s(14)),
-        color: COLORS.text,
-    },
-    contributionStatLabel: {
-        marginTop: scaleSize(s(1)),
-        fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(s(11)),
-        color: COLORS.subtext,
-        textTransform: "uppercase",
-        letterSpacing: 0.3,
-        textAlign: "center",
-    },
-    contributionDivider: {
-        height: scaleSize(s(18)),
-        width: 1.3,
-        backgroundColor: "rgba(255,255,255,0.22)",
-        marginHorizontal: scaleSize(s(10)) / 2,
     },
 
     viewerContainer: { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.bg },

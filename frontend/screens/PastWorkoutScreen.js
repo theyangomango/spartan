@@ -291,13 +291,6 @@ const PastWorkoutScreen = () => {
         ownerHandle.startsWith("@") ? ownerHandle.slice(1).trim() : ownerHandle.trim()
     ), [ownerHandle]);
 
-    const subtitleText = useMemo(() => {
-        if (hasTemplate) {
-            return cleanHandle || "Template workout";
-        }
-        return "No template";
-    }, [hasTemplate, cleanHandle]);
-
     const subtitleInitials = useMemo(() => {
         const base = owner?.name || cleanHandle || "W";
         const trimmed = String(base || "W").trim();
@@ -427,16 +420,25 @@ const PastWorkoutScreen = () => {
                                             )}
                                         </View>
                                     ) : null}
-                                    <Text style={styles.logsSubtitle} numberOfLines={1}>{subtitleText}</Text>
+                                    <Pressable
+                                        onPress={handleCopyTemplate}
+                                        style={styles.copySubtitlePressable}
+                                        disabled={isCopying}
+                                        hitSlop={8}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.logsSubtitle,
+                                                styles.copySubtitleText,
+                                                isCopying && styles.copySubtitleTextDisabled,
+                                            ]}
+                                            numberOfLines={1}
+                                        >
+                                            {isCopying ? "Copying..." : "Copy as Template"}
+                                        </Text>
+                                    </Pressable>
                                 </View>
                             </View>
-                            <Pressable
-                                onPress={handleCopyTemplate}
-                                style={[styles.copyButton, (isCopying || !hasTemplate) && styles.copyButtonDisabled]}
-                                disabled={isCopying || !hasTemplate}
-                            >
-                                <Text style={styles.copyButtonText}>{isCopying ? "Copying..." : "Copy Template"}</Text>
-                            </Pressable>
                         </View>
                         {copyStatus ? (
                             <Text style={styles.copyStatusText}>{copyStatus}</Text>
@@ -540,6 +542,9 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: scaleSize(18),
+        paddingBottom: scaleSize(10),
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: theme.hairline,
     },
     logsTitleWrap: {
         flex: 1,
@@ -548,10 +553,11 @@ const styles = StyleSheet.create({
     logsTitle: {
         color: theme.textPrimary,
         fontFamily: "Mulish_800ExtraBold",
-        fontSize: scaleSize(16),
+        fontSize: scaleSize(14),
     },
     subtitleRow: {
         flexDirection: "row",
+        alignItems: "center",
         marginTop: scaleSize(5),
     },
     subtitleAvatarWrap: {
@@ -579,33 +585,16 @@ const styles = StyleSheet.create({
     logsSubtitle: {
         color: theme.textSecondary,
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(12),
     },
-    copyButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: scaleSize(18),
-        paddingVertical: scaleSize(8),
-        borderRadius: scaleSize(14),
-        backgroundColor: '#254a79ff',
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(74,141,255,0.55)",
-        shadowColor: "#4A8DFF",
-        shadowOpacity: 0.35,
-        shadowOffset: { width: 0, height: scaleSize(6) },
-        shadowRadius: scaleSize(10),
-        elevation: 6,
+    copySubtitlePressable: {
+        paddingVertical: scaleSize(2),
     },
-    copyButtonDisabled: {
-        opacity: 0.6,
+    copySubtitleText: {
+        color: theme.primary,
     },
-    copyButtonIcon: {
-        marginRight: scaleSize(6),
-    },
-    copyButtonText: {
-        color: "#ffffff",
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(13.5),
+    copySubtitleTextDisabled: {
+        color: theme.primaryHairline,
     },
     copyStatusText: {
         marginBottom: scaleSize(6),
