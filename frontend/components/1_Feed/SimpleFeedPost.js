@@ -22,6 +22,8 @@ import { usePfp } from "../../helper/usePFPs";
 import usePostFooterInteractions from "./Posts/hooks/usePostFooterInteractions";
 import { buildExerciseSummaries } from "../../utils/workoutSummary";
 import deletePost from "../../../backend/posts/deletePost";
+import deleteCompletedWorkout from "../../../backend/workouts/deleteCompletedWorkout";
+import { emitHexagonUpdate } from "../../utils/hexagonEvents";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -29,6 +31,20 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
     return Number.isFinite(num) ? num : fallback;
+};
+
+const toMillis = (value) => {
+    if (value == null) return 0;
+    if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+    if (value?.toMillis) {
+        try {
+            return value.toMillis();
+        } catch {
+            return 0;
+        }
+    }
+    const ms = new Date(value).getTime();
+    return Number.isFinite(ms) ? ms : 0;
 };
 
 const formatTimestamp = (value) => {
@@ -490,6 +506,52 @@ const SimpleFeedPost = ({
 
     const isViewerOwner = viewerUid && postOwnerUid && viewerUid === postOwnerUid;
 
+    const workoutDeleteIdentifier = useMemo(() => {
+        if (!workout || typeof workout !== "object") return null;
+        const widCandidates = [
+            workout?.wid,
+            workout?.id,
+            workout?.workoutId,
+            workout?.pid,
+            workout?.postPid,
+        ];
+        let wid = "";
+        for (const value of widCandidates) {
+            if (value === undefined || value === null) continue;
+            const str = String(value).trim();
+            if (str) {
+                wid = str;
+                break;
+            }
+        }
+
+        const createdCandidates = [
+            workout?.created,
+            workout?.createdAt,
+            workout?.finishedAt,
+            workout?.completedAt,
+            workout?.startedAt,
+        ];
+        let created = 0;
+        for (const candidate of createdCandidates) {
+            const ms = toMillis(candidate);
+            if (ms) {
+                created = ms;
+                break;
+            }
+        }
+
+        if (!wid && !created) return null;
+        return { wid: wid || null, created: created || 0 };
+    }, [workout]);
+
+    const canAutoDeleteWorkout = useMemo(() => Boolean(isViewerOwner && workoutDeleteIdentifier), [isViewerOwner, workoutDeleteIdentifier]);
+    const deleteOptionLabel = canAutoDeleteWorkout ? "Delete Post & Workout" : "Delete Post";
+    const deleteConfirmTitle = canAutoDeleteWorkout ? "Delete post & workout?" : "Delete post?";
+    const deleteConfirmMessage = canAutoDeleteWorkout
+        ? "This will delete the post and remove the workout from your history and stats."
+        : "This will permanently remove the post and its comments.";
+
     useEffect(() => {
         if (!isViewerOwner && isOptionsSheetVisible) {
             optionsSheetAnim.stopAnimation();
@@ -554,6 +616,10 @@ const SimpleFeedPost = ({
             if (pendingDeletePid) return;
             setPendingDeletePid(postPid);
             (async () => {
+                let postError = null;
+                let workoutError = null;
+                let workoutResult = null;
+
                 try {
                     await deletePost(postPid, targetUid);
                     if (targetUid && global?.userData && String(global.userData.uid) === targetUid) {
@@ -571,21 +637,58 @@ const SimpleFeedPost = ({
                         }
                     }
                 } catch (error) {
+                    postError = error;
                     console.error("SimpleFeedPost: deletePost failed", error);
-                    Alert.alert("Unable to delete post", "Please try again in a moment.");
-                } finally {
-                    setPendingDeletePid((current) => (current === postPid ? null : current));
                 }
+
+                if (canAutoDeleteWorkout && workoutDeleteIdentifier && !postError) {
+                    try {
+                        const res = await deleteCompletedWorkout(targetUid, workoutDeleteIdentifier);
+                        workoutResult = res;
+                        if (res?.ok && global?.userData && String(global.userData.uid) === targetUid) {
+                            try {
+                                global.userData.completedWorkouts = Array.isArray(res.completedWorkouts) ? res.completedWorkouts : [];
+                                global.userData.statsExercises = res.statsExercises || {};
+                                global.userData.statsHexagon = res.statsHexagon || {};
+                                global.userData.statsHexagonMeta = res.statsHexagonMeta || {};
+                                global.userData.statsTotalVolume = res.statsTotalVolume || 0;
+                                global.userData.statsTotalHours = res.statsTotalHours || 0;
+                                global.userData.statsTotalWorkouts = res.statsTotalWorkouts || 0;
+                                global.userData.workoutsByDate = res.workoutsByDate || {};
+                            } catch (error) {
+                                console.warn("SimpleFeedPost: failed to update cached workout stats after deletion", error);
+                            }
+                        }
+                    } catch (error) {
+                        workoutError = error;
+                        console.error("SimpleFeedPost: deleteCompletedWorkout failed", error);
+                    }
+                }
+
+                if (workoutResult?.ok) {
+                    emitHexagonUpdate();
+                }
+
+                if (postError) {
+                    Alert.alert("Unable to delete post", "Please try again in a moment.");
+                } else if (workoutError) {
+                    Alert.alert(
+                        "Workout removal incomplete",
+                        "The post was deleted, but the workout is still in your history. Please retry from the workout details screen."
+                    );
+                }
+
+                setPendingDeletePid((current) => (current === postPid ? null : current));
             })();
         };
 
         Alert.alert(
-            "Delete post?",
-            "This will permanently remove the post and its comments.",
+            deleteConfirmTitle,
+            deleteConfirmMessage,
             [
                 { text: "Cancel", style: "cancel" },
                 {
-                    text: "Delete",
+                    text: canAutoDeleteWorkout ? "Delete Post & Workout" : "Delete",
                     style: "destructive",
                     onPress: () => {
                         if (pendingDeletePid) return;
@@ -594,7 +697,7 @@ const SimpleFeedPost = ({
                 },
             ]
         );
-    }, [isViewerOwner, postPid, pendingDeletePid, postOwnerUid, viewerUid]);
+    }, [isViewerOwner, postPid, pendingDeletePid, postOwnerUid, viewerUid, canAutoDeleteWorkout, deleteConfirmTitle, deleteConfirmMessage, workoutDeleteIdentifier]);
 
     const handleBackdropPress = useCallback(() => {
         closeOptionsSheet();
@@ -893,7 +996,7 @@ const SimpleFeedPost = ({
                             </Pressable>
                             <View style={styles.optionsDivider} />
                             <Pressable style={styles.optionsItem} onPress={handlePressDeletePost}>
-                                <Text style={[styles.optionsItemText, styles.optionsItemDeleteText]}>Delete Post</Text>
+                                <Text style={[styles.optionsItemText, styles.optionsItemDeleteText]}>{deleteOptionLabel}</Text>
                             </Pressable>
                         </Animated.View>
                     </View>

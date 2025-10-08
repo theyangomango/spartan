@@ -6,6 +6,7 @@ import {
     ScrollView,
     Pressable,
     Text,
+    Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -19,9 +20,11 @@ import scaleSize from "../helper/scaleSize";
 import makeID from "../../backend/helper/makeID";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import readDoc from "../../backend/helper/firebase/readDoc";
+import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
 import FastImage from "react-native-fast-image";
 import isThisUser from "../helper/isThisUser";
 import { usePfp } from "../helper/usePFPs";
+import { emitHexagonUpdate } from "../utils/hexagonEvents";
 
 const HEADER_ICON_SIZE = scaleSize(20);
 
@@ -80,6 +83,33 @@ const PastWorkoutScreen = () => {
     const [likesSheetVisible, setLikesSheetVisible] = useState(false);
     const [likesSheetUsers, setLikesSheetUsers] = useState([]);
     const [likesSheetTitle, setLikesSheetTitle] = useState("Liked by");
+    const [deletingWorkout, setDeletingWorkout] = useState(false);
+
+    const workoutOwnerUid = useMemo(() => {
+        const candidates = [
+            owner?.uid,
+            workout?.uid,
+            workout?.creatorUid,
+            workout?.creatorUID,
+            workout?.userUid,
+        ];
+        for (const value of candidates) {
+            if (value === undefined || value === null) continue;
+            const str = String(value).trim();
+            if (str) return str;
+        }
+        return "";
+    }, [owner?.uid, workout?.uid, workout?.creatorUid, workout?.creatorUID, workout?.userUid]);
+
+    const viewerUid = (() => {
+        try {
+            return global?.userData?.uid ? String(global.userData.uid) : "";
+        } catch {
+            return "";
+        }
+    })();
+
+    const isOwner = Boolean(viewerUid && workoutOwnerUid && viewerUid === workoutOwnerUid);
 
     const handleBack = () => {
         navigation.goBack();
@@ -359,6 +389,58 @@ const PastWorkoutScreen = () => {
 
     const noop = useCallback(() => { }, []);
 
+    const performDeleteWorkout = useCallback(async () => {
+        if (!isOwner || deletingWorkout) return;
+        const uid = viewerUid;
+        if (!uid) return;
+        const identifier = {
+            wid: workout?.wid ?? workout?.id ?? workout?.workoutId ?? workout?.pid ?? null,
+            created: workout?.created ?? workout?.finishedAt ?? workout?.completedAt ?? workout?.createdAt ?? null,
+        };
+        setDeletingWorkout(true);
+        try {
+            const result = await deleteCompletedWorkout(uid, identifier);
+            if (result?.ok) {
+                try {
+                    if (global?.userData) {
+                        global.userData.completedWorkouts = Array.isArray(result.completedWorkouts) ? result.completedWorkouts : [];
+                        global.userData.statsExercises = result.statsExercises || {};
+                        global.userData.statsHexagon = result.statsHexagon || {};
+                        global.userData.statsHexagonMeta = result.statsHexagonMeta || {};
+                        global.userData.statsTotalVolume = result.statsTotalVolume || 0;
+                        global.userData.statsTotalHours = result.statsTotalHours || 0;
+                        global.userData.statsTotalWorkouts = result.statsTotalWorkouts || 0;
+                        global.userData.workoutsByDate = result.workoutsByDate || {};
+                    }
+                } catch { }
+                emitHexagonUpdate();
+                navigation.goBack();
+            } else {
+                Alert.alert("Delete failed", "Please try again.");
+            }
+        } catch (error) {
+            Alert.alert("Delete failed", "Please try again in a moment.");
+        } finally {
+            setDeletingWorkout(false);
+        }
+    }, [isOwner, deletingWorkout, viewerUid, workout, navigation]);
+
+    const handleRequestDeleteWorkout = useCallback(() => {
+        if (!isOwner || deletingWorkout) return;
+        Alert.alert(
+            "Delete workout?",
+            "This will remove the workout from your history and stats.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: deletingWorkout ? "Deleting..." : "Delete",
+                    style: "destructive",
+                    onPress: performDeleteWorkout,
+                },
+            ]
+        );
+    }, [isOwner, deletingWorkout, performDeleteWorkout]);
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
@@ -368,7 +450,22 @@ const PastWorkoutScreen = () => {
                 <Text style={styles.headerTitle} numberOfLines={1}>
                     Workout Details
                 </Text>
-                <View style={styles.headerRightSpacer} />
+                <View style={styles.headerRight}>
+                    {isOwner ? (
+                        <Pressable
+                            onPress={handleRequestDeleteWorkout}
+                            hitSlop={8}
+                            style={styles.headerIconButton}
+                            disabled={deletingWorkout}
+                        >
+                            <Ionicons
+                                name={deletingWorkout ? "time-outline" : "trash-outline"}
+                                size={HEADER_ICON_SIZE}
+                                color={deletingWorkout ? theme.textSecondary : theme.textPrimary}
+                            />
+                        </Pressable>
+                    ) : null}
+                </View>
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
@@ -492,8 +589,12 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(17),
     },
-    headerRightSpacer: {
-        width: HEADER_ICON_SIZE,
+    headerRight: {
+        width: HEADER_ICON_SIZE + scaleSize(12),
+        alignItems: "flex-end",
+    },
+    headerIconButton: {
+        padding: scaleSize(4),
     },
     content: {
         paddingBottom: scaleSize(28),

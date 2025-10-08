@@ -1220,7 +1220,7 @@ const styles = StyleSheet.create({
     titleDisplaySubText: {
         marginTop: scaleSize(2),
         fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(11),
+        fontSize: scaleSize(12),
         color: theme.textSecondary,
     },
     titleDisplayInput: {

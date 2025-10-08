@@ -37,6 +37,8 @@ import useFilteredFeed from "../helper/useFilteredFeed";
 import useFeedUserData from "./feed/hooks/useFeedUserData";
 import { toMillis as toMillisSafe } from "../utils/friends";
 import deletePost from "../../backend/posts/deletePost";
+import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
+import { emitHexagonUpdate } from "../utils/hexagonEvents";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -245,43 +247,131 @@ export default function Feed({ navigation, route }) {
         const viewerUid = global?.userData?.uid ? String(global.userData.uid) : "";
         const safeUid = ownerUid || viewerUid;
 
+        const workoutDeleteIdentifier = (() => {
+            const workout = post?.workout;
+            if (!workout || typeof workout !== "object") return null;
+            const widCandidates = [
+                workout?.wid,
+                workout?.id,
+                workout?.workoutId,
+                workout?.pid,
+                workout?.postPid,
+            ];
+            let wid = "";
+            for (const value of widCandidates) {
+                if (value === undefined || value === null) continue;
+                const str = String(value).trim();
+                if (str) {
+                    wid = str;
+                    break;
+                }
+            }
+
+            const createdCandidates = [
+                workout?.created,
+                workout?.createdAt,
+                workout?.finishedAt,
+                workout?.completedAt,
+                workout?.startedAt,
+            ];
+            let created = 0;
+            for (const value of createdCandidates) {
+                const ms = toMillisSafe(value);
+                if (ms) {
+                    created = ms;
+                    break;
+                }
+            }
+            if (!wid && !created) return null;
+            return { wid: wid || null, created: created || 0 };
+        })();
+
+        const viewerOwnsPost = viewerUid && safeUid && viewerUid === safeUid;
+        const canDeleteLinkedWorkout = Boolean(viewerOwnsPost && workoutDeleteIdentifier);
+        const deleteTitle = canDeleteLinkedWorkout ? "Delete post & workout?" : "Delete post?";
+        const deleteMessage = canDeleteLinkedWorkout
+            ? "This will delete the post and remove the workout from your history and stats."
+            : "This will permanently remove the post and its comments.";
+
         if (deletingPostPid && deletingPostPid === pid) {
             return;
         }
 
         const executeDelete = async () => {
             setDeletingPostPid(pid);
+            let postError = null;
+            let workoutError = null;
+            let workoutResult = null;
+
             try {
                 await deletePost(pid, safeUid);
-                if (safeUid && global?.userData && String(global.userData.uid) === safeUid) {
-                    try {
-                        if (Array.isArray(global.userData.posts)) {
-                            global.userData.posts = global.userData.posts
-                                .map((value) => (value == null ? value : String(value)))
-                                .filter((value) => value && value !== pid);
-                        }
-                        if (typeof global.userData.postCount === "number") {
-                            global.userData.postCount = Math.max(0, global.userData.postCount - 1);
-                        }
-                    } catch (error) {
-                        console.warn("handleDeletePost: failed to update global userData cache", error);
-                    }
-                }
             } catch (error) {
+                postError = error;
                 console.error("handleDeletePost: deletePost failed", error);
-                Alert.alert("Unable to delete post", "Please try again in a moment.");
-            } finally {
-                setDeletingPostPid((current) => (current === pid ? null : current));
             }
+
+            if (!postError && safeUid && global?.userData && String(global.userData.uid) === safeUid) {
+                try {
+                    if (Array.isArray(global.userData.posts)) {
+                        global.userData.posts = global.userData.posts
+                            .map((value) => (value == null ? value : String(value)))
+                            .filter((value) => value && value !== pid);
+                    }
+                    if (typeof global.userData.postCount === "number") {
+                        global.userData.postCount = Math.max(0, global.userData.postCount - 1);
+                    }
+                } catch (error) {
+                    console.warn("handleDeletePost: failed to update global userData cache", error);
+                }
+            }
+
+            if (!postError && canDeleteLinkedWorkout && safeUid) {
+                try {
+                    const res = await deleteCompletedWorkout(safeUid, workoutDeleteIdentifier);
+                    workoutResult = res;
+                    if (res?.ok && global?.userData && String(global.userData.uid) === safeUid) {
+                        try {
+                            global.userData.completedWorkouts = Array.isArray(res.completedWorkouts) ? res.completedWorkouts : [];
+                            global.userData.statsExercises = res.statsExercises || {};
+                            global.userData.statsHexagon = res.statsHexagon || {};
+                            global.userData.statsHexagonMeta = res.statsHexagonMeta || {};
+                            global.userData.statsTotalVolume = res.statsTotalVolume || 0;
+                            global.userData.statsTotalHours = res.statsTotalHours || 0;
+                            global.userData.statsTotalWorkouts = res.statsTotalWorkouts || 0;
+                            global.userData.workoutsByDate = res.workoutsByDate || {};
+                        } catch (error) {
+                            console.warn("handleDeletePost: failed to update workout stats cache", error);
+                        }
+                    }
+                } catch (error) {
+                    workoutError = error;
+                    console.error("handleDeletePost: deleteCompletedWorkout failed", error);
+                }
+            }
+
+            if (workoutResult?.ok) {
+                emitHexagonUpdate();
+            }
+
+            if (postError) {
+                Alert.alert("Unable to delete post", "Please try again in a moment.");
+            } else if (workoutError) {
+                Alert.alert(
+                    "Workout removal incomplete",
+                    "The post was deleted, but the workout is still in your history. Please retry from the workout details screen."
+                );
+            }
+
+            setDeletingPostPid((current) => (current === pid ? null : current));
         };
 
         Alert.alert(
-            "Delete post?",
-            "This will permanently remove the post and its comments.",
+            deleteTitle,
+            deleteMessage,
             [
                 { text: "Cancel", style: "cancel" },
                 {
-                    text: "Delete",
+                    text: canDeleteLinkedWorkout ? "Delete Post & Workout" : "Delete",
                     style: "destructive",
                     onPress: () => {
                         if (deletingPostPid && deletingPostPid === pid) return;
@@ -290,7 +380,7 @@ export default function Feed({ navigation, route }) {
                 },
             ]
         );
-    }, [listData, deletingPostPid]);
+    }, [listData, deletingPostPid, deletePost, deleteCompletedWorkout, emitHexagonUpdate]);
 
     const handleOpenNotifications = useCallback(() => {
         try {
