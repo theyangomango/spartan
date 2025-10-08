@@ -424,98 +424,100 @@ export default function Chat({ navigation, route }) {
     }, []);
 
     return (
-        <GestureDetector gesture={pan}>
-            <AnimatedKeyboardAvoidingView
-                style={styles.flex}
-                behavior={Platform.OS === "ios" ? "padding" : undefined}
-                keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
-            >
-                <StatusBar barStyle="light-content" />
-                <View style={[styles.container, { paddingTop: insets.top }]}>
-                    <ChatHeader
-                        usersExcludingSelf={headerUsersExcludingSelf}
-                        // toMessages={() => navigation.navigate("Messages", { message: data, index })}
-                        toMessages={() => navigation.goBack()}
-                    />
+        <AnimatedKeyboardAvoidingView
+            style={styles.flex}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+        >
+            <StatusBar barStyle="light-content" />
+            <View style={[styles.container, { paddingTop: insets.top }]}>
+                <ChatHeader
+                    usersExcludingSelf={headerUsersExcludingSelf}
+                    // toMessages={() => navigation.navigate("Messages", { message: data, index })}
+                    toMessages={() => navigation.goBack()}
+                />
 
-                    <View style={styles.surface}>
-                        <FlatList
-                            ref={flatRef}
-                            inverted
-                            CellRendererComponent={Cell}
-                            removeClippedSubviews={false}
-                            data={withSeparators}
-                            keyExtractor={(it, i) =>
-                                it.type === "date"
-                                    ? it.id
-                                    : it.id || it.clientId || it.timestamp?.toString() || `k-${i}`
-                            }
-                            renderItem={renderItem}
-                            style={styles.list}
-                            contentContainerStyle={{
-                                paddingHorizontal: scaleSize(14),
-                                paddingTop: scaleSize(8),
-                                paddingBottom: scaleSize((isFocused ? 4 : 16) + insets.bottom + 72),
-                            }}
-                            keyboardShouldPersistTaps="handled"
-                            keyboardDismissMode="on-drag"
-                            maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
-                            onScrollBeginDrag={Keyboard.dismiss}
-                            showsVerticalScrollIndicator={false}
-                            ListHeaderComponent={<View style={{ height: scaleSize(6) }} />}
-                            ListFooterComponent={<View style={{ height: scaleSize(6) }} />}
-                            scrollEventThrottle={16}
-                            onScroll={(e) => {
-                                try {
-                                    const y = e?.nativeEvent?.contentOffset?.y || 0;
-                                    isNearBottomRef.current = y <= 80; // inverted: 0 is newest
-                                } catch { }
-                            }}
-                        />
-                    </View>
-
-                    {/* input row w/ integrated media button + reply preview */}
-                    <MessageInput
-                        text={text}
-                        setText={setText}
-                        onSend={sendText}
-                        onOpenPicker={openPicker}
-                        isFocused={isFocused}
-                        onFocus={() => setFocused(true)}
-                        onBlur={() => setFocused(false)}
-                        replyDraft={replyDraft}
-                        clearReply={() => setReplyDraft(null)}
-                    />
-
-                    {isUploading && (
-                        <View style={styles.uploadOverlay} pointerEvents="none">
-                            <ActivityIndicator size="small" color={COLORS.text} />
+                <GestureDetector gesture={pan}>
+                    <Animated.View style={styles.flex}>
+                        <View style={styles.surface}>
+                            <FlatList
+                                ref={flatRef}
+                                inverted
+                                CellRendererComponent={Cell}
+                                removeClippedSubviews={false}
+                                data={withSeparators}
+                                keyExtractor={(it, i) =>
+                                    it.type === "date"
+                                        ? it.id
+                                        : it.id || it.clientId || it.timestamp?.toString() || `k-${i}`
+                                }
+                                renderItem={renderItem}
+                                style={styles.list}
+                                contentContainerStyle={{
+                                    paddingHorizontal: scaleSize(14),
+                                    paddingTop: scaleSize(8),
+                                    paddingBottom: scaleSize((isFocused ? 4 : 16) + insets.bottom + 72),
+                                }}
+                                keyboardShouldPersistTaps="handled"
+                                keyboardDismissMode="on-drag"
+                                maintainVisibleContentPosition={{ minIndexForVisible: 1 }}
+                                onScrollBeginDrag={Keyboard.dismiss}
+                                showsVerticalScrollIndicator={false}
+                                ListHeaderComponent={<View style={{ height: scaleSize(6) }} />}
+                                ListFooterComponent={<View style={{ height: scaleSize(6) }} />}
+                                scrollEventThrottle={16}
+                                onScroll={(e) => {
+                                    try {
+                                        const y = e?.nativeEvent?.contentOffset?.y || 0;
+                                        isNearBottomRef.current = y <= 80; // inverted: 0 is newest
+                                    } catch { }
+                                }}
+                            />
                         </View>
-                    )}
 
-                    <ReactionPopover
-                        visible={sheet.visible}
-                        anchor={sheet.anchor}
-                        onClose={closeActions}
-                        reactions={[
-                            { key: "👍", emoji: "👍" },
-                            { key: "❤️", emoji: "❤️" },
-                            { key: "😂", emoji: "😂" },
-                            { key: "😮", emoji: "😮" },
-                        ]}
-                        actions={[
-                            { key: "reply", label: "Reply" },
-                            { key: "copy", label: "Copy" },
-                            { key: "delete", label: "Delete" },
-                        ]}
-                        onReaction={handleReaction}
-                        onAction={handleAction}
-                    />
+                        {/* input row w/ integrated media button + reply preview */}
+                        <MessageInput
+                            text={text}
+                            setText={setText}
+                            onSend={sendText}
+                            onOpenPicker={openPicker}
+                            isFocused={isFocused}
+                            onFocus={() => setFocused(true)}
+                            onBlur={() => setFocused(false)}
+                            replyDraft={replyDraft}
+                            clearReply={() => setReplyDraft(null)}
+                        />
 
-                    <MediaViewerModal visible={!!viewer} payload={viewer} onClose={closeViewer} />
-                </View>
-            </AnimatedKeyboardAvoidingView>
-        </GestureDetector>
+                        {isUploading && (
+                            <View style={styles.uploadOverlay} pointerEvents="none">
+                                <ActivityIndicator size="small" color={COLORS.text} />
+                            </View>
+                        )}
+
+                        <ReactionPopover
+                            visible={sheet.visible}
+                            anchor={sheet.anchor}
+                            onClose={closeActions}
+                            reactions={[
+                                { key: "👍", emoji: "👍" },
+                                { key: "❤️", emoji: "❤️" },
+                                { key: "😂", emoji: "😂" },
+                                { key: "😮", emoji: "😮" },
+                            ]}
+                            actions={[
+                                { key: "reply", label: "Reply" },
+                                { key: "copy", label: "Copy" },
+                                { key: "delete", label: "Delete" },
+                            ]}
+                            onReaction={handleReaction}
+                            onAction={handleAction}
+                        />
+
+                        <MediaViewerModal visible={!!viewer} payload={viewer} onClose={closeViewer} />
+                    </Animated.View>
+                </GestureDetector>
+            </View>
+        </AnimatedKeyboardAvoidingView>
     );
 }
 

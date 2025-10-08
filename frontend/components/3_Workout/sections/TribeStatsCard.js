@@ -7,13 +7,13 @@ import { strong as haptic, burst as burstHaptic } from "../../../utils/haptics";
 import { useCommunityStats, refreshCommunityStats } from "../../../logic/communityStats";
 import { subscribeUserData } from "../../../utils/userDataEvents";
 
-const CARD_BG = "#3E271B";
-const CARD_BORDER = "rgba(255, 223, 186, 0.42)";
-const TEXT_PRIMARY = "#FFF7E8";
-const TEXT_SECONDARY = "rgba(255, 236, 210, 0.78)";
-const DIVIDER_COLOR = "rgba(255, 228, 194, 0.26)";
-const RIPPLE_COLOR = "rgba(255, 236, 204, 0.28)";
-const CARD_GRADIENT = ["#6B3A1F", "#251F30"];
+const CARD_BG = "#2B213C";
+const CARD_GRADIENT = ["#c46f47ce", "#3B2857ce"];
+const CARD_BORDER = "rgba(255, 216, 191, 0.42)";
+const TEXT_PRIMARY = "#FFF8EC";
+const TEXT_SECONDARY = "rgba(255, 236, 218, 0.8)";
+const DIVIDER_COLOR = "rgba(255, 224, 203, 0.32)";
+const RIPPLE_COLOR = "rgba(255, 220, 196, 0.24)";
 
 const formatWithSeparators = (value) => {
     const n = Math.round(Number(value) || 0);

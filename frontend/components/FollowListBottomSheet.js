@@ -28,7 +28,7 @@ function normalizeUser(u) {
 
 export default function FollowListBottomSheet({ isVisible, setIsVisible, title = 'Followers', users = [], navigation }) {
     const bottomSheetRef = useRef(null);
-  const snapPoints = useMemo(() => ['98%'], []);
+    const snapPoints = useMemo(() => ['98%'], []);
     const [list, setList] = useState([]);
     const insets = useSafeAreaInsets();
 
@@ -114,7 +114,7 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
                 detached
                 style={styles.sheet}
                 topInset={insets.top}
-                bottomInset={Math.max(0, insets.bottom)}
+                bottomInset={0}
             >
             <View style={styles.header}>
                 <Text style={styles.title}>{title}</Text>
@@ -147,20 +147,20 @@ const styles = StyleSheet.create({
     },
     title: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(s(16)),
+        fontSize: scaleSize(s(14)),
         color: theme.textPrimary,
     },
     item: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: scaleSize(s(8)),
-        paddingVertical: scaleSize(s(12)),
+        paddingVertical: scaleSize(s(10)),
     },
     pfpC: { width: scaleSize(s(40)), height: scaleSize(s(40)), borderRadius: scaleSize(s(20)), overflow: 'hidden' },
     pfp: { width: '100%', height: '100%', borderRadius: scaleSize(s(20)) },
     textC: { marginLeft: scaleSize(s(10)), flex: 1 },
-    handle: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(s(14)), color: theme.textPrimary },
-    name: { fontFamily: 'Outfit_400Regular', fontSize: scaleSize(s(12.5)), color: theme.textSecondary, marginTop: scaleSize(s(2)) },
+    handle: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(s(13)), color: theme.textPrimary },
+    name: { fontFamily: 'Outfit_400Regular', fontSize: scaleSize(s(11.5)), color: theme.textSecondary, marginTop: scaleSize(s(2)) },
     // start divider aligned with item horizontal padding so it begins left of the pfp
     sep: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginHorizontal: scaleSize(s(2)) },
     backdrop: {
