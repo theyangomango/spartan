@@ -26,6 +26,7 @@ function scaleSize(size) {
 const composeHorizontalPadding = scaleSize(18);
 const avatarSize = scaleSize(36);
 const headerBottomPadding = scaleSize(12);
+const MAX_CAPTION_LINES = 10;
 
 export default function PostOptionsScreen({ navigation, route }) {
     const routeImages = useMemo(() => {
@@ -45,6 +46,10 @@ export default function PostOptionsScreen({ navigation, route }) {
     const insets = useSafeAreaInsets();
     const headerTopPadding = useMemo(() => scaleSize(6) + Math.max(0, insets.top), [insets.top]);
     const userImage = global?.userData?.image;
+    const captionLastValidRef = useRef('');
+    const [measureState, setMeasureState] = useState({ text: ' ', nonce: 0 });
+    const measureRequestRef = useRef(null);
+    const [lineLimitReached, setLineLimitReached] = useState(false);
 
     useEffect(() => {
         setSelectedImages(routeImages);
@@ -103,6 +108,69 @@ export default function PostOptionsScreen({ navigation, route }) {
     function goBack() {
         navigation.goBack();
     }
+
+    const formatMeasureValue = useCallback((value) => {
+        if (!value) return ' ';
+        return value.endsWith('\n') ? `${value} ` : value;
+    }, []);
+
+    const queueMeasure = useCallback((value, type) => {
+        measureRequestRef.current = { text: value, type };
+        setMeasureState((prev) => {
+            const formatted = formatMeasureValue(value);
+            return {
+                text: formatted,
+                nonce: prev.nonce + 1,
+            };
+        });
+    }, [formatMeasureValue]);
+
+    const handleCaptionChange = useCallback((nextValue) => {
+        setCaption(nextValue);
+        queueMeasure(nextValue, 'candidate');
+    }, [queueMeasure]);
+
+    const handleCaptionMeasureLayout = useCallback((event) => {
+        const lines = Array.isArray(event?.nativeEvent?.lines) ? event.nativeEvent.lines.length : 0;
+        const request = measureRequestRef.current;
+
+        if (!request) {
+            const effectiveLines = caption ? lines : 0;
+            setLineLimitReached(effectiveLines >= MAX_CAPTION_LINES);
+            captionLastValidRef.current = caption;
+            return;
+        }
+
+        const targetText = request.text || '';
+        const effectiveLines = targetText ? lines : 0;
+
+        if (request.type === 'candidate') {
+            if (effectiveLines <= MAX_CAPTION_LINES) {
+                captionLastValidRef.current = targetText;
+                setCaption(targetText);
+                setLineLimitReached(effectiveLines >= MAX_CAPTION_LINES);
+                measureRequestRef.current = null;
+                return;
+            }
+
+            setLineLimitReached(true);
+            queueMeasure(captionLastValidRef.current, 'sync');
+            setCaption((prevCaption) => {
+                if (prevCaption === captionLastValidRef.current) return prevCaption;
+                return captionLastValidRef.current;
+            });
+            return;
+        }
+
+        setLineLimitReached(effectiveLines >= MAX_CAPTION_LINES);
+        captionLastValidRef.current = targetText;
+        measureRequestRef.current = null;
+    }, [caption, queueMeasure]);
+
+    useEffect(() => {
+        if (measureRequestRef.current?.type === 'candidate') return;
+        queueMeasure(caption, 'sync');
+    }, [caption, queueMeasure]);
 
     const beginShare = () => setHonestyVisible(true);
 
@@ -261,12 +329,25 @@ export default function PostOptionsScreen({ navigation, route }) {
                             placeholder="What's popping?"
                             placeholderTextColor={theme.textSecondary}
                             value={caption}
-                            onChangeText={setCaption}
+                            onChangeText={handleCaptionChange}
                             style={styles.caption_text}
                             multiline
                             returnKeyType="default"
-                            maxLength={280}
                         />
+                        <Text
+                            key={`caption-measure-${measureState.nonce}`}
+                            style={[styles.caption_text, styles.caption_measure]}
+                            accessible={false}
+                            pointerEvents="none"
+                            onTextLayout={handleCaptionMeasureLayout}
+                        >
+                            {measureState.text}
+                        </Text>
+                        {lineLimitReached && (
+                            <Text style={styles.caption_limit_text}>
+                                Posts can use up to {MAX_CAPTION_LINES} lines.
+                            </Text>
+                        )}
                     </View>
                 </View>
 
@@ -414,13 +495,31 @@ const styles = StyleSheet.create({
     },
     caption_ctnr: {
         flex: 1,
-        marginLeft: scaleSize(12)
+        marginLeft: scaleSize(12),
+        position: 'relative'
     },
     caption_text: {
         fontSize: scaleSize(18),
         fontFamily: 'Outfit_500Medium',
         color: theme.textPrimary,
-        minHeight: avatarSize
+        minHeight: avatarSize,
+        paddingVertical: 0,
+        paddingHorizontal: 0
+    },
+    caption_measure: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: 0,
+        opacity: 0,
+        zIndex: -1,
+        minHeight: 0
+    },
+    caption_limit_text: {
+        marginTop: scaleSize(6),
+        fontSize: scaleSize(12),
+        fontFamily: 'Outfit_400Regular',
+        color: theme.textSecondary
     },
     media_carousel_wrapper: {
         marginTop: scaleSize(18),

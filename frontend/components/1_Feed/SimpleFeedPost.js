@@ -536,7 +536,7 @@ const SimpleFeedPost = ({
                                 {title}
                             </Text>
                             {shouldShowSubtitle ? (
-                                <Text style={styles.captionText} numberOfLines={4}>
+                                <Text style={styles.captionText}>
                                     {caption}
                                 </Text>
                             ) : null}
@@ -547,7 +547,7 @@ const SimpleFeedPost = ({
                                 {title}
                             </Text>
                             {shouldShowSubtitle ? (
-                                <Text style={styles.captionText} numberOfLines={3}>
+                                <Text style={styles.captionText}>
                                     {caption}
                                 </Text>
                             ) : null}

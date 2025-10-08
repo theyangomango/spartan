@@ -656,17 +656,10 @@ const ContributionRow = memo(({ entry, isFirst = false }) => {
         return Math.round(raw);
     }, [entry?.workouts]);
     const contributionSubtext = useMemo(() => {
-        let str = '';
-        if (workoutsCompleted <= 0) {
-            str = weeklyGoal > 0 ? `0/${weeklyGoal} workouts` : "No workouts";
-        }
-        else if (weeklyGoal > 0) {
-            str = `${workoutsCompleted}/${weeklyGoal} workouts`;
-        }
-        else if (workoutsCompleted === 1) str = "1 workout";
-        else str = `${workoutsCompleted} workouts`;
-        return str;
-    }, [weeklyGoal, workoutsCompleted]);
+        if (workoutsCompleted <= 0) return "No workouts";
+        if (workoutsCompleted === 1) return "1 workout";
+        return `${workoutsCompleted} workouts`;
+    }, [workoutsCompleted]);
     const handleLabel = (() => {
         const raw = handleText(entry);
         if (raw) return raw.replace(/^@/, "");
@@ -1203,9 +1196,10 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
 
     const sections = useMemo(() => {
         const data = [];
-        if (liveItems.length) {
-            data.push({ title: "Live Workouts", type: "live", data: liveItems.map((it) => ({ kind: "live", item: it })) });
-        }
+        const liveSectionRows = liveItems.length
+            ? liveItems.map((it) => ({ kind: "live", item: it }))
+            : [{ kind: "livePlaceholder" }];
+        data.push({ title: "Live Workouts", type: "live", data: liveSectionRows });
         if (weeklyContributions.length) {
             data.push({ title: "This Week", type: "summary", data: weeklyContributions.map((entry) => ({ kind: "contribution", entry })) });
         }
@@ -1231,6 +1225,9 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
             if (item?.uid) return `live_${item.uid}_${bestTimestamp(item) || index}`;
             return `live_${index}`;
         }
+        if (row.kind === "livePlaceholder") {
+            return "live_placeholder";
+        }
         if (row.kind === "contribution") {
             return `summary_${row.entry?.uid || index}`;
         }
@@ -1252,6 +1249,17 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                         onSelect={openViewer}
                         highlight={isHighlighted}
                     />
+                </View>
+            );
+        }
+        if (row.kind === "livePlaceholder") {
+            const isLast = index === ((section?.data?.length || 0) - 1);
+            return (
+                <View style={[styles.liveItemWrap, isLast && styles.liveItemWrapLast]}>
+                    <View style={styles.livePlaceholderCard}>
+                        <Text style={styles.livePlaceholderTitle}>No live workouts right now.</Text>
+                        <Text style={styles.livePlaceholderSubtitle}>When friends go live, their sessions will appear here.</Text>
+                    </View>
                 </View>
             );
         }
@@ -1709,6 +1717,30 @@ const styles = StyleSheet.create({
     },
     liveItemWrapLast: {
         marginBottom: 0,
+    },
+    livePlaceholderCard: {
+        paddingVertical: scaleSize(s(12)),
+        paddingHorizontal: scaleSize(s(16)),
+        borderRadius: scaleSize(s(12)),
+        backgroundColor: COLORS.card,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: COLORS.hairline,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: scaleSize(s(6)) },
+        shadowOpacity: 0.07,
+        shadowRadius: scaleSize(s(12)),
+        elevation: 7,
+    },
+    livePlaceholderTitle: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(s(13)),
+        color: COLORS.subtext,
+    },
+    livePlaceholderSubtitle: {
+        marginTop: scaleSize(s(3)),
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(s(12)),
+        color: COLORS.subtext,
     },
 
     contributionCard: {

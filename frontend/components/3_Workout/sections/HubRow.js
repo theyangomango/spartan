@@ -19,6 +19,13 @@ const CARD_BORDER = "rgba(110, 184, 255, 0.38)";
 const CARD_SHEEN = "rgba(148, 208, 255, 0.18)";
 const PROGRESS_TRACK = "rgba(82, 126, 188, 0.46)";
 const PROGRESS_FILL = "#49AFFF";
+const GOAL_MODAL_CARD_BG = theme.surface;
+const GOAL_MODAL_BORDER = "rgba(255, 255, 255, 0.08)";
+const GOAL_MODAL_ACCENT = theme.primary;
+const GOAL_MODAL_BUTTON_BG = theme.field;
+const GOAL_MODAL_BUTTON_BG_PRESSED = "rgba(255, 255, 255, 0.14)";
+const GOAL_MODAL_BUTTON_BG_DISABLED = "rgba(255, 255, 255, 0.06)";
+const GOAL_MODAL_SECONDARY_PRESS = "rgba(255, 255, 255, 0.1)";
 
 function HubRowCmp({
     afterPaint,
@@ -305,6 +312,7 @@ function HubRowCmp({
                         accessibilityLabel="Close goal editor"
                     />
                     <View style={styles.goalModalCard}>
+                        <View style={[styles.goalModalAccent, { backgroundColor: GOAL_MODAL_ACCENT }]} />
                         <Text style={styles.goalModalTitle}>Adjust weekly goal</Text>
                         <Text style={styles.goalModalDescription}>
                             Set how many workouts you aim to complete each week.
@@ -512,7 +520,7 @@ const styles = StyleSheet.create({
     },
     goalModalBackdrop: {
         flex: 1,
-        backgroundColor: "rgba(9, 16, 27, 0.68)",
+        backgroundColor: "rgba(8, 11, 20, 0.82)",
         justifyContent: "center",
         alignItems: "center",
         paddingHorizontal: scaleSize(20),
@@ -523,10 +531,20 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(24),
         paddingVertical: scaleSize(20),
         paddingHorizontal: scaleSize(22),
-        backgroundColor: theme.primaryDeep,
+        backgroundColor: GOAL_MODAL_CARD_BG,
         borderWidth: scaleSize(1),
-        borderColor: "rgba(110, 184, 255, 0.42)",
+        borderColor: GOAL_MODAL_BORDER,
         gap: scaleSize(16),
+        overflow: "hidden",
+    },
+    goalModalAccent: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        height: scaleSize(4),
+        borderTopLeftRadius: scaleSize(24),
+        borderTopRightRadius: scaleSize(24),
     },
     goalModalTitle: {
         color: theme.textPrimary,
@@ -553,13 +571,15 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(20),
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "rgba(79, 146, 211, 0.32)",
+        backgroundColor: GOAL_MODAL_BUTTON_BG,
+        borderWidth: scaleSize(1),
+        borderColor: GOAL_MODAL_BORDER,
     },
     goalAdjustButtonPressed: {
-        backgroundColor: "rgba(79, 146, 211, 0.5)",
+        backgroundColor: GOAL_MODAL_BUTTON_BG_PRESSED,
     },
     goalAdjustButtonDisabled: {
-        backgroundColor: "rgba(79, 146, 211, 0.18)",
+        backgroundColor: GOAL_MODAL_BUTTON_BG_DISABLED,
     },
     goalAdjustButtonSymbol: {
         color: theme.textPrimary,
@@ -595,11 +615,11 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(18),
         borderRadius: scaleSize(999),
         borderWidth: scaleSize(1),
-        borderColor: "rgba(110, 184, 255, 0.42)",
-        backgroundColor: "transparent",
+        borderColor: GOAL_MODAL_BORDER,
+        backgroundColor: theme.field,
     },
     goalModalSecondaryButtonPressed: {
-        backgroundColor: "rgba(73, 175, 255, 0.18)",
+        backgroundColor: GOAL_MODAL_SECONDARY_PRESS,
     },
     goalModalPrimaryButton: {
         paddingVertical: scaleSize(10),
