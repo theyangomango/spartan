@@ -114,6 +114,13 @@ const readUid = (value) => {
     return '';
 };
 
+const normalizeUserRef = (u = {}) => ({
+    uid: String(u?.uid || ''),
+    handle: u?.handle || '',
+    name: u?.name || '',
+    pfp: u?.pfp || '',
+});
+
 export default function NotificationCard({
     item,
     onPressCard,
@@ -163,13 +170,6 @@ export default function NotificationCard({
         return unsubscribe;
     }, [deriveFollowState, item?.type]);
 
-    const normalizeRef = useCallback((u = {}) => ({
-        uid: String(u?.uid || ''),
-        handle: u?.handle || '',
-        name: u?.name || '',
-        pfp: u?.pfp || '',
-    }), []);
-
     const applyFollowStateToGlobal = useCallback((state, otherRef) => {
         const otherUid = readUid(otherRef);
         if (!otherUid) return;
@@ -205,8 +205,8 @@ export default function NotificationCard({
         if (item?.type !== 'follow' || followBusy) return;
         try { haptic(); } catch {}
 
-        const currentUser = normalizeRef(global?.userData || {});
-        const notifUser = normalizeRef(item || {});
+        const currentUser = normalizeUserRef(global?.userData || {});
+        const notifUser = normalizeUserRef(item || {});
         if (!currentUser.uid || !notifUser.uid) return;
 
         const prevState = followState;
@@ -238,7 +238,7 @@ export default function NotificationCard({
         } finally {
             setFollowBusy(false);
         }
-    }, [applyFollowStateToGlobal, followBusy, followState, item, normalizeRef]);
+    }, [applyFollowStateToGlobal, followBusy, followState, item]);
 
     const timeAgo = getDisplayTimeDifference(
         (typeof item?.timestamp === 'number')
@@ -392,6 +392,104 @@ export default function NotificationCard({
     if (isLast) cardStyles.push(styles.lastCard);
     cardStyles.push({ backgroundColor: unread ? cardBgUnread : cardBg });
 
+    const followAction = item.type === "follow"
+        ? (
+            <RNBounceable
+                style={[
+                    styles.actionButton,
+                    { backgroundColor: buttonBg, borderColor: buttonBorder },
+                    isFollowing && { backgroundColor: buttonBgActive, borderColor: buttonBorderActive },
+                    isRequested && { backgroundColor: requestedButtonBg, borderColor: requestedButtonBorder },
+                ]}
+                onPress={handleFollowToggle}
+                disabled={followBusy}
+            >
+                <Text
+                    style={[
+                        styles.actionLabel,
+                        { color: buttonText },
+                        isFollowing && { color: buttonTextActive },
+                        isRequested && { color: requestedButtonText },
+                    ]}
+                >
+                    {isFollowing ? "Following" : isRequested ? "Requested" : "Follow Back"}
+                </Text>
+            </RNBounceable>
+        )
+        : null;
+
+    const workoutInviteAction = showAcceptAction
+        ? (
+            <Pressable
+                style={[
+                    styles.actionButton,
+                    styles.inviteAcceptBtn,
+                    { backgroundColor: solidButtonBg, borderColor: buttonBorderActive },
+                    (inviteAccepted || acceptingInvite) && {
+                        backgroundColor: solidButtonBgDisabled,
+                        borderColor: buttonBorder,
+                    },
+                ]}
+                onPress={handleAcceptInvite}
+                disabled={inviteAccepted || acceptingInvite}
+                hitSlop={10}
+            >
+                <Text
+                    style={[
+                        styles.actionLabel,
+                        { color: theme.textPrimary },
+                        (inviteAccepted || acceptingInvite) && { color: withAlpha(theme.textPrimary, 0.8) },
+                    ]}
+                >
+                    {inviteAccepted ? "Accepted" : acceptingInvite ? "Accepting…" : "Accept"}
+                </Text>
+            </Pressable>
+        )
+        : null;
+
+    const followRequestActions = showFollowRequestActions
+        ? (
+            <View style={styles.requestActionsWrap}>
+                {requestHandled ? (
+                    <Text style={styles.requestHandledText}>
+                        {requestStatus === 'accepted' ? 'Accepted' : 'Declined'}
+                    </Text>
+                ) : (
+                    <>
+                        <Pressable
+                            style={[
+                                styles.actionButton,
+                                styles.requestActionBtn,
+                                { backgroundColor: buttonBgActive, borderColor: buttonBorderActive },
+                                respondingRequest && styles.requestActionDisabled,
+                            ]}
+                            onPress={handleAcceptFollowRequest}
+                            disabled={respondingRequest}
+                            hitSlop={10}
+                        >
+                            <Text style={[styles.actionLabel, { color: buttonTextActive }]}>
+                                {respondingRequest ? 'One moment…' : 'Accept'}
+                            </Text>
+                        </Pressable>
+                        <Pressable
+                            style={[
+                                styles.actionButton,
+                                styles.requestActionBtn,
+                                { backgroundColor: neutralButtonBg, borderColor: neutralButtonBorder },
+                                respondingRequest && styles.requestActionDisabled,
+                            ]}
+                            onPress={handleDeclineFollowRequest}
+                            disabled={respondingRequest}
+                            hitSlop={10}
+                        >
+                            <Text style={[styles.actionLabel, { color: neutralButtonText }]}>Decline</Text>
+                        </Pressable>
+                    </>
+                )}
+            </View>
+        )
+        : null;
+
     return (
         <Pressable style={({ pressed }) => [styles.pressable, pressed && styles.pressablePressed]} onPress={withStrongPress(onPressCard)}>
             <View style={cardStyles}>
@@ -442,96 +540,9 @@ export default function NotificationCard({
                     </Text>
                 </View>
 
-                {/* follow action */}
-                {item.type === "follow" && (
-                    <RNBounceable
-                        style={[
-                            styles.followBtn,
-                            { backgroundColor: buttonBg, borderColor: buttonBorder },
-                            isFollowing && { backgroundColor: buttonBgActive, borderColor: buttonBorderActive },
-                            isRequested && { backgroundColor: requestedButtonBg, borderColor: requestedButtonBorder },
-                        ]}
-                        onPress={handleFollowToggle}
-                        disabled={followBusy}
-                    >
-                        <Text
-                            style={[
-                                styles.followText,
-                                { color: buttonText },
-                                isFollowing && { color: buttonTextActive },
-                                isRequested && { color: requestedButtonText },
-                            ]}
-                        >
-                            {isFollowing ? "Following" : isRequested ? "Requested" : "Follow Back"}
-                        </Text>
-                    </RNBounceable>
-                )}
-                {showAcceptAction && (
-                    <Pressable
-                        style={[
-                            styles.inviteAcceptBtn,
-                            { backgroundColor: solidButtonBg, borderColor: buttonBorderActive },
-                            (inviteAccepted || acceptingInvite) && {
-                                backgroundColor: solidButtonBgDisabled,
-                                borderColor: buttonBorder,
-                            },
-                        ]}
-                        onPress={handleAcceptInvite}
-                        disabled={inviteAccepted || acceptingInvite}
-                        hitSlop={10}
-                    >
-                        <Text
-                            style={[
-                                styles.inviteAcceptText,
-                                { color: theme.textPrimary },
-                                (inviteAccepted || acceptingInvite) && { color: withAlpha(theme.textPrimary, 0.8) },
-                            ]}
-                        >
-                            {inviteAccepted ? "Accepted" : acceptingInvite ? "Accepting…" : "Accept"}
-                        </Text>
-                    </Pressable>
-                )}
-                {showFollowRequestActions && (
-                    <View style={styles.requestActionsWrap}>
-                        {requestHandled ? (
-                            <Text style={styles.requestHandledText}>
-                                {requestStatus === 'accepted' ? 'Accepted' : 'Declined'}
-                            </Text>
-                        ) : (
-                            <>
-                                <Pressable
-                                    style={[
-                                        styles.requestActionBtn,
-                                        { backgroundColor: buttonBgActive, borderColor: buttonBorderActive },
-                                        respondingRequest && styles.requestActionDisabled,
-                                    ]}
-                                    onPress={handleAcceptFollowRequest}
-                                    disabled={respondingRequest}
-                                    hitSlop={10}
-                                >
-                                    <Text style={[styles.requestAcceptText, { color: buttonTextActive }]}>
-                                        {respondingRequest ? 'One moment…' : 'Accept'}
-                                    </Text>
-                                </Pressable>
-                                <Pressable
-                                    style={[
-                                        styles.requestActionBtn,
-                                        { backgroundColor: neutralButtonBg, borderColor: neutralButtonBorder },
-                                        { marginLeft: scaleSize(6) },
-                                        respondingRequest && styles.requestActionDisabled,
-                                    ]}
-                                    onPress={handleDeclineFollowRequest}
-                                    disabled={respondingRequest}
-                                    hitSlop={10}
-                                >
-                                    <Text style={[styles.requestDeclineText, { color: neutralButtonText }]}>Decline</Text>
-                                </Pressable>
-                            </>
-                        )}
-
-                    </View>
-
-                )}
+                {followAction}
+                {workoutInviteAction}
+                {followRequestActions}
 
                 <View style={styles.trailingColumn}>
                     {unread && <View style={[styles.unreadDot, { backgroundColor: accent }]} />}
@@ -602,13 +613,13 @@ const styles = StyleSheet.create({
     textContainer: { flex: 1, minWidth: 0, paddingRight: scaleSize(12) },
     topRow: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(1) },
     handle: {
-        fontSize: scaleSize(13.5),
+        fontSize: scaleSize(13),
         fontFamily: "Outfit_600SemiBold",
         color: theme.textPrimary,
         maxWidth: '100%'
     },
     message: {
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(12),
         color: theme.textSecondary,
         fontFamily: "Outfit_400Regular",
         lineHeight: scaleSize(20),
@@ -626,52 +637,28 @@ const styles = StyleSheet.create({
     },
     unreadDot: { width: scaleSize(7), height: scaleSize(7), borderRadius: scaleSize(7) / 2, marginBottom: scaleSize(6) },
 
-    followBtn: {
+    actionButton: {
         paddingVertical: scaleSize(8),
         paddingHorizontal: scaleSize(12),
         borderRadius: scaleSize(14),
         marginLeft: scaleSize(12),
         borderWidth: scaleSize(1),
-    },
-    followText: {
-        fontSize: scaleSize(12.5),
-        fontFamily: "Outfit_700Bold",
-    },
-    inviteAcceptBtn: {
-        marginLeft: scaleSize(10),
-        paddingHorizontal: scaleSize(16),
-        paddingVertical: scaleSize(7),
-        borderRadius: scaleSize(999),
         alignItems: "center",
         justifyContent: "center",
-        minWidth: scaleSize(74),
-        borderWidth: StyleSheet.hairlineWidth,
     },
-    inviteAcceptText: {
+    actionLabel: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(12.5),
+        fontSize: scaleSize(11),
+    },
+    inviteAcceptBtn: {
+        minWidth: scaleSize(74),
     },
     requestActionsWrap: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginLeft: scaleSize(12),
     },
     requestActionBtn: {
-        paddingHorizontal: scaleSize(14),
-        paddingVertical: scaleSize(7),
-        borderRadius: scaleSize(999),
-        borderWidth: StyleSheet.hairlineWidth,
         minWidth: scaleSize(74),
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    requestAcceptText: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(12),
-    },
-    requestDeclineText: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(12),
     },
     requestActionDisabled: {
         opacity: 0.6,
