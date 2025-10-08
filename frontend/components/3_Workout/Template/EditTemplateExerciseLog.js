@@ -12,8 +12,9 @@ import workoutTypography from "../shared/workoutTypography";
 
 export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, readOnly = false }) {
     const [isPanelVisible, setIsPanelVisible] = useState(false);
-    const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0 });
+    const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0, anchorX: null });
     const fadeAnim = useRef(new Animated.Value(1)).current;
+    const optionsAnchorRef = useRef(null);
 
     // Muscle badge removed for Edit Template modal
 
@@ -21,12 +22,33 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
         if (readOnly) return;
         if (isPanelVisible) {
             setIsPanelVisible(false);
-        } else {
+            return;
+        }
+
+        const fallbackTop = scaleSize((event?.nativeEvent?.pageY ?? 0) + 25);
+        const fallbackLeft = scaleSize(18);
+        const openWithPosition = (pos) => {
+            setPanelPosition(pos);
             setIsPanelVisible(true);
-            setPanelPosition({
-                top: scaleSize(event.nativeEvent.pageY + 25),
-                left: scaleSize(18)
-            });
+        };
+
+        if (optionsAnchorRef.current?.measureInWindow) {
+            try {
+                optionsAnchorRef.current.measureInWindow((x, y, width, height) => {
+                    if (typeof x === "number" && typeof y === "number" && typeof width === "number") {
+                        openWithPosition({
+                            top: (y || 0) + (height || 0) + scaleSize(12),
+                            anchorX: (x || 0) + (width || 0) / 2,
+                        });
+                    } else {
+                        openWithPosition({ top: fallbackTop, left: fallbackLeft, anchorX: null });
+                    }
+                });
+            } catch {
+                openWithPosition({ top: fallbackTop, left: fallbackLeft, anchorX: null });
+            }
+        } else {
+            openWithPosition({ top: fallbackTop, left: fallbackLeft, anchorX: null });
         }
     };
 
@@ -67,13 +89,19 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
                 />
             )}
             <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
-                <Pressable
-                    style={styles.nameContainer}
-                    onPress={withStrongPress(togglePanel)}
-                    disabled={readOnly}
-                >
+                <View style={styles.nameContainer}>
                     <Text style={workoutTypography.exerciseName} numberOfLines={1}>{name}</Text>
-                </Pressable>
+                </View>
+                {!readOnly && (
+                    <Pressable
+                        ref={optionsAnchorRef}
+                        onPress={withStrongPress(togglePanel)}
+                        hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                        style={styles.optionsButton}
+                    >
+                        <Entypo name="menu" size={scaleSize(14)} color={theme.primary} />
+                    </Pressable>
+                )}
 
                 {/* <View style={styles.pfpContainer}>
                     <Image style={styles.pfp} source={{ uri: global.userData.image }} />
@@ -131,14 +159,25 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingLeft: scaleSize(20),
+        paddingRight: scaleSize(14),
         paddingBottom: scaleSize(10),
         marginHorizontal: scaleSize(2.5),
     },
     nameContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        flexShrink: 1,
+        flex: 1,
         marginRight: scaleSize(10),
+    },
+    optionsButton: {
+        backgroundColor: theme.restPillBg,
+        borderRadius: scaleSize(10),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.primaryHairline,
+        height: scaleSize(26),
+        width: scaleSize(32),
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     // muscle_ctnr and muscle_text removed
     pfpContainer: {

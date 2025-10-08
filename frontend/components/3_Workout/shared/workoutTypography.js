@@ -6,7 +6,7 @@ export const workoutTypography = StyleSheet.create({
     exerciseName: {
         fontFamily: "Mulish_800ExtraBold",
         color: theme.primary,
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(14),
         flexShrink: 1,
     },
     muscleLabel: {

@@ -314,7 +314,7 @@ function ExerciseLog({
                         hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
                         style={styles.optionsButton}
                     >
-                        <Entypo name="menu" size={scaleSize(18)} color={theme.primary} />
+                        <Entypo name="menu" size={scaleSize(14)} color={theme.primary} />
                     </Pressable>
                 )}
             </Animated.View>
