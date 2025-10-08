@@ -1,8 +1,7 @@
 // components/3_Workout/sections/StartCluster.jsx
 import React, { memo, useMemo, useCallback } from "react";
 import { View, StyleSheet, Animated, useWindowDimensions } from "react-native";
-import { AddSquare } from "iconsax-react-native";
-import { Feather } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import StartOpenButton from "../ui/StartOpenButton";
 import { ROW_WIDTH, SMALL_SIZE } from "./workoutTheme";
 import scaleSize from "../../../helper/scaleSize";
@@ -33,7 +32,7 @@ const StartCluster = ({
         <View style={[styles.wrap, containerStyle]} pointerEvents="box-none">
             <View style={styles.actionsRow} pointerEvents="box-none">
                 <View style={[styles.sideButton, styles.sideButtonOffset]}>
-                    <AddSquare size={24} color="#E5E7EB" />
+                    <Ionicons name="barcode-outline" size={24} color="#E5E7EB" />
                 </View>
                 <Animated.View style={{ transform: [{ scale }] }}>
                     <StartOpenButton
@@ -44,7 +43,7 @@ const StartCluster = ({
                     />
                 </Animated.View>
                 <View style={[styles.sideButton, styles.sideButtonOffset]}>
-                    <Feather name="users" size={21} color="#E5E7EB" />
+                    <Feather name="plus" size={23} color="#E5E7EB" />
                 </View>
             </View>
         </View>
