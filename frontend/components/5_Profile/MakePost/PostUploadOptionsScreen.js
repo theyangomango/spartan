@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Dimensions, FlatList } from "react-native";
+import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Dimensions, FlatList, Alert } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import FastImage from 'react-native-fast-image';
@@ -9,6 +9,8 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import uploadResumableNative from "../../../../backend/storage/uploadResumableNative";
 import createPost from "../../../../backend/posts/createPost";
 import arrayAppend from "../../../../backend/helper/firebase/arrayAppend";
+import updateDoc from "../../../../backend/helper/firebase/updateDoc";
+import readDoc from "../../../../backend/helper/firebase/readDoc";
 import { compressUnder250KB } from "./compressUnder250KB";
 import PostHonestyModal from "./PostHonestyModal";
 import theme from '../../../theme/mfpDark';
@@ -29,13 +31,29 @@ const headerBottomPadding = scaleSize(12);
 const MAX_CAPTION_LINES = 10;
 
 export default function PostOptionsScreen({ navigation, route }) {
+    const editingPost = route?.params?.editingPost || null;
+    const isEditing = Boolean(editingPost?.pid);
+    const editingPid = isEditing ? String(editingPost.pid) : null;
+
     const routeImages = useMemo(() => {
         const incoming = route?.params?.images;
+        if (Array.isArray(incoming) && incoming.length > 0) {
+            return incoming.filter(Boolean);
+        }
+        if (isEditing) {
+            const fromMedia = Array.isArray(editingPost?.media)
+                ? editingPost.media.map((entry) => (typeof entry === "string" ? entry : entry?.uri)).filter(Boolean)
+                : [];
+            const fromImages = Array.isArray(editingPost?.images)
+                ? editingPost.images.map((entry) => (typeof entry === "string" ? entry : entry?.uri)).filter(Boolean)
+                : [];
+            return Array.from(new Set([...fromMedia, ...fromImages]));
+        }
         return Array.isArray(incoming) ? incoming.filter(Boolean) : [];
-    }, [route?.params?.images]);
+    }, [route?.params?.images, isEditing, editingPost]);
     const workoutParam = route?.params?.workout;
 
-    const [caption, setCaption] = useState('');
+    const [caption, setCaption] = useState(() => (isEditing && typeof editingPost?.caption === 'string') ? editingPost.caption : '');
     const [isSharing, setIsSharing] = useState(false);
     const [honestyVisible, setHonestyVisible] = useState(false);
     const [mediaIndex, setMediaIndex] = useState(0);
@@ -172,7 +190,13 @@ export default function PostOptionsScreen({ navigation, route }) {
         queueMeasure(caption, 'sync');
     }, [caption, queueMeasure]);
 
-    const beginShare = () => setHonestyVisible(true);
+    const beginShare = () => {
+        if (isEditing) {
+            sharePost();
+        } else {
+            setHonestyVisible(true);
+        }
+    };
 
     const handleOpenSelectPhotos = useCallback(() => {
         const params = { initialImages: mediaList };
@@ -183,17 +207,25 @@ export default function PostOptionsScreen({ navigation, route }) {
     async function sharePost() {
         if (isSharing || sharePromiseRef.current) return;
 
+        const trimmedCaption = caption.trim();
+        if (!trimmedCaption) {
+            Alert.alert('Caption required', 'Please enter a caption before saving.');
+            return;
+        }
+
+        if (isEditing && !editingPid) {
+            Alert.alert('Unable to edit post', 'Missing post identifier.');
+            return;
+        }
+
         setIsSharing(true);
 
-        const currentImages = mediaList;
-        const hasImagesToUpload = currentImages.length > 0;
-
-        const pid = makeID();
-        const previousPosts = global?.userData && Array.isArray(global.userData.posts)
+        const pid = isEditing ? editingPid : makeID();
+        const previousPosts = !isEditing && global?.userData && Array.isArray(global.userData.posts)
             ? [...global.userData.posts]
             : null;
         let appendedOptimistically = false;
-        if (global?.userData) {
+        if (!isEditing && global?.userData) {
             const existing = Array.isArray(global.userData.posts) ? global.userData.posts : [];
             if (!existing.includes(pid)) {
                 global.userData.posts = [...existing, pid];
@@ -201,14 +233,23 @@ export default function PostOptionsScreen({ navigation, route }) {
             }
         }
 
+        const currentImages = mediaList;
+
         const runShare = async () => {
             try {
-                const uploads = hasImagesToUpload ? await Promise.all(currentImages.map(async (image, index) => {
+                const processedMedia = await Promise.all(currentImages.map(async (image, index) => {
+                    const uri = typeof image === 'string' ? image : image?.uri;
+                    if (!uri) return null;
+
+                    if (/^https?:\/\//i.test(uri)) {
+                        return { index, uri };
+                    }
+
                     try {
-                        let compressedUri = await compressUnder250KB(image);
+                        let compressedUri = await compressUnder250KB(uri);
                         if (!compressedUri || !compressedUri.startsWith('file://')) {
                             const tmp = await ImageManipulator.manipulateAsync(
-                                compressedUri || image,
+                                compressedUri || uri,
                                 [],
                                 { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
                             );
@@ -223,42 +264,95 @@ export default function PostOptionsScreen({ navigation, route }) {
                         const id = makeID();
                         const path = `posts/${pid}-${id}.${ext}`;
                         const { url } = await uploadResumableNative({ fileUri: compressedUri, path, mime });
-                        return { index, url };
+                        return { index, uri: url };
                     } catch (error) {
                         console.error(`Error processing image ${index + 1}:`, error);
                         return null;
                     }
-                })) : [];
+                }));
 
-                const media = hasImagesToUpload
-                    ? uploads
-                        .filter(Boolean)
-                        .sort((a, b) => a.index - b.index)
-                        .map(({ url }) => ({ uri: url, type: 'image' }))
-                    : [];
+                const media = processedMedia
+                    .filter(Boolean)
+                    .sort((a, b) => a.index - b.index)
+                    .map(({ uri }) => ({ uri, type: 'image' }));
 
-                const uid = global?.userData?.uid;
-                if (!uid) throw new Error('Missing user UID for createPost');
+                if (isEditing) {
+                    const latest = await readDoc('posts', pid);
+                    if (!latest) throw new Error('Post not found');
 
-                await createPost(
-                    uid,
-                    global?.userData?.handle,
-                    global?.userData?.image,
-                    caption,
-                    media,
-                    pid,
-                    null
-                );
+                    const now = Date.now();
+                    const commentsRaw = Array.isArray(latest.comments) ? latest.comments : [];
+                    const hadCaption = commentsRaw.some((comment) => comment?.isCaption);
+                    const updatedComments = commentsRaw.map((comment) => (
+                        comment?.isCaption
+                            ? { ...comment, content: trimmedCaption, timestamp: now }
+                            : { ...comment }
+                    ));
 
-                await Promise.allSettled([
-                    arrayAppend('users', uid, 'posts', pid),
-                    arrayAppend('global', 'posts', 'PIDs', pid),
-                ]);
+                    if (!hadCaption) {
+                        const authorHandleRaw = typeof latest.handle === 'string' ? latest.handle : (global?.userData?.handle || '');
+                        const normalizedHandle = authorHandleRaw.startsWith('@') ? authorHandleRaw.slice(1) : authorHandleRaw;
+                        updatedComments.unshift({
+                            content: trimmedCaption,
+                            handle: normalizedHandle,
+                            isCaption: true,
+                            pfp: latest.pfp || global?.userData?.image || '',
+                            timestamp: now,
+                            uid: latest.uid || global?.userData?.uid || null,
+                        });
+                    }
+
+                let commentCount = Number(latest.commentCount);
+                if (!Number.isFinite(commentCount)) {
+                    commentCount = updatedComments.length;
+                } else if (!hadCaption) {
+                    commentCount += 1;
+                }
+
+                    await updateDoc('posts', pid, {
+                        caption: trimmedCaption,
+                        media,
+                        images: media.map((entry) => entry.uri),
+                        comments: updatedComments,
+                        commentCount,
+                        updatedAt: now,
+                    });
+
+                    navigation.goBack();
+                } else {
+                    const uid = global?.userData?.uid;
+                    if (!uid) throw new Error('Missing user UID for createPost');
+
+                    await createPost(
+                        uid,
+                        global?.userData?.handle,
+                        global?.userData?.image,
+                        trimmedCaption,
+                        media,
+                        pid,
+                        null
+                    );
+
+                    await Promise.allSettled([
+                        arrayAppend('users', uid, 'posts', pid),
+                        arrayAppend('global', 'posts', 'PIDs', pid),
+                    ]);
+
+                    setTimeout(() => {
+                        try {
+                            const { jumpToTab } = require('../../../../navigationRef');
+                            jumpToTab('Feed');
+                        } catch {
+                            navigation.navigate('Tabs', { screen: 'Feed' });
+                        }
+                    }, 0);
+                }
             } catch (error) {
                 console.error('sharePost failed', error);
-                if (appendedOptimistically && global?.userData) {
+                if (!isEditing && appendedOptimistically && global?.userData) {
                     global.userData.posts = previousPosts ?? [];
                 }
+                Alert.alert('Post failed', 'We could not save your post. Please try again.');
             } finally {
                 sharePromiseRef.current = null;
                 if (isMountedRef.current) {
@@ -268,18 +362,9 @@ export default function PostOptionsScreen({ navigation, route }) {
         };
 
         sharePromiseRef.current = runShare();
-
-        setTimeout(() => {
-            try {
-                const { jumpToTab } = require('../../../../navigationRef');
-                jumpToTab('Feed');
-            } catch {
-                navigation.navigate('Tabs', { screen: 'Feed' });
-            }
-        }, 0);
     }
 
-    const shareDisabled = caption.length === 0 || isSharing;
+    const shareDisabled = caption.trim().length === 0 || isSharing;
 
     return (
         <View style={styles.main_ctnr}>
@@ -291,7 +376,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     style={[styles.header_title_ctnr, { top: headerTopPadding, bottom: headerBottomPadding }]}
                     pointerEvents="none"
                 >
-                    <Text style={styles.header_text}>New Post</Text>
+                    <Text style={styles.header_text}>{isEditing ? 'Edit Post' : 'New Post'}</Text>
                 </View>
                 <TouchableOpacity
                     onPress={withStrongPress(beginShare)}
@@ -300,7 +385,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     disabled={shareDisabled}
                 >
                     <Text style={[styles.share_btn_text, shareDisabled && styles.share_btn_text_disabled]}>
-                        {isSharing ? 'Posting...' : 'Post'}
+                        {isSharing ? (isEditing ? 'Saving...' : 'Posting...') : (isEditing ? 'Save' : 'Post')}
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -408,11 +493,13 @@ export default function PostOptionsScreen({ navigation, route }) {
                 )}
             </ScrollView>
 
-            <PostHonestyModal
-                visible={honestyVisible}
-                onCancel={() => setHonestyVisible(false)}
-                onConfirm={() => { setHonestyVisible(false); sharePost(); }}
-            />
+            {!isEditing && (
+                <PostHonestyModal
+                    visible={honestyVisible}
+                    onCancel={() => setHonestyVisible(false)}
+                    onConfirm={() => { setHonestyVisible(false); sharePost(); }}
+                />
+            )}
         </View>
     );
 }

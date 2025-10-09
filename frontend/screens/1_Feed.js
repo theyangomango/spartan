@@ -40,6 +40,7 @@ import { toMillis as toMillisSafe } from "../utils/friends";
 import deletePost from "../../backend/posts/deletePost";
 import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
+import readDoc from "../../backend/helper/firebase/readDoc";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -383,6 +384,66 @@ export default function Feed({ navigation, route }) {
         );
     }, [listData, deletingPostPid, deletePost, deleteCompletedWorkout, emitHexagonUpdate]);
 
+    const handleEditPost = useCallback(async (index) => {
+        if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
+            return;
+        }
+
+        const post = listData[index];
+        if (!post) return;
+
+        if (post?.workout) {
+            Alert.alert("Editing unavailable", "Editing workout posts isn't supported yet.");
+            return;
+        }
+
+        const pid = String(post?.pid || post?.id || "").trim();
+        if (!pid) return;
+
+        let latest = post;
+        try {
+            const fetched = await readDoc("posts", pid);
+            if (fetched) latest = fetched;
+        } catch (error) {
+            console.warn("handleEditPost: failed to fetch latest post", error);
+        }
+
+        const resolvedCaption = (() => {
+            if (typeof latest.caption === "string" && latest.caption.trim()) {
+                return latest.caption;
+            }
+            const captionComment = Array.isArray(latest.comments)
+                ? latest.comments.find((comment) => comment?.isCaption && typeof comment?.content === "string")
+                : null;
+            return captionComment?.content || "";
+        })();
+
+        const mediaUris = [];
+        if (Array.isArray(latest.media)) {
+            latest.media.forEach((entry) => {
+                const uri = typeof entry === "string" ? entry : entry?.uri;
+                if (uri) mediaUris.push(uri);
+            });
+        }
+        if (Array.isArray(latest.images)) {
+            latest.images.forEach((entry) => {
+                const uri = typeof entry === "string" ? entry : entry?.uri;
+                if (uri) mediaUris.push(uri);
+            });
+        }
+
+        const uniqueMedia = Array.from(new Set(mediaUris));
+
+        navigation.navigate("PostOptions", {
+            images: uniqueMedia,
+            editingPost: {
+                pid,
+                caption: resolvedCaption,
+                media: uniqueMedia,
+            },
+        });
+    }, [listData, navigation]);
+
     const handleOpenNotifications = useCallback(() => {
         try {
             navigation?.navigate?.("Notifications", { transition: "slide-from-right" });
@@ -610,8 +671,9 @@ export default function Feed({ navigation, route }) {
             toViewProfilePosts={toViewProfilePosts}
             openViewWorkoutModal={openViewWorkoutModal}
             onDeletePost={handleDeletePost}
+            onEditPost={handleEditPost}
         />
-    ), [highlightSignal, openCommentsModal, openShareModal, openLikesSheet, toViewProfilePosts, openViewWorkoutModal, handleDeletePost]);
+    ), [highlightSignal, openCommentsModal, openShareModal, openLikesSheet, toViewProfilePosts, openViewWorkoutModal, handleDeletePost, handleEditPost]);
 
     const headerComponent = useMemo(() => (
         <FeedHeader
