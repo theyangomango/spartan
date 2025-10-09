@@ -1,6 +1,6 @@
 import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.config";
-import { computeHexagonFromStats } from "../../functions/computeHexagon";
+import computeHexagonFromStats from "../../functions/computeHexagon.js";
 
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
