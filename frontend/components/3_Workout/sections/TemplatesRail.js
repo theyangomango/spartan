@@ -91,7 +91,6 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                                     end={{ x: 1, y: 1 }}
                                     style={styles.cardBackground}
                                 />
-                                <View style={styles.emptySheen} />
                                 <View style={styles.emptyIconWrap}>
                                     <Ionicons name="add" size={18} color="#F4F8FF" />
                                 </View>
@@ -113,7 +112,6 @@ function TemplatesRail({ templates = [], onIndexChange, onAddTemplate, onOpenTem
                                     end={{ x: 1, y: 1 }}
                                     style={styles.cardBackground}
                                 />
-                                <View style={styles.templateSheen} />
                                 <View style={styles.templateIconWrap}>
                                     <Weight size={scaleSize(21)} color={TEMPLATE_ICON_COLOR} variant="Broken" />
                                 </View>
@@ -199,10 +197,8 @@ export default memo(TemplatesRail, eq);
 
 const TEMPLATE_CARD_GRADIENT = ["#203662", "#101C34"];
 const TEMPLATE_CARD_BORDER = "rgba(126, 208, 255, 0.45)";
-const TEMPLATE_CARD_SHEEN = "rgba(102, 188, 255, 0.16)";
 const EMPTY_CARD_GRADIENT = ["rgba(28, 48, 78, 0.96)", "rgba(14, 26, 46, 0.96)"];
 const EMPTY_CARD_BORDER = "rgba(130, 204, 255, 0.46)";
-const EMPTY_CARD_SHEEN = "rgba(96, 174, 255, 0.14)";
 const TEMPLATE_ICON_BG = "rgba(82, 148, 232, 0.32)";
 const TEMPLATE_ICON_BORDER = "rgba(150, 212, 255, 0.5)";
 const TEMPLATE_ICON_COLOR = "#F4F8FF";
@@ -287,18 +283,6 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(22),
         pointerEvents: "none",
     },
-    templateSheen: {
-        position: "absolute",
-        top: -scaleSize(60),
-        right: -scaleSize(50),
-        width: scaleSize(176),
-        height: scaleSize(176),
-        borderRadius: scaleSize(90),
-        backgroundColor: TEMPLATE_CARD_SHEEN,
-        opacity: 0.75,
-        transform: [{ rotate: "25deg" }],
-        pointerEvents: "none",
-    },
     templateIconWrap: {
         width: scaleSize(32),
         height: scaleSize(32),
@@ -368,17 +352,6 @@ const styles = StyleSheet.create({
         justifyContent: "flex-start",
         gap: scaleSize(18),
         overflow: "hidden",
-    },
-    emptySheen: {
-        position: "absolute",
-        bottom: -scaleSize(54),
-        left: -scaleSize(26),
-        width: scaleSize(165),
-        height: scaleSize(165),
-        borderRadius: scaleSize(82),
-        backgroundColor: EMPTY_CARD_SHEEN,
-        opacity: 0.75,
-        pointerEvents: "none",
     },
     emptyIconWrap: {
         width: scaleSize(32),

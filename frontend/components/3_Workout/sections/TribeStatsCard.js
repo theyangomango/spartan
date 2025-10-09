@@ -8,7 +8,7 @@ import { useCommunityStats, refreshCommunityStats } from "../../../logic/communi
 import { subscribeUserData } from "../../../utils/userDataEvents";
 
 const CARD_BG = "#2B213C";
-const CARD_GRADIENT = ["#c46f47ce", "#3B2857ce"];
+const CARD_GRADIENT = ["#c46f47aa", "#3B2857aa"];
 const CARD_BORDER = "rgba(255, 216, 191, 0.42)";
 const TEXT_PRIMARY = "#FFF8EC";
 const TEXT_SECONDARY = "rgba(255, 236, 218, 0.8)";
