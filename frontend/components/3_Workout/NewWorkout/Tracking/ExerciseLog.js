@@ -218,7 +218,11 @@ function ExerciseLog({
     const genLocalId = useCallback(() => `${name}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`, [name]);
 
     const addSet = withLayout(() => {
-        const next = [...(setsRef.current || []), { id: genLocalId(), weight: 0, reps: 0, isDone: false }];
+        const current = setsRef.current || [];
+        const lastSet = current[current.length - 1] || null;
+        const defaultWeight = lastSet && Object.prototype.hasOwnProperty.call(lastSet, "weight") ? lastSet.weight : 0;
+        const defaultReps = lastSet && Object.prototype.hasOwnProperty.call(lastSet, "reps") ? lastSet.reps : 0;
+        const next = [...current, { id: genLocalId(), weight: defaultWeight, reps: defaultReps, isDone: false }];
         setDraft(next);
         setsRef.current = next;
         flushNextFrame(next);
