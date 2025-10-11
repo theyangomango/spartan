@@ -398,7 +398,6 @@ export default function NotificationCard({
         const accent2Hex = hexToRgba(base.accent2) ? base.accent2 : "#7A85A1";
 
         const cardBg = theme.surface;
-        const cardBgUnread = mixHex(theme.surface, '#FFFFFF', 0.12);
         const buttonBg = withAlpha(accentHex, 0.16);
         const buttonBgActive = withAlpha(accentHex, 0.26);
         const buttonBorder = withAlpha(accentHex, 0.4);
@@ -413,7 +412,6 @@ export default function NotificationCard({
             accent: accentHex,
             accent2: accent2Hex,
             cardBg,
-            cardBgUnread,
             buttonBg,
             buttonBgActive,
             buttonBorder,
@@ -431,7 +429,6 @@ export default function NotificationCard({
         accent2,
         badgeBg,
         cardBg,
-        cardBgUnread,
         buttonBg,
         buttonBgActive,
         buttonBorder,
@@ -455,7 +452,7 @@ export default function NotificationCard({
     const cardStyles = [styles.card];
     if (isFirst) cardStyles.push(styles.firstCard);
     if (isLast) cardStyles.push(styles.lastCard);
-    cardStyles.push({ backgroundColor: unread ? cardBgUnread : cardBg });
+    cardStyles.push({ backgroundColor: cardBg });
 
     const followAction = item.type === "follow"
         ? (
