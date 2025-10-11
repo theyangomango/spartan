@@ -3,6 +3,7 @@ import React, { useEffect, useState, useRef, useMemo, useCallback, memo } from "
 import {
     StyleSheet,
     View,
+    ScrollView,
     Modal,
     Text,
     TextInput,
@@ -986,37 +987,41 @@ const ActiveWorkoutModal = ({
                         <Text style={styles.waitingText}>Loading friend…</Text>
                     </View>
                 ) : (
-                    isEmptyList ? (
-                        // Robust empty state rendered outside the list to avoid FlashList measurement quirks
-                        (<RNAnimated.View style={[styles.scrollview, { opacity: contentDimAnim }]}>
+                    viewingSelfEffective ? (
+                        <ScrollView
+                            style={{ flex: 1 }}
+                            contentContainerStyle={styles.scrollview}
+                            keyboardShouldPersistTaps="handled"
+                            keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
+                        >
                             {workoutTitleDisplay}
-                            {viewingSelfEffective && (
-                                <>
-                                    <RNBounceable onPress={withStrongPress(showSelectExerciseModal)} style={styles.add_exercise_btn}>
-                                        <Text style={styles.add_exercise_text}>Add Exercises</Text>
-                                    </RNBounceable>
-                                    <RNBounceable onPress={withStrongPress(isEmptyList ? confirmCancelWorkout : openFinishConfirm)} style={styles.finish_btn}>
-                                        <Text style={styles.finish_btn_text}>Finish Workout</Text>
-                                    </RNBounceable>
-                                    <RNBounceable onPress={withStrongPress(confirmCancelWorkout)} style={styles.cancel_btn}>
-                                        <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
-                                    </RNBounceable>
-                                </>
-                            )}
-                            <View style={{ height: scaleSize(250) + Math.max(0, keyboardHeight - scaleSize(40)) }} />
-                        </RNAnimated.View>)
+                            {exercisesData.map((ex, exerciseIndex) => (
+                                <ExerciseLog
+                                    key={`${ex?.name || "ex"}-${exerciseIndex}`}
+                                    name={ex.name}
+                                    muscle={ex.muscle}
+                                    exerciseIndex={exerciseIndex}
+                                    sets={ex.sets}
+                                    prevSets={Array.isArray(ex.prev) ? ex.prev : (prevSetsMapRef.current?.get(ex.name) || undefined)}
+                                    updateSets={updateSets}
+                                    replaceExercise={replaceExercise}
+                                    deleteExercise={deleteExercise}
+                                    userWorkoutStats={statsForPrevious}
+                                    readOnly={!viewingSelfEffective}
+                                    showOptionsTriggerIcon
+                                    syncColumnOnEdit={viewingSelfEffective}
+                                    onStatFocus={handleStatFocus}
+                                />
+                            ))}
+                            {renderFooter()}
+                        </ScrollView>
                     ) : (
-                        /* Animated FlashList for smoother, low-overhead virtualization */
-                        (<RNAnimated.View style={[styles.listWrap, { opacity: contentDimAnim }]}>
+                        <RNAnimated.View style={[styles.listWrap, { opacity: contentDimAnim }]}>
                             <AnimatedFlashList
                                 key={`wlist-${cardWid}`}
                                 ref={listRef}
                                 data={exercisesData}
-                                keyExtractor={(ex, i) => {
-                                    const count = Array.isArray(ex?.sets) ? ex.sets.length : 0;
-                                    const id = ex?.id || ex?.name || "ex";
-                                    return `${id}-${i}-${count}`
-                                }}
+                                keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
                                 renderItem={renderExerciseItem}
                                 ListFooterComponent={renderFooter}
                                 showsVerticalScrollIndicator={false}
@@ -1028,7 +1033,7 @@ const ActiveWorkoutModal = ({
                                 contentContainerStyle={styles.scrollview}
                                 ListHeaderComponent={workoutTitleDisplay}
                             />
-                        </RNAnimated.View>)
+                        </RNAnimated.View>
                     )
                 )}
             </Animated.View>
