@@ -314,7 +314,7 @@ function ExerciseLog({
                         hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
                         style={styles.optionsButton}
                     >
-                        <Entypo name="menu" size={scaleSize(14)} color={theme.primary} />
+                        <Entypo name="menu" size={scaleSize(16)} color={theme.primary} />
                     </Pressable>
                 )}
             </Animated.View>
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(10),
         marginHorizontal: scaleSize(2.5),
     },
-    nameContainer: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: scaleSize(10), flex: 1 },
+    nameContainer: { flexDirection: "row", alignItems: "flex-end", flexShrink: 1, marginRight: scaleSize(10), paddingBottom: scaleSize(4), flex: 1 },
     optionsButton: {
         backgroundColor: theme.restPillBg,
         borderRadius: scaleSize(10),
@@ -394,6 +394,8 @@ const styles = StyleSheet.create({
         width: scaleSize(32),
         justifyContent: "center",
         alignItems: "center",
+        mart: scaleSize(4)
+
     },
     labels: { flexDirection: "row", paddingBottom: scaleSize(5), marginHorizontal: scaleSize(2.5) },
     set_col: { marginLeft: "5%", width: "8%", alignItems: "center" },
