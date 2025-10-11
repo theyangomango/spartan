@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
 
     inviteText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(12.5),
+        fontSize: scaleSize(14),
         color: theme.textPrimary,
         includeFontPadding: false,
     },
