@@ -455,7 +455,7 @@ export default function FoodSearchOverlay({
                                     }} hitSlop={12}>
                                         <Ionicons name="close" size={26} color="#fff" />
                                     </Pressable>
-                                    <Text style={styles.scannerTitle}>Scan a barcode</Text>
+                                    <Text style={styles.scannerTitle}>Scan a food barcode</Text>
                                     <View style={{ width: scaleSize(26) }} />
                                 </View>
                                 {/* Bottom hint */}

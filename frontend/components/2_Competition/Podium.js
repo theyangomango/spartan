@@ -35,7 +35,7 @@ export default function Podium({ data, isTribeFocused = false, topOffset = 0 }) 
     const drift3 = useRef(new Animated.Value(0)).current;
 
     const gradientProps = isTribeFocused
-        ? { colors: ["#6B3A1F", "#251F30"] }
+        ? { colors: ["#c46f478c", "#3B28578c"] }
         : { colors: ["#1B4F8A", "#133A6D", "#0F2743"], locations: [0, 0.62, 1] };
 
     useEffect(() => {

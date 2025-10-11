@@ -117,7 +117,7 @@ const WorkoutBarcodeScannerModal = ({ visible, onClose, onResult }) => {
                     <Pressable onPress={handleClose} hitSlop={12}>
                         <Ionicons name="close" size={scaleSize(26)} color="#fff" />
                     </Pressable>
-                    <Text style={styles.overlayTitle}>Scan a barcode</Text>
+                    <Text style={styles.overlayTitle}>Scan a food barcode</Text>
                     <View style={{ width: scaleSize(26) }} />
                 </View>
                 <View style={styles.overlayFooter}>
