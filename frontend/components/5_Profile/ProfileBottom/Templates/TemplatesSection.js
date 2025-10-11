@@ -1,6 +1,8 @@
 // TemplatesSection.js — lists the user's workout templates inside Profile bottom sheet
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FlatList, Modal, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 import { Weight } from "iconsax-react-native";
 
 import scaleSize from "../../../../helper/scaleSize";
@@ -13,17 +15,18 @@ import updateDoc from "../../../../../backend/helper/firebase/updateDoc";
 import { emitUserDataUpdate } from "../../../../utils/userDataEvents";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const TEMPLATE_ICON_COLOR = "#EEF5FF";
+const TEMPLATE_ICON_COLOR = "#F4F8FF";
 const TEMPLATE_SECONDARY_ICON_COLOR = BLUE.ACCENT;
-const TEMPLATE_ICON_BG = "rgba(128, 198, 255, 0.24)";
-const TEMPLATE_ICON_BORDER = "rgba(148, 212, 255, 0.55)";
-const TEMPLATE_CARD_BG = "rgba(24, 42, 70, 0.94)";
-const TEMPLATE_CARD_BORDER = "rgba(126, 186, 246, 0.62)";
-const TEMPLATE_SHADOW_COLOR = "rgba(11, 32, 58, 0.55)";
-const TEMPLATE_SUBTITLE_COLOR = "#C7DCF8";
-const BADGE_TEXT = "#E0EEFF";
+const TEMPLATE_ICON_BG = "rgba(82, 148, 232, 0.32)";
+const TEMPLATE_ICON_BORDER = "rgba(150, 212, 255, 0.5)";
+const TEMPLATE_CARD_GRADIENT = ["#203662", "#101C34"];
+const TEMPLATE_CARD_BORDER = "rgba(126, 208, 255, 0.45)";
+const TEMPLATE_SHADOW_COLOR = "rgba(8, 22, 44, 0.7)";
+const CARD_SHADOW_OFFSET = scaleSize(10);
+const CARD_SHADOW_RADIUS = scaleSize(20);
+const TEMPLATE_SUBTITLE_COLOR = "#D2E6FF";
 const CARD_RADIUS = scaleSize(22);
-const CARD_MIN_HEIGHT = scaleSize(78);
+const CARD_MIN_HEIGHT = scaleSize(86);
 
 const normalizeSetType = (value) => {
     const raw = typeof value === "string" ? value.toLowerCase() : "";
@@ -80,39 +83,6 @@ const toMillis = (value) => {
         return Number.isFinite(millis) ? millis : 0;
     }
     return 0;
-};
-
-const formatLastDateLabel = (value) => {
-    if (!value) return "";
-    if (typeof value === "string") {
-        const trimmed = value.trim();
-        if (!trimmed) return "";
-        const parsed = Date.parse(trimmed);
-        if (Number.isFinite(parsed)) {
-            try {
-                return new Date(parsed).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-            } catch {
-                return new Date(parsed).toDateString();
-            }
-        }
-        return trimmed;
-    }
-    let ms = 0;
-    if (typeof value === "number" && Number.isFinite(value)) ms = value;
-    else if (value instanceof Date) ms = value.getTime();
-    else if (typeof value?.toDate === "function") {
-        try { ms = value.toDate()?.getTime?.() ?? 0; } catch { ms = 0; }
-    } else if (typeof value?.seconds === "number") {
-        ms = value.seconds * 1000 + (value.nanoseconds ? value.nanoseconds / 1e6 : 0);
-    } else if (typeof value?._seconds === "number") {
-        ms = value._seconds * 1000 + (value._nanoseconds ? value._nanoseconds / 1e6 : 0);
-    }
-    if (!Number.isFinite(ms) || !ms) return "";
-    try {
-        return new Date(ms).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
-    } catch {
-        return new Date(ms).toDateString();
-    }
 };
 
 const countExercises = (tpl) => (Array.isArray(tpl?.exercises) ? tpl.exercises.length : 0);
@@ -266,7 +236,7 @@ const TemplatesSection = ({ templates, isVisible, isBottomSheetExpanded, onScrol
         if (exerciseCount > 0) metaParts.push(`${exerciseCount} ${exerciseCount === 1 ? "Exercise" : "Exercises"}`);
         if (setCount > 0) metaParts.push(`${setCount} ${setCount === 1 ? "Set" : "Sets"}`);
         const metaSubtitle = metaParts.join(" • ");
-        const lastUsedLabel = formatLastDateLabel(item?.lastDate);
+        const infoText = metaSubtitle;
 
         const handlePress = withStrongPress(() => openPreview(item));
 
@@ -276,15 +246,21 @@ const TemplatesSection = ({ templates, isVisible, isBottomSheetExpanded, onScrol
                     onPress={handlePress}
                     style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
                 >
+                    <LinearGradient
+                        colors={TEMPLATE_CARD_GRADIENT}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.cardBackground}
+                    />
                     <View style={styles.iconWrap}>
                         <Weight size={scaleSize(19)} color={TEMPLATE_ICON_COLOR} variant="Broken" />
                     </View>
                     <View style={styles.cardContent}>
                         <Text style={styles.cardTitle} numberOfLines={1}>{name}</Text>
-                        {metaSubtitle ? (
+                        {infoText ? (
                             <View style={styles.cardSubRow}>
-                                <Weight size={scaleSize(14)} color={TEMPLATE_SECONDARY_ICON_COLOR} variant="Broken" style={styles.cardSubIcon} />
-                                <Text style={styles.cardSubtitle} numberOfLines={1}>{metaSubtitle}</Text>
+                                <Ionicons name="sparkles-outline" size={scaleSize(14)} color={TEMPLATE_SECONDARY_ICON_COLOR} style={styles.cardSubIcon} />
+                                <Text style={styles.cardSubtitle} numberOfLines={1}>{infoText}</Text>
                             </View>
                         ) : null}
                     </View>
@@ -377,29 +353,33 @@ const styles = StyleSheet.create({
             ios: {
                 shadowColor: TEMPLATE_SHADOW_COLOR,
                 shadowOpacity: 0.24,
-                shadowRadius: scaleSize(16),
-                shadowOffset: { width: 0, height: scaleSize(10) },
+                shadowRadius: CARD_SHADOW_RADIUS,
+                shadowOffset: { width: 0, height: CARD_SHADOW_OFFSET },
             },
             android: {
-                elevation: 5,
+                elevation: 6,
             },
         }),
     },
     card: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: TEMPLATE_CARD_BG,
         borderRadius: CARD_RADIUS,
         minHeight: CARD_MIN_HEIGHT,
-        borderWidth: scaleSize(1.4),
+        borderWidth: scaleSize(1.2),
         borderColor: TEMPLATE_CARD_BORDER,
-        paddingHorizontal: scaleSize(20),
+        paddingHorizontal: scaleSize(18),
         paddingVertical: scaleSize(18),
         justifyContent: "flex-start",
+        overflow: "hidden",
     },
     cardPressed: {
         transform: [{ scale: 0.98 }],
         opacity: 0.9,
+    },
+    cardBackground: {
+        ...StyleSheet.absoluteFillObject,
+        borderRadius: CARD_RADIUS,
     },
     iconWrap: {
         width: scaleSize(32),
@@ -416,19 +396,19 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: 0,
         marginLeft: scaleSize(18),
-        paddingRight: scaleSize(4),
+        paddingRight: scaleSize(6),
         justifyContent: "center",
+        gap: scaleSize(6),
     },
     cardTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(15),
-        color: "#EEF5FF",
+        fontSize: scaleSize(14),
+        color: "#F5F8FF",
         includeFontPadding: false,
     },
     cardSubRow: {
         flexDirection: "row",
         alignItems: "center",
-        marginTop: scaleSize(6),
     },
     cardSubIcon: {
         marginRight: scaleSize(6),
@@ -437,13 +417,6 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(12.5),
         color: TEMPLATE_SUBTITLE_COLOR,
-        includeFontPadding: false,
-    },
-    cardLastUsed: {
-        fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(11.5),
-        color: BADGE_TEXT,
-        marginTop: scaleSize(8),
         includeFontPadding: false,
     },
     emptyState: {

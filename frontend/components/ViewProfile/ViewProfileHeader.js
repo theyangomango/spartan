@@ -57,6 +57,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: scaleSize(6),
+        height: METRICS.centerH,
+        paddingBottom: scaleSize(3.5),
     },
     handleRow: {
         flexDirection: "row",
@@ -66,9 +68,9 @@ const styles = StyleSheet.create({
     handle_text: {
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(17),
-        padding: scaleSize(2),
         color: theme.textPrimary,
         maxWidth: "100%",
+        includeFontPadding: false,
     },
     centerChevron: {
         marginLeft: scaleSize(4),

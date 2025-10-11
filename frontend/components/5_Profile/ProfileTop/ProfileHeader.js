@@ -1,9 +1,8 @@
 import React from "react";
 import { StyleSheet, View, Text } from "react-native";
-import { Setting2 } from "iconsax-react-native";
+import { Setting2, Add } from "iconsax-react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize from "../../../helper/scaleSize";
-import { AddSquare } from "iconsax-react-native";
 import theme from "../../../theme/mfpDark";
 import { withStrongPress } from "../../../utils/haptics";
 import { getUnifiedHeaderMetrics } from "../../../theme/headerMetrics";
@@ -14,6 +13,8 @@ const HEADER_HORIZONTAL_PADDING = Math.max(0, METRICS.paddingH - scaleSize(6));
 const ICON_WRAPPER_SIZE = scaleSize(ICON_SIZE + 2);
 const ICON_COLOR = "#CBD5E1";
 const ICON_STROKE_WIDTH = 2.4;
+const CREATE_ICON_SIZE = ICON_SIZE + scaleSize(3.2);
+const CREATE_ICON_STROKE_WIDTH = 3.25;
 
 export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
     return (
@@ -31,7 +32,7 @@ export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
             </RNBounceable>
             <View style={styles.right}>
                 <RNBounceable style={styles.iconBtn} onPress={withStrongPress(onPressCreateBtn)}>
-                    <AddSquare size={ICON_SIZE} color={ICON_COLOR} variant="Linear" strokeWidth={ICON_STROKE_WIDTH} />
+                    <Add size={CREATE_ICON_SIZE} color={ICON_COLOR} variant="Linear" strokeWidth={CREATE_ICON_STROKE_WIDTH} />
                 </RNBounceable>
             </View>
         </View>
@@ -51,12 +52,15 @@ const styles = StyleSheet.create({
     },
     center: {
         flexDirection: 'row',
+        alignItems: 'center',
+        height: METRICS.centerH,
+        paddingBottom: scaleSize(3.5),
     },
     handle_text: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(17),
-        padding: scaleSize(2),
         color: theme.textPrimary,
+        includeFontPadding: false,
     },
     down_arrow_ctnr: {
         justifyContent: 'center',
