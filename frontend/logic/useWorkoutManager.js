@@ -176,12 +176,27 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     const lastPersistSentAtRef = useRef(0);
     const lastPersistSentHashRef = useRef("");
     const prevSetsCacheRef = useRef({ timestamp: 0, map: new Map() });
+    const persistInteractionRef = useRef(null);
+    const persistFrameRef = useRef(null);
     const PERSIST_DEBOUNCE_MS = 900;
     const PREV_CACHE_TTL_MS = 30000;
     const clearPersistDebounce = useCallback((resetPending = true) => {
         if (saveCurrentWorkoutDebouncedRef.current) {
             clearTimeout(saveCurrentWorkoutDebouncedRef.current);
             saveCurrentWorkoutDebouncedRef.current = null;
+        }
+        const interaction = persistInteractionRef.current;
+        if (interaction && typeof interaction.cancel === "function") {
+            try { interaction.cancel(); } catch { }
+        }
+        persistInteractionRef.current = null;
+        if (persistFrameRef.current != null) {
+            if (typeof cancelAnimationFrame === "function") {
+                cancelAnimationFrame(persistFrameRef.current);
+            } else {
+                clearTimeout(persistFrameRef.current);
+            }
+            persistFrameRef.current = null;
         }
         if (resetPending) {
             pendingPersistValueRef.current = null;
@@ -245,52 +260,77 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     }, []);
     const performPersist = useCallback((latest) => {
         if (!uid || !latest) return;
-        const payload = sanitizeWorkout(latest);
 
-        try {
-            const prevMap = ensurePrevSetsCache();
-            if (prevMap?.size) {
-                payload.exercises = (payload.exercises || []).map((ex) => {
-                    const name = String(ex?.name || "");
-                    if (!name) return ex;
-                    const prevSets = prevMap.get(name);
-                    if (!prevSets || !prevSets.length) return ex;
-                    return {
-                        ...ex,
-                        prev: prevSets.map((row) => ({
-                            weight: Number(row?.weight) || 0,
-                            reps: Number(row?.reps) || 0,
-                        })),
-                    };
-                });
-            }
-        } catch { /* non-fatal */ }
-
-        try {
-            const hash = JSON.stringify(payload);
-            if (hash === lastPersistSentHashRef.current) return;
-            lastPersistSentHashRef.current = hash;
-            lastPersistSentAtRef.current = Date.now();
-            if (__DEV__) {
+        const scheduleWork = () => {
+            const runWork = () => {
+                persistFrameRef.current = null;
                 try {
-                    console.debug(
-                        "[WorkoutManager] Persist currentWorkout ->",
-                        payload?.wid || "(no wid)",
-                        payload?.name || ""
-                    );
-                } catch { /* ignore console issues */ }
-            }
-            InteractionManager.runAfterInteractions(() => {
-                (async () => {
+                    const payload = sanitizeWorkout(latest);
+
                     try {
-                        await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true });
-                    } catch (e) {
-                        console.log("setDoc users.currentWorkout error", e);
-                        try { await updateDoc("users", uid, { currentWorkout: payload }); } catch { }
-                    }
-                })();
-            });
-        } catch { }
+                        const prevMap = ensurePrevSetsCache();
+                        if (prevMap?.size) {
+                            payload.exercises = (payload.exercises || []).map((ex) => {
+                                const name = String(ex?.name || "");
+                                if (!name) return ex;
+                                const prevSets = prevMap.get(name);
+                                if (!prevSets || !prevSets.length) return ex;
+                                return {
+                                    ...ex,
+                                    prev: prevSets.map((row) => ({
+                                        weight: Number(row?.weight) || 0,
+                                        reps: Number(row?.reps) || 0,
+                                    })),
+                                };
+                            });
+                        }
+                    } catch { /* non-fatal */ }
+
+                    try {
+                        const hash = JSON.stringify(payload);
+                        if (hash === lastPersistSentHashRef.current) return;
+                        lastPersistSentHashRef.current = hash;
+                        lastPersistSentAtRef.current = Date.now();
+                        if (__DEV__) {
+                            try {
+                                console.debug(
+                                    "[WorkoutManager] Persist currentWorkout ->",
+                                    payload?.wid || "(no wid)",
+                                    payload?.name || ""
+                                );
+                            } catch { /* ignore console issues */ }
+                        }
+                        InteractionManager.runAfterInteractions(() => {
+                            (async () => {
+                                try {
+                                    await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true });
+                                } catch (e) {
+                                    console.log("setDoc users.currentWorkout error", e);
+                                    try { await updateDoc("users", uid, { currentWorkout: payload }); } catch { }
+                                }
+                            })();
+                        });
+                    } catch { }
+                } finally {
+                    persistInteractionRef.current = null;
+                }
+            };
+
+            const frameHandler = typeof requestAnimationFrame === "function"
+                ? requestAnimationFrame
+                : (cb) => setTimeout(cb, 16);
+
+            persistFrameRef.current = frameHandler(runWork);
+        };
+
+        if (persistInteractionRef.current && typeof persistInteractionRef.current.cancel === "function") {
+            try { persistInteractionRef.current.cancel(); } catch { }
+        }
+
+        persistInteractionRef.current = InteractionManager.runAfterInteractions(() => {
+            persistInteractionRef.current = null;
+            scheduleWork();
+        });
     }, [uid, ensurePrevSetsCache]);
     const persistCurrentWorkout = useCallback(
         (value, options = {}) => {
