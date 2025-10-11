@@ -18,7 +18,7 @@ import {
 import { Dimensions, FlatList } from "react-native";
 // AsyncStorage removed for reminder gating; show only on create/join events
 let FlashListLib = null;
-try { FlashListLib = require("@shopify/flash-list"); } catch {}
+try { FlashListLib = require("@shopify/flash-list"); } catch { }
 const canUseFlashList = !!(FlashListLib && FlashListLib.FlashList && UIManager?.getViewManagerConfig && UIManager.getViewManagerConfig('CellContainer') && UIManager.getViewManagerConfig('AutoLayoutView'));
 const BaseListComponent = canUseFlashList ? FlashListLib.FlashList : FlatList;
 const AnimatedFlashList = RNAnimated.createAnimatedComponent(BaseListComponent);
@@ -165,8 +165,8 @@ const ActiveWorkoutModal = ({
         : (forceSelfView
             ? meUid
             : (shouldAutoJoin
-            ? meUid
-            : (friendUidFromWorkout && friendUidFromWorkout !== meUid ? friendUidFromWorkout : meUid)));
+                ? meUid
+                : (friendUidFromWorkout && friendUidFromWorkout !== meUid ? friendUidFromWorkout : meUid)));
 
     // Gate heavy live streaming until user explicitly opens group menu or we lock to a friend
     // If a one-shot global flag matches this wid (set on invite accept), enable live immediately
@@ -177,7 +177,7 @@ const ActiveWorkoutModal = ({
     const [liveEnabled, setLiveEnabled] = useState(initialLiveEnable);
     useEffect(() => {
         if (!initialLiveEnable) return;
-        try { if (global.__enableLiveForWid === cardWid) global.__enableLiveForWid = null; } catch {}
+        try { if (global.__enableLiveForWid === cardWid) global.__enableLiveForWid = null; } catch { }
     }, [initialLiveEnable, cardWid]);
 
     useEffect(() => {
@@ -332,7 +332,7 @@ const ActiveWorkoutModal = ({
                 const arr = [];
                 for (let i = sets.length - 1; i >= 0; i--) {
                     if (sets[i]?.wid !== lastWid) break;
-                    arr.push({ weight: Number(sets[i]?.weight)||0, reps: Number(sets[i]?.reps)||0 });
+                    arr.push({ weight: Number(sets[i]?.weight) || 0, reps: Number(sets[i]?.reps) || 0 });
                 }
                 arr.reverse();
                 if (arr.length) m.set(name, arr);
@@ -348,12 +348,12 @@ const ActiveWorkoutModal = ({
                         if (m.has(name)) continue;
                         const s = Array.isArray(ex?.sets) ? ex.sets : [];
                         if (!s.length) continue;
-                        m.set(name, s.map((t)=>({ weight:Number(t?.weight)||0, reps:Number(t?.reps)||0 })));
+                        m.set(name, s.map((t) => ({ weight: Number(t?.weight) || 0, reps: Number(t?.reps) || 0 })));
                     }
                     if (m.size > 24) break; // cap
                 }
             }
-        } catch {}
+        } catch { }
         prevSetsMapRef.current = m;
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [statsForPrevious, (global?.userData?.completedWorkouts || []).length]);
@@ -702,7 +702,7 @@ const ActiveWorkoutModal = ({
     const ConfettiModuleRef = useRef(null);
     const loadConfettiModule = useCallback(() => {
         if (!ConfettiModuleRef.current) {
-            try { ConfettiModuleRef.current = require('react-native-confetti-cannon').default; } catch {}
+            try { ConfettiModuleRef.current = require('react-native-confetti-cannon').default; } catch { }
         }
         return ConfettiModuleRef.current;
     }, []);
@@ -713,7 +713,7 @@ const ActiveWorkoutModal = ({
         try {
             const api = confettiRef.current;
             if (api && typeof api.start === 'function') { api.start(); return; }
-        } catch {}
+        } catch { }
         setConfettiTick((t) => t + 1);
     }, [loadConfettiModule]);
 
@@ -753,9 +753,9 @@ const ActiveWorkoutModal = ({
     // - If parent provided onPressBack (e.g., feed viewer), call it.
     // - Otherwise, when spectating inside the workout modal, switch back to self view.
     const handleBack = useCallback(() => {
-        if (onPressBack) { try { onPressBack(); } catch {} return; }
+        if (onPressBack) { try { onPressBack(); } catch { } return; }
         if (!viewingSelfEffective) {
-            try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {}
+            try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch { }
             const my = String(meUid || "");
             setViewing(my);
             onViewingChange?.(true);
@@ -763,23 +763,23 @@ const ActiveWorkoutModal = ({
     }, [onPressBack, viewingSelfEffective, meUid, setViewing, onViewingChange]);
 
     const handleCopyTemplate = useCallback(() => {
-        try { onCopyTemplate?.(baseWorkout); } catch {}
+        try { onCopyTemplate?.(baseWorkout); } catch { }
     }, [onCopyTemplate, baseWorkout]);
 
     const handleCollapsedPress = useCallback(() => {
-        try { onExpandSheet?.(); } catch {}
+        try { onExpandSheet?.(); } catch { }
     }, [onExpandSheet]);
 
     const handleOpenMenu = useCallback(() => {
         if (lockFriend || !viewingSelfEffective) return;
         setLiveEnabled(true);
-        try { openMenu(); } catch {}
+        try { openMenu(); } catch { }
     }, [lockFriend, openMenu, viewingSelfEffective]);
 
     const handleLongPressInvite = useCallback(() => {
         if (lockFriend || !viewingSelfEffective) return;
         setLiveEnabled(true);
-        try { showGroupModal?.(); } catch {}
+        try { showGroupModal?.(); } catch { }
     }, [lockFriend, showGroupModal, viewingSelfEffective]);
 
     // Listen for cheer events for this workout to trigger confetti when others cheer
@@ -911,7 +911,7 @@ const ActiveWorkoutModal = ({
                 // Clear triggers so it doesn't reshow on any subsequent small state updates
                 try { if (shouldFromFlag) global.__showWorkoutReminderForWid = null; } catch { }
                 if (shouldFromLocal) {
-                    try { updateWorkout?.({ ...(workout || {}), __justStarted: false }); } catch {}
+                    try { updateWorkout?.({ ...(workout || {}), __justStarted: false }); } catch { }
                 }
             }
         } catch { }
@@ -988,7 +988,7 @@ const ActiveWorkoutModal = ({
                 ) : (
                     isEmptyList ? (
                         // Robust empty state rendered outside the list to avoid FlashList measurement quirks
-                        (<RNAnimated.View style={[styles.scrollview, { opacity: contentDimAnim }]}> 
+                        (<RNAnimated.View style={[styles.scrollview, { opacity: contentDimAnim }]}>
                             {workoutTitleDisplay}
                             {viewingSelfEffective && (
                                 <>
@@ -1012,7 +1012,11 @@ const ActiveWorkoutModal = ({
                                 key={`wlist-${cardWid}`}
                                 ref={listRef}
                                 data={exercisesData}
-                                keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
+                                keyExtractor={(ex, i) => {
+                                    const count = Array.isArray(ex?.sets) ? ex.sets.length : 0;
+                                    const id = ex?.id || ex?.name || "ex";
+                                    return `${id}-${i}-${count}`
+                                }}
                                 renderItem={renderExerciseItem}
                                 ListFooterComponent={renderFooter}
                                 showsVerticalScrollIndicator={false}
@@ -1092,30 +1096,32 @@ const ActiveWorkoutModal = ({
                 onDismiss={() => setReminderVisible(false)}
             />
             {/* Confetti overlay (mount when cheering is relevant: spectating live OR self active) */}
-            {(friendOngoing || isActiveSelf) && (() => { const ConfettiCannon = loadConfettiModule(); return ConfettiCannon ? (
-                <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-                    <ConfettiCannon
-                        ref={confettiRef}
-                        autoStart={false}
-                        count={120}
-                        origin={{ x: screenWidth / 2, y: -scaleSize(60) }}
-                        fadeOut
-                        explosionSpeed={220}
-                        fallSpeed={1500}
-                    />
-                    {/* Fallback: if ref API unavailable, key-mount for immediate autoStart */}
-                    {confettiTick > 0 && (
+            {(friendOngoing || isActiveSelf) && (() => {
+                const ConfettiCannon = loadConfettiModule(); return ConfettiCannon ? (
+                    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
                         <ConfettiCannon
-                            key={confettiTick}
+                            ref={confettiRef}
+                            autoStart={false}
                             count={120}
                             origin={{ x: screenWidth / 2, y: -scaleSize(60) }}
                             fadeOut
                             explosionSpeed={220}
                             fallSpeed={1500}
                         />
-                    )}
-                </View>
-            ) : null; })()}
+                        {/* Fallback: if ref API unavailable, key-mount for immediate autoStart */}
+                        {confettiTick > 0 && (
+                            <ConfettiCannon
+                                key={confettiTick}
+                                count={120}
+                                origin={{ x: screenWidth / 2, y: -scaleSize(60) }}
+                                fadeOut
+                                explosionSpeed={220}
+                                fallSpeed={1500}
+                            />
+                        )}
+                    </View>
+                ) : null;
+            })()}
         </Animated.View >
     );
 };
