@@ -1220,7 +1220,7 @@ const styles = StyleSheet.create({
     titleDisplaySubText: {
         marginTop: scaleSize(2),
         fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(13),
         color: theme.textSecondary,
     },
     titleDisplayInput: {
@@ -1252,7 +1252,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     add_exercise_text: {
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(14),
         fontFamily: "Outfit_700Bold",
         color: "#FFFFFF",
         marginRight: scaleSize(4.5),
@@ -1274,7 +1274,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     finish_btn_text: {
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(14),
         fontFamily: "Outfit_700Bold",
         color: "#FFFFFF",
         marginRight: scaleSize(4.5),
@@ -1296,7 +1296,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: scaleSize(3) },
         elevation: 2,
     },
-    cancel_btn_text: { fontSize: scaleSize(13), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(4.5) },
+    cancel_btn_text: { fontSize: scaleSize(14), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(4.5) },
 
 });
 

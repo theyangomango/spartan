@@ -34,6 +34,55 @@ export default function PostOptionsScreen({ navigation, route }) {
     const editingPost = route?.params?.editingPost || null;
     const isEditing = Boolean(editingPost?.pid);
     const editingPid = isEditing ? String(editingPost.pid) : null;
+    const editingWorkoutName = isEditing && typeof editingPost?.workoutName === 'string'
+        ? editingPost.workoutName.trim()
+        : '';
+
+    const editingMediaEntries = useMemo(() => {
+        if (!isEditing) return [];
+        const seen = new Set();
+        const result = [];
+
+        const pushEntry = (uri, type) => {
+            if (!uri) return;
+            if (seen.has(uri)) return;
+            seen.add(uri);
+            const normalizedType = type === 'video' ? 'video' : 'image';
+            result.push({ uri, type: normalizedType });
+        };
+
+        if (Array.isArray(editingPost?.mediaEntries)) {
+            editingPost.mediaEntries.forEach((entry) => {
+                if (!entry) return;
+                const uri = typeof entry === 'string' ? entry : entry?.uri;
+                const type = typeof entry === 'string' ? undefined : entry?.type;
+                pushEntry(uri, type);
+            });
+        } else if (Array.isArray(editingPost?.media)) {
+            editingPost.media.forEach((entry) => {
+                const uri = typeof entry === 'string' ? entry : entry?.uri;
+                const type = typeof entry === 'string' ? undefined : entry?.type;
+                pushEntry(uri, type);
+            });
+        }
+
+        if (Array.isArray(editingPost?.images)) {
+            editingPost.images.forEach((entry) => {
+                const uri = typeof entry === 'string' ? entry : entry?.uri;
+                pushEntry(uri, 'image');
+            });
+        }
+
+        return result;
+    }, [isEditing, editingPost]);
+
+    const mediaTypeByUri = useMemo(() => {
+        const map = new Map();
+        editingMediaEntries.forEach(({ uri, type }) => {
+            map.set(uri, type);
+        });
+        return map;
+    }, [editingMediaEntries]);
 
     const routeImages = useMemo(() => {
         const incoming = route?.params?.images;
@@ -41,16 +90,10 @@ export default function PostOptionsScreen({ navigation, route }) {
             return incoming.filter(Boolean);
         }
         if (isEditing) {
-            const fromMedia = Array.isArray(editingPost?.media)
-                ? editingPost.media.map((entry) => (typeof entry === "string" ? entry : entry?.uri)).filter(Boolean)
-                : [];
-            const fromImages = Array.isArray(editingPost?.images)
-                ? editingPost.images.map((entry) => (typeof entry === "string" ? entry : entry?.uri)).filter(Boolean)
-                : [];
-            return Array.from(new Set([...fromMedia, ...fromImages]));
+            return editingMediaEntries.map((entry) => entry.uri);
         }
         return Array.isArray(incoming) ? incoming.filter(Boolean) : [];
-    }, [route?.params?.images, isEditing, editingPost]);
+    }, [route?.params?.images, isEditing, editingMediaEntries]);
     const workoutParam = route?.params?.workout;
 
     const [caption, setCaption] = useState(() => (isEditing && typeof editingPost?.caption === 'string') ? editingPost.caption : '');
@@ -242,7 +285,8 @@ export default function PostOptionsScreen({ navigation, route }) {
                     if (!uri) return null;
 
                     if (/^https?:\/\//i.test(uri)) {
-                        return { index, uri };
+                        const type = mediaTypeByUri.get(uri) || 'image';
+                        return { index, uri, type };
                     }
 
                     try {
@@ -264,17 +308,21 @@ export default function PostOptionsScreen({ navigation, route }) {
                         const id = makeID();
                         const path = `posts/${pid}-${id}.${ext}`;
                         const { url } = await uploadResumableNative({ fileUri: compressedUri, path, mime });
-                        return { index, uri: url };
+                        return { index, uri: url, type: 'image' };
                     } catch (error) {
                         console.error(`Error processing image ${index + 1}:`, error);
                         return null;
                     }
                 }));
 
-                const media = processedMedia
+                const mediaPayload = processedMedia
                     .filter(Boolean)
                     .sort((a, b) => a.index - b.index)
-                    .map(({ uri }) => ({ uri, type: 'image' }));
+                    .map(({ uri, type }) => ({ uri, type: type || 'image' }));
+
+                const imagesPayload = mediaPayload
+                    .filter((entry) => entry.type !== 'video')
+                    .map((entry) => entry.uri);
 
                 if (isEditing) {
                     const latest = await readDoc('posts', pid);
@@ -302,17 +350,17 @@ export default function PostOptionsScreen({ navigation, route }) {
                         });
                     }
 
-                let commentCount = Number(latest.commentCount);
-                if (!Number.isFinite(commentCount)) {
-                    commentCount = updatedComments.length;
-                } else if (!hadCaption) {
-                    commentCount += 1;
-                }
+                    let commentCount = Number(latest.commentCount);
+                    if (!Number.isFinite(commentCount)) {
+                        commentCount = updatedComments.length;
+                    } else if (!hadCaption) {
+                        commentCount += 1;
+                    }
 
                     await updateDoc('posts', pid, {
                         caption: trimmedCaption,
-                        media,
-                        images: media.map((entry) => entry.uri),
+                        media: mediaPayload,
+                        images: imagesPayload,
                         comments: updatedComments,
                         commentCount,
                         updatedAt: now,
@@ -328,7 +376,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                         global?.userData?.handle,
                         global?.userData?.image,
                         trimmedCaption,
-                        media,
+                        mediaPayload,
                         pid,
                         null
                     );
@@ -364,7 +412,8 @@ export default function PostOptionsScreen({ navigation, route }) {
         sharePromiseRef.current = runShare();
     }
 
-    const shareDisabled = caption.trim().length === 0 || isSharing;
+    const shareDisabled = (!isEditing && caption.trim().length === 0) || isSharing;
+    const captionPlaceholder = editingWorkoutName ? "Add a caption (optional)" : "What's popping?";
 
     return (
         <View style={styles.main_ctnr}>
@@ -411,7 +460,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     </View>
                     <View style={styles.caption_ctnr}>
                         <DismissableTextInput
-                            placeholder="What's popping?"
+                            placeholder={captionPlaceholder}
                             placeholderTextColor={theme.textSecondary}
                             value={caption}
                             onChangeText={handleCaptionChange}
@@ -491,6 +540,13 @@ export default function PostOptionsScreen({ navigation, route }) {
                         <Text style={styles.add_media_subtitle}>Share your progress with an image</Text>
                     </TouchableOpacity>
                 )}
+
+                {editingWorkoutName ? (
+                    <View style={styles.edit_workout_container}>
+                        <Text style={styles.edit_workout_label}>Workout</Text>
+                        <Text style={styles.edit_workout_name}>{editingWorkoutName}</Text>
+                    </View>
+                ) : null}
             </ScrollView>
 
             {!isEditing && (
@@ -685,5 +741,22 @@ const styles = StyleSheet.create({
         borderRadius: 100,
         backgroundColor: 'rgba(255,255,255,0.6)',
         marginHorizontal: scaleSize(3)
+    },
+    edit_workout_container: {
+        marginTop: scaleSize(24),
+        paddingHorizontal: 0,
+    },
+    edit_workout_label: {
+        color: theme.textSecondary,
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(12),
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginBottom: scaleSize(6),
+    },
+    edit_workout_name: {
+        color: theme.primary,
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(16),
     }
 });

@@ -392,11 +392,6 @@ export default function Feed({ navigation, route }) {
         const post = listData[index];
         if (!post) return;
 
-        if (post?.workout) {
-            Alert.alert("Editing unavailable", "Editing workout posts isn't supported yet.");
-            return;
-        }
-
         const pid = String(post?.pid || post?.id || "").trim();
         if (!pid) return;
 
@@ -418,28 +413,42 @@ export default function Feed({ navigation, route }) {
             return captionComment?.content || "";
         })();
 
-        const mediaUris = [];
+        const mediaEntries = [];
+        const seen = new Set();
+
         if (Array.isArray(latest.media)) {
             latest.media.forEach((entry) => {
                 const uri = typeof entry === "string" ? entry : entry?.uri;
-                if (uri) mediaUris.push(uri);
+                if (!uri || seen.has(uri)) return;
+                seen.add(uri);
+                const type = typeof entry === "string" ? undefined : entry?.type;
+                mediaEntries.push({ uri, type: type === "video" ? "video" : "image" });
             });
         }
         if (Array.isArray(latest.images)) {
             latest.images.forEach((entry) => {
                 const uri = typeof entry === "string" ? entry : entry?.uri;
-                if (uri) mediaUris.push(uri);
+                if (!uri || seen.has(uri)) return;
+                seen.add(uri);
+                mediaEntries.push({ uri, type: "image" });
             });
         }
 
-        const uniqueMedia = Array.from(new Set(mediaUris));
+        const uniqueMedia = mediaEntries.map((entry) => entry.uri);
+        const workoutName = (() => {
+            const source = latest.workout || post.workout || null;
+            if (!source || typeof source !== "object") return "";
+            const candidate = source.templateName || source.template?.name || source.name || source.workoutName || "";
+            return candidate ? String(candidate).trim() : "";
+        })();
 
         navigation.navigate("PostOptions", {
             images: uniqueMedia,
             editingPost: {
                 pid,
                 caption: resolvedCaption,
-                media: uniqueMedia,
+                mediaEntries,
+                workoutName,
             },
         });
     }, [listData, navigation]);
