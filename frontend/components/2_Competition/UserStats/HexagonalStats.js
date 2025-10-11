@@ -26,22 +26,28 @@ const HexagonalStats = ({
     diffHighlightColor = '#F2B84B',
     prevColor = '#94A3B8',
 }) => {
-    // only the selected user's stats
+    const toRoundedStat = (value) => {
+        const num = Number(value);
+        if (!Number.isFinite(num)) return 0;
+        return Math.round(num * 10) / 10;
+    };
+
+    // only the selected user's stats (rounded exactly how we display them)
     const data = [
-        Number(statsHexagon?.shoulders || 0),
-        Number(statsHexagon?.chest || 0),
-        Number(statsHexagon?.arms || 0),
-        Number(statsHexagon?.legs || 0),
-        Number(statsHexagon?.back || 0),
-        Number(statsHexagon?.abs || 0),
+        toRoundedStat(statsHexagon?.shoulders),
+        toRoundedStat(statsHexagon?.chest),
+        toRoundedStat(statsHexagon?.arms),
+        toRoundedStat(statsHexagon?.legs),
+        toRoundedStat(statsHexagon?.back),
+        toRoundedStat(statsHexagon?.abs),
     ];
     const prevData = prevStatsHexagon ? [
-        Number(prevStatsHexagon?.shoulders || 0),
-        Number(prevStatsHexagon?.chest || 0),
-        Number(prevStatsHexagon?.arms || 0),
-        Number(prevStatsHexagon?.legs || 0),
-        Number(prevStatsHexagon?.back || 0),
-        Number(prevStatsHexagon?.abs || 0),
+        toRoundedStat(prevStatsHexagon?.shoulders),
+        toRoundedStat(prevStatsHexagon?.chest),
+        toRoundedStat(prevStatsHexagon?.arms),
+        toRoundedStat(prevStatsHexagon?.legs),
+        toRoundedStat(prevStatsHexagon?.back),
+        toRoundedStat(prevStatsHexagon?.abs),
     ] : null;
 
     // Geometry
@@ -64,6 +70,7 @@ const HexagonalStats = ({
     const ringStroke = Math.max(1, scaledSize(1));       // keep grid crisp
     const outlineStroke = Math.max(2, scaledSize(2));    // data polygon outline
     const dotRadius = Math.max(3, scaledSize(3));        // vertex dots
+    const zeroBumpRatio = 0.06;                          // subtle bump for zero values
 
     const levels = 5; // subtle rings
     const ringPoints = Array.from({ length: levels }, (_, lvl) => {
@@ -79,10 +86,13 @@ const HexagonalStats = ({
 
     // Data polygon
     const dataPoints = data.map((val, i) => {
+        // Directly scale to avoid discrepancies between rendered geometry and displayed value.
+        // If the rounded value is 0.0, keep a small bump so the polygon remains visible.
         const normalized = Math.max(0, Math.min(val, maxValue)) / maxValue;
-        const minFill = 0.06; // ensure visible polygon even when value is 0
-        const t = normalized === 0 ? minFill : normalized;
+        const t = normalized === 0 ? zeroBumpRatio : normalized;
         const r = radius * t;
+        const x = centerX + r * Math.cos(angle * i - Math.PI / 2);
+        const y = centerY + r * Math.sin(angle * i - Math.PI / 2);
         return {
             x: centerX + r * Math.cos(angle * i - Math.PI / 2),
             y: centerY + r * Math.sin(angle * i - Math.PI / 2),
@@ -90,7 +100,15 @@ const HexagonalStats = ({
             i,
         };
     });
-    const polygonPoints = dataPoints.map((p) => `${p.x},${p.y}`).join(" ");
+    const polygonPoints = dataPoints
+        .map((p) => {
+            const roundedX = Number(p.x.toFixed(2));
+            const roundedY = Number(p.y.toFixed(2));
+            p.roundedX = roundedX;
+            p.roundedY = roundedY;
+            return `${roundedX},${roundedY}`;
+        })
+        .join(" ");
 
     // Label positions (outside)
     const labelPts = categories.map((_, i) => {
@@ -135,11 +153,19 @@ const HexagonalStats = ({
                     fill="url(#radarFill)"
                     stroke="#2D9EFF"
                     strokeWidth={outlineStroke}
+                    strokeLinejoin="round"
+                    strokeLinecap="round"
                 />
 
                 {/* Vertex dots */}
                 {dataPoints.map((p, idx) => (
-                    <Circle key={`dot-${idx}`} cx={p.x} cy={p.y} r={dotRadius} fill="#2D9EFF" />
+                    <Circle
+                        key={`dot-${idx}`}
+                        cx={p.roundedX ?? p.x}
+                        cy={p.roundedY ?? p.y}
+                        r={dotRadius}
+                        fill="#2D9EFF"
+                    />
                 ))}
 
                 {/* Labels + values (outside the shape) */}

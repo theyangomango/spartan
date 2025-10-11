@@ -26,7 +26,7 @@ const ICON_PILL_SIZE = scaleSize(30);
 const ICON_PILL_RADIUS = scaleSize(18);
 const ICON_PILL_MR = scaleSize(14);
 
-const FONT_BANNER_TITLE = ts(14);
+const FONT_BANNER_TITLE = ts(12);
 const FONT_BANNER_META = ts(11);
 
 const DOT_HEIGHT = scaleSize(4);
