@@ -262,6 +262,7 @@ export default function PostOptionsScreen({ navigation, route }) {
         }
 
         setIsSharing(true);
+        if (honestyVisible) setHonestyVisible(false);
 
         const pid = isEditing ? editingPid : makeID();
         const previousPosts = !isEditing && global?.userData && Array.isArray(global.userData.posts)
@@ -366,7 +367,6 @@ export default function PostOptionsScreen({ navigation, route }) {
                         updatedAt: now,
                     });
 
-                    navigation.goBack();
                 } else {
                     const uid = global?.userData?.uid;
                     if (!uid) throw new Error('Missing user UID for createPost');
@@ -385,15 +385,6 @@ export default function PostOptionsScreen({ navigation, route }) {
                         arrayAppend('users', uid, 'posts', pid),
                         arrayAppend('global', 'posts', 'PIDs', pid),
                     ]);
-
-                    setTimeout(() => {
-                        try {
-                            const { jumpToTab } = require('../../../../navigationRef');
-                            jumpToTab('Feed');
-                        } catch {
-                            navigation.navigate('Tabs', { screen: 'Feed' });
-                        }
-                    }, 0);
                 }
             } catch (error) {
                 console.error('sharePost failed', error);
@@ -410,6 +401,21 @@ export default function PostOptionsScreen({ navigation, route }) {
         };
 
         sharePromiseRef.current = runShare();
+
+        const exitScreen = () => {
+            if (isEditing) {
+                navigation.goBack();
+                return;
+            }
+            try {
+                const { jumpToTab } = require('../../../../navigationRef');
+                jumpToTab('Feed');
+            } catch {
+                navigation.navigate('Tabs', { screen: 'Feed' });
+            }
+        };
+
+        requestAnimationFrame(exitScreen);
     }
 
     const shareDisabled = (!isEditing && caption.trim().length === 0) || isSharing;
