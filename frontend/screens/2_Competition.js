@@ -6,12 +6,12 @@ import {
     Modal,
     TouchableOpacity,
     Animated as RNAnimated,
-    SafeAreaView,
     Dimensions,
     Text,
     InteractionManager,
     Pressable,
 } from "react-native";
+import useStableSafeAreaInsets from "../hooks/useStableSafeAreaInsets";
 import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
 import Podium from "../components/2_Competition/Podium";
 import rankUsers from "../helper/rankUsers";
@@ -231,6 +231,7 @@ function applyLastRanks(list, exercise, scopeKey) {
 }
 
 export default function Competition({ navigation, route }) {
+    const insets = useStableSafeAreaInsets();
     const usersRef = useRef([]);
     const userUnsubRef = useRef(null);
     // hydrate leaderboard from last saved view (backend)
@@ -1066,7 +1067,7 @@ export default function Competition({ navigation, route }) {
                     </View>
                 </View>
             </Modal>
-            <SafeAreaView>
+            <View style={{ paddingTop: insets.top }}>
                 <View
                     style={[
                         styles.header,
@@ -1121,7 +1122,7 @@ export default function Competition({ navigation, route }) {
                         </RNBounceable>
                     </View>
                 </View>
-            </SafeAreaView>
+            </View>
 
             <Animated.View
                 pointerEvents={isUserStatsBottomSheetVisible ? "none" : "box-none"}
@@ -1131,7 +1132,7 @@ export default function Competition({ navigation, route }) {
                     headerOverlayAnimatedStyle,
                 ]}
             >
-                <SafeAreaView pointerEvents="box-none">
+                <View pointerEvents="box-none" style={{ paddingTop: insets.top }}>
                     <View
                         pointerEvents="box-none"
                         style={[
@@ -1149,7 +1150,7 @@ export default function Competition({ navigation, route }) {
                             {renderHeaderLeftContent(!isUserStatsBottomSheetVisible)}
                         </View>
                     </View>
-                </SafeAreaView>
+                </View>
             </Animated.View>
 
             <InfoPanel isVisible={false} opacity={useRef(new RNAnimated.Value(0)).current} />

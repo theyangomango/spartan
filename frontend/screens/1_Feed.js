@@ -10,7 +10,6 @@ import React, {
     useState,
 } from "react";
 import {
-    SafeAreaView,
     StyleSheet,
     FlatList,
     RefreshControl,
@@ -19,10 +18,11 @@ import {
     Alert,
     Text,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useIsFocused, useFocusEffect } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import useStableSafeAreaInsets from "../hooks/useStableSafeAreaInsets";
 
 import PostListItem from "../components/1_Feed/PostListItem";
 import FeedHeader from "../components/1_Feed/FeedHeader";
@@ -91,7 +91,7 @@ const ensureAtHandle = (value) => {
 };
 
 export default function Feed({ navigation, route }) {
-    const insets = useSafeAreaInsets();
+    const insets = useStableSafeAreaInsets();
     const isScreenFocused = useIsFocused();
 
     const UID = "userData" in global ? global.userData.uid : route?.params?.uid;
@@ -732,7 +732,7 @@ export default function Feed({ navigation, route }) {
         : null;
 
     return (
-        <SafeAreaView style={styles.screen}>
+        <SafeAreaView style={styles.screen} edges={["top"]}>
             <StatusBar style="light" />
             <View style={styles.headerWrap}>{headerComponent}</View>
             <FlatList

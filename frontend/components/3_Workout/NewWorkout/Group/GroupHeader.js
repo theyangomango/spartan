@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     },
     iconWrapper: { flexDirection: "row", alignItems: "center" },
     countdownText: {
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(13.5),
         color: '#FFFFFF',
         fontFamily: "Outfit_700Bold",
         marginLeft: scaledSize(10),

@@ -9,10 +9,10 @@ import {
     FlatList,
     Modal,
     TouchableWithoutFeedback,
-    SafeAreaView,
     KeyboardAvoidingView,
     Platform,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import FastImage from "react-native-fast-image";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { usePfp } from "../../helper/usePFPs";
@@ -320,7 +320,11 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                         style={StyleSheet.absoluteFill}
                         behavior={Platform.OS === "ios" ? "padding" : undefined}
                     >
-                        <SafeAreaView style={[styles.modalContent, navigating && { opacity: 0 }]} pointerEvents="box-none">
+                        <SafeAreaView
+                            style={[styles.modalContent, navigating && { opacity: 0 }]}
+                            pointerEvents="box-none"
+                            edges={["top"]}
+                        >
                             <View
                                 style={[
                                     styles.overlayBar,

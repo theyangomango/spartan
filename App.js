@@ -19,7 +19,7 @@ import { useSharedValue, runOnUI, withTiming, Easing } from 'react-native-reanim
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { enableScreens, enableFreeze } from 'react-native-screens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
@@ -869,7 +869,7 @@ export default function App() {
     // While loading, keep a minimal root mounted for onLayout, but don't render UI
     if (!appReady) {
         return (
-            <SafeAreaProvider>
+            <SafeAreaProvider initialMetrics={initialWindowMetrics}>
                 <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#ffffff' }} onLayout={onLayoutRootView} />
             </SafeAreaProvider>
         );
@@ -892,7 +892,7 @@ export default function App() {
 
 
 return (
-    <SafeAreaProvider>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.bg }} onLayout={onLayoutRootView}>
             {authChecked && (
                 <NavigationContainer
