@@ -31,13 +31,16 @@ const ensureFileUri = async (uri, format, quality) => {
 export async function compressUnder250KB(uri, opts = {}) {
   if (!uri) return uri;
 
+  const platformPrimaryQuality = Platform.OS === 'android' ? 0.72 : 0.68;
+  const platformFallbackQuality = Platform.OS === 'android' ? 0.62 : 0.58;
+
   const {
-    targetKB = 800,          // aim for sub-megabyte payloads for quicker uploads
-    maxDimension = 1440,     // primary long-edge cap for the first pass
+    targetKB = 360,          // keep payloads well under 0.5MB to speed up uploads on spotty LTE
+    maxDimension = 1280,     // primary long-edge cap for the first pass
     fallbackDimension = 960, // secondary cap if we still exceed target size
-    primaryQuality = 0.82,
-    fallbackQuality = 0.72,
-    minEdge = 640,
+    primaryQuality = platformPrimaryQuality,
+    fallbackQuality = platformFallbackQuality,
+    minEdge = 720,
   } = opts || {};
 
   const targetBytes = Math.max(1, Math.round(targetKB * 1024));
@@ -107,6 +110,23 @@ export async function compressUnder250KB(uri, opts = {}) {
           if (fallbackInfo?.size && fallbackInfo.size <= targetBytes) {
             return fallback.uri;
           }
+
+          // Last resort: drop quality slightly more, but avoid another resize pass unless needed.
+          try {
+            const emergency = await ImageManipulator.manipulateAsync(
+              fallback.uri,
+              [],
+              { compress: Math.max(0.5, fallbackQuality - 0.1), format }
+            );
+            if (emergency?.uri) {
+              const emergencyInfo = await FileSystem.getInfoAsync(emergency.uri).catch(() => null);
+              if (!emergencyInfo?.size || emergencyInfo.size <= targetBytes) {
+                return emergency.uri;
+              }
+              return emergency.uri;
+            }
+          } catch {}
+
           return fallback.uri;
         }
       } catch {

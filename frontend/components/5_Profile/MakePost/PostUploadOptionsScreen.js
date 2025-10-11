@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Dimensions, FlatList, Alert } from "react-native";
+import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Dimensions, FlatList, Alert, Platform } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import FastImage from 'react-native-fast-image';
 import makeID from "../../../../backend/helper/makeID";
 // Storage handled via native resumable helper to avoid RN Blob issues
+import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import uploadResumableNative from "../../../../backend/storage/uploadResumableNative";
 import createPost from "../../../../backend/posts/createPost";
@@ -111,6 +112,7 @@ export default function PostOptionsScreen({ navigation, route }) {
     const [measureState, setMeasureState] = useState({ text: ' ', nonce: 0 });
     const measureRequestRef = useRef(null);
     const [lineLimitReached, setLineLimitReached] = useState(false);
+    const compressionCacheRef = useRef(new Map()); // reuse compressed results across retries
 
     useEffect(() => {
         setSelectedImages(routeImages);
@@ -121,6 +123,153 @@ export default function PostOptionsScreen({ navigation, route }) {
         [selectedImages]
     );
     const hasMedia = mediaList.length > 0;
+
+    const compressionPreset = useMemo(() => {
+        const count = Math.max(1, mediaList.length || 1);
+        const basePrimary = Platform.OS === 'android' ? 0.72 : 0.68;
+        const baseFallback = Platform.OS === 'android' ? 0.62 : 0.58;
+
+        let targetKB = 320;
+        let maxDimension = 1380;
+        let fallbackDimension = 1080;
+        let minEdge = 720;
+        let primaryQuality = basePrimary;
+        let fallbackQuality = baseFallback;
+
+        if (count === 2) {
+            targetKB = 250;
+            maxDimension = 1280;
+            fallbackDimension = 980;
+            primaryQuality -= 0.02;
+            fallbackQuality -= 0.02;
+        } else if (count === 3) {
+            targetKB = 220;
+            maxDimension = 1152;
+            fallbackDimension = 928;
+            minEdge = 680;
+            primaryQuality -= 0.04;
+            fallbackQuality -= 0.04;
+        } else if (count >= 4) {
+            targetKB = 200;
+            maxDimension = 1024;
+            fallbackDimension = 896;
+            minEdge = 660;
+            primaryQuality -= 0.06;
+            fallbackQuality -= 0.06;
+        }
+
+        primaryQuality = Math.max(0.55, primaryQuality);
+        fallbackQuality = Math.max(0.5, fallbackQuality);
+
+        const cacheKey = `v2-${count}-${targetKB}-${maxDimension}-${fallbackDimension}-${minEdge}-${primaryQuality.toFixed(2)}-${fallbackQuality.toFixed(2)}`;
+
+        return {
+            targetKB,
+            maxDimension,
+            fallbackDimension,
+            minEdge,
+            primaryQuality,
+            fallbackQuality,
+            cacheKey,
+        };
+    }, [mediaList.length]);
+
+    const ensurePreparedAsset = useCallback(async (sourceUri) => {
+        if (!sourceUri || /^https?:\/\//i.test(sourceUri)) return null;
+
+        const cache = compressionCacheRef.current;
+        const cacheKey = `${sourceUri}::${compressionPreset.cacheKey}`;
+
+        const cached = cache.get(cacheKey);
+        if (cached) {
+            if (cached.status === 'done') return cached.result;
+            if (cached.status === 'pending') return cached.promise;
+        }
+
+        // purge stale entries for same source to keep memory in check
+        const staleKeys = [];
+        cache.forEach((_, key) => {
+            if (key.startsWith(`${sourceUri}::`) && key !== cacheKey) {
+                staleKeys.push(key);
+            }
+        });
+        staleKeys.forEach((key) => cache.delete(key));
+
+        const jobPromise = (async () => {
+            let workingUri = sourceUri;
+            try {
+                workingUri = await compressUnder250KB(sourceUri, {
+                    targetKB: compressionPreset.targetKB,
+                    maxDimension: compressionPreset.maxDimension,
+                    fallbackDimension: compressionPreset.fallbackDimension,
+                    minEdge: compressionPreset.minEdge,
+                    primaryQuality: compressionPreset.primaryQuality,
+                    fallbackQuality: compressionPreset.fallbackQuality,
+                });
+            } catch (error) {
+                console.warn('[PostUploadOptions] compressUnder250KB failed, falling back to original asset', error);
+            }
+
+            if (!workingUri || !workingUri.startsWith('file://')) {
+                try {
+                    const tmp = await ImageManipulator.manipulateAsync(
+                        workingUri || sourceUri,
+                        [],
+                        { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
+                    );
+                    if (tmp?.uri) workingUri = tmp.uri;
+                } catch {
+                    workingUri = sourceUri;
+                }
+            }
+
+            if (!workingUri || !workingUri.startsWith('file://')) {
+                throw new Error('Unable to resolve local file path for asset upload');
+            }
+
+            const withoutQuery = (workingUri || '').split('?')[0];
+            const match = withoutQuery.match(/\.([a-zA-Z0-9]+)$/);
+            let ext = (match ? match[1] : '').toLowerCase();
+            if (ext === 'jpeg') ext = 'jpg';
+            if (!ext) ext = (Platform.OS === 'android' ? 'webp' : 'jpg');
+            if (!['jpg', 'png', 'webp'].includes(ext)) {
+                ext = Platform.OS === 'android' ? 'webp' : 'jpg';
+            }
+            const mime = ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : 'image/jpeg');
+
+            const info = await FileSystem.getInfoAsync(workingUri).catch(() => null);
+            const size = info?.size && Number.isFinite(info.size) ? info.size : null;
+
+            return {
+                fileUri: workingUri,
+                ext,
+                mime,
+                size,
+            };
+        })();
+
+        cache.set(cacheKey, { status: 'pending', promise: jobPromise });
+
+        try {
+            const result = await jobPromise;
+            cache.set(cacheKey, { status: 'done', result });
+            return result;
+        } catch (error) {
+            cache.delete(cacheKey);
+            throw error;
+        }
+    }, [compressionPreset]);
+
+    useEffect(() => {
+        if (!mediaList.length) return;
+        const locals = mediaList.filter((uri) => uri && !/^https?:\/\//i.test(uri));
+        const uniqueLocals = Array.from(new Set(locals));
+        uniqueLocals.forEach((uri) => {
+            ensurePreparedAsset(uri).catch(() => {
+                // Logged upstream; ignore background failures.
+            });
+        });
+    }, [mediaList, ensurePreparedAsset]);
 
     const keyExtractor = useCallback((item, idx) => `${item}-${idx}`, []);
 
@@ -291,24 +440,14 @@ export default function PostOptionsScreen({ navigation, route }) {
                     }
 
                     try {
-                        let compressedUri = await compressUnder250KB(uri);
-                        if (!compressedUri || !compressedUri.startsWith('file://')) {
-                            const tmp = await ImageManipulator.manipulateAsync(
-                                compressedUri || uri,
-                                [],
-                                { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
-                            );
-                            compressedUri = tmp?.uri;
-                        }
-
-                        const withoutQuery = (compressedUri || '').split('?')[0];
-                        const match = withoutQuery.match(/\.([a-zA-Z0-9]+)$/);
-                        const ext = (match ? match[1] : 'jpg').toLowerCase();
-                        const mime = ext === 'png' ? 'image/png' : (ext === 'webp' ? 'image/webp' : 'image/jpeg');
-
+                        const prepared = await ensurePreparedAsset(uri);
+                        if (!prepared?.fileUri) throw new Error('Unable to prepare image for upload');
+                        const { fileUri: localUri, ext, mime, size } = prepared;
+                        const safeExt = ext || 'jpg';
+                        const mimeType = mime || (safeExt === 'png' ? 'image/png' : (safeExt === 'webp' ? 'image/webp' : 'image/jpeg'));
                         const id = makeID();
-                        const path = `posts/${pid}-${id}.${ext}`;
-                        const { url } = await uploadResumableNative({ fileUri: compressedUri, path, mime });
+                        const path = `posts/${pid}-${id}.${safeExt}`;
+                        const { url } = await uploadResumableNative({ fileUri: localUri, path, mime: mimeType, size });
                         return { index, uri: url, type: 'image' };
                     } catch (error) {
                         console.error(`Error processing image ${index + 1}:`, error);

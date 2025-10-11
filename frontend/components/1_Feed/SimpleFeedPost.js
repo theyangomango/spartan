@@ -991,12 +991,56 @@ const SimpleFeedPost = ({
                                 { transform: [{ translateY: optionsSheetTranslateY }] },
                             ]}
                         >
-                            <Pressable style={styles.optionsItem} onPress={handlePressEditPost}>
-                                <Text style={styles.optionsItemText}>Edit Post</Text>
+                            <Pressable
+                                style={({ pressed }) => [
+                                    styles.optionsItem,
+                                    pressed ? styles.optionsItemPressed : null,
+                                ]}
+                                onPress={handlePressEditPost}
+                            >
+                                <View style={styles.optionsItemRow}>
+                                    <View style={styles.optionsItemLeft}>
+                                        <MaterialCommunityIcons
+                                            name="pencil-outline"
+                                            size={scaleSize(20)}
+                                            color={theme.textPrimary}
+                                            style={styles.optionsItemIcon}
+                                        />
+                                        <Text style={styles.optionsItemText}>Edit Post</Text>
+                                    </View>
+                                    <MaterialCommunityIcons
+                                        name="chevron-right"
+                                        size={scaleSize(20)}
+                                        color="rgba(255,255,255,0.32)"
+                                    />
+                                </View>
                             </Pressable>
                             <View style={styles.optionsDivider} />
-                            <Pressable style={styles.optionsItem} onPress={handlePressDeletePost}>
-                                <Text style={[styles.optionsItemText, styles.optionsItemDeleteText]}>{deleteOptionLabel}</Text>
+                            <Pressable
+                                style={({ pressed }) => [
+                                    styles.optionsItem,
+                                    pressed ? styles.optionsItemPressed : null,
+                                ]}
+                                onPress={handlePressDeletePost}
+                            >
+                                <View style={styles.optionsItemRow}>
+                                    <View style={styles.optionsItemLeft}>
+                                        <MaterialCommunityIcons
+                                            name="trash-can-outline"
+                                            size={scaleSize(20)}
+                                            color="#FF6B6B"
+                                            style={styles.optionsItemIcon}
+                                        />
+                                        <Text style={[styles.optionsItemText, styles.optionsItemDeleteText]}>
+                                            {deleteOptionLabel}
+                                        </Text>
+                                    </View>
+                                    <MaterialCommunityIcons
+                                        name="chevron-right"
+                                        size={scaleSize(20)}
+                                        color="rgba(255,107,107,0.5)"
+                                    />
+                                </View>
                             </Pressable>
                         </Animated.View>
                     </View>
@@ -1316,25 +1360,50 @@ const styles = StyleSheet.create({
     },
     optionsSheet: {
         backgroundColor: theme.surface,
-        paddingHorizontal: scaleSize(24),
-        paddingTop: scaleSize(20),
-        paddingBottom: scaleSize(30),
-        borderTopLeftRadius: scaleSize(24),
-        borderTopRightRadius: scaleSize(24),
+        paddingHorizontal: scaleSize(26),
+        paddingTop: scaleSize(22),
+        paddingBottom: scaleSize(32),
+        borderTopLeftRadius: scaleSize(26),
+        borderTopRightRadius: scaleSize(26),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.06)',
+        shadowColor: "#000",
+        shadowOpacity: 0.35,
+        shadowRadius: scaleSize(24),
+        shadowOffset: { width: 0, height: -6 },
+        elevation: 18,
     },
     optionsItem: {
-        paddingVertical: scaleSize(14),
+        paddingVertical: scaleSize(12),
+        borderRadius: scaleSize(16),
+    },
+    optionsItemPressed: {
+        backgroundColor: 'rgba(255,255,255,0.08)',
+    },
+    optionsItemRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    optionsItemLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    optionsItemIcon: {
+        marginRight: scaleSize(10),
     },
     optionsItemText: {
-        fontFamily: "Poppins_600SemiBold",
-        fontSize: scaleSize(16),
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(14.5),
+        letterSpacing: 0.2,
         color: theme.textPrimary,
     },
     optionsItemDeleteText: {
-        color: '#FF5C5C',
+        color: '#FF6B6B',
     },
     optionsDivider: {
         height: StyleSheet.hairlineWidth,
-        backgroundColor: theme.hairline,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        marginVertical: scaleSize(4),
     },
 });

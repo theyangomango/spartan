@@ -18,10 +18,62 @@ async function getIdToken() {
   }
 }
 
-export default async function uploadResumableNative({ fileUri, path, mime = 'application/octet-stream' }) {
+const SIMPLE_UPLOAD_LIMIT = 5 * 1024 * 1024; // prefer single-request uploads for small payloads
+
+async function simpleUpload({ fileUri, path, mime, idToken, size }) {
+  const url = `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(BUCKET)}/o?uploadType=media&name=${encodeURIComponent(path)}`;
+  const headers = { 'Content-Type': mime };
+  if (Number.isFinite(size)) {
+    headers['Content-Length'] = String(size);
+  }
+  if (idToken) headers['Authorization'] = `Firebase ${idToken}`;
+
+  const resp = await FileSystem.uploadAsync(url, fileUri, {
+    httpMethod: 'POST',
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+    headers,
+  });
+  if (resp.status && resp.status >= 200 && resp.status < 300) {
+    let meta;
+    try { meta = JSON.parse(resp.body); } catch { meta = null; }
+    return meta;
+  }
+  const err = new Error(`simple upload failed: ${resp.status} ${resp.body?.slice?.(0, 120) || ''}`);
+  err.status = resp.status;
+  throw err;
+}
+
+export default async function uploadResumableNative({ fileUri, path, mime = 'application/octet-stream', size }) {
   if (!fileUri || !path) throw new Error('uploadResumableNative: fileUri and path required');
 
   const idToken = await getIdToken();
+
+  let info = null;
+  if (typeof size !== 'number') {
+    info = await FileSystem.getInfoAsync(fileUri).catch(() => null);
+  }
+  const effectiveSize = typeof size === 'number' && Number.isFinite(size)
+    ? size
+    : (info?.size ?? null);
+
+  if (effectiveSize && effectiveSize <= SIMPLE_UPLOAD_LIMIT) {
+    try {
+      const meta = await simpleUpload({ fileUri, path, mime, idToken, size: effectiveSize });
+      const respToken = meta?.downloadTokens || meta?.metadata?.firebaseStorageDownloadTokens || null;
+      let url = respToken
+        ? `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(BUCKET)}/o/${encodeURIComponent(path)}?alt=media&token=${respToken}`
+        : `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(BUCKET)}/o/${encodeURIComponent(path)}?alt=media`;
+      if (!respToken) {
+        try {
+          url = await getDownloadURL(ref(storage, path));
+        } catch {}
+      }
+      return { url, path, mimeType: mime, metadata: meta };
+    } catch (error) {
+      // Fallback to resumable uploads for any failures (e.g., rate limits)
+      console.warn('[uploadResumableNative] simple upload failed, falling back to resumable:', error?.message || error);
+    }
+  }
 
   // 1) Start resumable session
   const startUrl = `https://firebasestorage.googleapis.com/v0/b/${encodeURIComponent(BUCKET)}/o?uploadType=resumable&name=${encodeURIComponent(path)}`;
