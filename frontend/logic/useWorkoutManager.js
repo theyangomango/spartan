@@ -172,19 +172,131 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
     /* ------------ persist currentWorkout (debounced) ------------ */
     const saveCurrentWorkoutDebouncedRef = useRef(null);
+    const pendingPersistValueRef = useRef(null);
     const lastPersistSentAtRef = useRef(0);
     const lastPersistSentHashRef = useRef("");
-    const lastPrevInjectAtRef = useRef(0);
-    const clearPersistDebounce = useCallback(() => {
+    const prevSetsCacheRef = useRef({ timestamp: 0, map: new Map() });
+    const PERSIST_DEBOUNCE_MS = 900;
+    const PREV_CACHE_TTL_MS = 30000;
+    const clearPersistDebounce = useCallback((resetPending = true) => {
         if (saveCurrentWorkoutDebouncedRef.current) {
             clearTimeout(saveCurrentWorkoutDebouncedRef.current);
             saveCurrentWorkoutDebouncedRef.current = null;
         }
+        if (resetPending) {
+            pendingPersistValueRef.current = null;
+        }
     }, []);
+    const ensurePrevSetsCache = useCallback(() => {
+        const now = Date.now();
+        const cache = prevSetsCacheRef.current;
+        if (cache && cache.map instanceof Map && (now - (cache.timestamp || 0) < PREV_CACHE_TTL_MS)) {
+            return cache.map;
+        }
+
+        const nextMap = new Map();
+
+        try {
+            const stats = (global?.userData?.statsExercises || {});
+            Object.keys(stats).forEach((name) => {
+                const entry = stats[name] || {};
+                const sets = Array.isArray(entry.sets) ? entry.sets : [];
+                if (!sets.length) return;
+                const lastWid = sets[sets.length - 1]?.wid;
+                if (!lastWid) return;
+                const collected = [];
+                for (let i = sets.length - 1; i >= 0; i--) {
+                    const row = sets[i];
+                    if (row?.wid !== lastWid) break;
+                    collected.push({
+                        weight: Number(row?.weight) || 0,
+                        reps: Number(row?.reps) || 0,
+                    });
+                }
+                collected.reverse();
+                if (collected.length) nextMap.set(name, collected);
+            });
+        } catch { }
+
+        try {
+            if (nextMap.size === 0) {
+                const completed = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
+                for (let i = completed.length - 1; i >= 0 && i >= completed.length - 12; i--) {
+                    const wk = completed[i];
+                    const exs = Array.isArray(wk?.exercises) ? wk.exercises : [];
+                    for (const ex of exs) {
+                        const name = String(ex?.name || "").trim();
+                        if (!name || nextMap.has(name)) continue;
+                        const sets = Array.isArray(ex?.sets) ? ex.sets : [];
+                        if (!sets.length) continue;
+                        const sanitized = sets.map((row) => ({
+                            weight: Number(row?.weight) || 0,
+                            reps: Number(row?.reps) || 0,
+                        }));
+                        if (sanitized.length) nextMap.set(name, sanitized);
+                    }
+                    if (nextMap.size > 24) break;
+                }
+            }
+        } catch { }
+
+        prevSetsCacheRef.current = { timestamp: now, map: nextMap };
+        return nextMap;
+    }, []);
+    const performPersist = useCallback((latest) => {
+        if (!uid || !latest) return;
+        const payload = sanitizeWorkout(latest);
+
+        try {
+            const prevMap = ensurePrevSetsCache();
+            if (prevMap?.size) {
+                payload.exercises = (payload.exercises || []).map((ex) => {
+                    const name = String(ex?.name || "");
+                    if (!name) return ex;
+                    const prevSets = prevMap.get(name);
+                    if (!prevSets || !prevSets.length) return ex;
+                    return {
+                        ...ex,
+                        prev: prevSets.map((row) => ({
+                            weight: Number(row?.weight) || 0,
+                            reps: Number(row?.reps) || 0,
+                        })),
+                    };
+                });
+            }
+        } catch { /* non-fatal */ }
+
+        try {
+            const hash = JSON.stringify(payload);
+            if (hash === lastPersistSentHashRef.current) return;
+            lastPersistSentHashRef.current = hash;
+            lastPersistSentAtRef.current = Date.now();
+            if (__DEV__) {
+                try {
+                    console.debug(
+                        "[WorkoutManager] Persist currentWorkout ->",
+                        payload?.wid || "(no wid)",
+                        payload?.name || ""
+                    );
+                } catch { /* ignore console issues */ }
+            }
+            InteractionManager.runAfterInteractions(() => {
+                (async () => {
+                    try {
+                        await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true });
+                    } catch (e) {
+                        console.log("setDoc users.currentWorkout error", e);
+                        try { await updateDoc("users", uid, { currentWorkout: payload }); } catch { }
+                    }
+                })();
+            });
+        } catch { }
+    }, [uid, ensurePrevSetsCache]);
     const persistCurrentWorkout = useCallback(
-        (value) => {
+        (value, options = {}) => {
             if (!uid) return;
             if (!value) {
+                pendingPersistValueRef.current = null;
                 clearPersistDebounce();
                 if (__DEV__) {
                     try {
@@ -202,77 +314,27 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 return;
             }
 
-            clearPersistDebounce();
+            const immediate = !!options.immediate;
+            pendingPersistValueRef.current = value;
 
-            const latest = value;
-            const payload = sanitizeWorkout(latest);
+            if (immediate) {
+                const latest = pendingPersistValueRef.current;
+                clearPersistDebounce();
+                performPersist(latest);
+                pendingPersistValueRef.current = null;
+                return;
+            }
 
-            try {
-                const now = Date.now();
-                if (now - (lastPrevInjectAtRef.current || 0) > 5000) {
-                    const completed = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
-                    const stats = (global?.userData?.statsExercises || {});
-                    const findPrevFromCompleted = (exName) => {
-                        for (let i = completed.length - 1; i >= 0; i--) {
-                            const wk = completed[i];
-                            const arr = Array.isArray(wk?.exercises) ? wk.exercises : [];
-                            const found = arr.find((e) => e?.name === exName && Array.isArray(e?.sets) && e.sets.length > 0);
-                            if (found) return (found.sets || []).map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 }));
-                        }
-                        return null;
-                    };
-                    const findPrevFromStats = (exName) => {
-                        const exStats = stats?.[exName];
-                        const sets = Array.isArray(exStats?.sets) ? exStats.sets : [];
-                        if (!sets.length) return null;
-                        const lastWid = sets[sets.length - 1]?.wid;
-                        const matching = [];
-                        for (let i = sets.length - 1; i >= 0; i--) {
-                            if (sets[i]?.wid !== lastWid) break;
-                            matching.push(sets[i]);
-                        }
-                        matching.reverse();
-                        return matching.map((s) => ({ weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0 }));
-                    };
-                    payload.exercises = (payload.exercises || []).map((ex) => {
-                        const prevA = findPrevFromCompleted(ex?.name);
-                        const prevB = prevA && prevA.length ? prevA : findPrevFromStats(ex?.name);
-                        if (prevB && prevB.length) {
-                            return { ...ex, prev: prevB };
-                        }
-                        return ex;
-                    });
-                    lastPrevInjectAtRef.current = now;
-                }
-            } catch { /* non-fatal */ }
-
-            try {
-                const hash = JSON.stringify(payload);
-                if (hash === lastPersistSentHashRef.current) return;
-                lastPersistSentHashRef.current = hash;
-                lastPersistSentAtRef.current = Date.now();
-                if (__DEV__) {
-                    try {
-                        console.debug(
-                            "[WorkoutManager] Persist currentWorkout ->",
-                            payload?.wid || "(no wid)",
-                            payload?.name || ""
-                        );
-                    } catch { /* ignore console issues */ }
-                }
-                InteractionManager.runAfterInteractions(() => {
-                    (async () => {
-                        try {
-                            await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true });
-                        } catch (e) {
-                            console.log("setDoc users.currentWorkout error", e);
-                            try { await updateDoc("users", uid, { currentWorkout: payload }); } catch { }
-                        }
-                    })();
-                });
-            } catch { }
+            clearPersistDebounce(false);
+            saveCurrentWorkoutDebouncedRef.current = setTimeout(() => {
+                saveCurrentWorkoutDebouncedRef.current = null;
+                const latest = pendingPersistValueRef.current;
+                if (!latest) return;
+                performPersist(latest);
+                pendingPersistValueRef.current = null;
+            }, PERSIST_DEBOUNCE_MS);
         },
-        [uid, clearPersistDebounce]
+        [uid, clearPersistDebounce, performPersist]
     );
 
     /* ------------ helpers ------------ */

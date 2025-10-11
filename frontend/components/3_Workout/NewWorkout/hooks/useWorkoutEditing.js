@@ -52,12 +52,6 @@ export default function useWorkoutEditing({ workout, updateWorkout, viewingSelf 
         if (!next || next === current) return; // nothing changed
         workoutRef.current = next;
         updateWorkoutRef.current(next);
-        try {
-            const persist = useWorkoutStore.getState().sheetHandlers?.persistWorkout;
-            if (persist) persist(next);
-        } catch {
-            // best effort; on subscription tick persistCurrentWorkout will run
-        }
     }, []);
 
     /* ------------------------------ actions ------------------------------ */
