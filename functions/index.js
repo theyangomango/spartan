@@ -6,7 +6,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { computeHexagonFromStats } from "./computeHexagon.js";
+import { computeHexagonFromStats } from "../shared/computeHexagon.js";
 
 setGlobalOptions({
     region: "us-central1",
