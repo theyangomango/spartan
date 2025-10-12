@@ -166,13 +166,66 @@ export const fatsecretSearchFood = onCall(
         const normalize = (s) =>
             String(s || "")
                 .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "") // strip diacritics
+                .replace(/[\u0300-\u036f]/g, "")
                 .toLowerCase()
                 .replace(/[^a-z0-9]+/g, " ")
                 .replace(/\s+/g, " ")
                 .trim();
 
         const toTokens = (s) => normalize(s).split(" ").filter(Boolean);
+
+        const SYNONYM_TABLE = {
+            soda: ["pop", "soft drink", "cola"],
+            pop: ["soda", "soft drink", "cola"],
+            cola: ["soda", "soft drink"],
+            fries: ["french fries", "chips"],
+            fry: ["french fry", "french fries", "chips"],
+            potatoes: ["potato", "fries"],
+            potato: ["potatoes", "fries"],
+            oatmeal: ["porridge", "oats"],
+            oats: ["oatmeal", "porridge"],
+            yogurt: ["yoghurt"],
+            yoghurt: ["yogurt"],
+            candy: ["sweets", "confectionery"],
+            cookies: ["biscuits"],
+            cookie: ["biscuit", "cookies"],
+            biscuit: ["cookie", "cookies"],
+            pasta: ["spaghetti", "noodles"],
+            noodles: ["pasta"],
+            rice: ["white rice", "brown rice"],
+            burger: ["hamburger"],
+            hamburger: ["burger"],
+            sandwich: ["sub", "hoagie"],
+            sub: ["sandwich", "hoagie"],
+            wrap: ["burrito"],
+            burrito: ["wrap"],
+            beans: ["legumes"],
+            legumes: ["beans"],
+            egg: ["eggs"],
+            eggs: ["egg"],
+            cereal: ["breakfast cereal"],
+        };
+
+        const expandTokensForMatch = (tokens) => {
+            const expanded = new Set();
+            for (const token of tokens) {
+                if (!token) continue;
+                expanded.add(token);
+                const norm = normalize(token);
+                if (norm) expanded.add(norm);
+                if (norm.endsWith("ies")) expanded.add(norm.replace(/ies$/, "y"));
+                if (norm.endsWith("es") && norm.length > 3) expanded.add(norm.replace(/es$/, ""));
+                if (norm.endsWith("s") && norm.length > 3) expanded.add(norm.slice(0, -1));
+                const syns = SYNONYM_TABLE[norm];
+                if (Array.isArray(syns)) {
+                    for (const syn of syns) {
+                        expanded.add(syn);
+                        for (const part of toTokens(syn)) expanded.add(part);
+                    }
+                }
+            }
+            return expanded;
+        };
 
         const charNGrams = (s, n = 3) => {
             const str = normalize(s).replace(/\s+/g, "");
@@ -181,7 +234,6 @@ export const fatsecretSearchFood = onCall(
             for (let i = 0; i <= Math.max(0, str.length - n); i++) {
                 grams.add(str.slice(i, i + n));
             }
-            // if string shorter than n, add whole string as a gram
             if (grams.size === 0) grams.add(str);
             return grams;
         };
@@ -195,29 +247,63 @@ export const fatsecretSearchFood = onCall(
 
         const tokenOverlap = (aTokens, bTokens) => {
             if (!aTokens.length || !bTokens.length) return 0;
-            const a = new Set(aTokens);
-            const b = new Set(bTokens);
+            const a = expandTokensForMatch(aTokens);
+            const b = expandTokensForMatch(bTokens);
             let inter = 0;
             for (const t of a) if (b.has(t)) inter++;
             return (2 * inter) / (a.size + b.size);
         };
 
+        const levenshteinSimilarity = (a, b) => {
+            const from = normalize(a).replace(/\s+/g, "");
+            const to = normalize(b).replace(/\s+/g, "");
+            if (!from && !to) return 1;
+            if (!from || !to) return 0;
+            const maxLen = Math.max(from.length, to.length);
+            if (maxLen === 0) return 1;
+
+            const cappedFrom = from.slice(0, 80);
+            const cappedTo = to.slice(0, 80);
+            const m = cappedFrom.length;
+            const n = cappedTo.length;
+            let prev = new Array(n + 1);
+            let curr = new Array(n + 1);
+            for (let j = 0; j <= n; j++) prev[j] = j;
+            for (let i = 1; i <= m; i++) {
+                curr[0] = i;
+                const charA = cappedFrom.charCodeAt(i - 1);
+                for (let j = 1; j <= n; j++) {
+                    const cost = charA === cappedTo.charCodeAt(j - 1) ? 0 : 1;
+                    curr[j] = Math.min(
+                        prev[j] + 1,
+                        curr[j - 1] + 1,
+                        prev[j - 1] + cost
+                    );
+                }
+                [prev, curr] = [curr, prev];
+            }
+            const distance = prev[n];
+            return Math.max(0, 1 - distance / maxLen);
+        };
+
         const similarityScore = (queryStr, candidateStr) => {
             const qTokens = toTokens(queryStr);
             const cTokens = toTokens(candidateStr);
-            const tokenScore = tokenOverlap(qTokens, cTokens); // 0..1
+            const tokenScore = tokenOverlap(qTokens, cTokens);
             const qGrams = charNGrams(queryStr);
             const cGrams = charNGrams(candidateStr);
-            const gramScore = jaccard(qGrams, cGrams); // 0..1
+            const gramScore = jaccard(qGrams, cGrams);
+            const levScore = levenshteinSimilarity(queryStr, candidateStr);
 
-            // small boosts
             let boost = 0;
-            if (qTokens.length > 0 && cTokens.join(" ").startsWith(qTokens[0])) boost += 0.05;
-            const allQueryTokensInName = qTokens.every((t) => cTokens.includes(t));
-            if (allQueryTokensInName) boost += 0.1;
+            const normalizedQuery = normalize(queryStr);
+            const normalizedCandidate = normalize(candidateStr);
+            if (qTokens.length > 0 && normalizedCandidate.startsWith(qTokens[0])) boost += 0.05;
+            if (normalizedQuery && normalizedCandidate.includes(normalizedQuery)) boost += 0.1;
+            const allTokensPresent = qTokens.every((t) => normalizedCandidate.includes(t));
+            if (allTokensPresent) boost += 0.05;
 
-            // weighted combo (sum capped at 1)
-            const score = 0.6 * tokenScore + 0.4 * gramScore + boost;
+            const score = 0.45 * tokenScore + 0.25 * gramScore + 0.25 * levScore + boost;
             return Math.max(0, Math.min(1, score));
         };
 
@@ -231,13 +317,62 @@ export const fatsecretSearchFood = onCall(
         const qRaw = String(query || "");
         const qNorm = normalize(qRaw);
         const qTokens = toTokens(qRaw);
-
         const candidates = new Set();
-        if (qRaw.trim()) candidates.add(qRaw.trim());
-        if (qNorm && qNorm !== qRaw.trim()) candidates.add(qNorm);
+
+        const addCandidate = (expr) => {
+            const cleaned = String(expr || "").trim();
+            if (!cleaned) return;
+            candidates.add(cleaned);
+        };
+
+        const addTokenVariants = (token) => {
+            const variants = new Set();
+            const raw = String(token || "").trim();
+            if (!raw) return;
+            variants.add(raw);
+            const norm = normalize(raw);
+            if (norm && norm !== raw) variants.add(norm);
+
+            // crude singular/plural handling
+            if (norm.endsWith("ies")) {
+                const singular = norm.replace(/ies$/, "y");
+                variants.add(singular);
+            }
+            if (norm.endsWith("es")) {
+                variants.add(norm.replace(/es$/, ""));
+            }
+            if (norm.endsWith("s") && norm.length > 3) {
+                variants.add(norm.slice(0, -1));
+            } else {
+                variants.add(`${norm}s`);
+            }
+
+            const syns = SYNONYM_TABLE[norm];
+            if (Array.isArray(syns)) {
+                for (const syn of syns) variants.add(syn);
+            }
+
+            for (const variant of variants) {
+                addCandidate(variant);
+            }
+        };
+
+        addCandidate(qRaw);
+        if (qNorm && qNorm !== qRaw.trim()) addCandidate(qNorm);
+        const qSynonyms = SYNONYM_TABLE[qNorm];
+        if (Array.isArray(qSynonyms)) {
+            for (const syn of qSynonyms) addCandidate(syn);
+        }
         if (qTokens.length > 1) {
             const sorted = [...qTokens].sort().join(" ");
             if (sorted && sorted !== qNorm) candidates.add(sorted);
+        }
+        if (qTokens.length >= 2) {
+            for (let size = Math.min(3, qTokens.length); size >= 2; size--) {
+                for (let i = 0; i <= qTokens.length - size; i++) {
+                    addCandidate(qTokens.slice(i, i + size).join(" "));
+                }
+            }
         }
         // add individual tokens (length >= 3) to broaden recall
         const STOP = new Set([
@@ -249,10 +384,11 @@ export const fatsecretSearchFood = onCall(
         for (const t0 of qTokens) {
             const t = t0.toLowerCase();
             if (STOP.has(t)) continue;
-            if (t.length >= 3) candidates.add(t);
+            if (t.length >= 3) addCandidate(t);
             // add prefixes to help with misspellings (e.g., 'chikn' -> 'chi')
-            if (t.length >= 4) candidates.add(t.slice(0, 3));
-            if (t.length >= 5) candidates.add(t.slice(0, 4));
+            if (t.length >= 4) addCandidate(t.slice(0, 3));
+            if (t.length >= 5) addCandidate(t.slice(0, 4));
+            addTokenVariants(t);
         }
 
         // -------------- fetch + merge -------------- //

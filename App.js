@@ -18,6 +18,7 @@ import { rs, ts } from './frontend/helper/scaleSize';
 import { useSharedValue, runOnUI, withTiming, Easing } from 'react-native-reanimated';
 import { Entypo, FontAwesome, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import * as Network from 'expo-network';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { enableScreens, enableFreeze } from 'react-native-screens';
@@ -57,6 +58,7 @@ import PrivateProfileInfo from './frontend/screens/PrivateProfileInfo';
 import DeleteAccount from './frontend/screens/DeleteAccount';
 import ProfileWorkoutsAndPostsScreen from './frontend/screens/ProfileWorkoutsAndPostsScreen';
 import ProfileTemplatesScreen from './frontend/screens/ProfileTemplatesScreen';
+import NoInternet from './frontend/screens/NoInternet';
 // Dark theme palette
 import theme from './frontend/theme/mfpDark';
 import ActiveWorkoutBottomSheet from './frontend/components/3_Workout/NewWorkout/ActiveWorkoutBottomSheet';
@@ -134,6 +136,9 @@ export default function App() {
     const [userReady, setUserReady] = useState(false);
     const [communityStatsReady, setCommunityStatsReady] = useState(false);
     const [authBackgroundReady, setAuthBackgroundReady] = useState(false);
+    const [isOffline, setIsOffline] = useState(false);
+    const [networkType, setNetworkType] = useState(null);
+    const [lastNetworkCheck, setLastNetworkCheck] = useState(0);
     const authBackgroundReadyRef = useRef(false);
     const feedOverlayProgressSV = useSharedValue(1);
     const footerVisibilitySV = useSharedValue(0);
@@ -162,6 +167,24 @@ export default function App() {
             easing: visible ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
         });
     }, [footerVisibilitySV]);
+
+    const evaluateNetworkState = useCallback((state) => {
+        const timestamp = Date.now();
+        setLastNetworkCheck(timestamp);
+        if (!state || typeof state !== 'object') {
+            return;
+        }
+        const offline = !state.isConnected || state.isInternetReachable === false;
+        setIsOffline((prev) => (prev === offline ? prev : offline));
+        const nextType = state.type || null;
+        setNetworkType((prev) => (prev === nextType ? prev : nextType));
+    }, []);
+
+    const handleRetryNetwork = useCallback(() => {
+        Network.getNetworkStateAsync()
+            .then((state) => evaluateNetworkState(state))
+            .catch(() => setLastNetworkCheck(Date.now()));
+    }, [evaluateNetworkState]);
 
     const handleNavigationStateUpdate = useCallback(() => {
         const rootState = navigationRef.current?.getRootState?.();
@@ -200,6 +223,25 @@ export default function App() {
             feedOverlayProgressSV.value = 1;
         }
     }, [currentTabName, isFeedPostFocused, feedOverlayProgressSV, setIsFooterNavEligible]);
+
+    useEffect(() => {
+        let mounted = true;
+        Network.getNetworkStateAsync()
+            .then((state) => { if (mounted) evaluateNetworkState(state); })
+            .catch(() => { if (mounted) setLastNetworkCheck(Date.now()); });
+        let subscription = null;
+        if (typeof Network.addNetworkStateListener === 'function') {
+            subscription = Network.addNetworkStateListener((state) => {
+                evaluateNetworkState(state);
+            });
+        }
+        return () => {
+            mounted = false;
+            if (subscription && typeof subscription.remove === 'function') {
+                subscription.remove();
+            }
+        };
+    }, [evaluateNetworkState]);
 
     useEffect(() => {
         const shouldShow = isFooterNavEligible && !isFooterSuppressed;
@@ -1160,6 +1202,14 @@ return (
                     visibilityProgressSV={footerVisibilitySV}
                     disableInteractions={!isFooterVisible}
                     workoutSheetProgressSV={workoutSheetProgressSV}
+                />
+            )}
+            {isOffline && (
+                <NoInternet
+                    onRetry={handleRetryNetwork}
+                    networkType={networkType}
+                    lastChecked={lastNetworkCheck}
+                    style={[StyleSheet.absoluteFillObject, { zIndex: 999 }]}
                 />
             )}
             {/* Global Rest Reminder Modal */}

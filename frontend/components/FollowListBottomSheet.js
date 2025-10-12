@@ -31,6 +31,13 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
     const snapPoints = useMemo(() => ['82%'], []);
     const [list, setList] = useState([]);
     const insets = useSafeAreaInsets();
+    const emptyMessage = useMemo(() => {
+        const normalizedTitle = String(title || '').toLowerCase();
+        if (normalizedTitle.includes('like')) return 'No likes yet';
+        if (normalizedTitle.includes('follower')) return 'No followers yet';
+        if (normalizedTitle.includes('following')) return "You're not following anyone yet";
+        return 'Nothing here yet';
+    }, [title]);
 
     // Build derived list; rely on embedded refs (normalized on write). Avoid extra reads here.
     useEffect(() => {
@@ -100,6 +107,12 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
         );
     };
 
+    const renderEmpty = useCallback(() => (
+        <View style={styles.emptyState}>
+            <Text style={styles.emptyStateText}>{emptyMessage}</Text>
+        </View>
+    ), [emptyMessage]);
+
     return (
         <View pointerEvents="box-none" style={styles.wrapper}>
             <BottomSheet
@@ -125,6 +138,7 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
                     keyExtractor={keyExtractor}
                     renderItem={({ item }) => <FollowRow item={item} />}
                     ItemSeparatorComponent={() => <View style={styles.sep} />}
+                    ListEmptyComponent={renderEmpty}
                     contentContainerStyle={styles.listContent}
                 />
             </BottomSheet>
@@ -179,6 +193,7 @@ const styles = StyleSheet.create({
     listContent: {
         paddingBottom: scaleSize(s(18)),
         paddingTop: scaleSize(s(6)),
+        flexGrow: 1,
     },
     pfpC: {
         width: scaleSize(s(36)),
@@ -213,5 +228,19 @@ const styles = StyleSheet.create({
     backdrop: {
         left: 0,
         right: 0,
+    },
+    emptyState: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: scaleSize(s(24)),
+        paddingTop: scaleSize(s(40)),
+    },
+    emptyStateText: {
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(s(14)),
+        color: 'rgba(255,255,255,0.6)',
+        textAlign: 'center',
+        letterSpacing: 0.2,
     },
 });
