@@ -16,7 +16,7 @@ import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from '@
 import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions, Vibration, TextInput, LogBox } from 'react-native';
 import { rs, ts } from './frontend/helper/scaleSize';
 import { useSharedValue, runOnUI, withTiming, Easing } from 'react-native-reanimated';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Entypo, FontAwesome, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
@@ -68,6 +68,11 @@ import { ensureNotificationsListener, stopNotificationsListener } from './fronte
 import WorkoutInviteOverlay from './frontend/components/WorkoutInviteOverlay';
 
 const AUTH_BACKGROUND_ASSET = require('./frontend/assets/AUTH_BACKGROUND.jpg');
+const PRELOADED_FONTS = {
+    ...customFonts,
+    ...Entypo.font,
+    ...FontAwesome.font,
+};
 
 // Ensure a defined global.userData early so screens can read without crashing
 try { global.userData = global.userData || {}; } catch { }
@@ -119,7 +124,7 @@ const getActiveTabNameFromState = (state) => {
 
 export default function App() {
     // Load every registered font (frontend/fonts.js) before hiding the splash screen
-    const [fontsReady] = useFonts(customFonts);
+    const [fontsReady] = useFonts(PRELOADED_FONTS);
     const [authChecked, setAuthChecked] = useState(false);
     const [currentTabName, setCurrentTabName] = useState('Workout');
     const [isFooterNavEligible, setIsFooterNavEligible] = useState(false);

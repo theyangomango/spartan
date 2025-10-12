@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, Pressable } from "react-native";
 import FastImage from "react-native-fast-image";
 import theme from "../../../theme/mfpDark";
 import scaleSize from "../../../helper/scaleSize";
@@ -47,7 +47,7 @@ const getPfpUri = (entry) => (
     ""
 );
 
-const ContributionCard = ({ entry, isFirst = false }) => {
+const ContributionCard = ({ entry, isFirst = false, onPress }) => {
     if (!entry) return null;
 
     const {
@@ -91,7 +91,13 @@ const ContributionCard = ({ entry, isFirst = false }) => {
     ), [isFirst]);
 
     return (
-        <View style={containerStyle}>
+        <Pressable
+            onPress={onPress}
+            disabled={!onPress}
+            style={containerStyle}
+            accessibilityRole={onPress ? "button" : undefined}
+            accessibilityLabel={onPress ? `Toggle ${handleLabel}'s weekly workouts` : undefined}
+        >
             <View style={styles.row}>
                 <View style={styles.handleWrap}>
                     <View style={styles.avatarWrap}>
@@ -119,7 +125,7 @@ const ContributionCard = ({ entry, isFirst = false }) => {
 
                 <ContributionStatsCards stats={stats} style={styles.statsRow} />
             </View>
-        </View>
+        </Pressable>
     );
 };
 

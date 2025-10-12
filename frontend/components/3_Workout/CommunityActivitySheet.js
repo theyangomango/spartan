@@ -11,6 +11,9 @@ import {
     ActivityIndicator,
     InteractionManager,
     Easing,
+    LayoutAnimation,
+    Platform,
+    UIManager,
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -19,6 +22,8 @@ import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import theme from "../../theme/mfpDark";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import SpectatingWorkoutModal from "./NewWorkout/SpectatingWorkoutModal";
+import CommentsBottomSheet from "../1_Feed/Comments/CommentsBottomSheet";
+import FollowListBottomSheet from "../FollowListBottomSheet";
 import { getPfpUrl } from "../../pfpCache";
 import { onSnapshot, doc, getDoc } from "firebase/firestore";
 import { db } from "../../../firebase.config";
@@ -28,6 +33,7 @@ import { useNavigation } from "@react-navigation/native";
 import scaleSize from "../../helper/scaleSize";
 import WorkoutPanelCard from "./ui/WorkoutPanelCard";
 import ContributionCard from "./ui/ContributionCard";
+import SimpleFeedPost from "../1_Feed/SimpleFeedPost";
 import { sanitizeStatsForViewer } from "../../utils/workoutPrivacy";
 import { buildExerciseSummaries } from "../../utils/workoutSummary";
 import { usePfp } from "../../helper/usePFPs";
@@ -35,6 +41,10 @@ import { usePfp } from "../../helper/usePFPs";
 const { height: screenHeight, width: screenWidth } = Dimensions.get("window");
 const scale = screenHeight / 844;
 const s = (n) => Math.round(n * scale);
+
+if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
+    try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch { }
+}
 
 // Static separators to avoid re-creating functions each render
 const CARD_GAP = 14;
@@ -57,6 +67,21 @@ const HANDLE_FRIEND_ACCENT = "#E0A500";
 const HANDLE_FRIEND_BACKGROUND = "#e0a4002c";
 const EDGE_BACK_GESTURE_WIDTH = 200; // px — left-edge zone to trigger back
 const BACK_SWIPE_TRIGGER = 36;      // px — horizontal drag to confirm back
+
+const sanitizeLikeEntry = (entry) => {
+    if (!entry || typeof entry !== "object") return entry;
+    try {
+        return JSON.parse(JSON.stringify(entry, (_key, val) => (typeof val === "function" ? undefined : val)));
+    } catch {
+        return { ...entry };
+    }
+};
+
+const ensureAtHandle = (value = "") => {
+    const str = String(value || "").trim();
+    if (!str) return "";
+    return str.startsWith("@") ? str : `@${str}`;
+};
 
 /* ---------------- utils ---------------- */
 const toMillis = (v) => {
@@ -745,6 +770,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
     }, [visible, displayItems]);
 
     const [sortedItems, setSortedItems] = useState(() => sortFriendsItems(displayItems, liveOverlays));
+    const [expandedContributionUid, setExpandedContributionUid] = useState(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -765,6 +791,12 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
             try { task?.cancel?.(); } catch { }
         };
     }, [displayItems, liveOverlays]);
+
+    useEffect(() => {
+        if (!expandedContributionUid) return;
+        const stillExists = sortedItems.some((item) => String(item?.uid || item?.userId || item?.user?.uid || "") === expandedContributionUid);
+        if (!stillExists) setExpandedContributionUid(null);
+    }, [expandedContributionUid, sortedItems]);
 
     // Move viewer-related state above effects that depend on it to avoid TDZ issues
     const [selectedItem, setSelectedItem] = useState(null);
@@ -924,6 +956,51 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
         }
     }, [listOpacity, viewerOpacity]);
 
+    const openContributionPastWorkout = useCallback((feedItemInput) => {
+        const feedItem = feedItemInput || {};
+        const workout = {
+            ...(feedItem.workout || {}),
+        };
+
+        const fallbackUid = String(feedItem.uid || feedItem.creatorUID || feedItem.creatorUid || feedItem.user?.uid || global?.userData?.uid || "").trim();
+
+        const wid = workout.wid || workout.id || feedItem.wid || feedItem.id || `wk-${fallbackUid || Date.now()}`;
+        const created = workout.created ?? workout.createdAt ?? feedItem.created ?? Date.now();
+        workout.wid = wid;
+        workout.creatorUID = workout.creatorUID || workout.creatorUid || fallbackUid;
+        workout.creatorUid = workout.creatorUid || workout.creatorUID;
+        workout.created = created;
+        if (!workout.handle) workout.handle = feedItem.handle || workout.username || "";
+
+        const ownerHandle = ensureAtHandle(feedItem.handle || workout.handle || workout.username || "");
+        const owner = {
+            uid: workout.creatorUID,
+            handle: ownerHandle,
+            name: feedItem.name || workout.ownerName || workout.name || "",
+            pfp: feedItem.image || workout.pfp || workout.pfpUrl || workout.photoURL || workout.photo || "",
+            pfpVersion: Number(feedItem.pfpVersion ?? workout.pfpVersion ?? 0),
+        };
+
+        const likes = Array.isArray(feedItem.likes) ? feedItem.likes : [];
+        const comments = Array.isArray(feedItem.comments) ? feedItem.comments : [];
+        const postMeta = {
+            pid: feedItem.pid || feedItem.id || `workout:${wid}`,
+            caption: typeof feedItem.caption === "string" ? feedItem.caption : "",
+            created,
+            likeCount: Number.isFinite(Number(feedItem.likeCount)) ? Number(feedItem.likeCount) : likes.length,
+            commentCount: Number.isFinite(Number(feedItem.commentCount)) ? Number(feedItem.commentCount) : comments.length,
+            likes,
+            comments,
+            media: Array.isArray(feedItem.media) ? feedItem.media : [],
+            images: Array.isArray(feedItem.images) ? feedItem.images : [],
+            shareCount: Number.isFinite(Number(feedItem.shareCount)) ? Number(feedItem.shareCount) : 0,
+            tags: Array.isArray(feedItem.tags) ? feedItem.tags : [],
+            tagged: Array.isArray(feedItem.tagged) ? feedItem.tagged : [],
+        };
+
+        navigation.navigate('PastWorkout', { workout, owner, postMeta });
+    }, [navigation]);
+
     // Interactive back-pan helpers (declared after closeViewer to avoid TDZ issues)
     const onBackUpdateX = useCallback((dx) => {
         try {
@@ -1020,6 +1097,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                     pbs: 0,
                     workouts: 0,
                     weeklyGoal: 0,
+                    workoutItems: [],
                 });
             }
             return map.get(safeUid);
@@ -1030,6 +1108,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
             const entry = ensureEntry(meta.uid);
             if (!entry) return;
             mergeMetaIntoEntry(entry, meta);
+            if (!Array.isArray(entry.workoutItems)) entry.workoutItems = [];
         };
 
         const seedFromItem = (item) => {
@@ -1051,6 +1130,11 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
             entry.reps += stats.reps;
             entry.pbs += stats.pbs;
             entry.workouts += 1;
+            if (Array.isArray(entry.workoutItems)) {
+                const wid = String(item?.wid || item?.id || item?.workout?.wid || "");
+                const exists = entry.workoutItems.some((w) => String(w?.wid || w?.id || w?.workout?.wid || "") === wid);
+                if (!exists) entry.workoutItems.push(item);
+            }
             if (entry.weeklyGoal <= 0) {
                 const goal = coerceWeeklyGoal(item?.weeklyGoal ?? item?.weeklyWorkoutGoal ?? item?.goal);
                 if (goal > 0) entry.weeklyGoal = goal;
@@ -1077,6 +1161,11 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
         }
 
         const arr = Array.from(map.values());
+        arr.forEach((entry) => {
+            if (Array.isArray(entry.workoutItems) && entry.workoutItems.length > 1) {
+                entry.workoutItems.sort((a, b) => (bestTimestamp(b) || 0) - (bestTimestamp(a) || 0));
+            }
+        });
         arr.sort((a, b) => {
             const volumeDiff = b.volume - a.volume;
             if (volumeDiff !== 0) return volumeDiff;
@@ -1151,10 +1240,111 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
             );
         }
         if (row.kind === "contribution") {
-            return <ContributionCard entry={row.entry} isFirst={index === 0} />;
+            const entry = row.entry || {};
+            const uid = String(entry?.uid || "").trim();
+            const entryId = uid || `${section?.title || "contrib"}-${index}`;
+            const isExpanded = expandedContributionUid === entryId;
+            const workouts = Array.isArray(entry?.workoutItems) ? entry.workoutItems : [];
+
+            const handleToggle = () => {
+                try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch { }
+                setExpandedContributionUid((prev) => (prev === entryId ? null : entryId));
+            };
+
+            const renderWorkout = (workoutItem, wIndex) => {
+                const wid = String(workoutItem?.wid || workoutItem?.id || workoutItem?.workout?.wid || `wk-${wIndex}`);
+                const base = workoutItem;
+
+                if (!base.__communitySanitized) {
+                    base.pid = base.pid || base.id || `community:${uid}:${wid}`;
+                    base.uid = base.uid || String(uid || base?.creatorUID || base?.creatorUid || "");
+                    base.handle = base.handle || entry?.handle || entry?.name || "";
+                    if (!base.workout) {
+                        base.workout = {
+                            wid,
+                            created: base.created ?? Date.now(),
+                            exercises: Array.isArray(base.exercises) ? base.exercises : [],
+                            duration: base.duration ?? 0,
+                            volume: base.volume ?? 0,
+                            reps: base.reps ?? 0,
+                            PBs: base.PBs ?? base.pbs ?? 0,
+                        };
+                    } else if (!base.workout.wid) {
+                        base.workout.wid = wid;
+                    }
+
+                    const likes = Array.isArray(base.likes) ? base.likes : [];
+                    base.likes = likes
+                        .map((entryLike) => {
+                            if (!entryLike) return null;
+                            if (typeof entryLike === "string" || typeof entryLike === "number") {
+                                const likeUid = String(entryLike).trim();
+                                return likeUid ? { uid: likeUid } : null;
+                            }
+                            const safeUid = entryLike?.uid ? String(entryLike.uid).trim() : null;
+                            return sanitizeLikeEntry({ ...entryLike, uid: safeUid });
+                        })
+                        .filter(Boolean);
+                    base.likeCount = Number.isFinite(Number(base.likeCount)) ? Number(base.likeCount) : base.likes.length;
+
+                    const comments = Array.isArray(base.comments) ? base.comments : [];
+                    base.comments = comments.map((entryComment) => sanitizeLikeEntry(entryComment)).filter(Boolean);
+                    base.commentCount = Number.isFinite(Number(base.commentCount)) ? Number(base.commentCount) : base.comments.length;
+
+                    base.__communitySanitized = true;
+                }
+
+                const handleProfile = (_, data) => {
+                    const source = data || base;
+                    const targetUid = String(source?.uid || source?.creatorUID || source?.creatorUid || uid);
+                    if (targetUid) handleViewProfilePress(targetUid);
+                };
+                const handleWorkoutPress = (_, data) => {
+                    const source = data || base;
+                    openContributionPastWorkout(source);
+                };
+                const handleComments = (_, data) => {
+                    const source = data || base;
+                    handleShowComments(source);
+                };
+                const handleShare = (_, data) => {
+                    const source = data || base;
+                    openContributionPastWorkout(source);
+                };
+                const handleLikes = (_, data) => {
+                    const source = data || base;
+                    showLikesSheet(source?.likes, "Liked by");
+                };
+                return (
+                    <View key={`${entryId}-post-${wid}`} style={styles.contributionPostCard}>
+                        <SimpleFeedPost
+                            data={base}
+                            index={wIndex}
+                            highlightPid={null}
+                            highlightSignal={0}
+                            onPressProfile={handleProfile}
+                            onPressWorkout={handleWorkoutPress}
+                            onPressComments={handleComments}
+                            onPressShare={handleShare}
+                            onPressLikes={handleLikes}
+                        />
+                    </View>
+                );
+            };
+
+            return (
+                <View>
+                    <ContributionCard entry={entry} isFirst={index === 0} onPress={handleToggle} />
+                    {isExpanded && workouts.length > 0 && (
+                        <View style={styles.contributionPostsWrap}>
+                            {workouts.map(renderWorkout)}
+                        </View>
+                    )}
+                </View>
+            );
         }
         return null;
-    }, [highlightWid, liveOverlays, openViewer]);
+    }, [expandedContributionUid, getPfpUri, handleViewProfilePress, highlightWid, liveOverlays, openContributionPastWorkout]);
     const renderSectionHeader = useCallback(({ section }) => {
         return (
             <View style={styles.sectionHeaderWrap}>
@@ -1167,6 +1357,74 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
     const noopCheer = React.useCallback(() => { }, []);
     const handleCopyTemplateCb = React.useCallback((wk) => onCopyTemplate?.(wk), [onCopyTemplate]);
     const timerRef = useRef("");
+
+    const [commentsVisible, setCommentsVisible] = useState(false);
+    const [commentsExpandFlag, setCommentsExpandFlag] = useState(false);
+    const [activeFeedItem, setActiveFeedItem] = useState(null);
+    const [likesSheetVisible, setLikesSheetVisible] = useState(false);
+    const [likesSheetUsers, setLikesSheetUsers] = useState([]);
+    const [likesSheetTitle, setLikesSheetTitle] = useState("Liked by");
+
+    const navigateToUserProfile = useCallback((uid) => {
+        if (!uid) return;
+        const meUid = String(global?.userData?.uid || "");
+        const rootNav = navigation?.getParent?.('ROOT');
+        if (uid === meUid) {
+            if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+            else navigation.navigate('Profile', { transition: 'slide-from-right' });
+            return;
+        }
+        const payload = { user: { uid }, transition: 'slide-from-right' };
+        if (rootNav?.navigate) rootNav.navigate('ViewProfile', payload);
+        else navigation.navigate('ViewProfile', payload);
+    }, [navigation]);
+
+    const handleViewProfilePress = useCallback((uid) => {
+        if (!uid) return;
+        try { bottomSheetRef.current?.close(); } catch { }
+        setTimeout(() => navigateToUserProfile(uid), 240);
+    }, [navigateToUserProfile]);
+
+    const handleViewProfileFromComments = useCallback((user) => {
+        if (!user) return;
+        const targetUid = String(user?.uid || user?.id || user?.userUid || "").trim();
+        if (targetUid) handleViewProfilePress(targetUid);
+    }, [handleViewProfilePress]);
+
+    const handleShowComments = useCallback((feedItem) => {
+        if (!feedItem) return;
+        setActiveFeedItem(feedItem);
+        setCommentsVisible(true);
+        setCommentsExpandFlag((flag) => !flag);
+    }, []);
+
+    const handleDismissComments = useCallback(() => {
+        setCommentsVisible(false);
+        setActiveFeedItem(null);
+    }, []);
+
+    const showLikesSheet = useCallback((users, title = "Liked by") => {
+        const processed = Array.isArray(users)
+            ? users.map((entry) => {
+                if (!entry) return null;
+                if (typeof entry === "string" || typeof entry === "number") {
+                    const uid = String(entry).trim();
+                    return uid ? { uid } : null;
+                }
+                if (typeof entry === "object") {
+                    const uid = entry?.uid ?? entry?.id ?? entry?.userUid ?? null;
+                    if (uid == null) return sanitizeLikeEntry(entry);
+                    const safeUid = String(uid).trim();
+                    if (!safeUid) return null;
+                    return sanitizeLikeEntry({ ...entry, uid: safeUid });
+                }
+                return null;
+            }).filter(Boolean)
+            : [];
+        setLikesSheetUsers(processed);
+        setLikesSheetTitle(title || "Liked by");
+        setLikesSheetVisible(true);
+    }, []);
 
     // Fetch viewer's statsExercises once per friend when selected (non-blocking, no live stream)
     const viewerStatsRef = useRef(null);
@@ -1228,6 +1486,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                         listOpacity.setValue(1);
                         viewerOpacity.setValue(0);
                     }
+                    setExpandedContributionUid(null);
                     onClose?.();
                 }}
             >
@@ -1303,6 +1562,23 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                     )}
                 </Animated.View>
             </BottomSheet>
+
+            <CommentsBottomSheet
+                isVisible={commentsVisible}
+                postData={commentsVisible ? activeFeedItem : null}
+                commentsBottomSheetExpandFlag={commentsExpandFlag}
+                toViewProfile={handleViewProfileFromComments}
+                onShowLikesSheet={showLikesSheet}
+                onDismiss={handleDismissComments}
+            />
+
+            <FollowListBottomSheet
+                isVisible={likesSheetVisible}
+                setIsVisible={setLikesSheetVisible}
+                title={likesSheetTitle}
+                users={likesSheetUsers}
+                navigation={navigation}
+            />
         </View>
     );
 };
