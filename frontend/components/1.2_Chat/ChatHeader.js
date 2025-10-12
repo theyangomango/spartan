@@ -58,17 +58,8 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
 
     return (
         <View style={styles.header}>
-            {/* Back pill — same as MessagesHeader */}
-            <TouchableOpacity
-                activeOpacity={0.6}
-                onPress={onBack}
-                hitSlop={{ top: scaleSize(8), bottom: scaleSize(8), left: scaleSize(8), right: scaleSize(8) }}
-                style={[styles.iconCircle, styles.leftIcon]}
-            >
-                <FontAwesome6 name="chevron-left" size={scaleSize(13)} color={ACCENT} />
-            </TouchableOpacity>
             {/* Scooted content so it never overlaps the pill */}
-            <View style={styles.centerRow}>
+            <View style={styles.centerRow} pointerEvents="box-none">
                 <View style={styles.pfpContainer}>
                     {usersExcludingSelf.length > 1 ? (
                         <>
@@ -101,6 +92,15 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
                     )}
                 </View>
             </View>
+            {/* Back pill — same as MessagesHeader */}
+            <TouchableOpacity
+                activeOpacity={0.6}
+                onPress={onBack}
+                hitSlop={{ top: scaleSize(8), bottom: scaleSize(8), left: scaleSize(8), right: scaleSize(8) }}
+                style={[styles.iconCircle, styles.leftIcon]}
+            >
+                <FontAwesome6 name="chevron-left" size={scaleSize(13)} color={ACCENT} />
+            </TouchableOpacity>
             <View style={{ width: scaleSize(12) }} />
         </View>
     );

@@ -165,8 +165,8 @@ const styles = StyleSheet.create({
     },
     title: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(s(12)),
-        lineHeight: scaleSize(s(16)),
+        fontSize: scaleSize(s(14)),
+        lineHeight: scaleSize(s(18)),
         color: theme.textPrimary,
         letterSpacing: 0.3,
     },
@@ -193,13 +193,13 @@ const styles = StyleSheet.create({
     textC: { marginLeft: scaleSize(s(12)), flex: 1 },
     handle: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(s(12)),
+        fontSize: scaleSize(s(13.5)),
         color: theme.textPrimary,
         letterSpacing: 0.2,
     },
     name: {
         fontFamily: 'Outfit_400Regular',
-        fontSize: scaleSize(s(10.5)),
+        fontSize: scaleSize(s(13)),
         color: theme.textSecondary,
         marginTop: scaleSize(s(2)),
     },
