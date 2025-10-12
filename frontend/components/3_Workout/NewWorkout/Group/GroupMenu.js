@@ -111,7 +111,7 @@ const styles = StyleSheet.create({
     },
     menuTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(16),
         color: theme.textPrimary,
         marginBottom: scaledSize(6),
         paddingHorizontal: scaledSize(4),
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
     },
     menuItemText: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(14),
         color: theme.textPrimary,
         marginLeft: scaledSize(8),
         flexShrink: 1,
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
     },
     menuSectionHeader: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(11),
+        fontSize: scaleSize(13),
         color: theme.textSecondary,
         paddingHorizontal: scaledSize(6),
         marginTop: scaledSize(6),
@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     },
     menuEmpty: {
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(11),
+        fontSize: scaleSize(13.5),
         color: theme.textSecondary,
         paddingHorizontal: scaledSize(8),
         paddingVertical: scaledSize(6),
@@ -175,6 +175,6 @@ const styles = StyleSheet.create({
         borderColor: theme.hairline,
     },
     participantPfp: { width: "100%", height: "100%" },
-    participantHandle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(11.5), color: theme.textPrimary },
-    participantSub: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(10.5), color: theme.textSecondary, marginTop: scaleSize(1) },
+    participantHandle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(13.5), color: theme.textPrimary },
+    participantSub: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(13), color: theme.textSecondary, marginTop: scaleSize(1) },
 });
