@@ -25,7 +25,7 @@ import SpectatingWorkoutModal from "./NewWorkout/SpectatingWorkoutModal";
 import CommentsBottomSheet from "../1_Feed/Comments/CommentsBottomSheet";
 import FollowListBottomSheet from "../FollowListBottomSheet";
 import { getPfpUrl } from "../../pfpCache";
-import { onSnapshot, doc, getDoc } from "firebase/firestore";
+import { onSnapshot, doc, getDoc, collection, query, where, limit, getDocs } from "firebase/firestore";
 import { db } from "../../../firebase.config";
 import calculate1RM from "../../helper/calculate1RM";
 import { useNavigation } from "@react-navigation/native";
@@ -129,6 +129,180 @@ const handleText = (item) => {
     if (!raw) return "Friend";
     const sRaw = String(raw);
     return sRaw.startsWith("@") ? sRaw : `@${sRaw}`;
+};
+
+const stringCandidates = (values) => {
+    if (!Array.isArray(values)) return "";
+    for (const value of values) {
+        if (value === undefined || value === null) continue;
+        const str = String(value).trim();
+        if (str) return str;
+    }
+    return "";
+};
+
+const extractPostPid = (value) => {
+    if (!value || typeof value !== "object") return "";
+    const candidates = [
+        value.pid,
+        value.postPid,
+        value.postPID,
+        value.postId,
+        value.postID,
+        value.post_id,
+        value.linkedPostPid,
+        value.linkedPostId,
+        value.feedItem?.pid,
+        value.post?.pid,
+        value.workout?.pid,
+        value.workout?.postPid,
+        value.workout?.postPID,
+        value.workout?.postId,
+        value.workout?.feedItem?.pid,
+    ];
+    for (const candidate of candidates) {
+        const str = stringCandidates([candidate]);
+        if (str && !str.startsWith("workout:")) return str;
+    }
+    return "";
+};
+
+const extractWorkoutWid = (value) => {
+    if (!value || typeof value !== "object") return "";
+    const candidates = [
+        value.workoutWid,
+        value.workoutId,
+        value.wid,
+        value.id,
+        value.workout?.wid,
+        value.workout?.id,
+        value.workout?.workoutId,
+        value.workout?.workoutWid,
+    ];
+    for (const candidate of candidates) {
+        const str = stringCandidates([candidate]);
+        if (str) return str;
+    }
+    return "";
+};
+
+const buildSyntheticPid = (uid, wid, fallbackTs) => {
+    const safeUid = uid ? String(uid).trim() : "friend";
+    const suffix = (wid ? String(wid).trim() : "") || String(fallbackTs || Date.now());
+    return `workout:${safeUid}:${suffix}`;
+};
+
+const mergePostDataIntoBase = (base, postData, wid, entry) => {
+    if (!base || !postData) return;
+    if (base.__communityPostRef === postData) {
+        base.__communitySynthetic = false;
+        return;
+    }
+
+    base.__communityPostRef = postData;
+
+    const resolvedPid = stringCandidates([postData.pid, base.pid]);
+    if (resolvedPid) base.pid = resolvedPid;
+
+    const ownerUid = stringCandidates([
+        postData.uid,
+        base.uid,
+        entry?.uid,
+        base.workout?.creatorUID,
+        base.workout?.creatorUid,
+    ]);
+    if (ownerUid) base.uid = ownerUid;
+
+    const resolvedHandle = ensureAtHandle(
+        stringCandidates([
+            postData.handle,
+            base.handle,
+            entry?.handle,
+            base.workout?.handle,
+            base.username,
+        ])
+    );
+    if (resolvedHandle) base.handle = resolvedHandle;
+
+    const resolvedName = stringCandidates([
+        postData.name,
+        base.name,
+        entry?.name,
+        base.workout?.ownerName,
+        base.workout?.name,
+    ]);
+    if (resolvedName) base.name = resolvedName;
+
+    const resolvedPfp = stringCandidates([
+        postData.pfp,
+        postData.pfpUrl,
+        base.pfp,
+        entry?.pfp,
+        base.workout?.pfp,
+        base.workout?.pfpUrl,
+        base.photoURL,
+    ]);
+    if (resolvedPfp) base.pfp = resolvedPfp;
+
+    const resolvedPfpVersionRaw = postData.pfpVersion ?? base.pfpVersion ?? entry?.pfpVersion ?? base.workout?.pfpVersion;
+    const resolvedPfpVersion = Number(resolvedPfpVersionRaw);
+    if (Number.isFinite(resolvedPfpVersion)) base.pfpVersion = resolvedPfpVersion;
+
+    const resolvedCaption = stringCandidates([
+        postData.caption,
+        base.caption,
+        base.workout?.caption,
+        base.workout?.templateName,
+    ]);
+    if (resolvedCaption) base.caption = resolvedCaption;
+
+    if (Array.isArray(postData.likes)) {
+        base.likes = postData.likes.map((entryLike) => sanitizeLikeEntry(entryLike)).filter(Boolean);
+    }
+    if (postData.likeCount != null || Array.isArray(base.likes)) {
+        const count = Number(postData.likeCount ?? (Array.isArray(base.likes) ? base.likes.length : 0));
+        if (Number.isFinite(count)) base.likeCount = count;
+    }
+
+    if (Array.isArray(postData.comments)) {
+        base.comments = postData.comments.map((entryComment) => sanitizeLikeEntry(entryComment)).filter(Boolean);
+    }
+    if (postData.commentCount != null || Array.isArray(base.comments)) {
+        const count = Number(postData.commentCount ?? (Array.isArray(base.comments) ? base.comments.length : 0));
+        if (Number.isFinite(count)) base.commentCount = count;
+    }
+
+    if (Array.isArray(postData.media)) base.media = postData.media.slice();
+    if (Array.isArray(postData.images)) base.images = postData.images.slice();
+    if (postData.shareCount != null) base.shareCount = Number(postData.shareCount) || 0;
+
+    const createdMs = toMillis(postData.created ?? postData.createdAt ?? base.created);
+    if (Number.isFinite(createdMs) && createdMs > 0) base.created = createdMs;
+
+    if (!base.workout || typeof base.workout !== "object") base.workout = {};
+    const targetWorkout = base.workout;
+    if (postData.workout && typeof postData.workout === "object") {
+        Object.assign(targetWorkout, postData.workout);
+    }
+    if (wid && !targetWorkout.wid) targetWorkout.wid = wid;
+    if (!targetWorkout.creatorUID) targetWorkout.creatorUID = ownerUid || targetWorkout.creatorUid || base.uid;
+    if (!targetWorkout.creatorUid) targetWorkout.creatorUid = targetWorkout.creatorUID;
+    if (!targetWorkout.handle && resolvedHandle) targetWorkout.handle = resolvedHandle.replace(/^@/, "");
+    if (!targetWorkout.pfp && resolvedPfp) targetWorkout.pfp = resolvedPfp;
+    if (!targetWorkout.pfpUrl && resolvedPfp) targetWorkout.pfpUrl = resolvedPfp;
+    if (!targetWorkout.ownerName && resolvedName) targetWorkout.ownerName = resolvedName;
+    if (!targetWorkout.templateName) targetWorkout.templateName = templateName(base);
+    if (postData.workoutWid && !targetWorkout.wid) targetWorkout.wid = postData.workoutWid;
+    if (postData.workoutVolume != null && !targetWorkout.volume) {
+        const volume = Number(postData.workoutVolume);
+        if (Number.isFinite(volume)) targetWorkout.volume = volume;
+    }
+    if (postData.workoutReps != null && !targetWorkout.reps) {
+        const reps = Number(postData.workoutReps);
+        if (Number.isFinite(reps)) targetWorkout.reps = reps;
+    }
+
+    base.__communitySynthetic = false;
 };
 const dateLabel = (ts) => {
     if (!ts) return "";
@@ -652,6 +826,11 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
         try { return global?.userData || null; } catch { return null; }
     })();
     const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
+    const postCacheRef = useRef(new Map());
+    const postSubscriptionsRef = useRef(new Map());
+    const widToPidRef = useRef(new Map());
+    const [postCacheVersion, setPostCacheVersion] = useState(0);
+    const [widLookupTick, setWidLookupTick] = useState(0);
 
     useEffect(() => {
         if (Array.isArray(items) && items.length) cacheRef.current = items;
@@ -1180,6 +1359,173 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
         return arr;
     }, [sortedItems, liveOverlays, friendRefs, viewerUid, viewerData]);
 
+    const contributionTargets = useMemo(() => {
+        const seen = new Map();
+        weeklyContributions.forEach((entry) => {
+            const workouts = Array.isArray(entry?.workoutItems) ? entry.workoutItems : [];
+            workouts.forEach((item, idx) => {
+                if (!item) return;
+                const wid = extractWorkoutWid(item) || extractWorkoutWid(item?.workout || {});
+                const pid = extractPostPid(item);
+                const key = `${pid || "p"}:${wid || "w"}:${idx}`;
+                if (!seen.has(key)) {
+                    seen.set(key, {
+                        pid: pid ? String(pid) : "",
+                        wid: wid ? String(wid) : "",
+                    });
+                }
+            });
+        });
+        return Array.from(seen.values());
+    }, [weeklyContributions]);
+
+    const contributionSignature = useMemo(() => (
+        contributionTargets.length
+            ? contributionTargets.map(({ pid, wid }) => `${pid || ""}:${wid || ""}`).join("|")
+            : "none"
+    ), [contributionTargets]);
+
+    const subscribeToPost = useCallback((pid) => {
+        if (!pid) return () => { };
+        const postRef = doc(db, "posts", pid);
+        let active = true;
+        let fallbackAttempted = false;
+
+        const applyData = (sourcePid, data) => {
+            if (!active) return;
+            const payload = data ? { pid: sourcePid, ...data } : null;
+            postCacheRef.current.set(sourcePid, payload);
+            const widFromPayload = extractWorkoutWid(payload || {});
+            if (widFromPayload) widToPidRef.current.set(String(widFromPayload), sourcePid);
+            const workoutWidField = payload?.workoutWid;
+            if (workoutWidField) widToPidRef.current.set(String(workoutWidField), sourcePid);
+            setPostCacheVersion((v) => v + 1);
+        };
+
+        const fallbackFetch = async () => {
+            if (fallbackAttempted || !active) return;
+            fallbackAttempted = true;
+            try {
+                const q = query(collection(db, "posts"), where("pid", "==", pid), limit(1));
+                const snap = await getDocs(q);
+                if (snap.empty) {
+                    applyData(pid, null);
+                    return;
+                }
+                const docSnap = snap.docs[0];
+                const data = docSnap.data() || {};
+                const resolvedPid = String(data?.pid || docSnap.id || pid);
+                applyData(resolvedPid, data);
+            } catch (error) {
+                console.warn("CommunityActivitySheet: fallback post fetch failed", { pid, error });
+            }
+        };
+
+        const unsubscribe = onSnapshot(
+            postRef,
+            (snap) => {
+                if (!active) return;
+                if (!snap.exists()) {
+                    fallbackFetch();
+                    return;
+                }
+                const data = snap.data() || {};
+                const resolvedPid = String(data?.pid || snap.id || pid);
+                applyData(resolvedPid, data);
+            },
+            (error) => {
+                console.warn("CommunityActivitySheet: post subscription error", { pid, error });
+                fallbackFetch();
+            },
+        );
+
+        return () => {
+            active = false;
+            try { unsubscribe?.(); } catch { }
+        };
+    }, [setPostCacheVersion]);
+
+    useEffect(() => {
+        const desiredPids = new Set();
+        const pendingWids = new Set();
+
+        contributionTargets.forEach(({ pid, wid }) => {
+            const pidSafe = pid ? String(pid) : "";
+            const widSafe = wid ? String(wid) : "";
+            if (pidSafe && !pidSafe.startsWith("workout:")) {
+                desiredPids.add(pidSafe);
+                if (widSafe) widToPidRef.current.set(widSafe, pidSafe);
+                return;
+            }
+
+            if (widSafe) {
+                const mapped = widToPidRef.current.get(widSafe);
+                if (mapped) {
+                    desiredPids.add(mapped);
+                } else if (mapped !== null) {
+                    pendingWids.add(widSafe);
+                }
+            }
+        });
+
+        const subs = postSubscriptionsRef.current;
+
+        subs.forEach((unsubscribe, pid) => {
+            if (!desiredPids.has(pid)) {
+                try { unsubscribe?.(); } catch { }
+                subs.delete(pid);
+                postCacheRef.current.delete(pid);
+            }
+        });
+
+        desiredPids.forEach((pid) => {
+            if (!pid || subs.has(pid)) return;
+            const unsubscribe = subscribeToPost(pid);
+            subs.set(pid, unsubscribe);
+        });
+
+        if (!pendingWids.size) return undefined;
+
+        let cancelled = false;
+        (async () => {
+            for (const wid of pendingWids) {
+                if (cancelled) break;
+                try {
+                    let snap = await getDocs(query(collection(db, "posts"), where("workoutWid", "==", wid), limit(1)));
+                    if (snap.empty) {
+                        snap = await getDocs(query(collection(db, "posts"), where("workout.wid", "==", wid), limit(1)));
+                    }
+                    if (cancelled) return;
+                    if (!snap.empty) {
+                        const docSnap = snap.docs[0];
+                        const data = docSnap.data() || {};
+                        const resolvedPid = String(data?.pid || docSnap.id || "");
+                        widToPidRef.current.set(wid, resolvedPid || null);
+                        if (resolvedPid) {
+                            postCacheRef.current.set(resolvedPid, { pid: resolvedPid, ...data });
+                            setPostCacheVersion((v) => v + 1);
+                        }
+                    } else {
+                        widToPidRef.current.set(wid, null);
+                    }
+                } catch (error) {
+                    console.warn("CommunityActivitySheet: failed to resolve wid", { wid, error });
+                    widToPidRef.current.set(wid, null);
+                }
+            }
+            if (!cancelled) setWidLookupTick((tick) => tick + 1);
+        })();
+
+        return () => { cancelled = true; };
+    }, [contributionSignature, subscribeToPost, widLookupTick]);
+
+    useEffect(() => () => {
+        postSubscriptionsRef.current.forEach((unsubscribe) => {
+            try { unsubscribe?.(); } catch { }
+        });
+        postSubscriptionsRef.current.clear();
+    }, []);
+
     const sections = useMemo(() => {
         const data = [];
         const liveSectionRows = liveItems.length
@@ -1256,9 +1602,13 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                 const base = workoutItem;
 
                 if (!base.__communitySanitized) {
-                    base.pid = base.pid || base.id || `community:${uid}:${wid}`;
-                    base.uid = base.uid || String(uid || base?.creatorUID || base?.creatorUid || "");
-                    base.handle = base.handle || entry?.handle || entry?.name || "";
+                    const ownerUid = String(base?.uid || uid || base?.creatorUID || base?.creatorUid || "");
+                    base.uid = ownerUid;
+                    base.handle = ensureAtHandle(base.handle || entry?.handle || entry?.name || "");
+                    if (!base.name) {
+                        const nameCandidate = entry?.name || base.workout?.ownerName || base.handle.replace(/^@/, "") || "Friend";
+                        base.name = nameCandidate;
+                    }
                     if (!base.workout) {
                         base.workout = {
                             wid,
@@ -1271,6 +1621,14 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                         };
                     } else if (!base.workout.wid) {
                         base.workout.wid = wid;
+                    }
+                    if (base.workout) {
+                        if (!base.workout.creatorUID) base.workout.creatorUID = ownerUid;
+                        if (!base.workout.creatorUid) base.workout.creatorUid = ownerUid;
+                        if (!base.workout.handle && base.handle) base.workout.handle = base.handle.replace(/^@/, "");
+                        if (!base.workout.ownerName && base.name) base.workout.ownerName = base.name;
+                        if (!base.workout.pfp && base.pfp) base.workout.pfp = base.pfp;
+                        if (!base.workout.pfpUrl && base.pfp) base.workout.pfpUrl = base.pfp;
                     }
 
                     const likes = Array.isArray(base.likes) ? base.likes : [];
@@ -1291,7 +1649,33 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                     base.comments = comments.map((entryComment) => sanitizeLikeEntry(entryComment)).filter(Boolean);
                     base.commentCount = Number.isFinite(Number(base.commentCount)) ? Number(base.commentCount) : base.comments.length;
 
+                    const existingPid = extractPostPid(base) || extractPostPid(base.workout || {});
+                    const fallbackPid = buildSyntheticPid(ownerUid || uid, wid, bestTimestamp(base) || Date.now());
+                    base.pid = (existingPid && !existingPid.startsWith("workout:")) ? existingPid : fallbackPid;
+                    base.__communityWid = wid;
+                    base.__communityPostRef = null;
+                    base.__communitySynthetic = !base.pid || base.pid.startsWith("workout:");
                     base.__communitySanitized = true;
+                }
+
+                const widKey = base.__communityWid || wid;
+                const mappedPid = widKey ? widToPidRef.current.get(String(widKey)) : null;
+                if (mappedPid) base.pid = mappedPid;
+
+                const directPid = extractPostPid(base) || extractPostPid(base.workout || {});
+                if (directPid && !directPid.startsWith("workout:")) {
+                    base.pid = directPid;
+                }
+
+                const postData = (base.pid && !String(base.pid).startsWith("workout:"))
+                    ? postCacheRef.current.get(base.pid)
+                    : null;
+
+                if (postData) {
+                    mergePostDataIntoBase(base, postData, widKey, entry);
+                } else {
+                    base.__communitySynthetic = !base.pid || String(base.pid).startsWith("workout:");
+                    if (!postData && base.__communityPostRef) base.__communityPostRef = null;
                 }
 
                 const handleProfile = (_, data) => {
@@ -1344,7 +1728,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
             );
         }
         return null;
-    }, [expandedContributionUid, getPfpUri, handleViewProfilePress, highlightWid, liveOverlays, openContributionPastWorkout]);
+    }, [expandedContributionUid, handleViewProfilePress, handleShowComments, highlightWid, liveOverlays, openContributionPastWorkout, showLikesSheet]);
     const renderSectionHeader = useCallback(({ section }) => {
         return (
             <View style={styles.sectionHeaderWrap}>
@@ -1475,7 +1859,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
             <BottomSheet
                 ref={bottomSheetRef}
                 index={-1}
-                snapPoints={["94%"]}
+                snapPoints={["93%"]}
                 enablePanDownToClose
                 backdropComponent={renderBackdrop}
                 handleComponent={Handle}

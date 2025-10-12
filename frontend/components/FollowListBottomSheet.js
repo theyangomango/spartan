@@ -28,7 +28,7 @@ function normalizeUser(u) {
 
 export default function FollowListBottomSheet({ isVisible, setIsVisible, title = 'Followers', users = [], navigation }) {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ['98%'], []);
+    const snapPoints = useMemo(() => ['82%'], []);
     const [list, setList] = useState([]);
     const insets = useSafeAreaInsets();
 
@@ -38,7 +38,7 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
         setList(base);
     }, [JSON.stringify(users)]);
 
-  // Respond to visibility changes (auto-expand to 93%)
+  // Respond to visibility changes (auto-expand to configured snap point)
   useEffect(() => {
     if (isVisible) {
       requestAnimationFrame(() => bottomSheetRef.current?.snapToIndex?.(0));
@@ -106,8 +106,9 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
                 ref={bottomSheetRef}
                 index={isVisible ? 0 : -1}
                 snapPoints={snapPoints}
-                handleStyle={{ display: 'none' }}
-                backgroundStyle={{ backgroundColor: theme.bg }}
+                handleStyle={styles.handle}
+                handleIndicatorStyle={styles.handleIndicator}
+                backgroundStyle={styles.sheetBackground}
                 backdropComponent={renderBackdrop}
                 enablePanDownToClose
                 onClose={() => setIsVisible(false)}
@@ -116,17 +117,17 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
                 topInset={insets.top}
                 bottomInset={0}
             >
-            <View style={styles.header}>
-                <Text style={styles.title}>{title}</Text>
-            </View>
-            <FlatList
-                data={list}
-                keyExtractor={keyExtractor}
-                renderItem={({ item }) => <FollowRow item={item} />}
-                ItemSeparatorComponent={() => <View style={styles.sep} />}
-                contentContainerStyle={{ paddingBottom: scaleSize(s(14)), paddingTop: scaleSize(s(18)), paddingHorizontal: scaleSize(s(16)) }}
-            />
-        </BottomSheet>
+                <View style={styles.header}>
+                    <Text style={styles.title}>{title}</Text>
+                </View>
+                <FlatList
+                    data={list}
+                    keyExtractor={keyExtractor}
+                    renderItem={({ item }) => <FollowRow item={item} />}
+                    ItemSeparatorComponent={() => <View style={styles.sep} />}
+                    contentContainerStyle={styles.listContent}
+                />
+            </BottomSheet>
         </View>
     );
 }
@@ -138,31 +139,77 @@ const styles = StyleSheet.create({
         elevation: 50,
     },
     sheet: {
-        marginTop: scaleSize(s(6)),
+        marginTop: scaleSize(s(12)),
+        borderTopLeftRadius: scaleSize(s(26)),
+        borderTopRightRadius: scaleSize(s(26)),
+        overflow: 'hidden',
+    },
+    sheetBackground: {
+        backgroundColor: 'rgba(18, 21, 30, 0.96)',
+        borderTopLeftRadius: scaleSize(s(26)),
+        borderTopRightRadius: scaleSize(s(26)),
+    },
+    handle: {
+        paddingVertical: scaleSize(s(12)),
+    },
+    handleIndicator: {
+        width: scaleSize(s(36)),
+        height: scaleSize(s(4)),
+        backgroundColor: 'rgba(255,255,255,0.22)',
+        borderRadius: scaleSize(s(2)),
     },
     header: {
-        paddingTop: scaleSize(s(24)),
-        paddingHorizontal: scaleSize(s(22)),
-        paddingBottom: scaleSize(s(12)),
+        paddingTop: scaleSize(s(18)),
+        paddingHorizontal: scaleSize(s(20)),
+        paddingBottom: scaleSize(s(6)),
     },
     title: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(s(14)),
+        fontSize: scaleSize(s(12)),
+        lineHeight: scaleSize(s(16)),
         color: theme.textPrimary,
+        letterSpacing: 0.3,
     },
     item: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: scaleSize(s(8)),
-        paddingVertical: scaleSize(s(10)),
+        paddingHorizontal: scaleSize(s(12)),
+        paddingVertical: scaleSize(s(8)),
     },
-    pfpC: { width: scaleSize(s(40)), height: scaleSize(s(40)), borderRadius: scaleSize(s(20)), overflow: 'hidden' },
-    pfp: { width: '100%', height: '100%', borderRadius: scaleSize(s(20)) },
-    textC: { marginLeft: scaleSize(s(10)), flex: 1 },
-    handle: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(s(13)), color: theme.textPrimary },
-    name: { fontFamily: 'Outfit_400Regular', fontSize: scaleSize(s(11.5)), color: theme.textSecondary, marginTop: scaleSize(s(2)) },
+    listContent: {
+        paddingBottom: scaleSize(s(18)),
+        paddingTop: scaleSize(s(6)),
+    },
+    pfpC: {
+        width: scaleSize(s(36)),
+        height: scaleSize(s(36)),
+        borderRadius: scaleSize(s(18)),
+        overflow: 'hidden',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.08)',
+        backgroundColor: theme.surface,
+    },
+    pfp: { width: '100%', height: '100%', borderRadius: scaleSize(s(18)) },
+    textC: { marginLeft: scaleSize(s(12)), flex: 1 },
+    handle: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(s(12)),
+        color: theme.textPrimary,
+        letterSpacing: 0.2,
+    },
+    name: {
+        fontFamily: 'Outfit_400Regular',
+        fontSize: scaleSize(s(10.5)),
+        color: theme.textSecondary,
+        marginTop: scaleSize(s(2)),
+    },
     // start divider aligned with item horizontal padding so it begins left of the pfp
-    sep: { height: StyleSheet.hairlineWidth, backgroundColor: theme.hairline, marginHorizontal: scaleSize(s(2)) },
+    sep: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        marginLeft: scaleSize(s(60)),
+        marginRight: scaleSize(s(14)),
+    },
     backdrop: {
         left: 0,
         right: 0,

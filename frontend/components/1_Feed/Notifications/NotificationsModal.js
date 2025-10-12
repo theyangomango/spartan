@@ -301,6 +301,7 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
     }, [events]);
 
     const sections = groupedByFilter[filter] || [];
+    const firstSection = sections[0];
 
     return (
         <View style={styles.container}>
@@ -319,7 +320,7 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
                     />
                 )}
                 renderSectionHeader={({ section }) => (
-                    <View style={styles.sectionHeaderWrap}>
+                    <View style={[styles.sectionHeaderWrap, section === firstSection && styles.sectionHeaderWrapFirst]}>
                         <Text style={styles.sectionHeaderText}>{section.title}</Text>
                     </View>
                 )}
@@ -373,6 +374,9 @@ const styles = StyleSheet.create({
         paddingTop: scaleSize(16),
         paddingBottom: scaleSize(8),
         paddingHorizontal: scaleSize(26),
+    },
+    sectionHeaderWrapFirst: {
+        paddingTop: 0,
     },
     sectionHeaderText: {
         fontFamily: "Outfit_700Bold",

@@ -682,7 +682,7 @@ const DayDetailsSheet = ({
     // Header date updates instantly as you swipe (independent from committed date)
     const [headerDate, setHeaderDate] = useState(date);
     const [headerHeight, setHeaderHeight] = useState(HEADER_HEIGHT);
-    const snapPoints = useMemo(() => ["95%"], []);
+    const snapPoints = useMemo(() => ["93%"], []);
     // Viewer overlay for inline detail panes
     const [viewerReady, setViewerReady] = useState(false);
     const listOpacity = useRef(new Animated.Value(1)).current;

@@ -83,7 +83,7 @@ export default function Settings({ navigation }) {
       </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.section}>Account & Privacy</Text>
-        <Row label={`Units: ${unitsLbs ? 'lb' : 'kg'}`} value={unitsLbs} onValueChange={toggleUnits} />
+        {/* <Row label={`Units: ${unitsLbs ? 'lb' : 'kg'}`} value={unitsLbs} onValueChange={toggleUnits} /> */}
         <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('PrivateProfileInfo', { transition: 'slide-from-right' })}>
           <Text style={styles.linkText}>Private profile</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
@@ -93,8 +93,8 @@ export default function Settings({ navigation }) {
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
 
-        <Text style={styles.section}>Notifications</Text>
-        <Row label="Push notifications" value={pushEnabled} onValueChange={togglePush} />
+        {/* <Text style={styles.section}>Notifications</Text>
+        <Row label="Push notifications" value={pushEnabled} onValueChange={togglePush} /> */}
 
         {/* Privacy section removed; food/macros privacy toggle removed */}
 
