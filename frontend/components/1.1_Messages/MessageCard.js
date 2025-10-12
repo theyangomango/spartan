@@ -10,8 +10,8 @@ import { strong as haptic } from "../../utils/haptics";
 import { TouchableOpacity } from "react-native";
 
 const CARD_MIN_HEIGHT = scaleSize(72);
-const PROFILE_SIZE = scaleSize(38);
-const SMALL_PROFILE_SIZE = scaleSize(32);
+const PROFILE_SIZE = scaleSize(36);
+const SMALL_PROFILE_SIZE = scaleSize(30);
 const HANDLE_FONT = ts(13.5);
 const CONTENT_FONT = ts(13);
 const DATE_FONT = ts(12.5);
