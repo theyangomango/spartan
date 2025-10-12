@@ -949,7 +949,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
     }, [visible, displayItems]);
 
     const [sortedItems, setSortedItems] = useState(() => sortFriendsItems(displayItems, liveOverlays));
-    const [expandedContributionUid, setExpandedContributionUid] = useState(null);
+    const [expandedContributionIds, setExpandedContributionIds] = useState(() => ({}));
 
     useEffect(() => {
         let cancelled = false;
@@ -971,11 +971,6 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
         };
     }, [displayItems, liveOverlays]);
 
-    useEffect(() => {
-        if (!expandedContributionUid) return;
-        const stillExists = sortedItems.some((item) => String(item?.uid || item?.userId || item?.user?.uid || "") === expandedContributionUid);
-        if (!stillExists) setExpandedContributionUid(null);
-    }, [expandedContributionUid, sortedItems]);
 
     // Move viewer-related state above effects that depend on it to avoid TDZ issues
     const [selectedItem, setSelectedItem] = useState(null);
@@ -1538,6 +1533,33 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
         return data;
     }, [liveItems, weeklyContributions]);
 
+    useEffect(() => {
+        setExpandedContributionIds((prev) => {
+            if (!prev || typeof prev !== "object") return prev;
+            const prevKeys = Object.keys(prev);
+            if (!prevKeys.length) return prev;
+
+            const allowedIds = new Set();
+            weeklyContributions.forEach((entry, idx) => {
+                const uid = String(entry?.uid || "").trim();
+                const entryId = uid || `This Week-${idx}`;
+                allowedIds.add(entryId);
+            });
+
+            let changed = false;
+            const next = {};
+            prevKeys.forEach((id) => {
+                if (allowedIds.has(id) && prev[id]) {
+                    next[id] = true;
+                } else if (prev[id]) {
+                    changed = true;
+                }
+            });
+
+            return changed ? next : prev;
+        });
+    }, [weeklyContributions]);
+
     const keyExtractor = useCallback((row, index) => {
         if (!row) return String(index);
         if (row.kind === "live") {
@@ -1589,12 +1611,19 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
             const entry = row.entry || {};
             const uid = String(entry?.uid || "").trim();
             const entryId = uid || `${section?.title || "contrib"}-${index}`;
-            const isExpanded = expandedContributionUid === entryId;
+            const isExpanded = !!expandedContributionIds[entryId];
             const workouts = Array.isArray(entry?.workoutItems) ? entry.workoutItems : [];
+            const isSelfEntry = viewerUid && uid && viewerUid === uid;
+            const friendLabel = entry?.handle || entry?.name || "this friend";
 
             const handleToggle = () => {
                 try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch { }
-                setExpandedContributionUid((prev) => (prev === entryId ? null : entryId));
+                setExpandedContributionIds((prev) => {
+                    const next = { ...prev };
+                    if (next[entryId]) delete next[entryId];
+                    else next[entryId] = true;
+                    return next;
+                });
             };
 
             const renderWorkout = (workoutItem, wIndex) => {
@@ -1700,35 +1729,52 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                     showLikesSheet(source?.likes, "Liked by");
                 };
                 return (
-                    <View key={`${entryId}-post-${wid}`} style={styles.contributionPostCard}>
-                        <SimpleFeedPost
-                            data={base}
-                            index={wIndex}
-                            highlightPid={null}
-                            highlightSignal={0}
-                            onPressProfile={handleProfile}
-                            onPressWorkout={handleWorkoutPress}
-                            onPressComments={handleComments}
-                            onPressShare={handleShare}
-                            onPressLikes={handleLikes}
-                        />
-                    </View>
+                    <SimpleFeedPost
+                        key={`${entryId}-post-${wid}`}
+                        data={base}
+                        index={wIndex}
+                        highlightPid={null}
+                        highlightSignal={0}
+                        onPressProfile={handleProfile}
+                        onPressWorkout={handleWorkoutPress}
+                        onPressComments={handleComments}
+                        onPressShare={handleShare}
+                        onPressLikes={handleLikes}
+                    />
                 );
             };
 
             return (
                 <View>
                     <ContributionCard entry={entry} isFirst={index === 0} onPress={handleToggle} />
-                    {isExpanded && workouts.length > 0 && (
+                    {isExpanded && (
                         <View style={styles.contributionPostsWrap}>
-                            {workouts.map(renderWorkout)}
+                            {workouts.length > 0 ? (
+                                workouts.map(renderWorkout)
+                            ) : (
+                                <View style={styles.contributionEmptyCard}>
+                                    <View style={styles.contributionEmptyIconWrap}>
+                                        <MaterialCommunityIcons
+                                            name="weight-lifter"
+                                            size={scaleSize(s(16))}
+                                            color={COLORS.text}
+                                        />
+                                    </View>
+                                    <Text style={styles.contributionEmptyTitle}>No workouts yet</Text>
+                                    <Text style={styles.contributionEmptySubtitle}>
+                                        {isSelfEntry
+                                            ? "Log a workout to see it show up in your highlights."
+                                            : `When ${friendLabel} logs a workout it will appear here.`}
+                                    </Text>
+                                </View>
+                            )}
                         </View>
                     )}
                 </View>
             );
         }
         return null;
-    }, [expandedContributionUid, handleViewProfilePress, handleShowComments, highlightWid, liveOverlays, openContributionPastWorkout, showLikesSheet]);
+    }, [expandedContributionIds, handleViewProfilePress, handleShowComments, highlightWid, liveOverlays, openContributionPastWorkout, showLikesSheet, viewerUid]);
     const renderSectionHeader = useCallback(({ section }) => {
         return (
             <View style={styles.sectionHeaderWrap}>
@@ -1870,7 +1916,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                         listOpacity.setValue(1);
                         viewerOpacity.setValue(0);
                     }
-                    setExpandedContributionUid(null);
+                    setExpandedContributionIds({});
                     onClose?.();
                 }}
             >
@@ -1885,6 +1931,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                         renderSectionHeader={renderSectionHeader}
                         renderItem={renderItem}
                         keyExtractor={keyExtractor}
+                        extraData={expandedContributionIds}
                         style={{ flex: 1 }}
                         contentContainerStyle={styles.listContent}
                         removeClippedSubviews={false}
@@ -2254,6 +2301,45 @@ const styles = StyleSheet.create({
     statLabel: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(s(11)), color: theme.textSecondary },
     statValue: { marginTop: scaleSize(s(1)), fontFamily: "Outfit_800ExtraBold", fontSize: scaleSize(s(13)), color: COLORS.text },
     statTextCol: { flex: 1, minWidth: 0 },
+
+    contributionPostsWrap: {
+        marginTop: 0,
+        width: "100%",
+        alignSelf: "stretch",
+        paddingHorizontal: 0,
+    },
+    contributionEmptyCard: {
+        width: "100%",
+        alignSelf: "stretch",
+        borderRadius: 0,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: COLORS.hairline,
+        backgroundColor: theme.fieldDeep,
+        alignItems: "flex-start",
+        paddingVertical: scaleSize(s(20)),
+        paddingHorizontal: LIST_HORIZONTAL_PADDING,
+    },
+    contributionEmptyIconWrap: {
+        width: scaleSize(s(38)),
+        height: scaleSize(s(38)),
+        borderRadius: scaleSize(s(19)),
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: scaleSize(s(10)),
+        backgroundColor: "rgba(148, 163, 184, 0.18)",
+    },
+    contributionEmptyTitle: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(s(13)),
+        color: COLORS.text,
+    },
+    contributionEmptySubtitle: {
+        marginTop: scaleSize(s(4)),
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(s(11.5)),
+        color: COLORS.subtext,
+        textAlign: "center",
+    },
 
     liveItemWrap: {
         paddingHorizontal: 0,
