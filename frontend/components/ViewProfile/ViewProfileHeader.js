@@ -1,5 +1,5 @@
 import { StyleSheet, View, Text } from "react-native";
-import { ArrowDown2, ArrowLeft2, DirectInbox } from "iconsax-react-native";
+import { ArrowDown2, ArrowLeft2, DirectInbox, Verify } from "iconsax-react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
@@ -12,8 +12,9 @@ const HEADER_HORIZONTAL_PADDING = Math.max(0, METRICS.paddingH - scaleSize(6));
 const ICON_WRAPPER_SIZE = scaleSize(ICON_SIZE + 2);
 const ICON_COLOR = "#CBD5E1";
 const ICON_STROKE_WIDTH = 2.4;
+const VERIFIED_ICON_SIZE = scaleSize(19);
 
-export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOptions }) {
+export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOptions, isVerified = false }) {
     return (
         <View style={styles.main_ctnr}>
             <RNBounceable onPress={withStrongPress(goBack)} hitSlop={10} style={styles.iconBtn}>
@@ -25,12 +26,20 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
                     <Text style={styles.handle_text} numberOfLines={1} ellipsizeMode="tail">
                         {handle}
                     </Text>
-                    <ArrowDown2
+                    {isVerified ? (
+                        <Verify
+                            size={VERIFIED_ICON_SIZE}
+                            color={theme.primary}
+                            variant="Bold"
+                            style={styles.verifiedIcon}
+                        />
+                    ) : null}
+                    {/* <ArrowDown2
                         size={scaleSize(18)}
                         color={theme.textSecondary}
                         strokeWidth={ICON_STROKE_WIDTH}
                         style={styles.centerChevron}
-                    />
+                    /> */}
                 </View>
             </RNBounceable>
 
@@ -70,10 +79,15 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(17),
         color: theme.textPrimary,
         maxWidth: "100%",
+        flexShrink: 1,
         includeFontPadding: false,
     },
-    centerChevron: {
+    verifiedIcon: {
         marginLeft: scaleSize(4),
+        transform: [{ translateY: scaleSize(2) }],
+    },
+    centerChevron: {
+        marginLeft: scaleSize(6),
     },
     iconBtn: {
         width: ICON_WRAPPER_SIZE,

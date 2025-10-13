@@ -63,6 +63,12 @@ const HEADER_EXPANDED_BG = 'rgba(45, 158, 255, 0)';
 const SHEET_EXPANDED_BG = theme.surface;
 const SHEET_COLOR_THRESHOLD = 0.15;
 
+const ensureUri = (value) => {
+    const str = (value ?? "").toString().trim();
+    return str.length ? str : "";
+};
+const toUidString = (uid) => (uid == null ? "" : String(uid));
+
 // FlashList sizing helpers to keep footer actions from overlapping while template data hydrates
 const ESTIMATED_EXERCISE_BASE_HEIGHT = scaleSize(136);
 const ESTIMATED_SET_ROW_HEIGHT = scaleSize(52);
@@ -194,6 +200,7 @@ const ActiveWorkoutModal = ({
         menuVisible,
         openMenu,
         closeMenu,
+        overlayPfp: viewingOverlayPfp,
         activeWorkout,
         activeStats,
         waitingFriend,
@@ -308,56 +315,6 @@ const ActiveWorkoutModal = ({
             </View>
         );
     }, [viewingSelfEffective, workoutNameValue, baseWorkoutName, handleChangeWorkoutTitle, workoutCreatedDisplay]);
-
-    // Prefer friend's stats when viewing others; if live stats are absent (e.g., viewing a completed workout),
-    // fall back to provided userWorkoutStats if available from the parent.
-    const statsForPrevious = useMemo(() => {
-        if (viewingSelfEffective) return userWorkoutStats || activeStats || {};
-        const liveStats = activeStats || {};
-        if (liveStats && Object.keys(liveStats).length > 0) return liveStats;
-        return userWorkoutStats || {};
-    }, [viewingSelfEffective, userWorkoutStats, activeStats]);
-
-    // Precompute previous sets per exercise name once (fast map lookup in rows)
-    const prevSetsMapRef = useRef(new Map());
-    useEffect(() => {
-        const m = new Map();
-        try {
-            // Prefer statsExercises.sets (wid-grouped) if available
-            const stats = statsForPrevious || {};
-            Object.keys(stats).forEach((name) => {
-                const entry = stats[name] || {};
-                const sets = Array.isArray(entry.sets) ? entry.sets : [];
-                if (!sets.length) return;
-                const lastWid = sets[sets.length - 1]?.wid;
-                const arr = [];
-                for (let i = sets.length - 1; i >= 0; i--) {
-                    if (sets[i]?.wid !== lastWid) break;
-                    arr.push({ weight: Number(sets[i]?.weight) || 0, reps: Number(sets[i]?.reps) || 0 });
-                }
-                arr.reverse();
-                if (arr.length) m.set(name, arr);
-            });
-            // Fallback: scan recent completed workouts once
-            if (m.size === 0) {
-                const cw = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
-                for (let i = cw.length - 1; i >= 0 && i >= cw.length - 12; i--) {
-                    const wk = cw[i];
-                    const exs = Array.isArray(wk?.exercises) ? wk.exercises : [];
-                    for (const ex of exs) {
-                        const name = String(ex?.name || '').trim(); if (!name) continue;
-                        if (m.has(name)) continue;
-                        const s = Array.isArray(ex?.sets) ? ex.sets : [];
-                        if (!s.length) continue;
-                        m.set(name, s.map((t) => ({ weight: Number(t?.weight) || 0, reps: Number(t?.reps) || 0 })));
-                    }
-                    if (m.size > 24) break; // cap
-                }
-            }
-        } catch { }
-        prevSetsMapRef.current = m;
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [statsForPrevious, (global?.userData?.completedWorkouts || []).length]);
 
     const showSelectExerciseModal = useCallback(() => { if (viewingSelfEffective) setSelectExerciseModalVisible(true); }, [viewingSelfEffective]);
     const closeSelectExerciseModal = useCallback(() => { setSelectExerciseModalVisible(false); setReplaceIndex(null); }, [setReplaceIndex]);
@@ -515,11 +472,9 @@ const ActiveWorkoutModal = ({
 
     // Dimming logic:
     // - When Reminder Modal is visible: dim content
-    // - Else, dim when not viewing your active workout (friend view or past self workout)
-    // - Edge case: immediately after starting a workout, global.currentWorkout may not be hydrated yet.
-    //   In that case, rely on the local prop (workout.__justStarted) to treat as active and avoid dimming.
-    const isActiveSelf = useMemo(() => {
-        if (!viewingSelfEffective) return false;
+    // - Else, dim only while viewing someone else's workout (self view stays full opacity)
+    // Track whether I'm actively part of this workout (wid match, just started, or listed in participants/members)
+    const hasActiveWorkoutContext = useMemo(() => {
         const widCard = String(cardWid || "");
         if (!widCard) return false;
         const myWid = String(myActiveWid || "");
@@ -529,9 +484,15 @@ const ActiveWorkoutModal = ({
         if (workout && workout.__justStarted && String(workout.wid || "") === widCard) return true;
         // 3) fallback: when editing our own workout, the card wid matches the local workout wid
         if (String(workout?.wid || "") === widCard) return true;
+        const my = String(meUid || "");
+        if (!my) return false;
+        // 4) active group membership via participants/members (e.g., spectating while still in session)
+        if (Array.isArray(participants) && participants.some((p) => String(p?.uid || "") === my)) return true;
+        if (Array.isArray(members) && members.some((uidVal) => String(uidVal || "") === my)) return true;
         return false;
-    }, [viewingSelfEffective, myActiveWid, cardWid, workout?.__justStarted, workout?.wid]);
-    const dimDueToContext = !isActiveSelf;
+    }, [cardWid, meUid, members, myActiveWid, participants, workout?.__justStarted, workout?.wid]);
+    const isActiveSelf = viewingSelfEffective && hasActiveWorkoutContext;
+    const dimDueToContext = !viewingSelfEffective;
     // Smoothly animate context dim to avoid harsh jumps when switching between spectating and self
     const contentDimAnim = useRef(new RNAnimated.Value(1)).current;
     const targetOpacity = reminderVisible ? 0.6 : (dimDueToContext ? 0.6 : 1);
@@ -614,17 +575,15 @@ const ActiveWorkoutModal = ({
             muscle={ex.muscle}
             exerciseIndex={exerciseIndex}
             sets={ex.sets}
-            prevSets={Array.isArray(ex.prev) ? ex.prev : (prevSetsMapRef.current?.get(ex.name) || undefined)}
             updateSets={updateSets}
             replaceExercise={replaceExercise}
             deleteExercise={deleteExercise}
-            userWorkoutStats={statsForPrevious}
             readOnly={!viewingSelfEffective}
             showOptionsTriggerIcon
             syncColumnOnEdit={viewingSelfEffective}
             onStatFocus={handleStatFocus}
         />
-    ), [deleteExercise, replaceExercise, statsForPrevious, updateSets, viewingSelfEffective, handleStatFocus]);
+    ), [deleteExercise, replaceExercise, updateSets, viewingSelfEffective, handleStatFocus]);
 
     const renderFooter = useCallback(() => (
         <>
@@ -656,20 +615,45 @@ const ActiveWorkoutModal = ({
         global?.userData?.image ||
         "";
 
-    // Prefer provided friend version when locked
+    const friendUidForHeader = lockFriend
+        ? (toUidString(forcedUid) || toUidString(viewing?.uid || ""))
+        : toUidString(viewing?.uid || "");
+
+    const friendPfpCacheRef = useRef(null);
+    if (!friendPfpCacheRef.current) friendPfpCacheRef.current = new Map();
+    const cachedFriendPfp = (!viewingSelfEffective && friendUidForHeader)
+        ? ensureUri(friendPfpCacheRef.current.get(friendUidForHeader))
+        : "";
+    const friendFallbackImmediate = ensureUri(viewingOverlayPfp)
+        || ensureUri(viewing?.image)
+        || ensureUri(friendPfp)
+        || cachedFriendPfp;
     const viewingPfpUriHook = usePfp(
-        String(viewing?.uid || ""),
+        toUidString(viewing?.uid || ""),
         (viewing?.pfpVersion != null && viewing?.pfpVersion !== undefined && viewing?.pfpVersion !== 0)
             ? viewing.pfpVersion
-            : (friendPfpVersion || 0)
+            : (friendPfpVersion || 0),
+        friendFallbackImmediate || undefined
     );
+    const friendOverlayFromHook = ensureUri(viewingPfpUriHook);
+    const friendOverlayFinal = friendOverlayFromHook || friendFallbackImmediate;
 
-    // If locked to friend: prefer the passed friendPfp to prevent any initial flip
-    const headerOverlayPfp = lockFriend
-        ? (viewingPfpUriHook || friendPfp || viewing?.image || "")
-        : (viewingSelfEffective
-            ? selfPfpUri
-            : (viewingPfpUriHook || viewing?.image || friendPfp || ""));
+    // Final header avatar selection: show mine when in self view, otherwise prefer the freshest friend image.
+    const headerOverlayPfp = viewingSelfEffective
+        ? selfPfpUri
+        : friendOverlayFinal;
+    const headerPfpIdentity = viewingSelfEffective
+        ? toUidString(meUid)
+        : friendUidForHeader;
+
+    useEffect(() => {
+        if (viewingSelfEffective) return;
+        const key = friendUidForHeader;
+        if (!key) return;
+        const best = ensureUri(friendOverlayFinal);
+        if (!best) return;
+        friendPfpCacheRef.current.set(key, best);
+    }, [viewingSelfEffective, friendUidForHeader, friendOverlayFinal]);
 
     // Being “in an active group” = there is at least one participant other than me
     const inActiveGroup = useMemo(() => {
@@ -772,16 +756,16 @@ const ActiveWorkoutModal = ({
     }, [onExpandSheet]);
 
     const handleOpenMenu = useCallback(() => {
-        if (lockFriend || !viewingSelfEffective) return;
+        if (lockFriend || (!viewingSelfEffective && !hasActiveWorkoutContext)) return;
         setLiveEnabled(true);
         try { openMenu(); } catch { }
-    }, [lockFriend, openMenu, viewingSelfEffective]);
+    }, [lockFriend, openMenu, viewingSelfEffective, hasActiveWorkoutContext]);
 
     const handleLongPressInvite = useCallback(() => {
-        if (lockFriend || !viewingSelfEffective) return;
+        if (lockFriend || (!viewingSelfEffective && !hasActiveWorkoutContext)) return;
         setLiveEnabled(true);
         try { showGroupModal?.(); } catch { }
-    }, [lockFriend, showGroupModal, viewingSelfEffective]);
+    }, [lockFriend, showGroupModal, viewingSelfEffective, hasActiveWorkoutContext]);
 
     // Listen for cheer events for this workout to trigger confetti when others cheer
     useEffect(() => {
@@ -963,19 +947,25 @@ const ActiveWorkoutModal = ({
                     <GroupHeader
                         viewingSelf={viewingSelfEffective}
                         overlayPfp={headerOverlayPfp}
-                        onCheer={friendOngoing ? onCheerStable : undefined}
-                        onCopyTemplate={!viewingSelfEffective && !friendOngoing ? handleCopyTemplate : undefined}
+                        onCheer={(friendOngoing && !hasActiveWorkoutContext) ? onCheerStable : undefined}
+                        onCopyTemplate={
+                            (!hasActiveWorkoutContext && !viewingSelfEffective && !friendOngoing)
+                                ? handleCopyTemplate
+                                : undefined
+                        }
                         countdown={countdown}
-                        onAddTime={viewingSelfEffective ? openRestModal : undefined}
+                        onAddTime={hasActiveWorkoutContext ? openRestModal : undefined}
                         timerRef={timerRef}
                         headerStyle={styles.headerInner}
                         onBack={handleBack}
-                        onPressPfp={!viewingSelfEffective ? onPressPfp : undefined}
-                        disableGroupPress={lockFriend || !viewingSelfEffective}
+                        onPressPfp={(!viewingSelfEffective && !hasActiveWorkoutContext) ? onPressPfp : undefined}
+                        disableGroupPress={lockFriend || (!hasActiveWorkoutContext && !viewingSelfEffective)}
                         inActiveGroup={inActiveGroupEffective}
-                        pfpOnLeft={!viewingSelfEffective}
+                        pfpOnLeft={!viewingSelfEffective && !hasActiveWorkoutContext}
                         onOpenMenu={handleOpenMenu}
                         onLongPressInvite={handleLongPressInvite}
+                        forceSelfHeader={hasActiveWorkoutContext}
+                        pfpIdentity={headerPfpIdentity}
                     />
                 </Animated.View>
             </Animated.View>
@@ -1002,11 +992,9 @@ const ActiveWorkoutModal = ({
                                     muscle={ex.muscle}
                                     exerciseIndex={exerciseIndex}
                                     sets={ex.sets}
-                                    prevSets={Array.isArray(ex.prev) ? ex.prev : (prevSetsMapRef.current?.get(ex.name) || undefined)}
                                     updateSets={updateSets}
                                     replaceExercise={replaceExercise}
                                     deleteExercise={deleteExercise}
-                                    userWorkoutStats={statsForPrevious}
                                     readOnly={!viewingSelfEffective}
                                     showOptionsTriggerIcon
                                     syncColumnOnEdit={viewingSelfEffective}

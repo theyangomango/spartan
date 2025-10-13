@@ -2315,7 +2315,7 @@ const styles = StyleSheet.create({
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: COLORS.hairline,
         backgroundColor: theme.fieldDeep,
-        alignItems: "flex-start",
+        alignItems: "center",
         paddingVertical: scaleSize(s(20)),
         paddingHorizontal: LIST_HORIZONTAL_PADDING,
     },
@@ -2332,6 +2332,7 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(s(13)),
         color: COLORS.text,
+        textAlign: "center",
     },
     contributionEmptySubtitle: {
         marginTop: scaleSize(s(4)),

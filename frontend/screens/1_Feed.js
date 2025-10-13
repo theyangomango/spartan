@@ -73,6 +73,14 @@ const sanitizeWorkoutForRoute = (workout) => {
                         };
                         const resolvedUnit = unit || units || weightUnit || (kg != null ? "kg" : undefined);
                         if (resolvedUnit) normalized.unit = resolvedUnit;
+                        normalized.prev = Object.prototype.hasOwnProperty.call(set, "prev")
+                            ? (set?.prev && typeof set.prev === "object"
+                                ? {
+                                    weight: Number(set.prev?.weight) || 0,
+                                    reps: Number(set.prev?.reps) || 0,
+                                }
+                                : null)
+                            : null;
                         return normalized;
                     })
                     : [];

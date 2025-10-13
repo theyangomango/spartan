@@ -22,6 +22,7 @@ const normalizeUri = (u) => {
 const GroupHeader = ({
     viewingSelf,
     overlayPfp,
+    pfpIdentity = null,
     onOpenMenu,
     onLongPressInvite,
     onFinish,
@@ -33,17 +34,30 @@ const GroupHeader = ({
     headerStyle,
     onBack,
     onPressPfp, // when pfpOnLeft, navigate to profile
-    disableGroupPress, // optional; default disables when !viewingSelf
+    disableGroupPress, // optional; default disables when not rendering the self layout
     inActiveGroup = false, // when in a real group with others
     // When true, render PFP on the left, right next to the back chevron.
     // Used when viewing a friend's past workout (not ongoing).
     pfpOnLeft = false,
+    // When true, force the "self" layout (rest timer + invite/switch) even if viewing another participant.
+    forceSelfHeader = false,
 }) => {
-    const disableGroup = disableGroupPress ?? !viewingSelf;
+    const selfLayout = forceSelfHeader || viewingSelf;
+    const disableGroup = disableGroupPress ?? !selfLayout;
+    const identityKey = pfpIdentity == null ? "__none__" : String(pfpIdentity);
 
     // --- Keep track of the last known-good, non-empty URI ---
     const lastGoodPfpRef = useRef(normalizeUri(overlayPfp));
     const pendingErrorRef = useRef(false); // if image errors, keep last good instead of clearing
+    const identityKeyRef = useRef(identityKey);
+
+    useEffect(() => {
+        if (identityKeyRef.current !== identityKey) {
+            identityKeyRef.current = identityKey;
+            lastGoodPfpRef.current = normalizeUri(overlayPfp);
+            pendingErrorRef.current = false;
+        }
+    }, [identityKey, overlayPfp]);
 
     useEffect(() => {
         const next = normalizeUri(overlayPfp);
@@ -64,7 +78,8 @@ const GroupHeader = ({
 
     // Show timer on the left only when viewing self. When spectating (any case),
     // UI should match spectating mode with a back chevron (modes 3 & 4).
-    const showTimerLeft = !!viewingSelf;
+    const showTimerLeft = !!selfLayout;
+    const normalizedPfpOnLeft = !selfLayout && pfpOnLeft;
 
     // Wrap press handlers with haptics
     const withHaptics = (fn) => () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {} finally { try { fn?.(); } catch {} } };
@@ -89,7 +104,7 @@ const GroupHeader = ({
                         <Pressable onPress={onBack ? withHaptics(onBack) : undefined} style={styles.backBtn} hitSlop={8}>
                             <MaterialCommunityIcons name="chevron-left" size={scaledSize(26)} color={theme.textPrimary} />
                         </Pressable>
-                        {pfpOnLeft && (
+                        {normalizedPfpOnLeft && (
                             <Pressable onPress={onPressPfp ? withHaptics(onPressPfp) : undefined} hitSlop={8}>
                                 <View style={[styles.pfpWrap, styles.pfpLeftWrap, styles.pfpFriendRing]}>
                                     {pfpToShow ? (
@@ -114,7 +129,7 @@ const GroupHeader = ({
             </View>
 
             {/* Center: live workout timer — hidden when viewing others */}
-            {viewingSelf && (
+            {selfLayout && (
                 <View style={styles.timer_text_ctnr} pointerEvents="none">
                     <TimerDisplay timerRef={timerRef} />
                 </View>
@@ -122,7 +137,7 @@ const GroupHeader = ({
 
             {/* Right: ONLY PFP (no friends icon) + Finish/Cheer */}
             <View style={styles.header_right}>
-                {!pfpOnLeft && (
+                {!normalizedPfpOnLeft && (
                     <Pressable
                         disabled={disableGroup}
                         onPress={disableGroup ? undefined : (onOpenMenu ? withHaptics(onOpenMenu) : undefined)}
@@ -133,10 +148,10 @@ const GroupHeader = ({
                             colors={inviteGradientColors}
                             start={{ x: 0, y: 0.5 }}
                             end={{ x: 1, y: 0.5 }}
-                            style={[styles.pfpBtn, !viewingSelf && styles.pfpFriend]}
+                            style={[styles.pfpBtn, !selfLayout && styles.pfpFriend]}
                         >
-                            <Text style={[styles.inviteText, !viewingSelf && styles.inviteTextMuted]}>{inviteLabel}</Text>
-                            <View style={[styles.pfpWrap, !viewingSelf && styles.pfpFriendRing]}>
+                            <Text style={[styles.inviteText, !selfLayout && styles.inviteTextMuted]}>{inviteLabel}</Text>
+                            <View style={[styles.pfpWrap, !selfLayout && styles.pfpFriendRing]}>
                                 {pfpToShow ? (
                                     <FastImage
                                         source={{
@@ -160,7 +175,7 @@ const GroupHeader = ({
                     </Pressable>
                 )}
 
-                {viewingSelf ? (
+                {selfLayout ? (
                     onFinish ? (
                         <RNBounceable onPress={withHaptics(onFinish)} style={styles.finish_btn}>
                             <Text style={styles.finish_btn_text}>Finish</Text>

@@ -135,6 +135,13 @@ export default function ViewProfile({ navigation, route }) {
     }
 
     const headerHandle = profileUserData?.handle || user?.handle || user?.username || '';
+    const isVerifiedProfile = Boolean(
+        profileUserData?.isVerified ??
+        profileUserData?.verified ??
+        user?.isVerified ??
+        user?.verified ??
+        false
+    );
     function handleOpenViewStats() { setIsViewStatsBottomSheetVisible(true); }
 
     if (blockedFromViewing) {
@@ -142,7 +149,7 @@ export default function ViewProfile({ navigation, route }) {
             <SafeAreaView style={styles.main_ctnr}>
                 <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
                 <View style={styles.body_ctnr}>
-                    <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={() => {}} onOpenOptions={() => {}} />
+                    <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={() => {}} onOpenOptions={() => {}} isVerified={isVerifiedProfile} />
                 </View>
                 <Footer currentScreenName={'Profile'} navigation={navigation} />
             </SafeAreaView>
@@ -168,7 +175,7 @@ export default function ViewProfile({ navigation, route }) {
                 scrollEnabled={false}
             >
                 <View style={styles.body_ctnr}>
-                    <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={toMessages} onOpenOptions={() => setIsOptionsVisible(true)} />
+                    <ViewProfileHeader handle={headerHandle} goBack={goBack} toMessages={toMessages} onOpenOptions={() => setIsOptionsVisible(true)} isVerified={isVerifiedProfile} />
                     <ViewProfileInfo
                         userData={profileUserData}
                         onPressFollowers={() => { setFollowListMode('followers'); setIsFollowListVisible(true); }}

@@ -37,6 +37,13 @@ const toMillis = (v) => {
     const n = new Date(v).getTime();
     return Number.isFinite(n) ? n : 0;
 };
+const normalizePrevPayload = (prev) => {
+    if (!prev || typeof prev !== "object") return null;
+    return {
+        weight: Number(prev?.weight) || 0,
+        reps: Number(prev?.reps) || 0,
+    };
+};
 const sanitizeWorkout = (w) => {
     if (!w) return null;
     const created = toMillis(w.created ?? w.createdAt);
@@ -50,6 +57,7 @@ const sanitizeWorkout = (w) => {
                 reps: Number(s?.reps) || 0,
                 isDone: !!s?.isDone,
                 type: (s?.type != null && s?.type !== undefined) ? s.type : null,
+                prev: normalizePrevPayload(s?.prev),
             }))
             : [];
     const exercises = Array.isArray(w.exercises)
@@ -250,7 +258,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             try {
                 const payload = sanitizeWorkout(latest);
 
-                // Avoid recomputing heavy previous-set projections on every keystroke; UI derives these locally.
+                // Previous-set context travels with each set via `prev`, so we just forward the workout as-is here.
 
                 try {
                     const hash = JSON.stringify(payload);
@@ -479,8 +487,22 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
                     const normalizeSets = (sets) =>
                         Array.isArray(sets) && sets.length
-                            ? sets.map((s) => ({ id: s?.id || `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`, weight: Number(s?.weight) || 0, reps: Number(s?.reps) || 0, isDone: !!s?.isDone, type: s?.type || null }))
-                            : [{ id: `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`, weight: 0, reps: 0, isDone: false, type: null }];
+                            ? sets.map((s) => ({
+                                id: s?.id || `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`,
+                                weight: Number(s?.weight) || 0,
+                                reps: Number(s?.reps) || 0,
+                                isDone: !!s?.isDone,
+                                type: s?.type || null,
+                                prev: normalizePrevPayload(s?.prev),
+                            }))
+                            : [{
+                                id: `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`,
+                                weight: 0,
+                                reps: 0,
+                                isDone: false,
+                                type: null,
+                                prev: null,
+                            }];
 
                     const exercisesFromTpl = tplOrNull?.exercises
                         ? tplOrNull.exercises.map((ex) => ({ ...ex, sets: normalizeSets(ex?.sets) }))

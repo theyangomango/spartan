@@ -62,7 +62,6 @@ const SpectatingWorkoutModal = ({
         viewing,
         viewingSelf,
         activeWorkout,
-        activeStats,
         waitingFriend,
         setViewing,
     } = useGroupViewing({
@@ -103,51 +102,6 @@ const SpectatingWorkoutModal = ({
             </View>
         );
     }, [workoutTitle, workoutCreatedDisplay]);
-
-    const statsForPrevious = useMemo(() => {
-        if (viewingSelfEffective) return userWorkoutStats || activeStats || {};
-        const liveStats = activeStats || {};
-        if (liveStats && Object.keys(liveStats).length > 0) return liveStats;
-        return userWorkoutStats || {};
-    }, [viewingSelfEffective, userWorkoutStats, activeStats]);
-
-    const prevSetsMapRef = useRef(new Map());
-    useEffect(() => {
-        const m = new Map();
-        try {
-            const stats = statsForPrevious || {};
-            Object.keys(stats).forEach((name) => {
-                const entry = stats[name] || {};
-                const sets = Array.isArray(entry.sets) ? entry.sets : [];
-                if (!sets.length) return;
-                const lastWid = sets[sets.length - 1]?.wid;
-                const arr = [];
-                for (let i = sets.length - 1; i >= 0; i--) {
-                    if (sets[i]?.wid !== lastWid) break;
-                    arr.push({ weight: Number(sets[i]?.weight) || 0, reps: Number(sets[i]?.reps) || 0 });
-                }
-                arr.reverse();
-                if (arr.length) m.set(name, arr);
-            });
-            if (m.size === 0) {
-                const cw = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
-                for (let i = cw.length - 1; i >= 0 && i >= cw.length - 12; i--) {
-                    const wk = cw[i];
-                    const exs = Array.isArray(wk?.exercises) ? wk.exercises : [];
-                    for (const ex of exs) {
-                        const name = String(ex?.name || "").trim();
-                        if (!name) continue;
-                        if (m.has(name)) continue;
-                        const s = Array.isArray(ex?.sets) ? ex.sets : [];
-                        if (!s.length) continue;
-                        m.set(name, s.map((t) => ({ weight: Number(t?.weight) || 0, reps: Number(t?.reps) || 0 })));
-                    }
-                    if (m.size > 24) break;
-                }
-            }
-        } catch {}
-        prevSetsMapRef.current = m;
-    }, [statsForPrevious, (global?.userData?.completedWorkouts || []).length]);
 
     const borderOpacity = scrollY.interpolate({ inputRange: [0, 98], outputRange: [0, 1], extrapolate: "clamp" });
 
@@ -308,15 +262,13 @@ const SpectatingWorkoutModal = ({
             muscle={ex.muscle}
             exerciseIndex={exerciseIndex}
             sets={ex.sets}
-            prevSets={Array.isArray(ex.prev) ? ex.prev : (prevSetsMapRef.current?.get(ex.name) || undefined)}
             updateSets={() => {}}
             deleteExercise={undefined}
             replaceExercise={undefined}
-            userWorkoutStats={statsForPrevious}
             readOnly
             onStatFocus={undefined}
         />
-    ), [statsForPrevious]);
+    ), []);
 
     return (
         <View style={styles.main_ctnr}>

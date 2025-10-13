@@ -5,12 +5,21 @@ import useWorkoutStore from "../../../../state/workoutStore";
 /* ------------------------------ utils ------------------------------ */
 const genId = () => `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
+const normalizePrev = (prev) => {
+    if (!prev || typeof prev !== "object") return null;
+    return {
+        weight: Number(prev?.weight) || 0,
+        reps: Number(prev?.reps) || 0,
+    };
+};
+
 const normalizeSet = (s) => ({
     id: s?.id || genId(),
     weight: Number(s?.weight) || 0,
     reps: Number(s?.reps) || 0,
     isDone: !!s?.isDone,
     type: s?.type ?? null,
+    prev: normalizePrev(s?.prev),
 });
 
 const sameLength = (a = [], b = []) => a.length === b.length;
@@ -27,6 +36,14 @@ const setsEqualByValue = (a, b) => {
     if (Number(a.weight) !== Number(b.weight)) return false;
     if (Number(a.reps) !== Number(b.reps)) return false;
     if (!!a.isDone !== !!b.isDone) return false;
+    const aPrev = normalizePrev(a.prev);
+    const bPrev = normalizePrev(b.prev);
+    const prevWeightA = Number(aPrev?.weight) || 0;
+    const prevWeightB = Number(bPrev?.weight) || 0;
+    const prevRepsA = Number(aPrev?.reps) || 0;
+    const prevRepsB = Number(bPrev?.reps) || 0;
+    if (prevWeightA !== prevWeightB) return false;
+    if (prevRepsA !== prevRepsB) return false;
     return (a.type ?? null) === (b.type ?? null);
 };
 
@@ -85,25 +102,29 @@ export default function useWorkoutEditing({ workout, updateWorkout, viewingSelf 
 
             // Build next sets preserving identity for unchanged rows
             const nextSets = (newSets || []).map((s, i) => {
-                const prev = prevSets[i] || null;
-                const id = s?.id || prev?.id || genId();
+                const prevRow = prevSets[i] || null;
+                const id = s?.id || prevRow?.id || genId();
                 const weight = Number(s?.weight) || 0;
                 const reps = Number(s?.reps) || 0;
                 const isDone = !!s?.isDone;
                 const type = (s && Object.prototype.hasOwnProperty.call(s, "type"))
                     ? s.type
-                    : (prev?.type ?? null);
+                    : (prevRow?.type ?? null);
+                const prevPayload = Object.prototype.hasOwnProperty.call(s || {}, "prev")
+                    ? normalizePrev(s?.prev)
+                    : (prevRow?.prev ? normalizePrev(prevRow.prev) : null);
 
                 // preserve object identity if *all* fields are equal
-                if (prev &&
-                    prev.id === id &&
-                    prev.weight === weight &&
-                    prev.reps === reps &&
-                    !!prev.isDone === isDone &&
-                    prev.type === type) {
-                    return prev;
+                if (prevRow &&
+                    prevRow.id === id &&
+                    prevRow.weight === weight &&
+                    prevRow.reps === reps &&
+                    !!prevRow.isDone === isDone &&
+                    prevRow.type === type &&
+                    setsEqualByValue({ ...prevRow, prev: prevPayload }, prevRow)) {
+                    return prevRow;
                 }
-                return { id, weight, reps, isDone, type };
+                return { id, weight, reps, isDone, type, prev: prevPayload };
             });
 
             // If lengths differ, it's definitely a change; if equal and all refs equal, skip
@@ -165,7 +186,7 @@ export default function useWorkoutEditing({ workout, updateWorkout, viewingSelf 
     /* ------------------------------ helpers ------------------------------ */
 
     const makeBlankSetsLike = useCallback(
-        (sets = []) => sets.map(() => normalizeSet({ weight: 0, reps: 0, isDone: false })),
+        (sets = []) => sets.map((src) => normalizeSet({ weight: 0, reps: 0, isDone: false, prev: src?.prev })),
         []
     );
 

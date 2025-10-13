@@ -103,10 +103,12 @@ export function useGroupViewing({
     const joinedOnceRef = useRef(false);
     const participantCacheRef = useRef(new Map());
     const participantPendingRef = useRef(new Map());
+    const workoutPrefetchPendingRef = useRef(new Map());
 
     useEffect(() => {
         participantCacheRef.current = new Map();
         participantPendingRef.current = new Map();
+        workoutPrefetchPendingRef.current = new Map();
     }, [wid]);
 
     // --- subscribe to workout doc for members array
@@ -301,18 +303,85 @@ export function useGroupViewing({
     const activeCacheRef = useRef(new Map());
 
     useEffect(() => {
+        activeCacheRef.current = new Map();
+    }, [wid]);
+
+    const prefetchParticipantWorkout = useCallback((rawUid) => {
         if (!enabled) return;
+        const key = ensureString(rawUid);
+        if (!key) return;
+        if (suppressSelfStream && ensureString(meUid) === key) return;
+        if (activeCacheRef.current.has(key)) return;
+        if (workoutPrefetchPendingRef.current.has(key)) return;
+
+        const pending = getDoc(doc(db, "users", key))
+            .then((snap) => {
+                const data = snap.exists() ? snap.data() : {};
+                const nextWorkout = data?.currentWorkout || null;
+                const p = data?.pfp || data?.photoURL || data?.image || data?.avatar || "";
+                activeCacheRef.current.set(key, { workout: nextWorkout, stats: {}, pfp: p || null });
+
+                if (ensureString(viewingUid) === key) {
+                    const isSelf = meUid && key === String(meUid);
+                    const statsPayload = isSelf ? (data?.statsExercises || {}) : {};
+                    setActiveWorkout(nextWorkout);
+                    setActiveStats(statsPayload);
+                    setOverlayPfp(p || null);
+                    setWaitingFriend(false);
+                }
+            })
+            .catch(() => {})
+            .finally(() => {
+                workoutPrefetchPendingRef.current.delete(key);
+            });
+
+        workoutPrefetchPendingRef.current.set(key, pending);
+    }, [enabled, suppressSelfStream, meUid, viewingUid]);
+
+    useEffect(() => {
+        if (!enabled) return;
+        (participants || []).forEach((participant) => {
+            const uid = ensureString(participant?.uid);
+            if (!uid) return;
+            prefetchParticipantWorkout(uid);
+        });
+    }, [participants, enabled, prefetchParticipantWorkout]);
+
+    useEffect(() => {
+        if (!enabled) return;
+        prefetchParticipantWorkout(viewingUid);
+    }, [viewingUid, enabled, prefetchParticipantWorkout]);
+
+    useEffect(() => {
         if (!viewingUid) return;
-        const isSelf = meUid && String(viewingUid) === String(meUid);
+        const match = (participants || []).find((p) => ensureString(p?.uid) === ensureString(viewingUid));
+        const fallbackImage = ensureString(match?.image || "");
+        if (!fallbackImage) return;
+        setOverlayPfp((prev) => (prev && ensureString(prev) === fallbackImage ? prev : fallbackImage));
+    }, [participants, viewingUid]);
+
+    useEffect(() => {
+        if (!enabled) {
+            setWaitingFriend(false);
+            return;
+        }
+        if (!viewingUid) {
+            setActiveWorkout(null);
+            setActiveStats({});
+            setOverlayPfp(null);
+            setWaitingFriend(false);
+            return;
+        }
+        const key = String(viewingUid);
+        const isSelf = meUid && key === String(meUid);
         if (suppressSelfStream && isSelf) {
-            // when suppressed, clear activeWorkout/overlay to avoid stale friend UI
             setActiveWorkout(null);
             setOverlayPfp(null);
             setActiveStats({});
             setWaitingFriend(false);
             return;
         }
-        const key = String(viewingUid);
+
         const cached = activeCacheRef.current.get(key);
         if (cached) {
             setActiveWorkout(cached.workout || null);
@@ -322,20 +391,38 @@ export function useGroupViewing({
         } else {
             setWaitingFriend(true);
         }
-
-        const unsub = onSnapshot(doc(db, "users", key), (snap) => {
-            const data = snap.data() || {};
-            const nextWorkout = data?.currentWorkout || null;
-            const nextStats = data?.statsExercises || {};
-            const p = data?.pfp || data?.photoURL || data?.image || data?.avatar || "";
-            activeCacheRef.current.set(key, { workout: nextWorkout, stats: nextStats, pfp: p || null });
-            setActiveWorkout(nextWorkout);
-            setActiveStats(nextStats);
-            setOverlayPfp(p || null);
-            setWaitingFriend(false);
-        });
-        return () => unsub();
     }, [viewingUid, suppressSelfStream, meUid, enabled]);
+
+    useEffect(() => {
+        if (!enabled) return undefined;
+        const key = String(viewingUid || "");
+        if (!key) return undefined;
+        const isSelf = meUid && key === String(meUid);
+        if (suppressSelfStream && isSelf) return undefined;
+
+        let unsub = null;
+        try {
+            unsub = onSnapshot(doc(db, "users", key), (snap) => {
+                const data = snap.data() || {};
+                const nextWorkout = data?.currentWorkout || null;
+                const nextStats = isSelf ? (data?.statsExercises || {}) : {};
+                const p = data?.pfp || data?.photoURL || data?.image || data?.avatar || "";
+                activeCacheRef.current.set(key, { workout: nextWorkout, stats: nextStats, pfp: p || null });
+                setActiveWorkout(nextWorkout);
+                setActiveStats(nextStats);
+                setOverlayPfp(p || null);
+                setWaitingFriend(false);
+            });
+        } catch (error) {
+            console.log("useGroupViewing snapshot error", error?.message || error);
+        }
+
+        return () => {
+            if (unsub) {
+                try { unsub(); } catch {}
+            }
+        };
+    }, [viewingUid, enabled, suppressSelfStream, meUid]);
 
     // --- HARD GUARD 1: if the currently viewed user's currentWorkout is missing or mismatched, jump back to me
     // Skip this guard while we are still waiting for the selected friend's snapshot to arrive.
