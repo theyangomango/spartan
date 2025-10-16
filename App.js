@@ -128,7 +128,7 @@ export default function App() {
     // Load every registered font (frontend/fonts.js) before hiding the splash screen
     const [fontsReady] = useFonts(PRELOADED_FONTS);
     const [authChecked, setAuthChecked] = useState(false);
-    const [currentTabName, setCurrentTabName] = useState('Workout');
+    const [currentTabName, setCurrentTabName] = useState('Feed');
     const [isFooterNavEligible, setIsFooterNavEligible] = useState(false);
     const [isFooterVisible, setIsFooterVisible] = useState(false);
     const [isFeedPostFocused, setIsFeedPostFocused] = useState(false);

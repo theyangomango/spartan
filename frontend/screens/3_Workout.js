@@ -616,6 +616,17 @@ export default function Workout({ navigation, route }) {
         };
     }, [setIsNewWorkoutVisible]);
 
+    useEffect(() => {
+        try { global.__startEmptyWorkout = startNewWorkoutFromTemplate; } catch { }
+        return () => {
+            try {
+                if (global.__startEmptyWorkout === startNewWorkoutFromTemplate) {
+                    global.__startEmptyWorkout = null;
+                }
+            } catch { }
+        };
+    }, [startNewWorkoutFromTemplate]);
+
     // Hexagon change modal state (shown after WorkoutSummaryModal closes)
     const [hexChangeVisible, setHexChangeVisible] = useState(false);
     const [hexFrom, setHexFrom] = useState(null);
@@ -910,6 +921,7 @@ export default function Workout({ navigation, route }) {
     useEffect(() => {
         if (!setSheetHandlers) return;
         setSheetHandlers({
+            startWorkout: startNewWorkoutFromTemplate,
             cancelWorkout,
             updateWorkout: updateNewWorkout,
             finishWorkout,
@@ -922,6 +934,7 @@ export default function Workout({ navigation, route }) {
         });
         return () => {
             setSheetHandlers({
+                startWorkout: null,
                 cancelWorkout: () => {},
                 updateWorkout: () => {},
                 finishWorkout: () => {},

@@ -13,14 +13,14 @@ const { width } = Dimensions.get("window");
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
 const CARD_HEIGHT = scaleSize(64);
 const SELF_CARD_HEIGHT = scaleSize(86);
-const PFP_SIZE = scaleSize(39);
+const PFP_SIZE = scaleSize(37);
 
-const FONT_HANDLE = ts(13.5);
-const FONT_NAME = ts(13.5);
-const FONT_STAT = ts(13.5);
-const FONT_HEX_STAT = ts(14);
-const FONT_RANK = ts(13.5);
-const FONT_BEST = ts(13.5);
+const FONT_HANDLE = ts(13);
+const FONT_NAME = ts(12.5);
+const FONT_STAT = ts(13);
+const FONT_HEX_STAT = ts(13);
+const FONT_RANK = ts(12.5);
+const FONT_BEST = ts(13);
 
 const ICON_ARROW = scaleSize(20);
 const ICON_MINUS = scaleSize(16);

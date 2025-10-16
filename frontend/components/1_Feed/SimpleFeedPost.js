@@ -1129,7 +1129,7 @@ const styles = StyleSheet.create({
     titleText: {
         color: theme.textPrimary,
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(13),
     },
     workoutTitleText: {
         color: '#74abf7ff',
@@ -1137,7 +1137,7 @@ const styles = StyleSheet.create({
     captionText: {
         color: theme.textPrimary,
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(13),
         marginTop: scaleSize(4),
     },
     metricsLeft: {
@@ -1159,14 +1159,14 @@ const styles = StyleSheet.create({
     metricLabel: {
         color: 'rgba(255,255,255,0.58)',
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(11),
         letterSpacing: 0.2,
         paddingBottom: scaleSize(1.5)
     },
     metricValue: {
         color: theme.textPrimary,
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(15.5),
+        fontSize: scaleSize(14),
     },
     workoutSummaryBlock: {
         marginTop: scaleSize(6),
@@ -1184,7 +1184,7 @@ const styles = StyleSheet.create({
     workoutSummaryHeaderText: {
         color: theme.textSecondary,
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(11),
         letterSpacing: 0.2,
         textTransform: 'uppercase',
     },
@@ -1210,7 +1210,7 @@ const styles = StyleSheet.create({
         paddingRight: scaleSize(12),
         color: theme.textPrimary,
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(12),
     },
     workoutSummaryBest: {
         minWidth: scaleSize(96),
@@ -1218,7 +1218,7 @@ const styles = StyleSheet.create({
         textAlign: 'right',
         color: theme.textSecondary,
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(12),
     },
     recordsValueRow: {
         flexDirection: 'row',
@@ -1305,7 +1305,7 @@ const styles = StyleSheet.create({
         flex: 1,
         color: theme.textPrimary,
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(12.5),
+        fontSize: scaleSize(13),
     },
     buttonsContainer: {
         width: "32%",

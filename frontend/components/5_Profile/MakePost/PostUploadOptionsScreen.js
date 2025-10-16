@@ -787,7 +787,7 @@ const styles = StyleSheet.create({
         position: 'relative'
     },
     caption_text: {
-        fontSize: scaleSize(18),
+        fontSize: scaleSize(17),
         fontFamily: 'Outfit_500Medium',
         color: theme.textPrimary,
         minHeight: avatarSize,

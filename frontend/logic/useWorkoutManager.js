@@ -468,12 +468,18 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     /* ------------ public API ------------ */
     const startNewWorkoutFromTemplate = useCallback(
         (tplOrNull, options = {}) => {
+            const {
+                privacyMode: privacyOverride,
+                forceFresh = false,
+                skipUI = false,
+            } = options || {};
+
             if (!uid) { Alert.alert("Sign in required", "Please log in to start a workout."); return; }
 
             try {
                 const recentlyCancelled = (Date.now() - (lastCancelAtRef.current || 0)) < 2000;
                 const existing = useWorkoutStore.getState().workout;
-                if (!existing || recentlyCancelled) {
+                if (forceFresh || !existing || recentlyCancelled) {
                     if (recentlyCancelled) {
                         // Make sure no stale state remains before creating the new workout
                         setWorkoutInStore(null);
@@ -483,7 +489,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     const wid = makeID();
                     const created = Date.now();
                     const name = defaultWorkoutName(tplOrNull, created);
-                    const appliedPrivacy = coercePrivacyMode(options?.privacyMode || "global");
+                    const appliedPrivacy = coercePrivacyMode(privacyOverride || "global");
 
                     const normalizeSets = (sets) =>
                         Array.isArray(sets) && sets.length
@@ -544,10 +550,14 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     // Do not persist this flag to Firestore.
                     const localWorkout = { ...newWorkout, __justStarted: true };
                     setWorkoutInStore(localWorkout);
-                    setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
-                    // Signal the Workout screen and open the sheet; do both to defeat any transient races
-                    try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
-                    setIsNewWorkoutVisible(true);
+                    setSheetState(skipUI ? WORKOUT_SHEET_STATES.COLLAPSED : WORKOUT_SHEET_STATES.EXPANDED);
+                    if (!skipUI) {
+                        // Signal the Workout screen and open the sheet; do both to defeat any transient races
+                        try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
+                        setIsNewWorkoutVisible(true);
+                    } else {
+                        setIsNewWorkoutVisible(false);
+                    }
                     try { global.__showWorkoutReminderForWid = wid; } catch {}
                     startTimer(created);
 
@@ -557,8 +567,10 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
                     createWorkoutDoc(wid, name, appliedPrivacy).catch((e) => console.log("createWorkoutDoc error", e));
                 } else {
-                    setIsNewWorkoutVisible(true);
-                    setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
+                    if (!skipUI) {
+                        setIsNewWorkoutVisible(true);
+                        setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
+                    }
                 }
             } catch (e) {
                 console.log("startWorkout error", e);

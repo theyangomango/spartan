@@ -4,14 +4,14 @@
 const MFP_DARK = {
     // Surfaces (MyFitnessPal-like)
     // Neutral slate greys (subtle blue cast)
-    bg: '#141722ff',            // solid to ensure StatusBar matches
-    surface: '#30333cff',       // darker card tone for cohesion with bg
+    bg: '#090909ff',            // solid to ensure StatusBar matches
+    surface: '#18181dff',       // darker card tone for cohesion with bg
     card: '#47516A',          // alias for surface
     field: '#2e3138',         // inputs/chips slightly lighter than surface
     fieldDeep: '#262930',     // slightly darker than field for contrasty cards
 
     // Lines & shadows
-    hairline: 'rgba(255,255,255,0.27)',
+    hairline: 'rgba(162, 162, 162, 0.28)',
  
     // Text
     textPrimary: '#EAF0F7',

@@ -18,7 +18,7 @@ const MainTabs = ({ route }) => {
 
     return (
         <Tab.Navigator
-            initialRouteName="Workout"
+            initialRouteName="Feed"
             screenOptions={{
                 headerShown: false,
                 tabBarStyle: { display: 'none' },

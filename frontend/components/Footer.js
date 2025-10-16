@@ -6,7 +6,6 @@ import useWorkoutStore, { WORKOUT_SHEET_STATES } from '../state/workoutStore';
 import { jumpToTab, navigationRef } from '../../navigationRef';
 import theme from '../theme/mfpDark';
 import Animated, { useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';
-
 import scaleSize from "../helper/scaleSize";
 
 const FOOTER_BASE_HEIGHT = scaleSize(87);
@@ -18,6 +17,10 @@ const COLORS = {
     inactive: '#4F5A69',
     bg: theme.bg,
     hairline: theme.hairline,
+    actionCircle: theme.primary,
+    actionCircleActive: '#4F9DFF',
+    actionIcon: '#F6FBFF',
+    actionIconActive: '#FFFFFF',
 };
 
 const Footer = ({
@@ -62,6 +65,7 @@ const Footer = ({
 
     // Subscribe to workout presence only (boolean); avoids polling and reduces rerenders
     const hasActiveWorkout = useWorkoutStore((s) => !!s.workout) || !!global?.isCurrentlyWorkingOut;
+    const startWorkout = useWorkoutStore((s) => s.sheetHandlers?.startWorkout);
     const sheetSharedAnimatedIndex = useWorkoutStore((s) => s.sheetSharedAnimatedIndex);
 
     const collapseProgressSharedValue = workoutSheetProgressSV ?? sheetSharedAnimatedIndex;
@@ -92,6 +96,13 @@ const Footer = ({
             opacity: combined,
         };
     });
+
+    const weightIconColor = currentScreenName === 'Workout'
+        ? COLORS.actionIconActive
+        : COLORS.actionIcon;
+    const weightCircleColor = currentScreenName === 'Workout'
+        ? COLORS.actionCircleActive
+        : COLORS.actionCircle;
 
     return (
         <Animated.View style={[styles.outer_view, outerAnimatedStyle]} pointerEvents={footerPointerEvents}>
@@ -140,17 +151,24 @@ const Footer = ({
                         <Pressable
                             delayPressIn={0}
                             onPressIn={() => {
-                                const alreadyOnWorkout = currentScreenName === 'Workout';
-                                if (alreadyOnWorkout && hasActiveWorkout) {
-                                    // Open the New Workout modal immediately when on Workout
-                                    try { global.openWorkoutModal && global.openWorkoutModal(); } catch {}
+                                const start = typeof startWorkout === 'function' ? startWorkout : null;
+                                const options = { forceFresh: true, skipUI: true };
+                                if (start) {
+                                    start(null, options);
+                                    return;
                                 }
-                                go('Workout')();
+                                try { global.__startEmptyWorkout && global.__startEmptyWorkout(null, options); } catch {}
                             }}
                             hitSlop={10}
                         >
-                            <View style={currentScreenName === 'Workout' ? styles.selectedIcon : styles.icon}>
-                                <Weight size={27.5} color={getIconColor('Workout')} variant="Bold" />
+                            <View
+                                style={[
+                                    styles.workout_action,
+                                    { backgroundColor: weightCircleColor },
+                                    currentScreenName === 'Workout' && styles.workout_action_active,
+                                ]}
+                            >
+                                <Weight size={24} color={'#000'} variant="Bold" />
                             </View>
                         </Pressable>
                     </View>
@@ -229,7 +247,23 @@ const styles = StyleSheet.create({
     },
     icon_ctnr: { flex: 1, alignItems: 'center', padding: scaleSize(10) },
     workout_icon_ctnr: { flex: 1, alignItems: 'center', paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(8.2) },
-    workout_indicator_ctnr: { borderRadius: scaleSize(100), padding: scaleSize(3) },
+    workout_indicator_ctnr: { borderRadius: scaleSize(100), padding: scaleSize(4) },
+    workout_action: {
+        width: scaleSize(52),
+        aspectRatio: 1,
+        borderRadius: scaleSize(27),
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: 'rgba(7, 20, 54, 0.7)',
+        shadowOffset: { width: 0, height: scaleSize(6) },
+        shadowOpacity: 0.35,
+        shadowRadius: scaleSize(10),
+        elevation: scaleSize(5),
+    },
+    workout_action_active: {
+        shadowOpacity: 0.42,
+        transform: [{ scale: 1.03 }],
+    },
     icon: { padding: scaleSize(13.5), borderRadius: scaleSize(25) },
     selectedIcon: { padding: scaleSize(13.5), borderRadius: scaleSize(30) },
     dead_zone: {

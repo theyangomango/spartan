@@ -15,6 +15,7 @@ export const useWorkoutStore = createWithEqualityFn((set, get) => ({
   sheetState: WORKOUT_SHEET_STATES.HIDDEN,
   timer: '',
   sheetHandlers: {
+    startWorkout: null,
     cancelWorkout: noop,
     updateWorkout: noop,
     finishWorkout: noop,
