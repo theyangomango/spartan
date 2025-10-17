@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { useSharedValue, useAnimatedReaction } from "react-native-reanimated";
+import { useWindowDimensions, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import UserStatsModal from "./UserStatsModal";
 import scaleSize from "../../../helper/scaleSize";
 
@@ -17,7 +19,13 @@ const toDayKey = (d) => {
 
 const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheetProgressSV }) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["100%"], []);
+    const { height: windowHeight } = useWindowDimensions();
+    const { top: insetTop = 0 } = useSafeAreaInsets();
+    const snapPoints = useMemo(() => {
+        const fullHeight = Math.max(0, windowHeight + insetTop);
+        return [fullHeight];
+    }, [windowHeight, insetTop]);
+    const isFullHeight = snapPoints[0] >= windowHeight + insetTop - 1;
     const [tick, setTick] = useState(0);
     const animatedIndexSV = useSharedValue(-1);
     const animatedPositionSV = useSharedValue(0);
@@ -68,7 +76,7 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
                 {...props}
                 disappearsOnIndex={-1}
                 appearsOnIndex={0}
-                opacity={0.5}
+                style={[props.style, { backgroundColor: "rgba(10, 22, 42, 0.68)" }]}
             />
         ),
         []
@@ -76,11 +84,11 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
 
     useEffect(() => {
         if (isVisible) {
-            bottomSheetRef.current.expand();
+            bottomSheetRef.current?.expand();
         } else if (sheetProgressSV) {
             sheetProgressSV.value = 0;
         }
-    }, [isVisible, sheetProgressSV]);
+    }, [isVisible, sheetProgressSV, windowHeight]);
 
     // Live refresh when hexagon changes elsewhere in the app
     useEffect(() => {
@@ -155,9 +163,10 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
             handleHeight={0}
             backgroundStyle={{
                 backgroundColor: require("../../../theme/mfpDark").default.bg,
-                borderTopLeftRadius: scaleSize(25),
-                borderTopRightRadius: scaleSize(25),
+                borderTopLeftRadius: isFullHeight ? 0 : scaleSize(25),
+                borderTopRightRadius: isFullHeight ? 0 : scaleSize(25),
             }}
+            containerStyle={{ marginTop: -insetTop }}
             enablePanDownToClose
             onClose={() => {
                 setIsVisible(false);

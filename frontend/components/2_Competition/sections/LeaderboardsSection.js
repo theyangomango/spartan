@@ -254,6 +254,13 @@ export default function LeaderboardsSection({ navigation }) {
         return BODY_FOCUS_LABEL_MAP[savedFocus] ? savedFocus : DEFAULT_BODY_FOCUS;
     });
     const [isBodyFocusMenuVisible, setIsBodyFocusMenuVisible] = useState(false);
+    const scopeToggleAnchorRef = useRef(null);
+    const [tribeMenuAnchor, setTribeMenuAnchor] = useState({
+        x: SIZES.headerPaddingHorizontal,
+        y: 0,
+        width: 0,
+        height: 0,
+    });
     const focusToggleAnchorRef = useRef(null);
     const [focusMenuAnchor, setFocusMenuAnchor] = useState({
         x: SIZES.headerPaddingHorizontal,
@@ -513,6 +520,15 @@ export default function LeaderboardsSection({ navigation }) {
             height: 0,
         });
     }, [isBodyFocusMenuVisible]);
+    useEffect(() => {
+        if (tribeMenuVisible) return;
+        setTribeMenuAnchor({
+            x: SIZES.headerPaddingHorizontal,
+            y: 0,
+            width: 0,
+            height: 0,
+        });
+    }, [tribeMenuVisible]);
 
     useEffect(() => {
         if (isUserStatsBottomSheetVisible) {
@@ -930,11 +946,14 @@ export default function LeaderboardsSection({ navigation }) {
 
     const dropdownLeft = useMemo(() => {
         const padding = SIZES.headerPaddingHorizontal;
-        const baseX = Number(focusMenuAnchor?.x ?? padding);
+        const anchorX = Number(focusMenuAnchor?.x ?? padding);
         const approxWidth = scaleSize(180, "w");
+        const anchorWidth = Number(focusMenuAnchor?.width ?? approxWidth);
+        const anchorRight = anchorX + anchorWidth;
+        const desiredLeft = anchorRight - approxWidth;
         const maxLeft = Math.max(padding, DEVICE_WIDTH - approxWidth - padding);
-        return Math.min(Math.max(baseX, padding), maxLeft);
-    }, [focusMenuAnchor?.x]);
+        return Math.min(Math.max(desiredLeft, padding), maxLeft);
+    }, [focusMenuAnchor?.x, focusMenuAnchor?.width]);
 
     const dropdownTop = useMemo(() => {
         const anchorY = Number(focusMenuAnchor?.y ?? 0);
@@ -971,13 +990,13 @@ export default function LeaderboardsSection({ navigation }) {
     const gradientConfig = useMemo(() => {
         if (isCustomTribe) {
             return {
-                colors: ["#0A090F", "#151021", "#221A31", "#2E2440", theme.bg],
-                locations: [0, 0.18, 0.45, 0.75, 1],
+                colors: ["#05060D", "#161930", "#223561", "#2F4E91", "#3D65BC", theme.bg],
+                locations: [0, 0.2, 0.48, 0.7, 0.9, 1],
             };
         }
         return {
-            colors: ["#05070D", "#101727", "#1A2943", "#23385C", theme.bg],
-            locations: [0, 0.2, 0.5, 0.78, 1],
+            colors: ["#03060C", "#0E1A35", "#1A3361", "#255198", "#2E6BC7", theme.bg],
+            locations: [0, 0.22, 0.52, 0.74, 0.92, 1],
         };
     }, [isCustomTribe]);
     const topGradientHeight = useMemo(
@@ -1058,7 +1077,23 @@ export default function LeaderboardsSection({ navigation }) {
 
     const renderScopeToggle = () => (
         <RNBounceable
-            onPress={withStrongPress(() => setTribeMenuVisible(true))}
+            onPress={withStrongPress(() => {
+                if (tribeMenuVisible) {
+                    setTribeMenuVisible(false);
+                    return;
+                }
+                const measureAndOpen = () => {
+                    try {
+                        scopeToggleAnchorRef.current?.measureInWindow?.((x = 0, y = 0, width = 0, height = 0) => {
+                            setTribeMenuAnchor({ x, y, width, height });
+                            setTribeMenuVisible(true);
+                        });
+                    } catch {
+                        setTribeMenuVisible(true);
+                    }
+                };
+                requestAnimationFrame(measureAndOpen);
+            })}
             style={[
                 styles.scopeToggle,
                 !isCustomTribe && styles.scopeToggleCompact,
@@ -1073,29 +1108,31 @@ export default function LeaderboardsSection({ navigation }) {
             accessibilityRole="button"
             accessibilityLabel="Change leaderboard scope"
         >
-            <Ionicons
-                name="chevron-down"
-                size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
-                color="rgba(255,255,255,0.95)"
-                style={{ marginRight: SIZES.chevronML, marginTop: SIZES.chevronMT, opacity: 0 }}
-            />
-            {scopeSubtitle ? (
-                <Text style={[styles.tribeLabel, styles.tribeLabelTwoLine]} numberOfLines={2} ellipsizeMode="tail">
-                    {scopeLabel}
-                    {"\n"}
-                    <Text style={styles.tribeSubtitleInline}>{scopeSubtitle}</Text>
-                </Text>
-            ) : (
-                <Text style={styles.tribeLabel} numberOfLines={1} ellipsizeMode="tail">
-                    {scopeLabel}
-                </Text>
-            )}
-            <Ionicons
-                name="chevron-down"
-                size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
-                color="rgba(255,255,255,0.95)"
-                style={{ marginLeft: SIZES.chevronML, marginTop: SIZES.chevronMT }}
-            />
+            <View ref={scopeToggleAnchorRef} style={styles.scopeToggleContent} collapsable={false}>
+                <Ionicons
+                    name="chevron-down"
+                    size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
+                    color="rgba(255,255,255,0.95)"
+                    style={{ marginRight: SIZES.chevronML, marginTop: SIZES.chevronMT, opacity: 0 }}
+                />
+                {scopeSubtitle ? (
+                    <Text style={[styles.tribeLabel, styles.tribeLabelTwoLine]} numberOfLines={2} ellipsizeMode="tail">
+                        {scopeLabel}
+                        {"\n"}
+                        <Text style={styles.tribeSubtitleInline}>{scopeSubtitle}</Text>
+                    </Text>
+                ) : (
+                    <Text style={styles.tribeLabel} numberOfLines={1} ellipsizeMode="tail">
+                        {scopeLabel}
+                    </Text>
+                )}
+                <Ionicons
+                    name="chevron-down"
+                    size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
+                    color="rgba(255,255,255,0.95)"
+                    style={{ marginLeft: SIZES.chevronML, marginTop: SIZES.chevronMT }}
+                />
+            </View>
         </RNBounceable>
     );
 
@@ -1117,11 +1154,14 @@ export default function LeaderboardsSection({ navigation }) {
             >
                 <View style={styles.focusModalOverlay}>
                     <Pressable
-                        style={StyleSheet.absoluteFill}
+                        style={styles.focusBackdrop}
                         onPress={() => setIsBodyFocusMenuVisible(false)}
                         android_ripple={{ color: "transparent" }}
                     />
-                    <View style={[styles.focusDropdown, { top: dropdownTop, left: dropdownLeft }]}>
+                    <View
+                        style={[styles.focusDropdown, { top: dropdownTop, left: dropdownLeft }]}
+                        pointerEvents="box-none"
+                    >
                         {BODY_FOCUS_OPTIONS.map((opt) => (
                             <TouchableOpacity
                                 key={opt.value}
@@ -1243,6 +1283,7 @@ export default function LeaderboardsSection({ navigation }) {
 
             <TribeMenu
                 visible={tribeMenuVisible}
+                anchor={tribeMenuAnchor}
                 tribes={tribes}
                 selectedTribeId={selectedTribeId}
                 scope={scope}
@@ -1419,6 +1460,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginTop: scaleSize(6),
     },
+    scopeToggleContent: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
     scopeToggleCompact: {
         marginRight: 0,
         marginLeft: -scaleSize(6),
@@ -1494,31 +1539,33 @@ const styles = StyleSheet.create({
     },
     focusDropdown: {
         position: "absolute",
-        borderRadius: scaleSize(16),
-        backgroundColor: "rgba(13, 36, 61, 0.96)",
-        paddingVertical: scaleSize(6),
         minWidth: scaleSize(158, "w"),
-        borderWidth: scaleSize(1),
-        borderColor: "rgba(255,255,255,0.18)",
+        borderRadius: scaleSize(14),
+        backgroundColor: theme.surface,
+        paddingVertical: scaleSize(8),
+        paddingHorizontal: scaleSize(10),
         shadowColor: "#000",
-        shadowOpacity: 0.22,
-        shadowRadius: scaleSize(8),
+        shadowOpacity: 0.15,
+        shadowRadius: scaleSize(10),
         shadowOffset: { width: 0, height: scaleSize(6) },
         elevation: 6,
     },
     focusOption: {
-        paddingVertical: scaleSize(8),
+        paddingVertical: scaleSize(10),
         paddingHorizontal: scaleSize(14),
-        borderRadius: scaleSize(12),
-        marginHorizontal: scaleSize(6),
+        borderRadius: scaleSize(10),
+        marginBottom: scaleSize(4),
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "transparent",
     },
     focusOptionActive: {
-        backgroundColor: "rgba(45,158,255,0.18)",
+        backgroundColor: "rgba(45,158,255,0.12)",
     },
     focusOptionLabel: {
-        fontFamily: "Outfit_500Medium",
-        fontSize: scaleFont(13),
-        color: "rgba(255,255,255,0.86)",
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleFont(12.5),
+        color: "#EAEAEA",
         letterSpacing: 0.15,
     },
     focusOptionLabelActive: {
@@ -1526,5 +1573,9 @@ const styles = StyleSheet.create({
     },
     focusModalOverlay: {
         flex: 1,
+    },
+    focusBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(0,0,0,0.35)",
     },
 });

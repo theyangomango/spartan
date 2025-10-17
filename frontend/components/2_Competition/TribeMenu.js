@@ -1,6 +1,6 @@
 // components/2_Competition/TribeMenu.jsx
-import React from "react";
-import { Modal, View, Text, StyleSheet, Pressable } from "react-native";
+import React, { useMemo } from "react";
+import { Modal, View, Text, StyleSheet, Pressable, Dimensions } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Ionicons } from "@expo/vector-icons";
 import scaleSize from "../../helper/scaleSize";
@@ -12,9 +12,6 @@ const MENU_WIDTH = scaleSize(260);
 const MENU_RADIUS = scaleSize(14);
 const MENU_PAD_V = scaleSize(10);
 const MENU_PAD_H = scaleSize(10);
-
-const BACKDROP_PT = scaleSize(60);
-const BACKDROP_PR = scaleSize(12);
 
 const FONT_TITLE = ts(15);
 const FONT_SECTION = ts(12.5);
@@ -28,11 +25,15 @@ const ITEM_TEXT_ML = scaleSize(8);
 const ICON_ITEM = scaleSize(18);
 const ICON_CHECK = scaleSize(16);
 
+const WINDOW = Dimensions.get("window");
+const SCREEN_WIDTH = WINDOW.width;
+
 const TribeMenu = ({
     visible,
     tribes = [],
     selectedTribeId,
     scope,                // "Global", "Following", and tribe scopes
+    anchor,
     onClose,
     onSelectGlobal,
     onSelectFollowing,    // NEW (renamed from onSelectFollowers)
@@ -40,6 +41,24 @@ const TribeMenu = ({
     onCreatePress,
     onJoinPress,
 }) => {
+    const positioning = useMemo(() => {
+        const marginSide = scaleSize(10);
+        const marginTop = scaleSize(8);
+        const anchorX = Number(anchor?.x ?? SCREEN_WIDTH - MENU_WIDTH - marginSide);
+        const anchorWidth = Number(anchor?.width ?? 0);
+        const anchorRight = anchorX + anchorWidth;
+        const preliminaryLeft = anchorRight - MENU_WIDTH;
+        const left = Math.min(
+            Math.max(marginSide, preliminaryLeft),
+            SCREEN_WIDTH - MENU_WIDTH - marginSide
+        );
+        const top = Math.max(
+            marginTop,
+            Number(anchor?.y ?? 0) + Number(anchor?.height ?? 0) + marginTop
+        );
+        return { left, top };
+    }, [anchor]);
+
     return (
         <Modal
             visible={visible}
@@ -54,7 +73,7 @@ const TribeMenu = ({
                 <Pressable style={StyleSheet.absoluteFill} onPress={withStrongPress(onClose)} />
 
                 {/* CARD */}
-                <View style={styles.menuCard}>
+                <View style={[styles.menuCard, positioning]}>
                     <Text style={styles.menuTitle}>Tribes</Text>
 
                     {/* Global */}
@@ -117,11 +136,9 @@ const styles = StyleSheet.create({
     menuBackdrop: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.35)",
-        paddingTop: BACKDROP_PT, // below header
-        paddingRight: BACKDROP_PR,
-        alignItems: "flex-end",
     },
     menuCard: {
+        position: "absolute",
         width: MENU_WIDTH,
         backgroundColor: require("../../theme/mfpDark").default.surface,
         borderRadius: MENU_RADIUS,
