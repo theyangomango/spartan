@@ -311,8 +311,8 @@ const SheetBackground = ({ animatedIndex, style }) => {
     const animatedStyle = useAnimatedStyle(() => {
         const progress = animatedIndex.value < 0 ? 0 : animatedIndex.value > 1 ? 1 : animatedIndex.value;
         const backgroundColor = progress <= COLLAPSE_COLOR_THRESHOLD
-            ? interpolateColor(progress, [0, COLLAPSE_COLOR_THRESHOLD], [HANDLE_BG_COLLAPSED, theme.surface])
-            : theme.surface;
+            ? interpolateColor(progress, [0, COLLAPSE_COLOR_THRESHOLD], [HANDLE_BG_COLLAPSED, theme.bg])
+            : theme.bg;
 
         return {
             backgroundColor,

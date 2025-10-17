@@ -60,8 +60,15 @@ const HEADER_EXPANDED_PADDING_V = scaleSize(6);
 const HEADER_EXPANDED_PADDING_H = scaleSize(24);
 const HEADER_COLLAPSED_BG = 'rgba(45, 157, 255, 0.58)';
 const HEADER_EXPANDED_BG = 'rgba(45, 158, 255, 0)';
-const SHEET_EXPANDED_BG = theme.surface;
+const SHEET_EXPANDED_BG = theme.bg;
 const SHEET_COLOR_THRESHOLD = 0.15;
+const CTA_PRIMARY_BG = '#1b3770ff';
+const CTA_PRIMARY_BORDER = theme.primaryHairline;
+const CTA_FINISH_BG = '#31a865ff';
+const CTA_FINISH_BORDER = 'rgba(16, 185, 129, 0.4)';
+const CTA_CANCEL_BG = '#b7404cff';
+const CTA_CANCEL_BORDER = 'rgba(244, 114, 96, 0.4)';
+const CTA_SHADOW_COLOR = '#000000';
 
 const ensureUri = (value) => {
     const str = (value ?? "").toString().trim();
@@ -1174,8 +1181,8 @@ const styles = StyleSheet.create({
         // borderRadius: scaleSize(18),
         paddingHorizontal: scaleSize(18),
         // borderWidth: scaleSize(1),
-        borderColor: 'rgba(110, 184, 255, 0.38)',
-        shadowColor: '#000',
+        borderColor: CTA_PRIMARY_BORDER,
+        shadowColor: CTA_SHADOW_COLOR,
         shadowOpacity: 0.12,
         shadowRadius: scaleSize(10),
         shadowOffset: { width: 0, height: scaleSize(4) },
@@ -1239,21 +1246,22 @@ const styles = StyleSheet.create({
         marginTop: scaleSize(18),
         height: scaleSize(40),
         borderRadius: scaleSize(12),
-        // Slightly muted brand blue for softer contrast
-        backgroundColor: 'rgba(45, 157, 255, 0.6)',
+        backgroundColor: CTA_PRIMARY_BG,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: CTA_PRIMARY_BORDER,
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
-        shadowColor: theme.primary,
-        shadowOpacity: 0.15,
-        shadowRadius: scaleSize(6),
+        shadowColor: CTA_SHADOW_COLOR,
+        shadowOpacity: 0.18,
+        shadowRadius: scaleSize(8),
         shadowOffset: { width: 0, height: scaleSize(3) },
-        elevation: 2,
+        elevation: 3,
     },
     add_exercise_text: {
         fontSize: scaleSize(14),
         fontFamily: "Outfit_700Bold",
-        color: "#FFFFFF",
+        color: theme.textPrimary,
         marginRight: scaleSize(4.5),
     },
 
@@ -1262,20 +1270,22 @@ const styles = StyleSheet.create({
         marginTop: scaleSize(40),
         height: scaleSize(40),
         borderRadius: scaleSize(12),
-        backgroundColor: 'rgba(34, 197, 94, 0.82)',
+        backgroundColor: CTA_FINISH_BG,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: CTA_FINISH_BORDER,
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
-        shadowColor: "#22C55E",
-        shadowOpacity: 0.18,
-        shadowRadius: scaleSize(6),
+        shadowColor: CTA_SHADOW_COLOR,
+        shadowOpacity: 0.2,
+        shadowRadius: scaleSize(8),
         shadowOffset: { width: 0, height: scaleSize(3) },
-        elevation: 2,
+        elevation: 3,
     },
     finish_btn_text: {
         fontSize: scaleSize(14),
         fontFamily: "Outfit_700Bold",
-        color: "#FFFFFF",
+        color: theme.textPrimary,
         marginRight: scaleSize(4.5),
     },
 
@@ -1284,18 +1294,19 @@ const styles = StyleSheet.create({
         marginTop: scaleSize(14),
         height: scaleSize(40),
         borderRadius: scaleSize(12),
-        // Slightly muted red
-        backgroundColor: 'rgba(217,76,76,0.7)',
+        backgroundColor: CTA_CANCEL_BG,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: CTA_CANCEL_BORDER,
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
-        shadowColor: "#D94C4C",
-        shadowOpacity: 0.15,
-        shadowRadius: scaleSize(6),
+        shadowColor: CTA_SHADOW_COLOR,
+        shadowOpacity: 0.18,
+        shadowRadius: scaleSize(8),
         shadowOffset: { width: 0, height: scaleSize(3) },
-        elevation: 2,
+        elevation: 3,
     },
-    cancel_btn_text: { fontSize: scaleSize(14), fontFamily: "Outfit_700Bold", color: "#FFFFFF", marginRight: scaleSize(4.5) },
+    cancel_btn_text: { fontSize: scaleSize(14), fontFamily: "Outfit_700Bold", color: theme.textPrimary, marginRight: scaleSize(4.5) },
 
 });
 

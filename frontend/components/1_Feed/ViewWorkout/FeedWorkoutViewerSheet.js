@@ -205,8 +205,8 @@ const FeedWorkoutViewerSheet = ({
         enablePanDownToClose
         onClose={onClose}
         onChange={handleSheetChange}
-        // Dark surface background to match SpectatingWorkoutModal's transparent sections
-        backgroundStyle={{ backgroundColor: theme.surface }}
+        // Match SpectatingWorkoutModal background with the app background color
+        backgroundStyle={{ backgroundColor: theme.bg }}
         // Styled like friend-view (warm accent) since this sheet is locked to past/friend view
         handleIndicatorStyle={{ backgroundColor: HANDLE_FRIEND_ACCENT }}
         handleStyle={{ backgroundColor: HANDLE_FRIEND_BACKGROUND }}

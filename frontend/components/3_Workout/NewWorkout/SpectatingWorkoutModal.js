@@ -352,7 +352,7 @@ const SpectatingWorkoutModal = ({
 };
 
 const styles = StyleSheet.create({
-    main_ctnr: { flex: 1 },
+    main_ctnr: { flex: 1, backgroundColor: theme.bg },
     header: { backgroundColor: "transparent" },
     headerInner: {
         paddingBottom: scaledSize(6),

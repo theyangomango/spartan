@@ -17,7 +17,7 @@ const toDayKey = (d) => {
 
 const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheetProgressSV }) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["93%"], []);
+    const snapPoints = useMemo(() => ["100%"], []);
     const [tick, setTick] = useState(0);
     const animatedIndexSV = useSharedValue(-1);
     const animatedPositionSV = useSharedValue(0);

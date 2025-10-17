@@ -21,6 +21,7 @@ const COLORS = {
     actionCircleActive: '#4F9DFF',
     actionIcon: '#F6FBFF',
     actionIconActive: '#FFFFFF',
+    selectedIconBg: 'rgba(34, 61, 100, 0.32)',
 };
 
 const Footer = ({
@@ -265,7 +266,11 @@ const styles = StyleSheet.create({
         transform: [{ scale: 1.03 }],
     },
     icon: { padding: scaleSize(13.5), borderRadius: scaleSize(25) },
-    selectedIcon: { padding: scaleSize(13.5), borderRadius: scaleSize(30) },
+    selectedIcon: {
+        padding: scaleSize(13.5),
+        borderRadius: scaleSize(30),
+        backgroundColor: COLORS.selectedIconBg,
+    },
     dead_zone: {
         position: 'absolute',
         left: 0,

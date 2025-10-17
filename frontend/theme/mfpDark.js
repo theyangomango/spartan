@@ -5,7 +5,7 @@ const MFP_DARK = {
     // Surfaces (MyFitnessPal-like)
     // Neutral slate greys (subtle blue cast)
     bg: '#090909ff',            // solid to ensure StatusBar matches
-    surface: '#1e1e26ff',       // darker card tone for cohesion with bg
+    surface: '#17171cff',       // darker card tone for cohesion with bg
     card: '#47516A',          // alias for surface
     field: '#2e3138',         // inputs/chips slightly lighter than surface
     fieldDeep: '#262930',     // slightly darker than field for contrasty cards
@@ -39,6 +39,7 @@ const MFP_DARK = {
     // High-contrast yet on-brand utility tints
     // Add a subtle blue-tinted background for the rest timer chip
     restPillBg: 'rgba(45, 158, 255, 0.22)',
+    addSetBg:  'rgba(46, 47, 47, 1)',
     // Previously an amber used for light theme; switch to subtle blue-tinted pill for dark
     groupAmber: 'rgba(45, 158, 255, 0.22)',
 };

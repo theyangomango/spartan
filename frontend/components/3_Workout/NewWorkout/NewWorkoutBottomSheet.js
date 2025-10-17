@@ -151,9 +151,9 @@ const NewWorkoutBottomSheet = ({
                 borderTopRightRadius: scaleSize(22),
             }}
             // Background drives color + rounded top corners for the entire modal
-            // Use a lighter surface color so the modal contrasts with app bg
+            // Align the sheet background with the global app background color
             backgroundStyle={{
-                backgroundColor: theme.surface,
+                backgroundColor: theme.bg,
                 borderTopLeftRadius: scaleSize(22),
                 borderTopRightRadius: scaleSize(22),
             }}
@@ -173,7 +173,7 @@ const NewWorkoutBottomSheet = ({
                     />
                 ) : (
                     // Simple placeholder while the workout object hydrates; avoids blank sheet
-                    (isVisible ? (<View key={`nw-prep-${contentKey}`} style={{ flex: 1, backgroundColor: theme.surface, alignItems: 'center', justifyContent: 'center' }}>
+                    (isVisible ? (<View key={`nw-prep-${contentKey}`} style={{ flex: 1, backgroundColor: theme.bg, alignItems: 'center', justifyContent: 'center' }}>
                         <ActivityIndicator size="large" color={theme.primary} />
                     </View>) : null)
                 )

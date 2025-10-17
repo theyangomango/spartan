@@ -40,10 +40,17 @@ const LeaderboardPanel = ({
         const inset = insets.bottom || 0;
         return inset > 0 ? inset + scaleSize(6) : scaleSize(10);
     }, [insets.bottom]);
+    const targetMinHeight = useMemo(() => {
+        const proportional = Math.max(1, Math.ceil(H * 0.74));
+        const scaledFloor = scaleSize(520);
+        return Math.max(proportional, scaledFloor);
+    }, [H]);
+
     const minHeight = useMemo(() => {
-        const fallback = Math.max(1, Math.ceil(H * 0.60));
         const provided = Number(minHeightOverride);
-        const baseMin = Number.isFinite(provided) && provided > 0 ? provided : fallback;
+        const baseMin = Number.isFinite(provided) && provided > 0
+            ? Math.max(provided, targetMinHeight)
+            : targetMinHeight;
 
         if (!Array.isArray(userList) || userList.length === 0) return baseMin;
 
@@ -52,9 +59,8 @@ const LeaderboardPanel = ({
         const estimatedRows = userList.length * rowHeight;
         const estimatedHeight = approxHeader + estimatedRows + bottomPadding;
 
-        const minClamp = scaleSize(220);
-        return Math.min(baseMin, Math.max(minClamp, Math.round(estimatedHeight)));
-    }, [H, minHeightOverride, userList, bottomPadding]);
+        return Math.max(baseMin, Math.round(estimatedHeight));
+    }, [targetMinHeight, minHeightOverride, userList, bottomPadding]);
     const panelColor = useMemo(() => theme.surface, []);
     const effectiveCanvasColor = useMemo(() => canvasColor || theme.surface, [canvasColor]);
     const isPanelExpanded = false;
