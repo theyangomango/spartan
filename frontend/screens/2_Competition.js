@@ -8,14 +8,17 @@ import {
     Animated as RNAnimated,
     Dimensions,
     Text,
+    Image,
     InteractionManager,
     Pressable,
+    ScrollView,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import useStableSafeAreaInsets from "../hooks/useStableSafeAreaInsets";
-import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
-import Podium from "../components/2_Competition/Podium";
+import { useSharedValue } from "react-native-reanimated";
+import Podium, { PODIUM_HEIGHT } from "../components/2_Competition/Podium";
 import rankUsers from "../helper/rankUsers";
-import LeaderboardBottomSheet from "../components/2_Competition/LeaderboardBottomSheet";
+import LeaderboardPanel from "../components/2_Competition/LeaderboardPanel";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import { Ionicons } from "@expo/vector-icons";
 import SelectExerciseModal from "../components/2_Competition/SelectExercise/SelectExerciseModal";
@@ -48,7 +51,7 @@ import theme from "../theme/mfpDark";
 import { subscribeUserData, emitUserDataUpdate } from "../utils/userDataEvents";
 import { canViewerAccessProfile } from "../utils/workoutPrivacy";
 
-import scaleSizeFont from "../helper/scaleSize";
+import scaleSizeFont, { ts } from "../helper/scaleSize";
 import { withStrongPress } from "../utils/haptics";
 
 const { width, height } = Dimensions.get("window");
@@ -80,9 +83,76 @@ const SIZES = {
     iconMT: scaleSize(1),
     chevronML: scaleSize(4),
     chevronMT: scaleSize(1),
+    selectorOffset: scaleSize(6),
 };
 
+const HEADER_GRADIENT_OVERLAP = scaleSize(120);
+
+const EXERCISE_CARD_GAP = scaleSize(12, "w");
+const EXERCISE_CARD_ASPECT_RATIO = 0.72;
+const EXERCISE_CARD_WIDTH = Math.round(
+    (width - (SIZES.headerPaddingHorizontal * 2) - (EXERCISE_CARD_GAP * 2)) / 3
+);
+
+const PLACEHOLDER_EXERCISES = [
+    {
+        key: "bench-press-barbell",
+        title: "Bench Press",
+        muscle: "Chest",
+        image: require("../assets/exercises/bench-press-barbell/final.png"),
+    },
+    {
+        key: "lever-seated-fly",
+        title: "Lever Seated Fly",
+        muscle: "Chest",
+        image: require("../assets/exercises/chest-fly-machine/final.png"),
+    },
+    {
+        key: "incline-bench-press",
+        title: "Incline Bench Press",
+        muscle: "Chest",
+        image: require("../assets/exercises/incline-bench-press-dumbbell/final.png"),
+    },
+    {
+        key: "dumbbell-fly",
+        title: "Dumbbell Fly",
+        muscle: "Chest",
+        image: require("../assets/exercises/chest-fly-dumbbell/final.png"),
+    },
+    {
+        key: "lat-pulldown",
+        title: "Lat Pulldown",
+        muscle: "Back",
+        image: require("../assets/exercises/lat-pulldown-cable/final.png"),
+    },
+    {
+        key: "seated-row",
+        title: "Seated Row",
+        muscle: "Back",
+        image: require("../assets/exercises/seated-row-cable/final.png"),
+    },
+    {
+        key: "shoulder-press",
+        title: "Shoulder Press",
+        muscle: "Shoulders",
+        image: require("../assets/exercises/shoulder-press-dumbbell/final.png"),
+    },
+    {
+        key: "back-squat",
+        title: "Back Squat",
+        muscle: "Legs",
+        image: require("../assets/exercises/back-squat-barbell/final.png"),
+    },
+    {
+        key: "romanian-deadlift",
+        title: "Romanian Deadlift",
+        muscle: "Hamstrings",
+        image: require("../assets/exercises/romanian-deadlift-dumbbell/final.png"),
+    },
+];
+
 const STAGE_VERTICAL_OFFSET = scaleSize(0);
+const PODIUM_PULLUP = scaleSize(20);
 
 const DEFAULT_BODY_FOCUS = "overall";
 const BODY_FOCUS_OPTIONS = [
@@ -98,6 +168,11 @@ const BODY_FOCUS_LABEL_MAP = BODY_FOCUS_OPTIONS.reduce((acc, opt) => {
     acc[opt.value] = opt.label;
     return acc;
 }, {});
+const VIEW_TABS = [
+    { key: "leaderboard", label: "Leaderboards" },
+    { key: "templates", label: "Templates" },
+    { key: "exercises", label: "Exercises" },
+];
 
 // -------- tiny persistence (no deps) --------
 const GLOBAL_KEY = "__competition_state__";
@@ -232,6 +307,16 @@ function applyLastRanks(list, exercise, scopeKey) {
 
 export default function Competition({ navigation, route }) {
     const insets = useStableSafeAreaInsets();
+    const podiumSectionHeight = useMemo(() => PODIUM_HEIGHT, []);
+    const panelOverlap = useMemo(() => scaleSize(12), []);
+    const panelCollapsedHeight = useMemo(
+        () => Math.max(1, Math.ceil(height - podiumSectionHeight + panelOverlap)),
+        [height, podiumSectionHeight, panelOverlap]
+    );
+    const scrollBottomPadding = useMemo(
+        () => Math.max(scaleSize(32), (insets?.bottom || 0) + scaleSize(12)),
+        [insets?.bottom]
+    );
     const usersRef = useRef([]);
     const userUnsubRef = useRef(null);
     // hydrate leaderboard from last saved view (backend)
@@ -268,6 +353,16 @@ export default function Competition({ navigation, route }) {
     const focusToggleAnchorRef = useRef(null);
     const [focusMenuAnchor, setFocusMenuAnchor] = useState({ x: SIZES.headerPaddingHorizontal, y: 0, width: 0, height: 0 });
     const userStatsSheetProgress = useSharedValue(0);
+    const infoPanelOpacityRef = useRef(new RNAnimated.Value(0));
+    const [activeCompetitionTab, setActiveCompetitionTab] = useState("leaderboard");
+    const isLeaderboardView = useMemo(() => activeCompetitionTab === "leaderboard", [activeCompetitionTab]);
+    const nonLeaderboardMessage = useMemo(() => {
+        if (activeCompetitionTab === "leaderboard") return "";
+        if (activeCompetitionTab === "templates") return "Templates view coming soon";
+        if (activeCompetitionTab === "exercises") return "";
+        const fallback = VIEW_TABS.find((tab) => tab.key === activeCompetitionTab)?.label || "This view";
+        return `${fallback} coming soon`;
+    }, [activeCompetitionTab]);
 
     useEffect(() => {
         if (isUserStatsBottomSheetVisible) {
@@ -569,22 +664,15 @@ export default function Competition({ navigation, route }) {
         requestAnimationFrame(measureAndOpen);
     }, [isCustomTribe, isBodyFocusMenuVisible]);
 
-    const headerOverlayAnimatedStyle = useAnimatedStyle(() => {
-        const progressRaw = userStatsSheetProgress.value;
-        const progress = progressRaw < 0 ? 0 : progressRaw > 1 ? 1 : progressRaw;
-        return { opacity: 1 - progress };
-    }, [userStatsSheetProgress]);
+    const handleCompetitionTabPress = useCallback((key) => {
+        setActiveCompetitionTab(key);
+    }, []);
 
-    const headerInlineAnimatedStyle = useAnimatedStyle(() => {
-        const progressRaw = userStatsSheetProgress.value;
-        const progress = progressRaw < 0 ? 0 : progressRaw > 1 ? 1 : progressRaw;
-        return { opacity: progress };
-    }, [userStatsSheetProgress]);
-
-    const renderHeaderLeftContent = useCallback((attachRef = true) => {
+    const renderHeaderLeftContent = () => {
+        if (!isLeaderboardView) return null;
         if (isCustomTribe && currentTribe) {
             return (
-                <View style={styles.manageButtonWrap} collapsable={false}>
+                <View style={styles.manageButtonWrap}>
                     <RNBounceable
                         onPress={withStrongPress(() => setManageModalVisible(true))}
                         style={styles.manageButton}
@@ -604,20 +692,16 @@ export default function Competition({ navigation, route }) {
             );
         }
 
-        const focusToggleRef = attachRef ? focusToggleAnchorRef : null;
+        if (isCustomTribe) return null;
+
         return (
-            <View
-                ref={focusToggleRef}
-                collapsable={false}
-                style={styles.focusToggleWrap}
-            >
+            <View ref={focusToggleAnchorRef} style={styles.focusToggleWrap} collapsable={false}>
                 <RNBounceable
                     onPress={withStrongPress(handleToggleFocusMenu)}
-                    style={[styles.focusToggle, isCustomTribe && styles.focusToggleDisabled]}
+                    style={styles.focusToggle}
                     activeScale={0.96}
                     accessibilityRole="button"
                     accessibilityLabel="Change leaderboard focus"
-                    disabled={isCustomTribe}
                 >
                     <Text style={styles.focusToggleLabel} numberOfLines={1} ellipsizeMode="tail">
                         {bodyFocusLabel}
@@ -631,7 +715,7 @@ export default function Competition({ navigation, route }) {
                 </RNBounceable>
             </View>
         );
-    }, [bodyFocusLabel, currentTribe, handleToggleFocusMenu, isBodyFocusMenuVisible, isCustomTribe]);
+    };
 
     useEffect(() => {
         const uid = global?.userData?.uid;
@@ -751,7 +835,7 @@ export default function Competition({ navigation, route }) {
 
     const openModal = () => setSelectExerciseModalVisible(true);
     const closeModal = () => setSelectExerciseModalVisible(false);
-    const openBottomSheet = (user) => {
+    const showUserStats = (user) => {
         setSelectedUser(user);
         setIsUserStatsBottomSheetVisible(true);
     };
@@ -1003,6 +1087,16 @@ export default function Competition({ navigation, route }) {
         return top3.filter(Boolean);
     }, [rankedDisplay, isCustomTribe, activeComparison, usingHexFocus, hexFocusKey, comparedExercise, exerciseStatKey]);
 
+    const headerGradientColors = useMemo(
+        () => (isCustomTribe ? ["#c46f478c", "#3B28578c"] : ["#1B4F8A", "#133A6D", "#0F2743"]),
+        [isCustomTribe]
+    );
+
+    const headerGradientLocations = useMemo(
+        () => (isCustomTribe ? undefined : [0, 0.62, 1]),
+        [isCustomTribe]
+    );
+
     // Compute a custom leaderboard canvas color a couple shades lighter
     const leaderboardCanvas = useMemo(() => {
         const lightenColor = (hex, amount = 0.1) => {
@@ -1067,122 +1161,183 @@ export default function Competition({ navigation, route }) {
                     </View>
                 </View>
             </Modal>
-            <View style={{ paddingTop: insets.top }}>
+            <View style={{ paddingTop: insets.top + SIZES.headerPaddingTop }}>
                 <View
                     style={[
-                        styles.header,
-                        {
-                            paddingHorizontal: SIZES.headerPaddingHorizontal,
-                            paddingTop: SIZES.headerPaddingTop,
-                        },
+                        styles.viewTabsContainer,
+                        { paddingHorizontal: SIZES.headerPaddingHorizontal },
                     ]}
                 >
-                    <Animated.View
-                        style={[styles.headerLeftContainer, headerInlineAnimatedStyle]}
-                        pointerEvents="none"
-                    >
-                        {renderHeaderLeftContent(false)}
-                    </Animated.View>
-                    <View style={styles.headerRightContainer}>
-                        <RNBounceable
-                            onPress={withStrongPress(() => setTribeMenuVisible(true))}
-                            style={styles.scopeToggle}
-                            activeScale={0.96}
-                            hitSlop={{ top: SIZES.tribeHitSlop, bottom: SIZES.tribeHitSlop, left: SIZES.tribeHitSlop, right: SIZES.tribeHitSlop }}
-                            accessibilityRole="button"
-                            accessibilityLabel="Change leaderboard scope"
-                        >
-                            <Ionicons
-                                name="chevron-down"
-                                size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
-                                color="rgba(255,255,255,0.95)"
-                                style={{ marginRight: SIZES.chevronML, marginTop: SIZES.chevronMT, opacity: 0 }}
-                            />
-                            {scopeSubtitle ? (
+                    {VIEW_TABS.map((tab) => {
+                        const isActive = activeCompetitionTab === tab.key;
+                        return (
+                            <RNBounceable
+                                key={tab.key}
+                                onPress={withStrongPress(() => handleCompetitionTabPress(tab.key))}
+                                style={styles.viewTabButton}
+                                activeScale={0.97}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Switch to ${tab.label}`}
+                            >
                                 <Text
-                                    style={[styles.tribeLabel, styles.tribeLabelTwoLine]}
-                                    numberOfLines={2}
-                                    ellipsizeMode="tail"
+                                    style={[
+                                        styles.viewTabLabel,
+                                        isActive && styles.viewTabLabelActive,
+                                    ]}
                                 >
-                                    {scopeLabel}
-                                    {"\n"}
-                                    <Text style={styles.tribeSubtitleInline}>{scopeSubtitle}</Text>
+                                    {tab.label}
                                 </Text>
-                            ) : (
-                                <Text style={styles.tribeLabel} numberOfLines={1} ellipsizeMode="tail">
-                                    {scopeLabel}
-                                </Text>
+                                <View
+                                    style={[
+                                        styles.viewTabIndicator,
+                                        isActive && styles.viewTabIndicatorActive,
+                                    ]}
+                                />
+                            </RNBounceable>
+                        );
+                    })}
+                </View>
+                <View style={styles.headerGradientWrapper}>
+                    <LinearGradient
+                        pointerEvents="none"
+                        colors={headerGradientColors}
+                        locations={headerGradientLocations}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={styles.headerGradient}
+                    />
+                    <View style={[styles.header, { paddingHorizontal: SIZES.headerPaddingHorizontal }]}>
+                        <View style={styles.headerLeftContainer}>
+                            {renderHeaderLeftContent()}
+                        </View>
+                        <View style={styles.headerRightContainer}>
+                            {isLeaderboardView && (
+                                <RNBounceable
+                                    onPress={withStrongPress(() => setTribeMenuVisible(true))}
+                                    style={styles.scopeToggle}
+                                    activeScale={0.96}
+                                    hitSlop={{ top: SIZES.tribeHitSlop, bottom: SIZES.tribeHitSlop, left: SIZES.tribeHitSlop, right: SIZES.tribeHitSlop }}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Change leaderboard scope"
+                                >
+                                    <Ionicons
+                                        name="chevron-down"
+                                        size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
+                                        color="rgba(255,255,255,0.95)"
+                                        style={{ marginRight: SIZES.chevronML, marginTop: SIZES.chevronMT, opacity: 0 }}
+                                    />
+                                    {scopeSubtitle ? (
+                                        <Text
+                                            style={[styles.tribeLabel, styles.tribeLabelTwoLine]}
+                                            numberOfLines={2}
+                                            ellipsizeMode="tail"
+                                        >
+                                            {scopeLabel}
+                                            {"\n"}
+                                            <Text style={styles.tribeSubtitleInline}>{scopeSubtitle}</Text>
+                                        </Text>
+                                    ) : (
+                                        <Text style={styles.tribeLabel} numberOfLines={1} ellipsizeMode="tail">
+                                            {scopeLabel}
+                                        </Text>
+                                    )}
+                                    <Ionicons
+                                        name="chevron-down"
+                                        size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
+                                        color="rgba(255,255,255,0.95)"
+                                        style={{ marginLeft: SIZES.chevronML, marginTop: SIZES.chevronMT }}
+                                    />
+                                </RNBounceable>
                             )}
-                            <Ionicons
-                                name="chevron-down"
-                                size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
-                                color="rgba(255,255,255,0.95)"
-                                style={{ marginLeft: SIZES.chevronML, marginTop: SIZES.chevronMT }}
-                            />
-                        </RNBounceable>
+                        </View>
                     </View>
                 </View>
             </View>
 
-            <Animated.View
-                pointerEvents={isUserStatsBottomSheetVisible ? "none" : "box-none"}
-                style={[
-                    styles.headerLeftOverlayShell,
-                    isUserStatsBottomSheetVisible && styles.headerLeftOverlayLowered,
-                    headerOverlayAnimatedStyle,
+            <ScrollView
+                style={styles.scrollRegion}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    { paddingBottom: scrollBottomPadding },
                 ]}
+                showsVerticalScrollIndicator={false}
+                contentInsetAdjustmentBehavior="never"
+                bounces
             >
-                <View pointerEvents="box-none" style={{ paddingTop: insets.top }}>
-                    <View
-                        pointerEvents="box-none"
-                        style={[
-                            styles.headerOverlayRow,
-                            {
-                                paddingHorizontal: SIZES.headerPaddingHorizontal,
-                                paddingTop: SIZES.headerPaddingTop,
-                            },
-                        ]}
-                    >
-                        <View
-                            style={styles.headerLeftOverlayContent}
-                            pointerEvents={isUserStatsBottomSheetVisible ? "none" : "auto"}
-                        >
-                            {renderHeaderLeftContent(!isUserStatsBottomSheetVisible)}
+                {activeCompetitionTab === "leaderboard" ? (
+                    <>
+                        <InfoPanel isVisible={false} opacity={infoPanelOpacityRef.current} />
+                        <View style={[styles.podiumSection, { height: podiumSectionHeight }]}>
+                            <Podium data={podiumData} isTribeFocused={isCustomTribe} topOffset={STAGE_VERTICAL_OFFSET} />
+                        </View>
+                        <View style={{ marginTop: -panelOverlap }}>
+                            <LeaderboardPanel
+                                userList={rankedDisplay}
+                                categoryCompared={comparedExercise}
+                                comparedMetric={comparedMetric}
+                                scopeKey={scope}
+                                onToggleMetric={() =>
+                                    setComparedMetric((prev) => (prev === "1RM" ? "Volume" : prev === "Volume" ? "Reps" : "1RM"))
+                                }
+                                openModal={() => setSelectExerciseModalVisible(true)}
+                                onUserPress={showUserStats}
+                                isHexFocus={usingHexFocus}
+                                hexFocusKey={hexFocusKey}
+                                hexFocusLabel={bodyFocusLabel}
+                                isTribeFocused={isCustomTribe}
+                                tribeComparisons={tribeComparisons}
+                                activeCompIndex={activeCompIndex}
+                                onActiveCompChange={handleActiveCompChange}
+                                tribeComparisonSummary={activeComparison ? summaryOf(activeComparison) : "Not set"}
+                                onOpenTribeComparison={() => setComparisonManagerVisible(true)}
+                                blockedMessage={blockedReason}
+                                onResolveBlocked={() => setPersonalSheetIndex(1)}
+                                canvasColor={leaderboardCanvas}
+                                minHeightOverride={panelCollapsedHeight}
+                                containerStyle={styles.leaderboardContainer}
+                            />
+                        </View>
+                    </>
+                ) : activeCompetitionTab === "exercises" ? (
+                    <View style={styles.exercisesSection}>
+                        <View style={styles.exerciseGrid}>
+                            {PLACEHOLDER_EXERCISES.map((exercise, index) => {
+                                const isRowEnd = (index + 1) % 3 === 0;
+                                return (
+                                    <View
+                                        key={exercise.key}
+                                        style={[
+                                            styles.exerciseCard,
+                                            {
+                                                width: EXERCISE_CARD_WIDTH,
+                                                aspectRatio: EXERCISE_CARD_ASPECT_RATIO,
+                                                marginRight: isRowEnd ? 0 : EXERCISE_CARD_GAP,
+                                                marginBottom: EXERCISE_CARD_GAP,
+                                            },
+                                        ]}
+                                    >
+                                        <View style={styles.exerciseImageWrapper}>
+                                            <Image source={exercise.image} style={styles.exerciseImage} />
+                                        </View>
+                                        <View style={styles.exerciseInfo}>
+                                            <Text style={styles.exerciseName} numberOfLines={2}>
+                                                {exercise.title}
+                                            </Text>
+                                            <Text style={styles.exerciseMuscle} numberOfLines={1}>
+                                                {exercise.muscle}
+                                            </Text>
+                                        </View>
+                                    </View>
+                                );
+                            })}
                         </View>
                     </View>
-                </View>
-            </Animated.View>
-
-            <InfoPanel isVisible={false} opacity={useRef(new RNAnimated.Value(0)).current} />
-            <Podium data={podiumData} isTribeFocused={isCustomTribe} topOffset={STAGE_VERTICAL_OFFSET} />
-
-            <LeaderboardBottomSheet
-                userList={rankedDisplay}
-                categoryCompared={comparedExercise}
-                comparedMetric={comparedMetric}
-                scopeKey={scope}
-                onToggleMetric={() =>
-                    setComparedMetric((prev) => (prev === "1RM" ? "Volume" : prev === "Volume" ? "Reps" : "1RM"))
-                }
-                openModal={() => setSelectExerciseModalVisible(true)}
-                openBottomSheet={(u) => {
-                    setSelectedUser(u);
-                    setIsUserStatsBottomSheetVisible(true);
-                }}
-                isHexFocus={usingHexFocus}
-                hexFocusKey={hexFocusKey}
-                hexFocusLabel={bodyFocusLabel}
-                isTribeFocused={isCustomTribe}
-                tribeComparisons={tribeComparisons}
-                activeCompIndex={activeCompIndex}
-                onActiveCompChange={handleActiveCompChange}
-                tribeComparisonSummary={activeComparison ? summaryOf(activeComparison) : "Not set"}
-                onOpenTribeComparison={() => setComparisonManagerVisible(true)}
-                blockedMessage={blockedReason}
-                onResolveBlocked={() => setPersonalSheetIndex(1)}
-                canvasColor={leaderboardCanvas}
-                topOffset={STAGE_VERTICAL_OFFSET}
-            />
+                ) : (
+                    <View style={styles.altTabPlaceholder}>
+                        <Text style={styles.altTabPlaceholderText}>{nonLeaderboardMessage}</Text>
+                    </View>
+                )}
+            </ScrollView>
 
             <UserStatsBottomSheet
                 user={selectedUser}
@@ -1322,40 +1477,124 @@ export default function Competition({ navigation, route }) {
 const styles = StyleSheet.create({
     // Dark mode background for Competition screen (lighter MFP-like)
     mainContainer: { flex: 1, backgroundColor: theme.bg },
-    header: {
-        alignItems: "center",
-        justifyContent: "space-between",
+    scrollRegion: { flex: 1 },
+    scrollContent: { paddingTop: 0, flexGrow: 1 },
+    podiumSection: { width: "100%", position: "relative", justifyContent: "flex-end", overflow: "hidden", marginTop: -PODIUM_PULLUP },
+    leaderboardContainer: { alignSelf: "stretch" },
+    viewTabsContainer: {
         flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "flex-end",
+        marginBottom: scaleSize(18),
+    },
+    viewTabButton: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: scaleSize(4),
+    },
+    viewTabLabel: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(14),
+        color: "rgba(255,255,255,0.45)",
+    },
+    viewTabLabelActive: {
+        color: "rgba(255,255,255,0.98)",
+    },
+    viewTabIndicator: {
+        marginTop: scaleSize(6),
+        height: scaleSize(3),
+        width: "55%",
+        borderRadius: scaleSize(999),
+        backgroundColor: "transparent",
+    },
+    viewTabIndicatorActive: {
+        backgroundColor: "rgba(255,255,255,0.9)",
+    },
+    exercisesSection: {
+        paddingHorizontal: SIZES.headerPaddingHorizontal,
+        paddingTop: scaleSize(12),
+    },
+    exerciseGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+    },
+    exerciseCard: {
+        backgroundColor: theme.surface,
+        borderRadius: scaleSize(16),
+        overflow: "hidden",
+    },
+    exerciseImageWrapper: {
+        flex: 3,
+        backgroundColor: theme.fieldDeep,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    exerciseImage: {
+        width: "90%",
+        height: "90%",
+        resizeMode: "contain",
+    },
+    exerciseInfo: {
+        flex: 2,
+        paddingHorizontal: scaleSize(10),
+        paddingVertical: scaleSize(10),
+        justifyContent: "center",
+        backgroundColor: theme.surface,
+    },
+    exerciseName: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(13),
+        color: theme.textPrimary,
+    },
+    exerciseMuscle: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: ts(11),
+        color: theme.textSecondary,
+        marginTop: scaleSize(4),
+    },
+    altTabPlaceholder: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: scaleSize(120),
+    },
+    altTabPlaceholderText: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(16),
+        color: "rgba(255,255,255,0.55)",
+    },
+    headerGradientWrapper: {
         width: "100%",
+        position: "relative",
+        overflow: "visible",
+        paddingBottom: HEADER_GRADIENT_OVERLAP,
+        marginBottom: -HEADER_GRADIENT_OVERLAP,
+    },
+    headerGradient: {
+        ...StyleSheet.absoluteFillObject,
+    },
+    header: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        width: "100%",
+        paddingTop: SIZES.headerPaddingTop,
+        alignItems: "center",
     },
     headerLeftContainer: {
-        flex: 1,
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "flex-start",
-        minWidth: 0,
-    },
-    headerLeftOverlayShell: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 1000,
-        elevation: 20,
-    },
-    headerLeftOverlayLowered: {
-        zIndex: 0,
-        elevation: 0,
+        flexShrink: 1,
     },
     headerOverlayRow: {
         width: "100%",
         flexDirection: "row",
-        alignItems: "center",
+        alignItems: "flex-start",
         justifyContent: "flex-start",
     },
     headerRightContainer: {
         flexDirection: "row",
-        alignItems: "center",
+        alignItems: "flex-start",
         justifyContent: "flex-end",
         flexShrink: 0,
     },
@@ -1369,6 +1608,8 @@ const styles = StyleSheet.create({
     scopeToggle: {
         flexDirection: "row",
         alignItems: "center",
+        alignSelf: "center",
+        marginTop: SIZES.selectorOffset,
     },
     tribeLabelTwoLine: {
         textAlign: "center",
@@ -1377,9 +1618,11 @@ const styles = StyleSheet.create({
     },
     focusToggleWrap: {
         position: "relative",
+        marginTop: SIZES.selectorOffset,
     },
     manageButtonWrap: {
         position: "relative",
+        marginTop: SIZES.selectorOffset,
     },
     focusToggle: {
         flexDirection: "row",
@@ -1407,9 +1650,6 @@ const styles = StyleSheet.create({
         fontSize: scaleSizeFont(14),
         includeFontPadding: false,
         letterSpacing: 0.2,
-    },
-    focusToggleDisabled: {
-        opacity: 0.5,
     },
     focusToggleLabel: {
         color: "#fff",

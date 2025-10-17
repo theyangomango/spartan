@@ -17,7 +17,7 @@ const COLORS = {
     inactive: '#4F5A69',
     bg: theme.bg,
     hairline: theme.hairline,
-    actionCircle: theme.primary,
+    actionCircle: '#4F9DFF',
     actionCircleActive: '#4F9DFF',
     actionIcon: '#F6FBFF',
     actionIconActive: '#FFFFFF',

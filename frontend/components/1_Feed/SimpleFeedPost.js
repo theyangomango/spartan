@@ -832,7 +832,7 @@ const SimpleFeedPost = ({
                     </Pressable>
                 ) : null}
 
-                {workout && mediaList.length === 0 && exerciseSummaries.length > 0 ? (
+                {workout && exerciseSummaries.length > 0 ? (
                     <Pressable style={styles.workoutSummaryBlock} onPress={handlePressWorkout}>
                         <View style={styles.workoutSummaryHeader}>
                             <Text style={[styles.workoutSummaryHeaderText, styles.workoutSummaryHeaderExercise]}>Exercise</Text>

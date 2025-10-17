@@ -6,6 +6,9 @@ import scaleSize from "../../helper/scaleSize";
 const ts = require('../../helper/scaleSize').ts;
 import theme from '../../theme/mfpDark';
 
+const PODIUM_HEIGHT = scaleSize(260);
+export { PODIUM_HEIGHT };
+
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
 const PFP_SIZE_LEFT = scaleSize(54);
 const PFP_SIZE_CENTER = scaleSize(58);
@@ -88,7 +91,7 @@ export default function Podium({ data, isTribeFocused = false, topOffset = 0 }) 
 
     if (!data) return <></>;
     return (
-        <>
+        <View style={[styles.container, { height: PODIUM_HEIGHT }]}>
             {/* Full-screen blue gradient background (behind entire screen) */}
             <View style={styles.bg_fullscreen} pointerEvents="none">
                 <LinearGradient
@@ -217,11 +220,15 @@ export default function Podium({ data, isTribeFocused = false, topOffset = 0 }) 
                     </View>
                 </View>
             </View>
-        </>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    container: {
+        width: '100%',
+        position: 'relative',
+    },
     // Full-screen background layer
     bg_fullscreen: {
         ...StyleSheet.absoluteFillObject,
@@ -263,7 +270,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 0,
         width: '100%',
-        height: '40%',
+        height: '100%',
         justifyContent: 'center',
         flexDirection: 'row',
         alignItems: 'flex-end',

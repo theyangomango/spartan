@@ -20,8 +20,8 @@ export default function LeaderboardModal({
     userList,
     categoryCompared,
     comparedMetric,
-    openBottomSheet,
-    isBottomSheetExpanded,
+    onUserPress,
+    isPanelExpanded,
     scopeKey = null,
     isHexFocus = false,
     hexFocusKey = null,
@@ -36,7 +36,6 @@ export default function LeaderboardModal({
     onOpenTribeComparison,
     // Custom canvas color for Leaderboard cards
     canvasColor,
-    onScrollExpandRequest,
     renderTribeBanners = true,
 }) {
     const hasComparisons = isTribeFocused && tribeComparisons.length > 0;
@@ -242,7 +241,11 @@ export default function LeaderboardModal({
                 value={Number(value) || 0}
                 rank={displayRanks[index] ?? (index + 1)}
                 lastRank={item?.lastRank}
-                handlePress={() => openBottomSheet(item)}
+                handlePress={() => {
+                    if (typeof onUserPress === 'function') {
+                        onUserPress(item);
+                    }
+                }}
                 userIsSelf={userIsSelf}
                 bestSet={bestSet}
                 isTribeFocused={!!isTribeFocused}
@@ -257,17 +260,8 @@ export default function LeaderboardModal({
     };
 
     const isDraggingRef = useRef(false);
-    const recentlyDraggedRef = useRef(false);
-    const dragEndTimeoutRef = useRef(null);
     const autoScrollTimeoutRef = useRef(null);
     const autoScrollSignatureRef = useRef(null);
-
-    const clearDragEndTimeout = useCallback(() => {
-        const timeoutId = dragEndTimeoutRef.current;
-        if (!timeoutId) return;
-        clearTimeout(timeoutId);
-        dragEndTimeoutRef.current = null;
-    }, []);
 
     const clearAutoScrollTimeout = useCallback(() => {
         const timeoutId = autoScrollTimeoutRef.current;
@@ -276,49 +270,23 @@ export default function LeaderboardModal({
         autoScrollTimeoutRef.current = null;
     }, []);
 
-    const scheduleRecentlyDraggedReset = useCallback(() => {
-        clearDragEndTimeout();
-        dragEndTimeoutRef.current = setTimeout(() => {
-            recentlyDraggedRef.current = false;
-            dragEndTimeoutRef.current = null;
-        }, 180);
-    }, [clearDragEndTimeout]);
-
     useEffect(() => () => {
-        clearDragEndTimeout();
         clearAutoScrollTimeout();
-    }, [clearDragEndTimeout, clearAutoScrollTimeout]);
+    }, [clearAutoScrollTimeout]);
 
     const handleScrollBeginDrag = useCallback(() => {
         isDraggingRef.current = true;
-        recentlyDraggedRef.current = true;
-        clearDragEndTimeout();
         clearAutoScrollTimeout();
-    }, [clearDragEndTimeout, clearAutoScrollTimeout]);
+    }, [clearAutoScrollTimeout]);
 
     const handleScrollEndDrag = useCallback(() => {
         isDraggingRef.current = false;
-        recentlyDraggedRef.current = true;
-        scheduleRecentlyDraggedReset();
-    }, [scheduleRecentlyDraggedReset]);
+    }, []);
 
     const handleMomentumScrollEnd = useCallback(() => {
         isDraggingRef.current = false;
-        recentlyDraggedRef.current = false;
-        clearDragEndTimeout();
         clearAutoScrollTimeout();
-    }, [clearDragEndTimeout, clearAutoScrollTimeout]);
-
-    const handleListScroll = useCallback((event) => {
-        if (typeof onScrollExpandRequest !== 'function') return;
-        if (!isDraggingRef.current && !recentlyDraggedRef.current) return;
-        try {
-            const offsetY = event?.nativeEvent?.contentOffset?.y ?? 0;
-            onScrollExpandRequest(Math.max(0, offsetY));
-        } catch {
-            // ignore any errors from malformed scroll events
-        }
-    }, [onScrollExpandRequest]);
+    }, [clearAutoScrollTimeout]);
 
     const scopeSignature = useMemo(() => {
         if (scopeKey === null || typeof scopeKey === 'undefined') return 'scope:default';
@@ -386,7 +354,7 @@ export default function LeaderboardModal({
     }, [comparisonSignature, userList, clearAutoScrollTimeout, rowOffsets, selfIndex]);
 
     // getItemLayout ensures scrollToIndex always succeeds; footer padding keeps the
-    // last card accessible when the bottom sheet is expanded.
+    // last card accessible when the panel grows taller.
 
     return (
         <View
@@ -402,16 +370,15 @@ export default function LeaderboardModal({
                 keyExtractor={(u, i) => u?.uid || String(i)}
                 renderItem={renderItem}
                 getItemLayout={getItemLayout}
-                contentContainerStyle={{ paddingBottom: scaleSize(24) }}
-                ListFooterComponent={<View style={{ height: isBottomSheetExpanded ? scaleSize(100) : scaleSize(400) }} />}
-                onScroll={handleListScroll}
-                scrollEventThrottle={16}
+                contentContainerStyle={{ paddingBottom: scaleSize(6) }}
+                scrollEnabled={false}
+                bounces={false}
                 onScrollBeginDrag={handleScrollBeginDrag}
                 onScrollEndDrag={handleScrollEndDrag}
                 onMomentumScrollEnd={handleMomentumScrollEnd}
                 showsVerticalScrollIndicator={false}
             />
-            <View style={{ height: isBottomSheetExpanded ? 24 : 8 }} />
+            {!!isPanelExpanded && <View style={{ height: scaleSize(12) }} />}
         </View>
     );
 }

@@ -15,7 +15,7 @@ const toDayKey = (d) => {
     } catch { return ''; }
 };
 
-const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheetProgressSV }) => {
+const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheetProgressSV }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["93%"], []);
     const [tick, setTick] = useState(0);
@@ -176,4 +176,4 @@ const LeaderboardBottomSheet = ({ isVisible, setIsVisible, user, navigation, she
     );
 };
 
-export default React.memo(LeaderboardBottomSheet);
+export default React.memo(UserStatsBottomSheet);

@@ -582,7 +582,7 @@ export default function NotificationCard({
                     ) : (
                         <View style={[styles.pfp, styles.pfpPlaceholder, unread && { borderColor: accent, borderWidth: scaleSize(2) }]} />
                     )}
-                    <LinearGradient
+                    {/* <LinearGradient
                         colors={[accent2, accent]}
                         start={{ x: 0.2, y: 0 }}
                         end={{ x: 0.8, y: 1 }}
@@ -598,7 +598,7 @@ export default function NotificationCard({
                         <View style={[styles.pfpIconBadgeInner, { backgroundColor: badgeBg }]}>
                             <IconCmp size={scaleSize(13)} color={theme.textPrimary} strokeWidth={2.5} />
                         </View>
-                    </LinearGradient>
+                    </LinearGradient> */}
                 </View>
 
                 {/* text */}
@@ -648,7 +648,7 @@ const styles = StyleSheet.create({
     lastCard: { borderBottomWidth: StyleSheet.hairlineWidth },
     pfpWrap: { position: "relative", marginRight: scaleSize(16) },
     pfp: {
-        width: scaleSize(36),
+        width: scaleSize(34),
         aspectRatio: 1,
         borderRadius: scaleSize(22),
         borderWidth: StyleSheet.hairlineWidth,
