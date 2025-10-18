@@ -48,7 +48,6 @@ import GroupMenu from "./Group/GroupMenu";
 import RestTimerModal from "./RestTimerModal";
 import useRestTimer from "./hooks/useRestTimer";
 import useWorkoutEditing from "./hooks/useWorkoutEditing";
-import { activeWorkoutHighlight } from "./activeWorkoutColors";
 
 import scaleSize from "../../../helper/scaleSize";
 import { formatWorkoutTimestamp } from "../../../utils/date";
@@ -60,8 +59,10 @@ const HEADER_COLLAPSED_TRANSLATE = scaleSize(0);
 const HEADER_COLLAPSED_PADDING_V = scaleSize(0);
 const HEADER_EXPANDED_PADDING_V = scaleSize(6);
 const HEADER_EXPANDED_PADDING_H = scaleSize(24);
-const HEADER_COLLAPSED_BG = activeWorkoutHighlight(0.58);
-const HEADER_EXPANDED_BG = 'rgba(45, 158, 255, 0)';
+
+const HEADER_COLLAPSED_BG = 'rgba(0, 0, 0, 1)';
+const HEADER_EXPANDED_BG = theme.bg;
+
 const SHEET_EXPANDED_BG = theme.bg;
 const SHEET_COLOR_THRESHOLD = 0.15;
 const CTA_SHADOW_COLOR = '#000000';
@@ -1251,20 +1252,20 @@ const styles = StyleSheet.create({
     collapsedHudLabel: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(14),
-        color: theme.textPrimary,
+        color: '#fff',
         flexShrink: 1,
         textAlign: 'center',
     },
     collapsedHudSeparator: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(14),
-        color: theme.textPrimary,
+        color: '#fff',
         marginHorizontal: scaleSize(12),
     },
     collapsedHudTimer: {
         fontFamily: 'Outfit_700Bold',
         fontSize: scaleSize(14),
-        color: theme.textPrimary,
+        color: '#fff',
     },
     // Allow the BottomSheet background to show through
     scrollview: { paddingTop: scaleSize(5), backgroundColor: 'transparent' },
@@ -1332,7 +1333,7 @@ const styles = StyleSheet.create({
     },
     end_workout_btn_text: {
         fontSize: scaleSize(13),
-        fontFamily: "Outfit_600SemiBold",
+        fontFamily: "Outfit_700Bold",
         color: theme.textPrimary,
     },
     end_workout_overlay: {

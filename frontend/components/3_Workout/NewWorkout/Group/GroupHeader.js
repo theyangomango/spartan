@@ -9,6 +9,7 @@ import { Copy } from "iconsax-react-native";
 import FastImage from "react-native-fast-image";
 import TimerDisplay from "../TimerDisplay";
 import theme from "../../../../theme/mfpDark";
+import { activeWorkoutHighlight } from "../activeWorkoutColors";
 
 const scaledSize = (size) => scaleSize(size);
 
@@ -213,10 +214,10 @@ const styles = StyleSheet.create({
         paddingVertical: scaledSize(7),
         paddingHorizontal: scaledSize(20),
         borderRadius: scaledSize(24),
-        backgroundColor: '#2D9EFF',
+        backgroundColor: activeWorkoutHighlight(),
         justifyContent: "center",
         alignItems: "center",
-        shadowColor: '#2D9EFF',
+        shadowColor: activeWorkoutHighlight(),
         shadowOpacity: 0.22,
         shadowRadius: scaleSize(10),
         shadowOffset: { width: 0, height: scaleSize(4) },

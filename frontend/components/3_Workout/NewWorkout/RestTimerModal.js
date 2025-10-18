@@ -15,6 +15,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../theme/mfpDark";
 import * as Haptics from "expo-haptics";
 import scaleSize from "../../../helper/scaleSize";
+import { activeWorkoutHighlight } from "./activeWorkoutColors";
 
 const { height: screenHeight } = Dimensions.get("window");
 const scaledSize = (size) => scaleSize(size);
@@ -29,7 +30,7 @@ const RING_TRACK = "rgba(255,255,255,0.12)";
 const RING_GLOW = "#4C9BFF";
 const CHIP_BG = "rgba(148, 163, 184, 0.16)";
 const CHIP_BORDER = "rgba(199, 210, 229, 0.14)";
-const CHIP_ACTIVE_BG = "rgba(45, 158, 255, 0.28)";
+const CHIP_ACTIVE_BG = activeWorkoutHighlight(0.28);
 const CHIP_ACTIVE_BORDER = "rgba(56, 189, 248, 0.65)";
 const CHIP_ACTIVE_TEXT = "#CBE8FF";
 const GHOST_BG = "rgba(59, 130, 246, 0.16)";

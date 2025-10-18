@@ -15,17 +15,18 @@ import useWorkoutStore, { WORKOUT_SHEET_STATES } from "../../../state/workoutSto
 import scaleSize from "../../../helper/scaleSize";
 import { navigationRef } from "../../../../navigationRef";
 import { shallow } from 'zustand/shallow';
-import { activeWorkoutHighlight } from "./activeWorkoutColors";
 
 const FOOTER_HEIGHT = scaleSize(87);
 const COLLAPSED_PEEK = FOOTER_HEIGHT + scaleSize(48);
 const COLLAPSED_SNAP = COLLAPSED_PEEK;
 const noop = () => { };
 const SHEET_RADIUS = scaleSize(22);
-const HANDLE_BG_COLLAPSED = activeWorkoutHighlight(0.76);
-const HANDLE_BG_EXPANDED = 'rgba(45, 158, 255, 0)';
-const HANDLE_BAR_COLOR_COLLAPSED = 'rgba(23, 62, 120, 0.95)';
-const HANDLE_BAR_COLOR_EXPANDED = 'rgba(226, 232, 240, 0.7)';
+
+const HANDLE_BG_COLLAPSED = 'rgba(0, 0, 0, 1)';
+const HANDLE_BG_EXPANDED = theme.bg;
+
+const HANDLE_BAR_COLOR_COLLAPSED = 'rgba(220, 234, 255, 0.9)';
+const HANDLE_BAR_COLOR_EXPANDED = 'rgba(255, 255, 255, 0.7)';
 const COLLAPSE_COLOR_THRESHOLD = 0.15;
 
 const SCREEN_HEIGHT = Dimensions.get("window").height || 0;
@@ -407,7 +408,7 @@ const styles = StyleSheet.create({
     },
     handleBar: {
         width: scaleSize(40),
-        height: scaleSize(4),
+        height: scaleSize(3.5),
         borderRadius: scaleSize(2),
     },
 });

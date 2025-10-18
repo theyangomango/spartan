@@ -27,31 +27,53 @@ export const openActiveWorkout = () => {
     try {
         store.setSheetState?.(WORKOUT_SHEET_STATES.EXPANDED);
     } catch {
-        // ignore missing setters
+        // ignore
     }
     ensureVisibleFlag();
-    try {
-        const openFn = global?.openWorkoutModal;
-        if (typeof openFn === "function") {
-            openFn();
+    const trigger = () => {
+        try {
+            const expandFn = global?.__openActiveWorkout;
+            if (typeof expandFn === "function") {
+                expandFn();
+            }
+        } catch {
+            // ignore
         }
-    } catch {
-        // ignore
+        try {
+            const openFn = global?.openWorkoutModal;
+            if (typeof openFn === "function") {
+                openFn();
+            }
+        } catch {
+            // ignore
+        }
+    };
+    if (typeof requestAnimationFrame === "function") {
+        requestAnimationFrame(trigger);
+    } else {
+        setTimeout(trigger, 0);
     }
 };
 
 export const startFreshWorkout = (template = null, options = {}) => {
-    const store = getStore();
-    const start =
-        store?.sheetHandlers?.startWorkout ||
-        (() => {
-            try {
-                return global?.__startEmptyWorkout;
-            } catch {
-                return null;
-            }
-        })();
-    if (typeof start !== "function") return false;
+    const findStarter = () => {
+        const store = getStore();
+        const handler = store?.sheetHandlers?.startWorkout;
+        if (typeof handler === "function") return handler;
+        try {
+            return typeof global?.__startEmptyWorkout === "function"
+                ? global.__startEmptyWorkout
+                : null;
+        } catch {
+            return null;
+        }
+    };
+
+    const start = findStarter();
+    if (typeof start !== "function") {
+        openActiveWorkout();
+        return false;
+    }
 
     const normalizedOptions = {
         forceFresh: true,
@@ -60,13 +82,15 @@ export const startFreshWorkout = (template = null, options = {}) => {
     };
 
     try {
-        start(template, normalizedOptions);
-        return true;
+        const result = start(template, normalizedOptions);
+        if (result && typeof result.then === "function") {
+            result.catch?.(() => {});
+        }
     } catch {
-        return false;
-    } finally {
-        openActiveWorkout();
+        // swallow start errors; caller will handle via sheet state
     }
+    openActiveWorkout();
+    return true;
 };
 
 export const joinWorkoutFromPayload = (payload) => {
