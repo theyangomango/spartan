@@ -1,10 +1,11 @@
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import { View, StyleSheet, Text, Pressable, Dimensions, LayoutAnimation, Platform, UIManager, Keyboard } from "react-native";
+import * as Haptics from "expo-haptics";
 import scaleSize from "../../../../helper/scaleSize";
 import EditableStat from "./EditableStat";
 import SetTypePanel from "./SetTypePanel";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import SwipeableItem, { OpenDirection, useSwipeableItemParams } from "react-native-swipeable-item";
+import SwipeableItem, { useSwipeableItemParams } from "react-native-swipeable-item";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import theme from "../../../../theme/mfpDark";
 import workoutTypography from "../../shared/workoutTypography";
@@ -32,20 +33,30 @@ function SetRow({
     itemKey,
     onFocusInput, // optional: notify parent when an input is focused
 }) {
-    const weight = set?.weight ?? 0;
-    const reps = set?.reps ?? 0;
+    const rawWeight = set?.weight ?? "";
+    const rawReps = set?.reps ?? "";
     const [doneLocal, setDoneLocal] = useState(!!isDone);
     useEffect(() => { setDoneLocal(!!isDone); }, [isDone, sid]);
 
-    const renderUnderlayLeft = (swipeRef) => (
+    const displayWeight = (!doneLocal && (rawWeight === 0 || rawWeight === "0")) ? "" : rawWeight;
+    const displayReps = (!doneLocal && (rawReps === 0 || rawReps === "0")) ? "" : rawReps;
+
+    const handleDeleteSwipe = useCallback(() => {
+        if (readOnly) return;
+        if (ENABLE_LAYOUT_ANIM) { try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {} }
+        if (onDeleteSetById && sid) onDeleteSetById(sid);
+        else handleDelete(index);
+        try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light); } catch {}
+    }, [readOnly, onDeleteSetById, sid, handleDelete, index]);
+
+    const renderUnderlayLeft = useCallback((swipeRef) => (
         <UnderlayLeft
             onDelete={() => {
                 try { swipeRef?.current?.close?.(); } catch {}
-                if (ENABLE_LAYOUT_ANIM) { try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {} }
-                onDeleteSetById ? onDeleteSetById(sid) : handleDelete(index);
+                handleDeleteSwipe();
             }}
         />
-    );
+    ), [handleDeleteSwipe]);
 
     const [typePanelOpen, setTypePanelOpen] = useState(false);
     const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
@@ -72,7 +83,7 @@ function SetRow({
                 renderUnderlayLeft={readOnly ? undefined : (params) => renderUnderlayLeft(params?.ref)}
                 // Open a bit wider so the trash hit target is generous
                 snapPointsLeft={readOnly ? [] : [scaleSize(96)]}
-                onSwipeableLeftOpen={undefined} // never auto-delete via swipe threshold; explicit tap only
+                onSwipeableLeftOpen={readOnly ? undefined : handleDeleteSwipe}
             >
                 <View style={[styles.stat_row, doneLocal && styles.done]}>
                     <Pressable onPress={openTypePanel} style={[
@@ -94,18 +105,20 @@ function SetRow({
                     <View style={styles.weight_unit_ctnr} pointerEvents={readOnly ? "none" : "auto"}>
                         <EditableStat
                             isFinished={doneLocal}                          // ← do NOT tie visuals to readOnly
-                            value={String(weight)}
+                            value={displayWeight == null ? "" : String(displayWeight)}
                             setValue={(value) => (onUpdateSetById ? onUpdateSetById(sid, { ...set, weight: value }) : updateSet(index, { ...set, weight: value }))}
                             onFocus={() => { try { onFocusInput?.(index); } catch {} }}
+                            previousValue={previousSet ? previousSet.weight : null}
                         />
                     </View>
 
                     <View style={styles.reps_ctnr} pointerEvents={readOnly ? "none" : "auto"}>
                         <EditableStat
                             isFinished={doneLocal}                          // ← same here
-                            value={String(reps)}
+                            value={displayReps == null ? "" : String(displayReps)}
                             setValue={(value) => (onUpdateSetById ? onUpdateSetById(sid, { ...set, reps: value }) : updateSet(index, { ...set, reps: value }))}
                             onFocus={() => { try { onFocusInput?.(index); } catch {} }}
+                            previousValue={previousSet ? previousSet.reps : null}
                         />
                     </View>
 
@@ -125,7 +138,7 @@ function SetRow({
                             disabled={readOnly}
                         >
                             {/* Brighter primary tint when unfinished for visibility */}
-                            <MaterialCommunityIcons name="check-bold" size={scaleSize(16)} color={doneLocal ? "#fff" : theme.primary} />
+                    <MaterialCommunityIcons name="check-bold" size={scaleSize(16)} color={doneLocal ? "#fff" : "#8A94A7"} />
                         </Pressable>
                     </View>
                 </View>
@@ -204,9 +217,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(10),
         height: "100%",
         borderRadius: scaleSize(7),
-        backgroundColor: theme.restPillBg,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.primaryHairline,
+        backgroundColor: theme.surface,
+        borderWidth: 0,
         justifyContent: "center",
     },
     checkmark_ctnr_selected: {

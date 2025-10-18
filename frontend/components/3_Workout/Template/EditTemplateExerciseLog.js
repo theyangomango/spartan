@@ -8,6 +8,7 @@ import TemplateSetRow from "./TemplateSetRow";
 import theme from "../../../theme/mfpDark";
 import { withStrongPress } from "../../../utils/haptics";
 import workoutTypography from "../shared/workoutTypography";
+import ExerciseAvatar from "../../common/ExerciseAvatar";
 
 
 export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, readOnly = false }) {
@@ -90,7 +91,8 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
             )}
             <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
                 <View style={styles.nameContainer}>
-                    <Text style={workoutTypography.exerciseName} numberOfLines={1}>{name}</Text>
+                    <ExerciseAvatar name={name} size={scaleSize(42)} style={styles.avatar} />
+                    <Text style={[workoutTypography.exerciseName, styles.nameText]} numberOfLines={1}>{name}</Text>
                 </View>
                 {!readOnly && (
                     <Pressable
@@ -168,6 +170,12 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flex: 1,
         marginRight: scaleSize(10),
+    },
+    avatar: {
+        marginRight: scaleSize(10),
+    },
+    nameText: {
+        flexShrink: 1,
     },
     optionsButton: {
         backgroundColor: theme.restPillBg,

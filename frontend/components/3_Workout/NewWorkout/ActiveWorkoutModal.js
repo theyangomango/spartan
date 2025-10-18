@@ -26,8 +26,10 @@ const AnimatedFlashList = RNAnimated.createAnimatedComponent(BaseListComponent);
 import Animated, { useAnimatedStyle, interpolate, interpolateColor, Extrapolate, useAnimatedReaction, runOnJS } from "react-native-reanimated";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from "iconsax-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { strong as haptic, withStrongPress } from "../../../utils/haptics";
 import ExerciseLog from "./Tracking/ExerciseLog";
+import { StatKeyboardProvider } from "./Tracking/StatKeyboardContext";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import { usePfp } from "../../../helper/usePFPs";
 import sendNotification from "../../../../backend/sendNotification";
@@ -62,12 +64,8 @@ const HEADER_COLLAPSED_BG = 'rgba(45, 157, 255, 0.58)';
 const HEADER_EXPANDED_BG = 'rgba(45, 158, 255, 0)';
 const SHEET_EXPANDED_BG = theme.bg;
 const SHEET_COLOR_THRESHOLD = 0.15;
-const CTA_PRIMARY_BG = '#1b3770ff';
-const CTA_PRIMARY_BORDER = theme.primaryHairline;
-const CTA_FINISH_BG = '#31a865ff';
-const CTA_FINISH_BORDER = 'rgba(16, 185, 129, 0.4)';
-const CTA_CANCEL_BG = '#b7404cff';
-const CTA_CANCEL_BORDER = 'rgba(244, 114, 96, 0.4)';
+const CTA_FINISH_BG = '#207952';
+const CTA_CANCEL_BG = '#8f2f3d';
 const CTA_SHADOW_COLOR = '#000000';
 
 const ensureUri = (value) => {
@@ -573,6 +571,8 @@ const ActiveWorkoutModal = ({
         [scrollY]
     );
 
+    const handleMorePress = useCallback(() => {}, []);
+
     const renderExerciseItem = useCallback(({
         item: ex,
         index: exerciseIndex,
@@ -599,6 +599,9 @@ const ActiveWorkoutModal = ({
                     <RNBounceable onPress={withStrongPress(showSelectExerciseModal)} style={styles.add_exercise_btn}>
                         <Text style={styles.add_exercise_text}>Add Exercises</Text>
                     </RNBounceable>
+                    <RNBounceable onPress={withStrongPress(handleMorePress)} style={styles.more_btn}>
+                        <Text style={styles.more_btn_text}>More</Text>
+                    </RNBounceable>
                     <RNBounceable
                         onPress={withStrongPress(isEmptyList ? confirmCancelWorkout : openFinishConfirm)}
                         style={styles.finish_btn}
@@ -612,7 +615,7 @@ const ActiveWorkoutModal = ({
             )}
             <View style={{ height: scaleSize(250) + Math.max(0, keyboardHeight - scaleSize(40)) }} />
         </>
-    ), [confirmCancelWorkout, isEmptyList, keyboardHeight, openFinishConfirm, showSelectExerciseModal, viewingSelfEffective]);
+    ), [confirmCancelWorkout, handleMorePress, isEmptyList, keyboardHeight, openFinishConfirm, showSelectExerciseModal, viewingSelfEffective]);
 
     // ===== PFPs (stable) =====
     const selfPfpVersion = global?.userData?.pfpVersion ?? 0;
@@ -924,7 +927,8 @@ const ActiveWorkoutModal = ({
     }, []);
 
     return (
-        <Animated.View style={[styles.main_ctnr, sheetBackgroundAnimatedStyle]}>
+        <StatKeyboardProvider>
+            <Animated.View style={[styles.main_ctnr, sheetBackgroundAnimatedStyle]}>
             {/* Header */}
             <Animated.View style={[styles.headerAnimated, headerAnimatedStyle]} pointerEvents="box-none">
                 <Animated.View
@@ -1033,7 +1037,7 @@ const ActiveWorkoutModal = ({
                 )}
             </Animated.View>
             {/* Add / Replace Exercises */}
-            <Modal animationType="fade" transparent visible={selectExerciseModalVisible}>
+            <Modal animationType="none" transparent visible={selectExerciseModalVisible} presentationStyle="overFullScreen">
                 <SelectExerciseModal
                     closeModal={closeSelectExerciseModal}
                     appendExercises={handleAppendOrReplace}
@@ -1122,7 +1126,8 @@ const ActiveWorkoutModal = ({
                     </View>
                 ) : null;
             })()}
-        </Animated.View >
+            </Animated.View>
+        </StatKeyboardProvider>
     );
 };
 
@@ -1181,7 +1186,7 @@ const styles = StyleSheet.create({
         // borderRadius: scaleSize(18),
         paddingHorizontal: scaleSize(18),
         // borderWidth: scaleSize(1),
-        borderColor: CTA_PRIMARY_BORDER,
+        borderColor: 'rgba(255,255,255,0.12)',
         shadowColor: CTA_SHADOW_COLOR,
         shadowOpacity: 0.12,
         shadowRadius: scaleSize(10),
@@ -1244,25 +1249,42 @@ const styles = StyleSheet.create({
     add_exercise_btn: {
         marginHorizontal: scaleSize(20),
         marginTop: scaleSize(18),
-        height: scaleSize(40),
-        borderRadius: scaleSize(12),
-        backgroundColor: CTA_PRIMARY_BG,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: CTA_PRIMARY_BORDER,
+        borderRadius: scaleSize(20),
+        backgroundColor: '#E2EDFF',
+        borderWidth: 0,
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
-        shadowColor: CTA_SHADOW_COLOR,
-        shadowOpacity: 0.18,
+        paddingVertical: scaleSize(13),
+        paddingHorizontal: scaleSize(18),
+        shadowColor: '#000000',
+        shadowOpacity: 0.12,
         shadowRadius: scaleSize(8),
-        shadowOffset: { width: 0, height: scaleSize(3) },
+        shadowOffset: { width: 0, height: scaleSize(4) },
         elevation: 3,
     },
     add_exercise_text: {
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(13),
         fontFamily: "Outfit_700Bold",
+        color: theme.surface,
+    },
+    more_btn: {
+        marginHorizontal: scaleSize(20),
+        marginTop: scaleSize(12),
+        borderRadius: scaleSize(20),
+        backgroundColor: '#2d2d2dff',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.08)',
+        justifyContent: "center",
+        alignItems: "center",
+        flexDirection: "row",
+        paddingVertical: scaleSize(13),
+        paddingHorizontal: scaleSize(18),
+    },
+    more_btn_text: {
+        fontSize: scaleSize(13),
+        fontFamily: "Outfit_600SemiBold",
         color: theme.textPrimary,
-        marginRight: scaleSize(4.5),
     },
 
     finish_btn: {
@@ -1271,8 +1293,7 @@ const styles = StyleSheet.create({
         height: scaleSize(40),
         borderRadius: scaleSize(12),
         backgroundColor: CTA_FINISH_BG,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: CTA_FINISH_BORDER,
+        borderWidth: 0,
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
@@ -1285,7 +1306,7 @@ const styles = StyleSheet.create({
     finish_btn_text: {
         fontSize: scaleSize(14),
         fontFamily: "Outfit_700Bold",
-        color: theme.textPrimary,
+        color: '#E7F9F1',
         marginRight: scaleSize(4.5),
     },
 
@@ -1295,8 +1316,7 @@ const styles = StyleSheet.create({
         height: scaleSize(40),
         borderRadius: scaleSize(12),
         backgroundColor: CTA_CANCEL_BG,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: CTA_CANCEL_BORDER,
+        borderWidth: 0,
         justifyContent: "center",
         alignItems: "center",
         flexDirection: "row",
@@ -1306,7 +1326,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: scaleSize(3) },
         elevation: 3,
     },
-    cancel_btn_text: { fontSize: scaleSize(14), fontFamily: "Outfit_700Bold", color: theme.textPrimary, marginRight: scaleSize(4.5) },
+    cancel_btn_text: { fontSize: scaleSize(14), fontFamily: "Outfit_700Bold", color: '#FFECEE', marginRight: scaleSize(4.5) },
 
 });
 

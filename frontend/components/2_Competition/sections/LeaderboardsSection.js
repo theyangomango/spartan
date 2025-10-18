@@ -222,9 +222,6 @@ export default function LeaderboardsSection({ navigation }) {
         () => Math.max(scaleSize(32), (insets?.bottom || 0) + scaleSize(12)),
         [insets?.bottom]
     );
-    const [scrollEnabled, setScrollEnabled] = useState(false);
-    const scrollContainerHeightRef = useRef(0);
-    const scrollContentHeightRef = useRef(0);
 
     const usersRef = useRef([]);
     const appliedLastViewRef = useRef(false);
@@ -839,33 +836,6 @@ export default function LeaderboardsSection({ navigation }) {
         setSelectedTribeId(null);
     };
 
-    const refreshScrollEnabled = useCallback(() => {
-        const container = scrollContainerHeightRef.current;
-        const content = scrollContentHeightRef.current;
-        if (!(container > 0 && content > 0)) {
-            setScrollEnabled(false);
-            return;
-        }
-        const threshold = scaleSize(24);
-        setScrollEnabled(content - container > threshold);
-    }, []);
-
-    const handleScrollLayout = useCallback(
-        (event) => {
-            scrollContainerHeightRef.current = event.nativeEvent.layout.height;
-            refreshScrollEnabled();
-        },
-        [refreshScrollEnabled]
-    );
-
-    const handleContentSizeChange = useCallback(
-        (_, height) => {
-            scrollContentHeightRef.current = height;
-            refreshScrollEnabled();
-        },
-        [refreshScrollEnabled]
-    );
-
     const handleRenameTribe = async () => {
         const uid = global?.userData?.uid;
         const t = tribes.find((x) => x.id === selectedTribeId);
@@ -930,10 +900,14 @@ export default function LeaderboardsSection({ navigation }) {
     }, [selectedTribeId, scope]);
 
     const scopeSubtitle = useMemo(() => {
-        if (!selectedTribeId) return null;
-        const name = currentTribe?.name;
-        return name ? String(name) : null;
-    }, [selectedTribeId, currentTribe]);
+        if (selectedTribeId) {
+            const name = currentTribe?.name;
+            return name ? String(name) : null;
+        }
+        if (scope === "Following") return "People you follow";
+        if (scope === "Global") return "All athletes";
+        return null;
+    }, [selectedTribeId, currentTribe, scope]);
 
     const hexFocusKey = useMemo(
         () => (typeof bodyFocus === "string" && bodyFocus ? bodyFocus : DEFAULT_BODY_FOCUS),
@@ -1076,64 +1050,57 @@ export default function LeaderboardsSection({ navigation }) {
     };
 
     const renderScopeToggle = () => (
-        <RNBounceable
-            onPress={withStrongPress(() => {
-                if (tribeMenuVisible) {
-                    setTribeMenuVisible(false);
-                    return;
-                }
-                const measureAndOpen = () => {
-                    try {
-                        scopeToggleAnchorRef.current?.measureInWindow?.((x = 0, y = 0, width = 0, height = 0) => {
-                            setTribeMenuAnchor({ x, y, width, height });
-                            setTribeMenuVisible(true);
-                        });
-                    } catch {
-                        setTribeMenuVisible(true);
+        <View style={styles.scopeToggleRow}>
+            <RNBounceable
+                onPress={withStrongPress(() => {
+                    if (tribeMenuVisible) {
+                        setTribeMenuVisible(false);
+                        return;
                     }
-                };
-                requestAnimationFrame(measureAndOpen);
-            })}
-            style={[
-                styles.scopeToggle,
-                !isCustomTribe && styles.scopeToggleCompact,
-            ]}
-            activeScale={0.96}
-            hitSlop={{
-                top: SIZES.tribeHitSlop,
-                bottom: SIZES.tribeHitSlop,
-                left: SIZES.tribeHitSlop,
-                right: SIZES.tribeHitSlop,
-            }}
-            accessibilityRole="button"
-            accessibilityLabel="Change leaderboard scope"
-        >
-            <View ref={scopeToggleAnchorRef} style={styles.scopeToggleContent} collapsable={false}>
-                <Ionicons
-                    name="chevron-down"
-                    size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
-                    color="rgba(255,255,255,0.95)"
-                    style={{ marginRight: SIZES.chevronML, marginTop: SIZES.chevronMT, opacity: 0 }}
-                />
-                {scopeSubtitle ? (
-                    <Text style={[styles.tribeLabel, styles.tribeLabelTwoLine]} numberOfLines={2} ellipsizeMode="tail">
-                        {scopeLabel}
-                        {"\n"}
-                        <Text style={styles.tribeSubtitleInline}>{scopeSubtitle}</Text>
-                    </Text>
-                ) : (
-                    <Text style={styles.tribeLabel} numberOfLines={1} ellipsizeMode="tail">
-                        {scopeLabel}
-                    </Text>
-                )}
-                <Ionicons
-                    name="chevron-down"
-                    size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
-                    color="rgba(255,255,255,0.95)"
-                    style={{ marginLeft: SIZES.chevronML, marginTop: SIZES.chevronMT }}
-                />
-            </View>
-        </RNBounceable>
+                    const measureAndOpen = () => {
+                        try {
+                            scopeToggleAnchorRef.current?.measureInWindow?.((x = 0, y = 0, width = 0, height = 0) => {
+                                setTribeMenuAnchor({ x, y, width, height });
+                                setTribeMenuVisible(true);
+                            });
+                        } catch {
+                            setTribeMenuVisible(true);
+                        }
+                    };
+                    requestAnimationFrame(measureAndOpen);
+                })}
+                activeScale={0.96}
+                hitSlop={{
+                    top: SIZES.tribeHitSlop,
+                    bottom: SIZES.tribeHitSlop,
+                    left: SIZES.tribeHitSlop,
+                    right: SIZES.tribeHitSlop,
+                }}
+                accessibilityRole="button"
+                accessibilityLabel="Change leaderboard scope"
+            >
+                <View ref={scopeToggleAnchorRef} style={{ alignSelf: "flex-start" }} collapsable={false}>
+                    <View style={styles.scopeToggleButton}>
+                        <View style={styles.scopeToggleContent}>
+                            <Text style={styles.tribeLabel} numberOfLines={1} ellipsizeMode="tail">
+                                {scopeLabel}
+                            </Text>
+                            <Ionicons
+                                name="chevron-down"
+                                size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
+                                color="rgba(255,255,255,0.95)"
+                                style={{ marginLeft: SIZES.chevronML, marginTop: SIZES.chevronMT }}
+                            />
+                        </View>
+                    </View>
+                    {scopeSubtitle ? (
+                        <Text style={styles.tribeSubtitle} numberOfLines={1} ellipsizeMode="tail">
+                            {scopeSubtitle}
+                        </Text>
+                    ) : null}
+                </View>
+            </RNBounceable>
+        </View>
     );
 
     return (
@@ -1194,7 +1161,7 @@ export default function LeaderboardsSection({ navigation }) {
                 <View
                     style={[
                         styles.header,
-                        { paddingHorizontal: SIZES.headerPaddingHorizontal },
+                        { paddingHorizontal: SIZES.headerPaddingHorizontal + scaleSize(14) },
                         !isCustomTribe && styles.headerCondensed,
                     ]}
                 >
@@ -1214,15 +1181,15 @@ export default function LeaderboardsSection({ navigation }) {
 
             <ScrollView
                 style={styles.scrollRegion}
-                contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollBottomPadding }]}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    { paddingBottom: scrollBottomPadding },
+                ]}
                 showsVerticalScrollIndicator={false}
                 contentInsetAdjustmentBehavior="never"
-                bounces={false}
-                alwaysBounceVertical={false}
-                overScrollMode="never"
-                scrollEnabled={scrollEnabled}
-                onLayout={handleScrollLayout}
-                onContentSizeChange={handleContentSizeChange}
+                bounces
+                alwaysBounceVertical
+                overScrollMode="always"
             >
                 <InfoPanel isVisible={false} opacity={infoPanelOpacityRef.current} />
                 <View style={[styles.podiumSection, { height: podiumSectionHeight }]}>
@@ -1455,18 +1422,19 @@ const styles = StyleSheet.create({
         width: "100%",
         paddingTop: scaleSize(2),
     },
-    scopeToggle: {
+    scopeToggleRow: {
+        alignSelf: "flex-start",
+        alignItems: "flex-start",
+        marginTop: scaleSize(4),
+    },
+    scopeToggleButton: {
         flexDirection: "row",
         alignItems: "center",
-        marginTop: scaleSize(6),
+        alignSelf: "flex-start",
     },
     scopeToggleContent: {
         flexDirection: "row",
         alignItems: "center",
-    },
-    scopeToggleCompact: {
-        marginRight: 0,
-        marginLeft: -scaleSize(6),
     },
     tribeLabel: {
         color: "#fff",
@@ -1475,20 +1443,17 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
         maxWidth: SIZES.tribeLabelMaxWidth,
         letterSpacing: 0.2,
-        marginRight: SIZES.tribeLabelMarginRight,
-        textAlign: "center",
+        marginRight: scaleSize(4),
+        textAlign: "left",
     },
-    tribeLabelTwoLine: {
-        textAlign: "center",
-        marginRight: SIZES.tribeLabelMarginRight,
-        lineHeight: scaleFont(14) + scaleSize(2),
-    },
-    tribeSubtitleInline: {
+    tribeSubtitle: {
         color: "rgba(255,255,255,0.72)",
         fontFamily: "Outfit_500Medium",
         fontSize: scaleFont(11.5),
         includeFontPadding: false,
         letterSpacing: 0.2,
+        marginTop: scaleSize(1),
+        alignSelf: "flex-start",
     },
     focusToggleWrap: {
         position: "relative",

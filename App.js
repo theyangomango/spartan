@@ -42,6 +42,7 @@ import PostUploadOptionsScreen from './frontend/components/5_Profile/MakePost/Po
 import Explore from './frontend/screens/4_Explore';
 import Workout from './frontend/screens/3_Workout';
 import Competition from './frontend/screens/2_Competition';
+import ExerciseDetail from './frontend/screens/ExerciseDetail';
 import Messages from './frontend/screens/1.1_Messages';
 import Chat from './frontend/screens/1.2_Chat';
 import ViewProfile from './frontend/screens/4.1_ViewProfile';
@@ -1103,6 +1104,11 @@ return (
                                     default: {},
                                 });
                             }}
+                        />
+                        <RootStack.Screen
+                            name="ExerciseDetail"
+                            component={ExerciseDetail}
+                            options={{ headerShown: false }}
                         />
 
                         <RootStack.Screen name="Profile" component={Profile} />

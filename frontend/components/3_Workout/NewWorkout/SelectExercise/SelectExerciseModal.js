@@ -1,36 +1,63 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { View, Text, Pressable, TextInput, Animated, InteractionManager } from "react-native";
+import {
+    View,
+    Text,
+    Pressable,
+    TextInput,
+    Animated,
+    ScrollView,
+    InteractionManager,
+    Dimensions,
+    Easing,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import scaleSize from "../../../../helper/scaleSize";
-import { Ionicons } from '@expo/vector-icons';
-import RNBounceable from "@freakycoder/react-native-bounceable";
-import { exercises } from './EXERCISES';
-import ExercisesFlatlist from './ExercisesFlatlist';
-import AnimatedButton from './AnimatedButton';
-import styles, { ICON_COLOR, TEXT_SECONDARY } from "../../../SelectExerciseModal/styles";
+import { exercises } from "./EXERCISES";
+import ExercisesFlatlist from "./ExercisesFlatlist";
+import AnimatedButton from "./AnimatedButton";
+import MuscleGroupIcon from "./MuscleGroupIcon";
+import styles, { ICON_COLOR, TEXT_SECONDARY } from "./selectExerciseModalStyles";
+
 const scaledSize = (size) => scaleSize(size);
+const SCREEN_HEIGHT = Dimensions.get("window").height;
 
-const getSetCount = (statsMap = {}, name) => {
-    const exerciseStats = statsMap?.[name];
-    if (!exerciseStats) return 0;
-    const sets = exerciseStats?.sets;
-    if (Array.isArray(sets)) return sets.length;
-    if (typeof sets === "number") return sets;
-    const fallback = exerciseStats?.setCount ?? exerciseStats?.totalSets;
-    return typeof fallback === "number" ? fallback : 0;
-};
-
-// Body-part options the user can filter by
-const BODY_PART_OPTIONS = [
-    { label: "Any Body Part", value: null },
-    { label: "Chest", value: "Chest" },
-    { label: "Back", value: "Back" },
-    { label: "Shoulders", value: "Shoulders" },
-    { label: "Arms", value: "Arms" },
-    { label: "Legs", value: "Legs" },
-    { label: "Abs", value: "Abs" },
+const MUSCLE_FILTERS = [
+    {
+        label: "All",
+        value: null,
+        figure: "front",
+        segments: ["chest", "core", "hips", "leftShoulder", "rightShoulder", "leftArm", "rightArm", "leftLeg", "rightLeg"],
+    },
+    { label: "Chest", value: "Chest", figure: "front", segments: ["chest"] },
+    {
+        label: "Back",
+        value: "Back",
+        figure: "back",
+        segments: [
+            "upperBack",
+            "midBack",
+            "glutes",
+            "rearShoulders",
+            "rearShouldersRight",
+            "tricepsLeft",
+            "tricepsRight",
+            "hamstringsLeft",
+            "hamstringsRight",
+        ],
+    },
+    { label: "Shoulders", value: "Shoulders", figure: "front", segments: ["leftShoulder", "rightShoulder"] },
+    { label: "Arms", value: "Arms", figure: "front", segments: ["leftArm", "rightArm"] },
+    { label: "Legs", value: "Legs", figure: "front", segments: ["leftLeg", "rightLeg", "hips"] },
+    { label: "Abs", value: "Abs", figure: "front", segments: ["core"] },
+    {
+        label: "Full Body",
+        value: "Full Body",
+        figure: "front",
+        segments: ["chest", "core", "hips", "leftShoulder", "rightShoulder", "leftArm", "rightArm", "leftLeg", "rightLeg"],
+    },
 ];
 
-// Equipment options (bucketed to common categories)
 const EQUIPMENT_OPTIONS = [
     { label: "Any Equipment", value: null },
     { label: "Bodyweight", value: "Bodyweight" },
@@ -45,100 +72,175 @@ const EQUIPMENT_OPTIONS = [
     { label: "Other", value: "Other" },
 ];
 
-// Normalize raw equipment strings in EXERCISES to one of the buckets above
 const normalizeEquipment = (raw) => {
-    const s = String(raw || '').toLowerCase();
-    if (s === 'bodyweight' || s.includes('body weight')) return 'Bodyweight';
-    if (s.includes('smith machine')) return 'Smith Machine';
-    if (s.includes('machine')) return 'Machine';
-    if (s.includes('barbell')) return 'Barbell';
-    if (s.includes('dumbbell')) return 'Dumbbell';
-    if (s.includes('cable')) return 'Cable';
-    if (s.includes('band')) return 'Band';
-    if (s.includes('kettlebell')) return 'Kettlebell';
-    if (s.includes('trap bar')) return 'Trap Bar';
-    return 'Other';
+    const s = String(raw || "").toLowerCase();
+    if (s === "bodyweight" || s.includes("body weight")) return "Bodyweight";
+    if (s.includes("smith machine")) return "Smith Machine";
+    if (s.includes("machine")) return "Machine";
+    if (s.includes("barbell")) return "Barbell";
+    if (s.includes("dumbbell")) return "Dumbbell";
+    if (s.includes("cable")) return "Cable";
+    if (s.includes("band")) return "Band";
+    if (s.includes("kettlebell")) return "Kettlebell";
+    if (s.includes("trap bar")) return "Trap Bar";
+    return "Other";
+};
+
+const getSetCount = (statsMap = {}, name) => {
+    const exerciseStats = statsMap?.[name];
+    if (!exerciseStats) return 0;
+    const sets = exerciseStats?.sets;
+    if (Array.isArray(sets)) return sets.length;
+    if (typeof sets === "number") return sets;
+    const fallback = exerciseStats?.setCount ?? exerciseStats?.totalSets;
+    return typeof fallback === "number" ? fallback : 0;
 };
 
 export default function SelectExerciseModal({ closeModal, appendExercises }) {
-    const selectedExercisesRef = useRef([]);
-    // input text vs debounced value used for filtering
+    const statsExercises = global?.userData?.statsExercises;
+    const insets = useSafeAreaInsets();
+    const insetTop = insets?.top ?? 0;
+    const insetBottom = insets?.bottom ?? 0;
+
     const [inputQuery, setInputQuery] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
-    const opacity = useRef(new Animated.Value(1)).current;
-    const statsExercises = global?.userData?.statsExercises;
+    const [showSearch, setShowSearch] = useState(false);
+    const [filtersOpen, setFiltersOpen] = useState(false);
+    const [bodyPartValue, setBodyPartValue] = useState(null);
+    const [equipmentValue, setEquipmentValue] = useState(null);
+    const [selectedExercisesMap, setSelectedExercisesMap] = useState({});
 
-    // Dropdown states
-    const [bodyPartOpen, setBodyPartOpen] = useState(false);
-    const [equipmentOpen, setEquipmentOpen] = useState(false);
-    const [bodyPartValue, setBodyPartValue] = useState(null);       // null = Any Body Part
-    const [equipmentValue, setEquipmentValue] = useState(null);     // null = Any Equipment
+    const selectedExercisesRef = useRef(selectedExercisesMap);
+    const opacity = useRef(new Animated.Value(0.5)).current;
+    const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+    const finishingRef = useRef(false);
+    const closingRef = useRef(false);
+    const debounceRef = useRef(null);
+
+    useEffect(() => {
+        selectedExercisesRef.current = selectedExercisesMap;
+    }, [selectedExercisesMap]);
+
+    const selectedCount = useMemo(() => Object.keys(selectedExercisesMap).length, [selectedExercisesMap]);
 
     useEffect(() => {
         Animated.timing(opacity, {
-            toValue: selectedExercisesRef.current.length === 0 ? 0.5 : 1,
-            duration: 300,
+            toValue: selectedCount === 0 ? 0.4 : 1,
+            duration: 200,
             useNativeDriver: true,
         }).start();
-    }, [searchQuery]);
+    }, [selectedCount, opacity]);
 
-    function selectExercise(ex) {
-        selectedExercisesRef.current = [...selectedExercisesRef.current, { ...ex }];
-        triggerOpacityUpdate();
-    }
+    useEffect(() => {
+        Animated.timing(translateY, {
+            toValue: 0,
+            duration: 320,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+        }).start();
+    }, [translateY]);
 
-    function deselectExercise(ex) {
-        selectedExercisesRef.current = selectedExercisesRef.current.filter(e => e.name !== ex.name);
-        triggerOpacityUpdate();
-    }
+    const closeAllPanels = useCallback(() => {
+        setFiltersOpen(false);
+    }, []);
 
-    const finishingRef = useRef(false);
-    function handleFinish() {
-        if (finishingRef.current) return;
-        if (selectedExercisesRef.current.length === 0) return;
-        finishingRef.current = true;
-        // Close dropdowns and modal first to avoid UI lock while appending
-        closeAllDropdowns();
-        try { closeModal?.(); } catch {}
-        // Defer heavy append to after interactions for smoother closing
-        InteractionManager.runAfterInteractions(() => {
-            try { appendExercises?.(selectedExercisesRef.current); } catch {}
-            finishingRef.current = false;
-            // reset local buffer
-            selectedExercisesRef.current = [];
-        });
-    }
+    const handleSearchIconPress = useCallback(() => {
+        setShowSearch((prev) => !prev);
+    }, []);
 
-    // Debounce search input for smoother typing
-    const debounceRef = useRef(null);
-    function handleSearch(query) {
+    const handleSearch = useCallback((query) => {
         setInputQuery(query);
         if (debounceRef.current) clearTimeout(debounceRef.current);
         debounceRef.current = setTimeout(() => setSearchQuery(query), 160);
-    }
+    }, []);
 
-    function triggerOpacityUpdate() {
-        opacity.setValue(selectedExercisesRef.current.length === 0 ? 0.5 : 1);
-    }
+    const resetSelections = useCallback(() => {
+        selectedExercisesRef.current = {};
+        setSelectedExercisesMap({});
+    }, []);
 
-    // Build a normalized index once for fast filtering
+    const selectExercise = useCallback((ex) => {
+        setSelectedExercisesMap((prev) => {
+            if (prev[ex.name]) return prev;
+            return { ...prev, [ex.name]: { ...ex } };
+        });
+    }, []);
+
+    const deselectExercise = useCallback((ex) => {
+        setSelectedExercisesMap((prev) => {
+            if (!prev[ex.name]) return prev;
+            const updated = { ...prev };
+            delete updated[ex.name];
+            return updated;
+        });
+    }, []);
+
+    const dismiss = useCallback(
+        (afterClose) => {
+            if (closingRef.current) return;
+            closingRef.current = true;
+            closeAllPanels();
+            setShowSearch(false);
+            Animated.timing(translateY, {
+                toValue: SCREEN_HEIGHT,
+                duration: 240,
+                easing: Easing.in(Easing.cubic),
+                useNativeDriver: true,
+            }).start(({ finished }) => {
+                if (finished) {
+                    try {
+                        closeModal?.();
+                    } finally {
+                        afterClose?.();
+                        closingRef.current = false;
+                    }
+                } else {
+                    closingRef.current = false;
+                }
+            });
+        },
+        [closeAllPanels, closeModal, translateY]
+    );
+
+    const handleClose = useCallback(() => {
+        resetSelections();
+        dismiss();
+    }, [dismiss, resetSelections]);
+
+    const handleFinish = useCallback(() => {
+        if (finishingRef.current || closingRef.current) return;
+        const selections = Object.values(selectedExercisesRef.current || {});
+        if (selections.length === 0) return;
+        finishingRef.current = true;
+        resetSelections();
+        dismiss(() => {
+            InteractionManager.runAfterInteractions(() => {
+                try {
+                    appendExercises?.(selections);
+                } catch {
+                    // ignored
+                }
+                finishingRef.current = false;
+            });
+        });
+    }, [appendExercises, dismiss, resetSelections]);
+
     const indexedExercises = useMemo(() => {
         return exercises.map((ex) => ({
             ...ex,
-            nameLc: String(ex?.name || '').toLowerCase(),
-            mgLc: String(ex?.muscleGroup || '').toLowerCase(),
+            nameLc: String(ex?.name || "").toLowerCase(),
+            mgLc: String(ex?.muscleGroup || "").toLowerCase(),
             equipNorm: normalizeEquipment(ex?.equipment),
         }));
     }, []);
 
-    // ---- FILTER + SORT
     const filteredExercises = useMemo(() => {
         const q = searchQuery.trim().toLowerCase();
         const bodyFilter = bodyPartValue?.toLowerCase() ?? null;
-        const equipFilter = equipmentValue ?? null; // already normalized label
+        const equipFilter = equipmentValue ?? null;
         const statsMap = statsExercises || {};
 
-        let list = indexedExercises.filter(ex => {
+        let list = indexedExercises.filter((ex) => {
             const nameMatch = ex.nameLc.includes(q);
             const groupMatch = !bodyFilter || ex.mgLc === bodyFilter;
             const equipMatch = !equipFilter || ex.equipNorm === equipFilter;
@@ -155,141 +257,146 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
         return list;
     }, [searchQuery, bodyPartValue, equipmentValue, indexedExercises, statsExercises]);
 
-    const bodyPartButtonLabel = BODY_PART_OPTIONS.find(o => o.value === bodyPartValue)?.label ?? "Any Body Part";
-    const equipmentButtonLabel = EQUIPMENT_OPTIONS.find(o => o.value === equipmentValue)?.label ?? "Any Equipment";
-
-    const closeAllDropdowns = useCallback(() => {
-        setBodyPartOpen(false);
-        setEquipmentOpen(false);
-    }, []);
-
-    const handleClose = useCallback(() => {
-        closeAllDropdowns();
-        try { closeModal?.(); } catch {}
-    }, [closeAllDropdowns, closeModal]);
+    const listBottomPadding = useMemo(() => insetBottom + scaledSize(160), [insetBottom]);
 
     return (
-        <View style={styles.modal_outside}>
-            <Pressable onPress={handleClose} style={styles.outside_pressable} />
-            <View style={styles.main_ctnr}>
-                <View style={styles.header}>
-                    <RNBounceable style={styles.closeButton} onPress={handleClose}>
-                        <Text style={styles.closeButtonText}>Close</Text>
-                    </RNBounceable>
-                    <AnimatedButton
-                        opacity={opacity}
-                        selectedExercisesLength={selectedExercisesRef.current.length}
-                        handleFinish={handleFinish}
-                    />
-                </View>
-
-                {/* Search */}
-                <View style={styles.searchContainer}>
-                    <Ionicons name="search" size={scaledSize(20)} color={ICON_COLOR} style={styles.searchIcon} />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search exercises..."
-                        placeholderTextColor={TEXT_SECONDARY}
-                        value={inputQuery}
-                        onChangeText={handleSearch}
-                        onFocus={closeAllDropdowns}
-                    />
-                </View>
-
-                {/* Filters (Dropdowns) */}
-                <View style={styles.filterRow}>
-                    {/* Body Part Dropdown */}
-                    <View style={styles.dropdownWrap}>
-                        <Pressable
-                            style={styles.filterButton}
-                            onPress={() => {
-                                setEquipmentOpen(false);
-                                setBodyPartOpen((o) => !o);
-                            }}
-                        >
-                            <Text style={styles.filterButtonText} numberOfLines={1}>{bodyPartButtonLabel}</Text>
-                            <Ionicons name={bodyPartOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color={ICON_COLOR} />
+        <View style={styles.overlay}>
+            <Animated.View
+                style={[
+                    styles.wrapper,
+                    {
+                        transform: [{ translateY }],
+                    },
+                ]}
+            >
+                <Animated.View
+                    style={[
+                        styles.sheet,
+                        {
+                            paddingTop: insetTop + scaledSize(12),
+                        },
+                    ]}
+                >
+                <View style={styles.sheetInner}>
+                    <View style={styles.headerRow}>
+                        <Pressable style={styles.circleButton} onPress={handleClose} hitSlop={10}>
+                            <Ionicons name="close" size={scaledSize(20)} color={ICON_COLOR} />
                         </Pressable>
-
-                        {bodyPartOpen && (
-                            <View style={styles.dropdownMenu}>
-                                {BODY_PART_OPTIONS.map(opt => (
-                                    <Pressable
-                                        key={String(opt.label)}
-                                        style={[styles.dropdownItem, bodyPartValue === opt.value && styles.dropdownItemActive]}
-                                        onPress={() => {
-                                            setBodyPartValue(opt.value);
-                                            setBodyPartOpen(false);
-                                        }}
-                                    >
-                                        <Text
-                                            style={[
-                                                styles.dropdownItemText,
-                                                bodyPartValue === opt.value && styles.dropdownItemTextActive
-                                            ]}
-                                            numberOfLines={1}
-                                        >
-                                            {opt.label}
-                                        </Text>
-                                    </Pressable>
-                                ))}
-                            </View>
-                        )}
+                        <Text style={styles.headerTitle}>Add exercises</Text>
+                        <View style={styles.headerActions}>
+                            <Pressable style={[styles.circleButton, styles.headerActionButton]} onPress={handleSearchIconPress} hitSlop={10}>
+                                <Ionicons name="search" size={scaledSize(20)} color={ICON_COLOR} />
+                            </Pressable>
+                            <Pressable style={[styles.circleButton, styles.headerActionButton]} onPress={() => setFiltersOpen((prev) => !prev)} hitSlop={10}>
+                                <Ionicons name="filter" size={scaledSize(20)} color={ICON_COLOR} />
+                            </Pressable>
+                            <Pressable style={[styles.circleButton, styles.headerActionButton]} hitSlop={10}>
+                                <Ionicons name="ellipsis-horizontal" size={scaledSize(20)} color={ICON_COLOR} />
+                            </Pressable>
+                        </View>
                     </View>
 
-                    {/* Equipment Dropdown */}
-                    <View style={styles.dropdownWrap}>
-                        <Pressable
-                            style={styles.filterButton}
-                            onPress={() => {
-                                setBodyPartOpen(false);
-                                setEquipmentOpen((o) => !o);
-                            }}
-                        >
-                            <Text style={styles.filterButtonText} numberOfLines={1}>{equipmentButtonLabel}</Text>
-                            <Ionicons name={equipmentOpen ? "chevron-up" : "chevron-down"} size={scaledSize(16)} color={ICON_COLOR} />
-                        </Pressable>
+                    {showSearch && (
+                        <View style={styles.searchContainer}>
+                            <Ionicons name="search" size={scaledSize(18)} color={ICON_COLOR} style={styles.searchIcon} />
+                            <TextInput
+                                style={styles.searchInput}
+                                placeholder="Search exercises..."
+                                placeholderTextColor={TEXT_SECONDARY}
+                                value={inputQuery}
+                                onChangeText={handleSearch}
+                                autoFocus
+                            />
+                        </View>
+                    )}
 
-                        {equipmentOpen && (
-                            <View style={styles.dropdownMenu}>
-                                {EQUIPMENT_OPTIONS.map(opt => (
-                                    <Pressable
-                                        key={String(opt.label)}
-                                        style={[styles.dropdownItem, equipmentValue === opt.value && styles.dropdownItemActive]}
-                                        onPress={() => {
-                                            setEquipmentValue(opt.value);
-                                            setEquipmentOpen(false);
-                                        }}
-                                    >
-                                        <Text
+                    <View style={styles.muscleFilterSection}>
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.muscleFilterScroll}
+                            contentContainerStyle={styles.muscleFilterContent}
+                            snapToAlignment="start"
+                            decelerationRate="fast"
+                        >
+                            <View style={styles.muscleFilterRow}>
+                                {MUSCLE_FILTERS.map((option, index) => {
+                                    const isActive = option.value === bodyPartValue;
+                                    return (
+                                        <Pressable
+                                            key={option.label}
                                             style={[
-                                                styles.dropdownItemText,
-                                                equipmentValue === opt.value && styles.dropdownItemTextActive
+                                                styles.muscleFilterChip,
+                                                isActive && styles.muscleFilterChipActive,
+                                                index === MUSCLE_FILTERS.length - 1 && styles.muscleFilterChipLast,
                                             ]}
-                                            numberOfLines={1}
+                                            onPress={() => setBodyPartValue(isActive ? null : option.value)}
+                                            accessibilityRole="button"
+                                            accessibilityLabel={option.label}
                                         >
-                                            {opt.label}
-                                        </Text>
-                                    </Pressable>
-                                ))}
+                                            <View
+                                                style={[
+                                                    styles.muscleFilterIconWrap,
+                                                    isActive && styles.muscleFilterIconWrapActive,
+                                                ]}
+                                            >
+                                                <MuscleGroupIcon
+                                                    figure={option.figure}
+                                                    segments={option.segments}
+                                                    dimmed={!isActive}
+                                                />
+                                            </View>
+                                        </Pressable>
+                                    );
+                                })}
                             </View>
-                        )}
+                        </ScrollView>
+                    </View>
+
+                    {filtersOpen && (
+                        <View style={styles.filterPanel}>
+                            <Text style={styles.filterPanelTitle}>Equipment</Text>
+                            <View style={styles.filterChipWrap}>
+                                {EQUIPMENT_OPTIONS.map((option) => {
+                                    const isActive = option.value === equipmentValue;
+                                    return (
+                                        <Pressable
+                                            key={option.label}
+                                            style={[styles.equipmentChip, isActive && styles.equipmentChipActive]}
+                                            onPress={() => setEquipmentValue(option.value)}
+                                        >
+                                            <Text style={[styles.equipmentChipText, isActive && styles.equipmentChipTextActive]}>
+                                                {option.label}
+                                            </Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </View>
+                        </View>
+                    )}
+
+                    <Text style={styles.sectionTitle}>All Exercises</Text>
+
+                    <View style={styles.listWrapper}>
+                        <ExercisesFlatlist
+                            exercises={filteredExercises}
+                            selectExercise={selectExercise}
+                            deselectExercise={deselectExercise}
+                            selectedLookup={selectedExercisesMap}
+                            bottomPadding={listBottomPadding}
+                        />
+                    </View>
+
+                    <View style={[styles.footer, { paddingBottom: insetBottom + scaledSize(16) }]}>
+                        <AnimatedButton
+                            opacity={opacity}
+                            selectedExercisesLength={selectedCount}
+                            handleFinish={handleFinish}
+                        />
                     </View>
                 </View>
-
-                {/* Backdrop to close dropdowns without closing modal */}
-                {(bodyPartOpen || equipmentOpen) && (
-                    <Pressable style={styles.dropdownBackdrop} onPress={closeAllDropdowns} />
-                )}
-
-                {/* List */}
-                <ExercisesFlatlist
-                    exercises={filteredExercises}
-                    selectExercise={selectExercise}
-                    deselectExercise={deselectExercise}
-                />
-            </View>
-            <Pressable onPress={() => closeModal()} style={styles.outside_pressable} />
+                </Animated.View>
+            </Animated.View>
         </View>
     );
 }

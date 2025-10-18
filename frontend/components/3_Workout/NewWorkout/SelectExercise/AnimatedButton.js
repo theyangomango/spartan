@@ -1,28 +1,29 @@
-import React, { useEffect } from 'react';
-import { StyleSheet, Text, Animated, Dimensions } from 'react-native';
-import scaleSize from '../../../../helper/scaleSize';
+import React, { useEffect } from "react";
+import { StyleSheet, Text, Animated } from "react-native";
+import scaleSize from "../../../../helper/scaleSize";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
-const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
 
 const AnimatedButton = ({ opacity, selectedExercisesLength, handleFinish }) => {
-    
     useEffect(() => {
-        // Trigger fade-out or fade-in animation based on selectedExercisesLength
         Animated.timing(opacity, {
-            toValue: selectedExercisesLength > 0 ? 1 : 0.5, // Fade out when no exercises are selected
-            duration: 300,
+            toValue: selectedExercisesLength > 0 ? 1 : 0.4,
+            duration: 220,
             useNativeDriver: true,
         }).start();
     }, [selectedExercisesLength, opacity]);
 
+    const label = selectedExercisesLength > 0 ? `Add (${selectedExercisesLength})` : "Add exercises";
+
     return (
         <Animated.View style={[styles.animatedButtonContainer, { opacity }]}>
-            <RNBounceable onPress={handleFinish} style={styles.addButton}>
-                <Text style={styles.addButtonText}>
-                    {`Add`}
-                </Text>
+            <RNBounceable
+                disabled={selectedExercisesLength === 0}
+                onPress={handleFinish}
+                style={[styles.addButton, selectedExercisesLength === 0 && styles.addButtonDisabled]}
+            >
+                <Text style={styles.addButtonText}>{label}</Text>
             </RNBounceable>
         </Animated.View>
     );
@@ -30,21 +31,27 @@ const AnimatedButton = ({ opacity, selectedExercisesLength, handleFinish }) => {
 
 const styles = StyleSheet.create({
     animatedButtonContainer: {
-        justifyContent: 'center',
-        alignItems: 'center',
+        width: "100%",
     },
     addButton: {
-        backgroundColor: '#51A9FF',
-        paddingHorizontal: scaledSize(20),
-        paddingVertical: scaledSize(6),
-        borderRadius: scaledSize(8),
-        justifyContent: 'center',
-        alignItems: 'center'
+        backgroundColor: "#57B9FF",
+        paddingVertical: scaledSize(14),
+        borderRadius: scaledSize(16),
+        justifyContent: "center",
+        alignItems: "center",
+        shadowColor: "#57B9FF",
+        shadowOffset: { width: 0, height: scaledSize(10) },
+        shadowOpacity: 0.25,
+        shadowRadius: scaledSize(16),
+    },
+    addButtonDisabled: {
+        backgroundColor: "rgba(90, 108, 146, 0.6)",
+        shadowOpacity: 0,
     },
     addButtonText: {
-        color: '#fff',
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(12.5),
+        color: "#FFFFFF",
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(14),
     },
 });
 

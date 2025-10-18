@@ -1,122 +1,117 @@
-import React, { memo, useState } from 'react';
-import { Pressable, TouchableOpacity, StyleSheet, Text, View } from 'react-native';
-import scaleSize from '../../../../helper/scaleSize';
-// import { Ionicons } from '@expo/vector-icons';
-import ExerciseImagePreview from './ExerciseImagePreview';
-import { strong as haptic } from '../../../../utils/haptics';
+import React, { memo } from "react";
+import { Pressable, TouchableOpacity, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import scaleSize from "../../../../helper/scaleSize";
+import ExerciseImagePreview from "./ExerciseImagePreview";
+import { strong as haptic } from "../../../../utils/haptics";
 
 const scaledSize = (size) => scaleSize(size);
 
 const COLORS = {
-    cardBg: '#272c35ff',
-    text: '#F7F9FF',
-    subtext: '#bcc8de9b',
-    accent: '#7FD1FF',
-    hairline: 'rgba(93, 104, 113, 0.45)',
-    selectedBg: 'rgba(102, 202, 255, 0.32)',
+    cardBg: "#1F2533",
+    border: "rgba(255, 255, 255, 0.04)",
+    borderActive: "#57B9FF",
+    text: "#F7F9FF",
+    subtext: "#9BA8BF",
+    accent: "#FF6B7A",
 };
 
-const ExerciseCard = memo(({ name, muscleGroup, selectExercise, deselectExercise, showExerciseInfo, userStats, touchable = false }) => {
-    const [isSelected, setIsSelected] = useState(false);
+const ExerciseCard = memo(
+    ({ name, muscleGroup, selectExercise, deselectExercise, showExerciseInfo, isSelected = false, touchable = false }) => {
+        const Wrapper = touchable ? TouchableOpacity : Pressable;
+        const wrapperProps = touchable ? { activeOpacity: 0.78 } : {};
 
-    const lastDone = userStats && Array.isArray(userStats.sets) && userStats.sets.length ? userStats.sets[userStats.sets.length - 1].date : 'N/A';
-    const timesCompleted = userStats && Array.isArray(userStats.sets) ? userStats.sets.length : '';
+        const handlePress = () => {
+            try {
+                haptic();
+            } catch {
+                // no-op haptic failure
+            }
+            if (isSelected) {
+                deselectExercise({ name, muscle: muscleGroup });
+            } else {
+                selectExercise({ name, muscle: muscleGroup });
+            }
+        };
 
-    function toggleSelected() {
-        try { haptic(); } catch {}
-        if (isSelected) {
-            deselectExercise({ name: name, muscle: muscleGroup });
-        } else {
-            selectExercise({ name: name, muscle: muscleGroup });
-        }
-        setIsSelected(!isSelected);
-    }
+        return (
+            <Wrapper {...wrapperProps} onPress={handlePress} style={[styles.card, isSelected && styles.cardActive]}>
+                <View style={styles.iconRow}>
+                    <Ionicons
+                        name={isSelected ? "bookmark" : "bookmark-outline"}
+                        size={scaledSize(16)}
+                        color={isSelected ? COLORS.accent : COLORS.subtext}
+                    />
+                    <Pressable
+                        onPress={() => showExerciseInfo?.(name)}
+                        style={styles.infoButton}
+                        hitSlop={8}
+                    >
+                        <Ionicons name="help-circle-outline" size={scaledSize(18)} color={COLORS.subtext} />
+                    </Pressable>
+                </View>
 
-    const Wrapper = touchable ? TouchableOpacity : Pressable;
-    const wrapperProps = touchable ? { activeOpacity: 0.6 } : {};
-    return (
-        <Wrapper {...wrapperProps} onPress={toggleSelected} style={[styles.card, isSelected && styles.selected]}>
-            <View style={styles.leftContainer}>
-                <ExerciseImagePreview exercise={name} />
-                <View style={styles.textContainer}>
-                    <Text style={styles.exerciseName}>{name}</Text>
-                    {/* <Text style={styles.lastDone}>{lastDone}</Text> */}
+                <View style={styles.previewWrapper}>
+                    <ExerciseImagePreview exercise={name} size={scaledSize(96)} />
+                </View>
+
+                <View style={styles.infoSection}>
+                    <Text style={styles.exerciseName} numberOfLines={2}>
+                        {name}
+                    </Text>
                     <Text style={styles.muscleGroupText}>{muscleGroup}</Text>
                 </View>
-            </View>
-            <View style={styles.rightContainer}>
-                <Text style={styles.timesCompleted}>{timesCompleted}</Text>
-                { /* Info icon hidden for this release
-                <Pressable onPress={() => showExerciseInfo?.(name)} style={styles.icon_ctnr}>
-                    <Ionicons name="information-circle-outline" size={scaledSize(26)} color="#2D9EFF" />
-                </Pressable>
-                */}
-            </View>
-            <View style={styles.border} />
-        </Wrapper>
-    );
-});
+            </Wrapper>
+        );
+    }
+);
 
 export default ExerciseCard;
 
 const styles = StyleSheet.create({
     card: {
-        flexDirection: 'row',
-        paddingLeft: scaledSize(20),
-        paddingRight: scaledSize(18),
-        justifyContent: 'space-between',
+        width: "47%",
         backgroundColor: COLORS.cardBg,
-        paddingTop: scaleSize(1),
-        paddingBottom: scaleSize(4)
+        borderRadius: scaledSize(18),
+        paddingVertical: scaledSize(18),
+        paddingHorizontal: scaledSize(14),
+        marginBottom: scaledSize(20),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: COLORS.border,
+        overflow: "hidden",
     },
-    leftContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
+    cardActive: {
+        borderColor: COLORS.borderActive,
+        shadowColor: "#57B9FF",
+        shadowOffset: { width: 0, height: scaledSize(6) },
+        shadowOpacity: 0.25,
+        shadowRadius: scaledSize(12),
     },
-    border: {
-        position: 'absolute',
-        bottom: 0,
-        left: scaledSize(13),
-        right: scaledSize(13),
-        height: scaledSize(1),
-        backgroundColor: COLORS.hairline,
+    iconRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
     },
-    textContainer: {
-        flexDirection: 'column',
-        // paddingVertical: scaledSize(8),
-        justifyContent: 'center',
-        flex: 1,
-        paddingLeft: scaledSize(14),
+    infoButton: {
+        padding: scaledSize(4),
     },
-    selected: { backgroundColor: COLORS.selectedBg },
+    previewWrapper: {
+        marginTop: scaledSize(12),
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    infoSection: {
+        marginTop: scaledSize(14),
+    },
     exerciseName: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(12.5),
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(13),
         color: COLORS.text,
-        marginVertical: scaledSize(3),
-        flexWrap: 'wrap',
+        marginBottom: scaledSize(4),
     },
     muscleGroupText: {
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(12.5),
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(12),
         color: COLORS.subtext,
-        marginTop: scaledSize(2),
-    },
-    lastDone: {
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(10.5),
-        color: COLORS.subtext,
-    },
-    rightContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginLeft: scaledSize(10),
-    },
-    timesCompleted: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(12.5),
-        marginRight: scaledSize(8),
-        color: COLORS.accent,
     },
 });

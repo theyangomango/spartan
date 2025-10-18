@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "react";
 import { View, StyleSheet, Text, Pressable, Animated, LayoutAnimation, Platform, UIManager } from "react-native";
 import * as Haptics from "expo-haptics";
-import { Entypo } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import SetRow from "./SetRow";
 import theme from "../../../../theme/mfpDark";
@@ -10,6 +9,7 @@ import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
 
 import scaleSize from "../../../../helper/scaleSize";
 import workoutTypography from "../../shared/workoutTypography";
+import ExerciseAvatar from "../../../common/ExerciseAvatar";
 const ENABLE_LAYOUT_ANIM = false;
 const SYNC_DEBOUNCE_MS = 80;
 const RAF_FALLBACK_MS = 24;
@@ -141,7 +141,7 @@ function ExerciseLog({
                 setIsPanelVisible(true);
             };
 
-            if (showOptionsTriggerIcon && optionsAnchorRef.current?.measureInWindow) {
+            if (optionsAnchorRef.current?.measureInWindow) {
                 try {
                     optionsAnchorRef.current.measureInWindow((x, y, width, height) => {
                         if (typeof x === "number" && typeof width === "number" && typeof y === "number") {
@@ -174,8 +174,12 @@ function ExerciseLog({
     const addSet = withLayout(() => {
         const current = setsRef.current || [];
         const lastSet = current[current.length - 1] || null;
-        const defaultWeight = lastSet && Object.prototype.hasOwnProperty.call(lastSet, "weight") ? lastSet.weight : 0;
-        const defaultReps = lastSet && Object.prototype.hasOwnProperty.call(lastSet, "reps") ? lastSet.reps : 0;
+        const defaultWeight = lastSet && Object.prototype.hasOwnProperty.call(lastSet, "weight")
+            ? (lastSet.weight ?? "")
+            : "";
+        const defaultReps = lastSet && Object.prototype.hasOwnProperty.call(lastSet, "reps")
+            ? (lastSet.reps ?? "")
+            : "";
         const next = [...current, { id: genLocalId(), weight: defaultWeight, reps: defaultReps, isDone: false }];
         setDraft(next);
         setsRef.current = next;
@@ -259,22 +263,14 @@ function ExerciseLog({
 
             <Animated.View style={[styles.header, { opacity: fadeAnim }]}>
                 <Pressable
+                    ref={optionsAnchorRef}
                     style={styles.nameContainer}
-                    onPress={(!showOptionsTriggerIcon && !readOnly) ? togglePanel : undefined}
-                    disabled={readOnly || showOptionsTriggerIcon}
+                    onPress={!readOnly ? togglePanel : undefined}
+                    disabled={readOnly}
                 >
-                    <Text style={workoutTypography.exerciseName} numberOfLines={1}>{name}</Text>
+                    <ExerciseAvatar name={name} size={scaleSize(42)} style={styles.avatar} />
+                    <Text style={[workoutTypography.exerciseName, styles.nameText]} numberOfLines={1}>{name}</Text>
                 </Pressable>
-                {showOptionsTriggerIcon && !readOnly && (
-                    <Pressable
-                        ref={optionsAnchorRef}
-                        onPress={togglePanel}
-                        hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
-                        style={styles.optionsButton}
-                    >
-                        <Entypo name="menu" size={scaleSize(16)} color={theme.primary} />
-                    </Pressable>
-                )}
             </Animated.View>
 
             <Animated.View style={[styles.labels, { opacity: fadeAnim }]}>
@@ -342,7 +338,9 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(10),
         marginHorizontal: scaleSize(2.5),
     },
-    nameContainer: { flexDirection: "row", alignItems: "flex-end", flexShrink: 1, marginRight: scaleSize(10), paddingBottom: scaleSize(4), flex: 1 },
+    nameContainer: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: scaleSize(10), paddingBottom: scaleSize(4), flex: 1 },
+    avatar: { marginRight: scaleSize(10) },
+    nameText: { flexShrink: 1, fontSize: scaleSize(14), lineHeight: scaleSize(20) },
     optionsButton: {
         backgroundColor: theme.restPillBg,
         borderRadius: scaleSize(10),

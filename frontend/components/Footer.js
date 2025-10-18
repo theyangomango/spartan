@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Home, Cup, Weight, Profile as ProfileIcon } from 'iconsax-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -66,7 +66,7 @@ const Footer = ({
 
     // Subscribe to workout presence only (boolean); avoids polling and reduces rerenders
     const hasActiveWorkout = useWorkoutStore((s) => !!s.workout) || !!global?.isCurrentlyWorkingOut;
-    const startWorkout = useWorkoutStore((s) => s.sheetHandlers?.startWorkout);
+    const startWorkoutHandler = useWorkoutStore((s) => s.sheetHandlers?.startWorkout);
     const sheetSharedAnimatedIndex = useWorkoutStore((s) => s.sheetSharedAnimatedIndex);
 
     const collapseProgressSharedValue = workoutSheetProgressSV ?? sheetSharedAnimatedIndex;
@@ -104,6 +104,50 @@ const Footer = ({
     const weightCircleColor = currentScreenName === 'Workout'
         ? COLORS.actionCircleActive
         : COLORS.actionCircle;
+
+    const focusWorkoutTab = useCallback(() => {
+        if (currentScreenName === 'Workout') return;
+        try {
+            go('Workout')();
+        } catch { /* ignore navigation issues */ }
+    }, [currentScreenName, go]);
+
+    const ensureWorkoutExpanded = useCallback(() => {
+        try {
+            const store = useWorkoutStore.getState();
+            store?.setSheetState?.(WORKOUT_SHEET_STATES.EXPANDED);
+            const setVisible = store?.sheetHandlers?.setIsVisible;
+            if (typeof setVisible === 'function') {
+                setVisible(true);
+            }
+        } catch { /* ignore */ }
+        try {
+            const openModal = global?.openWorkoutModal;
+            if (typeof openModal === 'function') {
+                if (typeof requestAnimationFrame === 'function') {
+                    requestAnimationFrame(() => {
+                        try { openModal(); } catch { }
+                    });
+                } else {
+                    setTimeout(() => {
+                        try { openModal(); } catch { }
+                    }, 0);
+                }
+            }
+        } catch { /* ignore */ }
+    }, []);
+
+    const handleStartWorkout = useCallback(() => {
+        focusWorkoutTab();
+        ensureWorkoutExpanded();
+        const startFn = typeof startWorkoutHandler === 'function' ? startWorkoutHandler : null;
+        const options = { forceFresh: true, skipUI: false };
+        if (startFn) {
+            startFn(null, options);
+            return;
+        }
+        try { global.__startEmptyWorkout && global.__startEmptyWorkout(null, options); } catch {}
+    }, [ensureWorkoutExpanded, focusWorkoutTab, startWorkoutHandler]);
 
     return (
         <Animated.View style={[styles.outer_view, outerAnimatedStyle]} pointerEvents={footerPointerEvents}>
@@ -151,15 +195,7 @@ const Footer = ({
                     <View style={styles.workout_indicator_ctnr}>
                         <Pressable
                             delayPressIn={0}
-                            onPressIn={() => {
-                                const start = typeof startWorkout === 'function' ? startWorkout : null;
-                                const options = { forceFresh: true, skipUI: true };
-                                if (start) {
-                                    start(null, options);
-                                    return;
-                                }
-                                try { global.__startEmptyWorkout && global.__startEmptyWorkout(null, options); } catch {}
-                            }}
+                            onPressIn={handleStartWorkout}
                             hitSlop={10}
                         >
                             <View

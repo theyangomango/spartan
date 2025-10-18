@@ -4,6 +4,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
 import workoutTypography from "../3_Workout/shared/workoutTypography";
+import ExerciseAvatar from "../common/ExerciseAvatar";
 
 const formatNumber = (value, fallback = "0") => {
   const num = Number(value);
@@ -67,7 +68,8 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0 }) => {
     <View style={styles.mainContainer}>
       <View style={styles.header}>
         <View style={styles.nameContainer}>
-          <Text style={workoutTypography.exerciseName} numberOfLines={1}>{name}</Text>
+          <ExerciseAvatar name={name} size={scaleSize(42)} style={styles.avatar} />
+          <Text style={[workoutTypography.exerciseName, styles.nameText]} numberOfLines={1}>{name}</Text>
         </View>
       </View>
 
@@ -153,6 +155,12 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     marginRight: scaleSize(10),
     flex: 1,
+  },
+  avatar: {
+    marginRight: scaleSize(10),
+  },
+  nameText: {
+    flexShrink: 1,
   },
   labelsRow: {
     flexDirection: "row",

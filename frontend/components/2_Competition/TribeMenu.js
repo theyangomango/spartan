@@ -5,6 +5,7 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Ionicons } from "@expo/vector-icons";
 import scaleSize from "../../helper/scaleSize";
 import { withStrongPress } from "../../utils/haptics";
+import { SIZES } from "./layoutConstants";
 const ts = require('../../helper/scaleSize').ts;
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
@@ -42,7 +43,7 @@ const TribeMenu = ({
     onJoinPress,
 }) => {
     const positioning = useMemo(() => {
-        const marginSide = scaleSize(10);
+        const marginSide = SIZES.headerPaddingHorizontal;
         const marginTop = scaleSize(8);
         const anchorX = Number(anchor?.x ?? SCREEN_WIDTH - MENU_WIDTH - marginSide);
         const anchorWidth = Number(anchor?.width ?? 0);

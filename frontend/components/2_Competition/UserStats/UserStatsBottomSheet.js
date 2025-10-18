@@ -76,7 +76,7 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
                 {...props}
                 disappearsOnIndex={-1}
                 appearsOnIndex={0}
-                style={[props.style, { backgroundColor: "rgba(10, 22, 42, 0.68)" }]}
+                style={[props.style, { backgroundColor: "rgba(45, 70, 110, 0.52)" }]}
             />
         ),
         []
@@ -163,10 +163,10 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
             handleHeight={0}
             backgroundStyle={{
                 backgroundColor: require("../../../theme/mfpDark").default.bg,
-                borderTopLeftRadius: isFullHeight ? 0 : scaleSize(25),
-                borderTopRightRadius: isFullHeight ? 0 : scaleSize(25),
+                borderTopLeftRadius: scaleSize(24),
+                borderTopRightRadius: scaleSize(24),
             }}
-            containerStyle={{ marginTop: -insetTop }}
+            containerStyle={{ marginTop: -insetTop, overflow: "hidden", borderTopLeftRadius: scaleSize(24), borderTopRightRadius: scaleSize(24) }}
             enablePanDownToClose
             onClose={() => {
                 setIsVisible(false);

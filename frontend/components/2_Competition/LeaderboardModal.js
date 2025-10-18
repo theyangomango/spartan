@@ -377,8 +377,8 @@ export default function LeaderboardModal({
                 onScrollEndDrag={handleScrollEndDrag}
                 onMomentumScrollEnd={handleMomentumScrollEnd}
                 showsVerticalScrollIndicator={false}
+                ListFooterComponent={<View style={{ height: 30 }} />}
             />
-            {!!isPanelExpanded && <View style={{ height: scaleSize(12) }} />}
         </View>
     );
 }

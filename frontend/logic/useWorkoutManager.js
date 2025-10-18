@@ -477,101 +477,99 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             if (!uid) { Alert.alert("Sign in required", "Please log in to start a workout."); return; }
 
             try {
-                const recentlyCancelled = (Date.now() - (lastCancelAtRef.current || 0)) < 2000;
-                const existing = useWorkoutStore.getState().workout;
-                if (forceFresh || !existing || recentlyCancelled) {
-                    if (recentlyCancelled) {
-                        // Make sure no stale state remains before creating the new workout
-                        setWorkoutInStore(null);
-                        setSheetState(WORKOUT_SHEET_STATES.HIDDEN);
-                    }
-                    global.isCurrentlyWorkingOut = true;
-                    const wid = makeID();
-                    const created = Date.now();
-                    const name = defaultWorkoutName(tplOrNull, created);
-                    const appliedPrivacy = coercePrivacyMode(privacyOverride || "global");
-
-                    const normalizeSets = (sets) =>
-                        Array.isArray(sets) && sets.length
-                            ? sets.map((s) => ({
-                                id: s?.id || `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`,
-                                weight: Number(s?.weight) || 0,
-                                reps: Number(s?.reps) || 0,
-                                isDone: !!s?.isDone,
-                                type: s?.type || null,
-                                prev: normalizePrevPayload(s?.prev),
-                            }))
-                            : [{
-                                id: `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`,
-                                weight: 0,
-                                reps: 0,
-                                isDone: false,
-                                type: null,
-                                prev: null,
-                            }];
-
-                    const exercisesFromTpl = tplOrNull?.exercises
-                        ? tplOrNull.exercises.map((ex) => ({ ...ex, sets: normalizeSets(ex?.sets) }))
-                        : [];
-
-                    const {
-                        uid: creatorUidStr,
-                        handle: creatorHandle,
-                        name: creatorDisplayName,
-                        pfp: creatorPfp,
-                        pfpVersion: creatorPfpVersion,
-                    } = readCreatorDetails();
-                    const creatorMetadata = {
-                        uid: creatorUidStr,
-                        ...(creatorHandle ? { handle: creatorHandle } : {}),
-                        ...(creatorDisplayName ? { name: creatorDisplayName } : {}),
-                        ...(creatorPfp ? { pfp: creatorPfp } : {}),
-                        pfpVersion: creatorPfpVersion,
-                    };
-
-                    const newWorkout = {
-                        wid,
-                        creatorUID: creatorUidStr || uid,
-                        created,
-                        name,
-                        users: [],
-                        exercises: exercisesFromTpl,
-                        tid: tplOrNull?.tid || tplOrNull?.id || null,
-                        volume: 0, reps: 0, PBs: 0,
-                        privacyMode: appliedPrivacy,
-                        ...(creatorHandle ? { creatorHandle } : {}),
-                        ...(creatorDisplayName ? { creatorName: creatorDisplayName } : {}),
-                        ...(creatorPfp ? { pfp: creatorPfp, creatorPfp } : {}),
-                        pfpVersion: creatorPfpVersion,
-                        creator: creatorMetadata,
-                    };
-
-                    // Mark local state as just-started so UI (e.g., reminder) can react once.
-                    // Do not persist this flag to Firestore.
-                    const localWorkout = { ...newWorkout, __justStarted: true };
-                    setWorkoutInStore(localWorkout);
-                    setSheetState(skipUI ? WORKOUT_SHEET_STATES.COLLAPSED : WORKOUT_SHEET_STATES.EXPANDED);
-                    if (!skipUI) {
-                        // Signal the Workout screen and open the sheet; do both to defeat any transient races
-                        try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
-                        setIsNewWorkoutVisible(true);
-                    } else {
-                        setIsNewWorkoutVisible(false);
-                    }
-                    try { global.__showWorkoutReminderForWid = wid; } catch {}
-                    startTimer(created);
-
-                    clearPersistDebounce();
-                    setDoc(doc(db, "users", uid), { currentWorkout: newWorkout }, { merge: true })
-                        .catch((e) => console.log("setDoc users.currentWorkout error", e));
-
-                    createWorkoutDoc(wid, name, appliedPrivacy).catch((e) => console.log("createWorkoutDoc error", e));
-                } else {
-                    if (!skipUI) {
-                        setIsNewWorkoutVisible(true);
-                        setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
-                    }
+            const recentlyCancelled = (Date.now() - (lastCancelAtRef.current || 0)) < 2000;
+            const existing = useWorkoutStore.getState().workout;
+            if (forceFresh || !existing || recentlyCancelled) {
+                if (recentlyCancelled) {
+                    // Make sure no stale state remains before creating the new workout
+                    setWorkoutInStore(null);
+                    setSheetState(WORKOUT_SHEET_STATES.HIDDEN);
                 }
+                global.isCurrentlyWorkingOut = true;
+                const wid = makeID();
+                const created = Date.now();
+                const name = defaultWorkoutName(tplOrNull, created);
+                const appliedPrivacy = coercePrivacyMode(privacyOverride || "global");
+
+                const normalizeSets = (sets) =>
+                    Array.isArray(sets) && sets.length
+                        ? sets.map((s) => ({
+                            id: s?.id || `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`,
+                            weight: Number(s?.weight) || 0,
+                            reps: Number(s?.reps) || 0,
+                            isDone: !!s?.isDone,
+                            type: s?.type || null,
+                            prev: normalizePrevPayload(s?.prev),
+                        }))
+                        : [{
+                            id: `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`,
+                            weight: 0,
+                            reps: 0,
+                            isDone: false,
+                            type: null,
+                            prev: null,
+                        }];
+
+                const exercisesFromTpl = tplOrNull?.exercises
+                    ? tplOrNull.exercises.map((ex) => ({ ...ex, sets: normalizeSets(ex?.sets) }))
+                    : [];
+                const {
+                    uid: creatorUidStr,
+                    handle: creatorHandle,
+                    name: creatorDisplayName,
+                    pfp: creatorPfp,
+                    pfpVersion: creatorPfpVersion,
+                } = readCreatorDetails();
+                const creatorMetadata = {
+                    uid: creatorUidStr,
+                    ...(creatorHandle ? { handle: creatorHandle } : {}),
+                    ...(creatorDisplayName ? { name: creatorDisplayName } : {}),
+                    ...(creatorPfp ? { pfp: creatorPfp } : {}),
+                    pfpVersion: creatorPfpVersion,
+                };
+
+                const newWorkout = {
+                    wid,
+                    creatorUID: creatorUidStr || uid,
+                    created,
+                    name,
+                    users: [],
+                    exercises: exercisesFromTpl,
+                    tid: tplOrNull?.tid || tplOrNull?.id || null,
+                    volume: 0,
+                    reps: 0,
+                    PBs: 0,
+                    privacyMode: appliedPrivacy,
+                    ...(creatorHandle ? { creatorHandle } : {}),
+                    ...(creatorDisplayName ? { creatorName: creatorDisplayName } : {}),
+                    ...(creatorPfp ? { pfp: creatorPfp, creatorPfp } : {}),
+                    pfpVersion: creatorPfpVersion,
+                    creator: creatorMetadata,
+                };
+
+                const localWorkout = { ...newWorkout, __justStarted: true };
+                setWorkoutInStore(localWorkout);
+                setSheetState(skipUI ? WORKOUT_SHEET_STATES.COLLAPSED : WORKOUT_SHEET_STATES.EXPANDED);
+                if (!skipUI) {
+                    try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
+                    setIsNewWorkoutVisible(true);
+                } else {
+                    setIsNewWorkoutVisible(false);
+                }
+                try { global.__showWorkoutReminderForWid = wid; } catch {}
+                startTimer(created);
+
+                clearPersistDebounce();
+                setDoc(doc(db, "users", uid), { currentWorkout: newWorkout }, { merge: true })
+                    .catch((e) => console.log("setDoc users.currentWorkout error", e));
+
+                createWorkoutDoc(wid, name, appliedPrivacy).catch((e) => console.log("createWorkoutDoc error", e));
+            } else {
+                if (!skipUI) {
+                    setIsNewWorkoutVisible(true);
+                    setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
+                }
+            }
             } catch (e) {
                 console.log("startWorkout error", e);
                 Alert.alert("Couldn't start workout", e?.message || "Please try again.");

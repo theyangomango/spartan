@@ -41,8 +41,8 @@ const LeaderboardPanel = ({
         return inset > 0 ? inset + scaleSize(6) : scaleSize(10);
     }, [insets.bottom]);
     const targetMinHeight = useMemo(() => {
-        const proportional = Math.max(1, Math.ceil(H * 0.74));
-        const scaledFloor = scaleSize(520);
+        const proportional = Math.max(1, Math.ceil(H * 0.58));
+        const scaledFloor = scaleSize(360);
         return Math.max(proportional, scaledFloor);
     }, [H]);
 
@@ -58,6 +58,10 @@ const LeaderboardPanel = ({
         const rowHeight = scaleSize(64) + scaleSize(12.5); // card height + spacing
         const estimatedRows = userList.length * rowHeight;
         const estimatedHeight = approxHeader + estimatedRows + bottomPadding;
+        if (userList.length <= 6) {
+            const compactFloor = scaleSize(280);
+            return Math.max(compactFloor, Math.round(estimatedHeight));
+        }
 
         return Math.max(baseMin, Math.round(estimatedHeight));
     }, [targetMinHeight, minHeightOverride, userList, bottomPadding]);
