@@ -73,7 +73,7 @@ const ExerciseOptionsPanel = ({ visible, onClose, position, replaceExercise, del
                             </View>
                             <Text style={styles.rowText}>Replace exercise</Text>
                         </View>
-                        <MaterialCommunityIcons name="chevron-right" size={20} color="#9AA3AF" />
+                        <MaterialCommunityIcons name="chevron-right" size={22} color="#9AA3AF" />
                     </RNBounceable>
 
                     <View style={styles.divider} />
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     },
     header: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(11.5),
+        fontSize: scaleSize(13.5),
         color: theme.textSecondary,
         paddingHorizontal: scaleSize(8),
         paddingBottom: scaleSize(6),
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     },
     rowText: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(14),
         color: theme.textPrimary,
     },
     divider: {

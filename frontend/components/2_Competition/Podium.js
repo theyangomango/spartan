@@ -5,7 +5,7 @@ import FastImage from "react-native-fast-image";
 import scaleSize from "../../helper/scaleSize";
 const ts = require('../../helper/scaleSize').ts;
 
-const PODIUM_HEIGHT = scaleSize(230);
+const PODIUM_HEIGHT = scaleSize(240);
 export { PODIUM_HEIGHT };
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)

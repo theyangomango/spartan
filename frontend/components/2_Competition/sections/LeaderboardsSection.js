@@ -1161,7 +1161,7 @@ export default function LeaderboardsSection({ navigation }) {
                 <View
                     style={[
                         styles.header,
-                        { paddingHorizontal: SIZES.headerPaddingHorizontal + scaleSize(14) },
+                        { paddingHorizontal: SIZES.headerPaddingHorizontal + scaleSize(4) },
                         !isCustomTribe && styles.headerCondensed,
                     ]}
                 >
@@ -1422,7 +1422,7 @@ const styles = StyleSheet.create({
         width: "100%",
         paddingTop: scaleSize(16),
         paddingBottom: scaleSize(8),
-        paddingHorizontal: scaleSize(10)
+        paddingHorizontal: scaleSize(9)
     },
     scopeToggleRow: {
         alignSelf: "flex-start",

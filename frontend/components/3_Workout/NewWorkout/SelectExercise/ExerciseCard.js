@@ -83,7 +83,7 @@ const ExerciseCard = memo(
                 </View>
 
                 <View style={styles.previewWrapper}>
-                    <ExerciseImagePreview exercise={name} size={scaledSize(100)} />
+                    <ExerciseImagePreview exercise={name} size={scaledSize(110)} />
                 </View>
 
                 <View style={styles.infoSection}>

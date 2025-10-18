@@ -59,9 +59,9 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     // Match Macro Tracking palette (protein, carbs, fat)
-    total_workouts_stat_ctnr: { backgroundColor: 'rgba(72, 139, 220, 0.24)' },
-    gym_time_stat_ctnr: { backgroundColor: 'rgba(255, 76, 154, 0.22)' },
-    total_volume_stat_ctnr: { backgroundColor: 'hsla(36, 84%, 57%, 0.29)' },
+    total_workouts_stat_ctnr: { backgroundColor: 'rgba(22, 121, 243, 0.45)' },
+    gym_time_stat_ctnr: { backgroundColor: 'rgba(221, 72, 137, 0.49)' },
+    total_volume_stat_ctnr: { backgroundColor: 'hsla(36, 85%, 54%, 0.47)' },
     workout_stat_text: {
         fontFamily: 'Poppins_600SemiBold',
         fontSize: scaleSize(11.5),
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(16),
     },
     total_workouts_stat_number: {
-        color: '#6C98FC',
+        color: '#80a6ffff',
     },
     gym_time_stat_number: {
         color: '#FF7CB5',

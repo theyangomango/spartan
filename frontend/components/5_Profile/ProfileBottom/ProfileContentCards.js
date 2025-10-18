@@ -4,7 +4,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { Weight, Copy } from "iconsax-react-native";
 import scaleSize from "../../../helper/scaleSize";
 import { withStrongPress } from "../../../utils/haptics";
-
 const formatCount = (value, singular) => {
     const count = Number.isFinite(value) ? value : Number(value) || 0;
     const safeCount = count < 0 ? 0 : count;
@@ -50,10 +49,14 @@ const ProfileContentCards = ({
         <View style={styles.container}>
             <Pressable
                 onPress={withStrongPress(onPressWorkoutsAndPosts)}
-                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+                style={({ pressed }) => [
+                    styles.card,
+                    styles.cardDivider,
+                    pressed && styles.cardPressed
+                ]}
             >
                 <View style={[styles.iconBadge, styles.workoutsBadge]}>
-                    <Weight size={scaleSize(18)} color="#F0F5FF" />
+                    <Weight size={scaleSize(24)} color="#F0F5FF" />
                 </View>
                 <View style={styles.cardTextWrap}>
                     <Text style={styles.cardTitle}>Workouts & Posts</Text>
@@ -69,10 +72,14 @@ const ProfileContentCards = ({
 
             <Pressable
                 onPress={withStrongPress(onPressTemplates)}
-                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+                style={({ pressed }) => [
+                    styles.card,
+                    styles.lastCard,
+                    pressed && styles.cardPressed
+                ]}
             >
                 <View style={[styles.iconBadge, styles.templatesBadge]}>
-                    <Copy size={scaleSize(17)} color="#F4EEFF" />
+                    <Copy size={scaleSize(23)} color="#F4EEFF" />
                 </View>
                 <View style={styles.cardTextWrap}>
                     <Text style={styles.cardTitle}>Templates</Text>
@@ -90,31 +97,32 @@ const ProfileContentCards = ({
 };
 
 const CARD_RADIUS = scaleSize(20);
-const CARD_BACKGROUND = 'rgba(43, 47, 60, 0.96)';
-const CARD_BORDER = 'rgba(194, 208, 238, 0.32)';
+const CARD_BACKGROUND = 'transparent';
+const CARD_DIVIDER = 'rgba(255, 255, 255, 0.08)';
 
 const styles = StyleSheet.create({
     container: {
-        gap: scaleSize(10),
+        backgroundColor: CARD_BACKGROUND,
+        borderTopWidth: 2,
+        borderBottomWidth: 2,
+        borderColor: CARD_DIVIDER,
     },
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: scaleSize(18),
+        paddingVertical: scaleSize(17),
         paddingHorizontal: scaleSize(18),
-        borderRadius: CARD_RADIUS,
-        backgroundColor: CARD_BACKGROUND,
-        borderWidth: scaleSize(1),
-        borderColor: CARD_BORDER,
-        shadowColor: '#050914',
-        shadowOpacity: 0.3,
-        shadowRadius: scaleSize(20),
-        shadowOffset: { width: 0, height: scaleSize(12) },
-        elevation: 7,
+        backgroundColor: 'transparent',
+    },
+    cardDivider: {
+        borderBottomWidth: 2,
+        borderBottomColor: CARD_DIVIDER,
+    },
+    lastCard: {
+        borderBottomWidth: 0,
     },
     cardPressed: {
-        transform: [{ scale: 0.983 }],
-        opacity: 0.9,
+        backgroundColor: 'rgba(255, 255, 255, 0.03)',
     },
     iconBadge: {
         width: scaleSize(35),
@@ -124,30 +132,30 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         marginRight: scaleSize(14),
         borderWidth: scaleSize(1),
-        backgroundColor: 'rgba(38, 45, 64, 0.82)',
-        borderColor: 'rgba(168, 188, 224, 0.28)',
+        // backgroundColor: 'rgba(38, 45, 64, 0.82)',
+        // borderColor: 'rgba(168, 188, 224, 0.28)',
     },
     workoutsBadge: {
-        backgroundColor: 'rgba(108, 152, 252, 0.28)',
-        borderColor: 'rgba(141, 183, 255, 0.52)',
+        // backgroundColor: 'rgba(108, 152, 252, 0.28)',
+        // borderColor: 'rgba(141, 183, 255, 0.52)',
     },
     templatesBadge: {
-        backgroundColor: 'rgba(182, 156, 255, 0.28)',
-        borderColor: 'rgba(210, 189, 255, 0.5)',
+        // backgroundColor: 'rgba(182, 156, 255, 0.28)',
+        // borderColor: 'rgba(210, 189, 255, 0.5)',
     },
     cardTextWrap: {
         flex: 1,
     },
     cardTitle: {
         fontFamily: 'Nunito_800ExtraBold',
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(12.5),
         color: '#F6F8FF',
-        marginBottom: scaleSize(1),
+        marginBottom: scaleSize(2),
         letterSpacing: scaleSize(0.1),
     },
     cardSubtitle: {
         fontFamily: 'Nunito_700Bold',
-        fontSize: scaleSize(12.1),
+        fontSize: scaleSize(12),
         color: 'rgba(214, 222, 238, 0.75)',
         letterSpacing: scaleSize(0.035),
     },

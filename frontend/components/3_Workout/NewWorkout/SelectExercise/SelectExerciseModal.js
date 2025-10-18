@@ -301,7 +301,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
     const indexedExercises = useMemo(() => {
         return exercises.map((ex) => ({
             ...ex,
-            nameLc: String(ex?.name || "").toLowerCase(),
+            nameLc: String(ex?.namee || "").toLowerCase(),
             mgLc: String(ex?.muscleGroup || "").toLowerCase(),
             equipNorm: normalizeEquipment(ex?.equipment),
         }));
@@ -616,7 +616,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                         <View
                             style={[
                                 styles.footer,
-                                { paddingBottom: insetBottom + scaledSize(16) },
+                                { paddingBottom: insetBottom + scaledSize(4) },
                             ]}
                         >
                             <AnimatedButton
