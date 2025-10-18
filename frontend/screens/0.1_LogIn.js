@@ -48,13 +48,8 @@ const LogIn = ({ navigation }) => {
     const handleGoogleSuccess = useCallback(() => {
         setErrorMsg('');
         try {
-            const { jumpToTab } = require('../../navigationRef');
-            if (jumpToTab) {
-                jumpToTab('Workout');
-                return;
-            }
+            navigation.navigate('Tabs');
         } catch {}
-        navigation.navigate('Tabs', { screen: 'Workout' });
     }, [navigation]);
 
     return (

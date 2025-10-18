@@ -15,6 +15,7 @@ import {
     updateNotificationEvent,
 } from "../../../state/notificationsStore";
 import { shallow } from "zustand/shallow";
+import { joinWorkoutFromPayload } from "../../../workout/workoutActions";
 
 export const NOTIFICATION_FILTERS = ["All", "Likes", "Comments", "Follows", "Workouts"];
 
@@ -68,21 +69,13 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
                 read: true,
             }));
 
-            try {
-                global.__pendingWorkoutJoin = {
-                    wid,
-                    seedWorkout: seedWorkout || null,
-                    inviterUid: String(item?.uid || ""),
-                    ts: Date.now(),
-                };
-            } catch {}
-
             try { navigation?.goBack?.(); } catch {}
 
-            try {
-                const { jumpToTab } = require('../../../../navigationRef');
-                jumpToTab('Workout', { _joinTs: Date.now() });
-            } catch {}
+            joinWorkoutFromPayload({
+                wid,
+                seedWorkout: seedWorkout || null,
+                inviterUid: String(item?.uid || ""),
+            });
 
             return true;
         } catch (err) {

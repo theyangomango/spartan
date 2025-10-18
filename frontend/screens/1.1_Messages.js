@@ -21,6 +21,7 @@ import {
     subscribeMessagesCache,
 } from "../state/messagesCache";
 import { ensureMessageListener, syncMessageListeners } from "../logic/messagesPreloader";
+import { openActiveWorkout } from "../workout/workoutActions";
 
 export default function Messages({ navigation, route }) {
     const userData = global.userData;
@@ -222,8 +223,11 @@ export default function Messages({ navigation, route }) {
 
         // Fallback: navigate explicitly based on hint or default to Feed
         const hint = route?.params?.returnTo;
-        const dest = hint === 'Workout' ? 'Workout' : 'Feed';
-        navigation.navigate(dest, dest === 'Feed' ? { messages: chats } : undefined);
+        if (hint === 'Workout') {
+            openActiveWorkout();
+            return;
+        }
+        navigation.navigate('Feed', { messages: chats });
     };
 
     // Reset unread messages aggregate when viewing Messages

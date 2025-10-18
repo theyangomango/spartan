@@ -130,13 +130,9 @@ const NewUserCreation = ({ navigation, route }) => {
                 console.log('Failed to append to Spartan followers:', e?.message || e);
             }
 
-            // Jump to Workout tab without remounts
             try {
-                const { jumpToTab } = require('../../navigationRef');
-                jumpToTab('Workout');
-            } catch {
-                navigation.navigate('Tabs', { screen: 'Workout' });
-            }
+                navigation.navigate('Tabs');
+            } catch {}
         } catch (err) {
             console.warn('Sign-up failed:', err?.message || err);
             setErrorMsg('Sign-up failed. Please try again.');

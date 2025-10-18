@@ -7,6 +7,7 @@ import { jumpToTab, navigationRef } from '../../navigationRef';
 import theme from '../theme/mfpDark';
 import Animated, { useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';
 import scaleSize from "../helper/scaleSize";
+import { openActiveWorkout, startFreshWorkout } from "../workout/workoutActions";
 
 const FOOTER_BASE_HEIGHT = scaleSize(87);
 export const FOOTER_HIDE_OFFSET = FOOTER_BASE_HEIGHT + scaleSize(18);
@@ -98,56 +99,29 @@ const Footer = ({
         };
     });
 
-    const weightIconColor = currentScreenName === 'Workout'
-        ? COLORS.actionIconActive
-        : COLORS.actionIcon;
-    const weightCircleColor = currentScreenName === 'Workout'
-        ? COLORS.actionCircleActive
-        : COLORS.actionCircle;
-
-    const focusWorkoutTab = useCallback(() => {
-        if (currentScreenName === 'Workout') return;
-        try {
-            go('Workout')();
-        } catch { /* ignore navigation issues */ }
-    }, [currentScreenName, go]);
-
-    const ensureWorkoutExpanded = useCallback(() => {
-        try {
-            const store = useWorkoutStore.getState();
-            store?.setSheetState?.(WORKOUT_SHEET_STATES.EXPANDED);
-            const setVisible = store?.sheetHandlers?.setIsVisible;
-            if (typeof setVisible === 'function') {
-                setVisible(true);
-            }
-        } catch { /* ignore */ }
-        try {
-            const openModal = global?.openWorkoutModal;
-            if (typeof openModal === 'function') {
-                if (typeof requestAnimationFrame === 'function') {
-                    requestAnimationFrame(() => {
-                        try { openModal(); } catch { }
-                    });
-                } else {
-                    setTimeout(() => {
-                        try { openModal(); } catch { }
-                    }, 0);
-                }
-            }
-        } catch { /* ignore */ }
-    }, []);
+    const workoutHighlighted = hasActiveWorkout && sheetState !== WORKOUT_SHEET_STATES.HIDDEN;
+    const weightIconColor = workoutHighlighted ? COLORS.actionIconActive : COLORS.actionIcon;
+    const weightCircleColor = workoutHighlighted ? COLORS.actionCircleActive : COLORS.actionCircle;
 
     const handleStartWorkout = useCallback(() => {
-        focusWorkoutTab();
-        ensureWorkoutExpanded();
-        const startFn = typeof startWorkoutHandler === 'function' ? startWorkoutHandler : null;
-        const options = { forceFresh: true, skipUI: false };
-        if (startFn) {
-            startFn(null, options);
+        if (hasActiveWorkout) {
+            openActiveWorkout();
             return;
         }
-        try { global.__startEmptyWorkout && global.__startEmptyWorkout(null, options); } catch {}
-    }, [ensureWorkoutExpanded, focusWorkoutTab, startWorkoutHandler]);
+        const options = { forceFresh: true, skipUI: false };
+        const startFn = typeof startWorkoutHandler === 'function' ? startWorkoutHandler : null;
+        if (startFn) {
+            try {
+                startFn(null, options);
+            } catch {
+                startFreshWorkout(null, options);
+                return;
+            }
+            openActiveWorkout();
+            return;
+        }
+        startFreshWorkout(null, options);
+    }, [hasActiveWorkout, startWorkoutHandler]);
 
     return (
         <Animated.View style={[styles.outer_view, outerAnimatedStyle]} pointerEvents={footerPointerEvents}>
@@ -202,7 +176,7 @@ const Footer = ({
                                 style={[
                                     styles.workout_action,
                                     { backgroundColor: weightCircleColor },
-                                    currentScreenName === 'Workout' && styles.workout_action_active,
+                                    workoutHighlighted && styles.workout_action_active,
                                 ]}
                             >
                                 <Weight size={24} color={'#000'} variant="Bold" />

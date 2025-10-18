@@ -3,6 +3,7 @@ import { Animated, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import InviteBanner from "./3_Workout/InviteBanner";
 import useWorkoutInvites from "../hooks/useWorkoutInvites";
+import { joinWorkoutFromPayload } from "../workout/workoutActions";
 
 const AnimatedView = Animated.View;
 
@@ -14,47 +15,11 @@ export default function WorkoutInviteOverlay({ enabled = true }) {
         const invite = latestInviteRef.current;
         try { global.isCurrentlyWorkingOut = true; } catch {}
 
-        let joinedDirectly = false;
-        try {
-            const directJoin = global?.__joinExternalWorkoutDirect;
-            if (typeof directJoin === "function") {
-                const maybe = directJoin({
-                    wid,
-                    seedWorkout: seedWorkout || null,
-                    inviterUid: invite?.fromUid ? String(invite.fromUid) : null,
-                });
-                joinedDirectly = true;
-                if (maybe && typeof maybe.catch === "function") {
-                    maybe.catch(() => { });
-                }
-            }
-        } catch {
-            joinedDirectly = false;
-        }
-
-        if (!joinedDirectly) {
-            try {
-                global.__pendingWorkoutJoin = {
-                    wid,
-                    seedWorkout: seedWorkout || null,
-                    inviterUid: invite?.fromUid ? String(invite.fromUid) : null,
-                    ts: Date.now(),
-                };
-            } catch {}
-        } else {
-            try {
-                if (global.__pendingWorkoutJoin?.wid === wid) {
-                    global.__pendingWorkoutJoin = null;
-                }
-            } catch {}
-        }
-
-        try {
-            const { jumpToTab } = require("../../navigationRef");
-            if (typeof jumpToTab === "function") {
-                jumpToTab("Workout", { _joinTs: Date.now() });
-            }
-        } catch {}
+        joinWorkoutFromPayload({
+            wid,
+            seedWorkout: seedWorkout || null,
+            inviterUid: invite?.fromUid ? String(invite.fromUid) : null,
+        });
     }, []);
 
     const {

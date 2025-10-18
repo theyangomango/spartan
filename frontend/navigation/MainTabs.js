@@ -3,7 +3,6 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
 import Feed from '../screens/FeedScreen';
 import MacroTracking from '../screens/MacroTracking';
-import Workout from '../screens/3_Workout';
 import Competition from '../screens/2_Competition';
 import Profile from '../screens/5_Profile';
 
@@ -30,7 +29,6 @@ const MainTabs = ({ route }) => {
         >
             <Tab.Screen name="Feed" component={Feed} initialParams={initialParams} />
             <Tab.Screen name="MacroTracking" component={MacroTracking} />
-            <Tab.Screen name="Workout" component={Workout} initialParams={initialParams} />
             <Tab.Screen name="Competition" component={Competition} />
             <Tab.Screen name="Profile" component={Profile} />
         </Tab.Navigator>

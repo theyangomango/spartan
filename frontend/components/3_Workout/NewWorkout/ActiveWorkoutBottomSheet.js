@@ -15,13 +15,14 @@ import useWorkoutStore, { WORKOUT_SHEET_STATES } from "../../../state/workoutSto
 import scaleSize from "../../../helper/scaleSize";
 import { navigationRef } from "../../../../navigationRef";
 import { shallow } from 'zustand/shallow';
+import { activeWorkoutHighlight } from "./activeWorkoutColors";
 
 const FOOTER_HEIGHT = scaleSize(87);
 const COLLAPSED_PEEK = FOOTER_HEIGHT + scaleSize(48);
 const COLLAPSED_SNAP = COLLAPSED_PEEK;
 const noop = () => { };
 const SHEET_RADIUS = scaleSize(22);
-const HANDLE_BG_COLLAPSED = 'rgba(45, 157, 255, 0.76)';
+const HANDLE_BG_COLLAPSED = activeWorkoutHighlight(0.76);
 const HANDLE_BG_EXPANDED = 'rgba(45, 158, 255, 0)';
 const HANDLE_BAR_COLOR_COLLAPSED = 'rgba(23, 62, 120, 0.95)';
 const HANDLE_BAR_COLOR_EXPANDED = 'rgba(226, 232, 240, 0.7)';

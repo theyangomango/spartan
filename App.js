@@ -40,7 +40,6 @@ import Profile from './frontend/screens/5_Profile';
 import SelectPhotosScreen from './frontend/components/5_Profile/MakePost/SelectPhotosScreen';
 import PostUploadOptionsScreen from './frontend/components/5_Profile/MakePost/PostUploadOptionsScreen';
 import Explore from './frontend/screens/4_Explore';
-import Workout from './frontend/screens/3_Workout';
 import Competition from './frontend/screens/2_Competition';
 import ExerciseDetail from './frontend/screens/ExerciseDetail';
 import Messages from './frontend/screens/1.1_Messages';
@@ -63,12 +62,14 @@ import NoInternet from './frontend/screens/NoInternet';
 // Dark theme palette
 import theme from './frontend/theme/mfpDark';
 import ActiveWorkoutBottomSheet from './frontend/components/3_Workout/NewWorkout/ActiveWorkoutBottomSheet';
+import WorkoutExperiencePortal from './frontend/components/3_Workout/WorkoutExperiencePortal';
 import Footer from './frontend/components/Footer';
 import MainTabs from './frontend/navigation/MainTabs';
 import useFooterSuppressionStore, { setFooterSuppressed, clearFooterSuppression } from './frontend/state/footerSuppressionStore';
 import { preloadMessagesForUid, resetMessagesState } from './frontend/logic/messagesPreloader';
 import { ensureNotificationsListener, stopNotificationsListener } from './frontend/state/notificationsStore';
 import WorkoutInviteOverlay from './frontend/components/WorkoutInviteOverlay';
+import { openActiveWorkout } from './frontend/workout/workoutActions';
 
 const AUTH_BACKGROUND_ASSET = require('./frontend/assets/AUTH_BACKGROUND.jpg');
 const PRELOADED_FONTS = {
@@ -82,7 +83,7 @@ try { global.userData = global.userData || {}; } catch { }
 // Single root stack: iOS uses classic stack for left-slide; Android uses native-stack for perf
 const RootStack = Platform.OS === 'ios' ? createStackNavigator() : createNativeStackNavigator();
 
-const FOOTER_MAIN_SCREENS = ['Feed', 'MacroTracking', 'Workout', 'Competition', 'Profile'];
+const FOOTER_MAIN_SCREENS = ['Feed', 'MacroTracking', 'Competition', 'Profile'];
 const FOOTER_ROUTE_TAB_OVERRIDES = {
     ViewProfile: 'Profile',
 };
@@ -929,9 +930,7 @@ export default function App() {
 
     const handleOpenWorkoutFromReminder = () => {
         try {
-            const { jumpToTab } = require('./navigationRef');
-            if (jumpToTab) jumpToTab('Workout');
-            try { global.openCurrentWorkoutSignal = Date.now(); } catch { }
+            openActiveWorkout();
         } catch { }
         // Acknowledge this cycle to avoid re-showing until a new timer starts
         try { const cid = Number(restReminderCycleRef.current || 0); if (cid) { global.__restCycleAck = cid; restAckRef.current = cid; } } catch { }
@@ -1025,33 +1024,6 @@ return (
                         <RootStack.Screen
                             name="MacroTracking"
                             component={MacroTracking}
-                            options={({ route }) => Platform.select({
-                                ios: {
-                                    gestureEnabled: true,
-                                    gestureDirection: route?.params?.transition === 'slide-from-left' ? 'horizontal-inverted' : 'horizontal',
-                                    cardStyleInterpolator: route?.params?.transition === 'fade'
-                                        ? CardStyleInterpolators.forFadeFromCenter
-                                        : CardStyleInterpolators.forHorizontalIOS,
-                                    transitionSpec: {
-                                        open: TransitionSpecs.TransitionIOSSpec,
-                                        close: { animation: 'timing', config: { duration: 0 } },
-                                    },
-                                },
-                                android: {
-                                    gestureEnabled: true,
-                                    fullScreenGestureEnabled: true,
-                                    animation: route?.params?.transition === 'fade'
-                                        ? 'fade'
-                                        : (route?.params?.transition === 'slide-from-left' ? 'slide_from_left' : 'slide_from_right'),
-                                },
-                                default: {},
-                            })}
-                        />
-
-                        <RootStack.Screen
-                            name="Workout"
-                            component={Workout}
-                            initialParams={{ uid: uidRef.current }}
                             options={({ route }) => Platform.select({
                                 ios: {
                                     gestureEnabled: true,
@@ -1189,6 +1161,9 @@ return (
                 </NavigationContainer>
             )}
             <WorkoutInviteOverlay enabled={authChecked && isAuthenticated} />
+            {authChecked && isAuthenticated && (
+                <WorkoutExperiencePortal uid={uidRef.current} enabled />
+            )}
             {authChecked && isAuthenticated && (
                 <ActiveWorkoutBottomSheet
                     hideForFocus={isFeedPostFocused}

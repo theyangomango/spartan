@@ -81,11 +81,8 @@ const UserLogInCredentials = ({ navigation }) => {
                 });
                 try { global.setAuthUid?.(user.uid); } catch {}
                 try {
-                    const { jumpToTab } = require('../../navigationRef');
-                    jumpToTab('Workout');
-                } catch {
-                    navigation.navigate('Tabs', { screen: 'Workout' });
-                }
+                    navigation.navigate('Tabs');
+                } catch { }
             } else {
                 // No matching user found
                 console.log('Login failed: Invalid credentials');
@@ -112,11 +109,8 @@ const UserLogInCredentials = ({ navigation }) => {
             await upsertGoogleUser(profile);
 
             try {
-                const { jumpToTab } = require('../../navigationRef');
-                jumpToTab('Workout');
-            } catch {
-                navigation.navigate('Tabs', { screen: 'Workout' });
-            }
+                navigation.navigate('Tabs');
+            } catch { }
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Google sign-in failed. Please try again.';
             setErrorMsg(message);

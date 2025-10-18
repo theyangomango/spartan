@@ -1,8 +1,7 @@
 // components/Tracking/Group/GroupHeader.jsx
 import React, { useEffect, useRef, memo } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import scaleSize from "../../../../helper/scaleSize";
+import scaleSize, { ts } from "../../../../helper/scaleSize";
 import * as Haptics from "expo-haptics";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -73,7 +72,6 @@ const GroupHeader = ({
     // This fixes the initial render showing a default/placeholder when the async hook resolves.
     const pfpToShow = normalizeUri(overlayPfp) || lastGoodPfpRef.current;
 
-    const inviteGradientColors = ["#6B3A1F", "#251F30"];
     const inviteLabel = inActiveGroup ? "Switch" : "Invite";
 
     // Show timer on the left only when viewing self. When spectating (any case),
@@ -138,41 +136,15 @@ const GroupHeader = ({
             {/* Right: ONLY PFP (no friends icon) + Finish/Cheer */}
             <View style={styles.header_right}>
                 {!normalizedPfpOnLeft && (
-                    <Pressable
+                    <RNBounceable
                         disabled={disableGroup}
                         onPress={disableGroup ? undefined : (onOpenMenu ? withHaptics(onOpenMenu) : undefined)}
                         onLongPress={disableGroup ? undefined : (onLongPressInvite ? withHaptics(onLongPressInvite) : undefined)}
-                        style={[styles.inviteBtnWrapper, disableGroup && { opacity: 0.9 }]}
+                        style={[styles.invite_btn, disableGroup && styles.invite_btn_disabled]}
+                        activeScale={disableGroup ? 1 : 0.96}
                     >
-                        <LinearGradient
-                            colors={inviteGradientColors}
-                            start={{ x: 0, y: 0.5 }}
-                            end={{ x: 1, y: 0.5 }}
-                            style={[styles.pfpBtn, !selfLayout && styles.pfpFriend]}
-                        >
-                            <Text style={[styles.inviteText, !selfLayout && styles.inviteTextMuted]}>{inviteLabel}</Text>
-                            <View style={[styles.pfpWrap, !selfLayout && styles.pfpFriendRing]}>
-                                {pfpToShow ? (
-                                    <FastImage
-                                        source={{
-                                            uri: pfpToShow,
-                                            priority: FastImage.priority.normal,
-                                            cache: FastImage.cacheControl.immutable,
-                                        }}
-                                        style={styles.pfp}
-                                        resizeMode={FastImage.resizeMode.cover}
-                                        onError={() => {
-                                            // If an image fails (e.g., token rotation), keep the last good URI
-                                            // and avoid flipping to placeholder for a frame.
-                                            pendingErrorRef.current = true;
-                                        }}
-                                    />
-                                ) : (
-                                    <View style={[styles.pfp, { backgroundColor: "#EEE" }]} />
-                                )}
-                            </View>
-                        </LinearGradient>
-                    </Pressable>
+                        <Text style={styles.invite_btn_text}>{inviteLabel}</Text>
+                    </RNBounceable>
                 )}
 
                 {selfLayout ? (
@@ -236,20 +208,29 @@ const styles = StyleSheet.create({
 
     header_right: { flexDirection: "row", alignItems: "center", flexShrink: 0 },
 
-    // Invite button with trailing avatar
-    inviteBtnWrapper: {
-        borderRadius: scaledSize(10),
-        overflow: 'hidden',
+    invite_btn: {
         flexShrink: 0,
-    },
-    pfpBtn: {
-        flexDirection: "row",
+        paddingVertical: scaledSize(7),
+        paddingHorizontal: scaledSize(20),
+        borderRadius: scaledSize(24),
+        backgroundColor: '#2D9EFF',
+        justifyContent: "center",
         alignItems: "center",
-        height: scaledSize(38),
-        paddingHorizontal: scaledSize(12),
-        borderRadius: scaledSize(12),
+        shadowColor: '#2D9EFF',
+        shadowOpacity: 0.22,
+        shadowRadius: scaleSize(10),
+        shadowOffset: { width: 0, height: scaleSize(4) },
+        elevation: 4,
     },
-    pfpFriend: { opacity: 0.85 },
+    invite_btn_disabled: {
+        opacity: 0.55,
+    },
+    invite_btn_text: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: ts(12.5),
+        color: "#FFFFFF",
+        includeFontPadding: false,
+    },
 
     pfpWrap: {
         width: scaledSize(23),
@@ -270,17 +251,6 @@ const styles = StyleSheet.create({
     pfpLeftWrap: { width: scaledSize(28), height: scaledSize(28) },
     pfpFriendRing: { borderColor: theme.primary },
     pfp: { width: "100%", height: "100%", borderRadius: scaledSize(20) },
-
-    inviteText: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(14),
-        color: theme.textPrimary,
-        includeFontPadding: false,
-    },
-    inviteTextMuted: {
-        color: theme.textSecondary,
-    },
-
 
     // Self: Finish
     finish_btn: {

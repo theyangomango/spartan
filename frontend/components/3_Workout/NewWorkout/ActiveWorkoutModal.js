@@ -26,7 +26,6 @@ const AnimatedFlashList = RNAnimated.createAnimatedComponent(BaseListComponent);
 import Animated, { useAnimatedStyle, interpolate, interpolateColor, Extrapolate, useAnimatedReaction, runOnJS } from "react-native-reanimated";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Weight } from "iconsax-react-native";
-import { Ionicons } from "@expo/vector-icons";
 import { strong as haptic, withStrongPress } from "../../../utils/haptics";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import { StatKeyboardProvider } from "./Tracking/StatKeyboardContext";
@@ -49,6 +48,7 @@ import GroupMenu from "./Group/GroupMenu";
 import RestTimerModal from "./RestTimerModal";
 import useRestTimer from "./hooks/useRestTimer";
 import useWorkoutEditing from "./hooks/useWorkoutEditing";
+import { activeWorkoutHighlight } from "./activeWorkoutColors";
 
 import scaleSize from "../../../helper/scaleSize";
 import { formatWorkoutTimestamp } from "../../../utils/date";
@@ -60,12 +60,10 @@ const HEADER_COLLAPSED_TRANSLATE = scaleSize(0);
 const HEADER_COLLAPSED_PADDING_V = scaleSize(0);
 const HEADER_EXPANDED_PADDING_V = scaleSize(6);
 const HEADER_EXPANDED_PADDING_H = scaleSize(24);
-const HEADER_COLLAPSED_BG = 'rgba(45, 157, 255, 0.58)';
+const HEADER_COLLAPSED_BG = activeWorkoutHighlight(0.58);
 const HEADER_EXPANDED_BG = 'rgba(45, 158, 255, 0)';
 const SHEET_EXPANDED_BG = theme.bg;
 const SHEET_COLOR_THRESHOLD = 0.15;
-const CTA_FINISH_BG = '#207952';
-const CTA_CANCEL_BG = '#8f2f3d';
 const CTA_SHADOW_COLOR = '#000000';
 
 const ensureUri = (value) => {
@@ -118,6 +116,7 @@ const ActiveWorkoutModal = ({
     const [isFinishing, setIsFinishing] = useState(false);
     // Reminder modal (self only)
     const [reminderVisible, setReminderVisible] = useState(false);
+    const [endWorkoutSheetVisible, setEndWorkoutSheetVisible] = useState(false);
     const reminderShownRef = useRef(new Set());
     const {
         restModalVisible,
@@ -571,7 +570,27 @@ const ActiveWorkoutModal = ({
         [scrollY]
     );
 
-    const handleMorePress = useCallback(() => {}, []);
+    const handleEndWorkoutPress = useCallback(() => {
+        setEndWorkoutSheetVisible(true);
+    }, []);
+
+    const closeEndWorkoutSheet = useCallback(() => {
+        setEndWorkoutSheetVisible(false);
+    }, []);
+
+    const handleEndWorkoutFinish = useCallback(() => {
+        setEndWorkoutSheetVisible(false);
+        if (isEmptyList) {
+            confirmCancelWorkout();
+        } else {
+            openFinishConfirm();
+        }
+    }, [confirmCancelWorkout, isEmptyList, openFinishConfirm]);
+
+    const handleEndWorkoutCancel = useCallback(() => {
+        setEndWorkoutSheetVisible(false);
+        confirmCancelWorkout();
+    }, [confirmCancelWorkout]);
 
     const renderExerciseItem = useCallback(({
         item: ex,
@@ -599,23 +618,14 @@ const ActiveWorkoutModal = ({
                     <RNBounceable onPress={withStrongPress(showSelectExerciseModal)} style={styles.add_exercise_btn}>
                         <Text style={styles.add_exercise_text}>Add Exercises</Text>
                     </RNBounceable>
-                    <RNBounceable onPress={withStrongPress(handleMorePress)} style={styles.more_btn}>
-                        <Text style={styles.more_btn_text}>More</Text>
-                    </RNBounceable>
-                    <RNBounceable
-                        onPress={withStrongPress(isEmptyList ? confirmCancelWorkout : openFinishConfirm)}
-                        style={styles.finish_btn}
-                    >
-                        <Text style={styles.finish_btn_text}>Finish Workout</Text>
-                    </RNBounceable>
-                    <RNBounceable onPress={withStrongPress(confirmCancelWorkout)} style={styles.cancel_btn}>
-                        <Text style={styles.cancel_btn_text}>Cancel Workout</Text>
+                    <RNBounceable onPress={withStrongPress(handleEndWorkoutPress)} style={styles.end_workout_btn}>
+                        <Text style={styles.end_workout_btn_text}>End Workout</Text>
                     </RNBounceable>
                 </>
             )}
             <View style={{ height: scaleSize(250) + Math.max(0, keyboardHeight - scaleSize(40)) }} />
         </>
-    ), [confirmCancelWorkout, handleMorePress, isEmptyList, keyboardHeight, openFinishConfirm, showSelectExerciseModal, viewingSelfEffective]);
+    ), [handleEndWorkoutPress, keyboardHeight, showSelectExerciseModal, viewingSelfEffective]);
 
     // ===== PFPs (stable) =====
     const selfPfpVersion = global?.userData?.pfpVersion ?? 0;
@@ -1079,6 +1089,45 @@ const ActiveWorkoutModal = ({
                 onSecondary={() => setFinishConfirmModalVisible(false)}
                 onRequestClose={() => setFinishConfirmModalVisible(false)}
             />
+            <Modal
+                transparent
+                animationType="fade"
+                visible={endWorkoutSheetVisible}
+                presentationStyle="overFullScreen"
+                onRequestClose={closeEndWorkoutSheet}
+            >
+                <View style={styles.end_workout_overlay}>
+                    <Pressable style={styles.end_workout_backdrop} onPress={closeEndWorkoutSheet} />
+                    <View style={styles.end_workout_sheet}>
+                        <View style={styles.end_workout_sheet_handle} />
+                        <View style={styles.end_workout_options}>
+                            <Pressable
+                                onPress={withStrongPress(handleEndWorkoutFinish)}
+                                style={({ pressed }) => [
+                                    styles.end_workout_option,
+                                    pressed && styles.end_workout_option_pressed,
+                                ]}
+                            >
+                                <Text style={[styles.end_workout_option_text, styles.end_workout_option_text_finish]}>
+                                    Finish Workout
+                                </Text>
+                            </Pressable>
+                            <View style={styles.end_workout_option_divider} />
+                            <Pressable
+                                onPress={withStrongPress(handleEndWorkoutCancel)}
+                                style={({ pressed }) => [
+                                    styles.end_workout_option,
+                                    pressed && styles.end_workout_option_pressed,
+                                ]}
+                            >
+                                <Text style={[styles.end_workout_option_text, styles.end_workout_option_text_cancel]}>
+                                    Cancel Workout
+                                </Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
             {/* Group menu & invite picker — hidden when locked to friend */}
             {!lockFriend && (
                 <GroupMenu
@@ -1268,7 +1317,7 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_700Bold",
         color: theme.surface,
     },
-    more_btn: {
+    end_workout_btn: {
         marginHorizontal: scaleSize(20),
         marginTop: scaleSize(12),
         borderRadius: scaleSize(20),
@@ -1281,52 +1330,73 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(13),
         paddingHorizontal: scaleSize(18),
     },
-    more_btn_text: {
+    end_workout_btn_text: {
         fontSize: scaleSize(13),
         fontFamily: "Outfit_600SemiBold",
         color: theme.textPrimary,
     },
-
-    finish_btn: {
-        marginHorizontal: scaleSize(20),
-        marginTop: scaleSize(40),
-        height: scaleSize(40),
-        borderRadius: scaleSize(12),
-        backgroundColor: CTA_FINISH_BG,
-        borderWidth: 0,
-        justifyContent: "center",
+    end_workout_overlay: {
+        flex: 1,
+        justifyContent: "flex-end",
+        backgroundColor: 'rgba(0,0,0,0.48)',
+    },
+    end_workout_sheet: {
+        backgroundColor: theme.surface,
+        borderTopLeftRadius: scaleSize(24),
+        borderTopRightRadius: scaleSize(24),
+        paddingTop: scaleSize(12),
+        paddingBottom: scaleSize(32),
+        paddingHorizontal: scaleSize(20),
+        shadowColor: '#000000',
+        shadowOpacity: 0.3,
+        shadowRadius: scaleSize(18),
+        shadowOffset: { width: 0, height: -scaleSize(4) },
+        elevation: 12,
+    },
+    end_workout_backdrop: {
+        flex: 1,
+    },
+    end_workout_sheet_handle: {
+        alignSelf: "center",
+        width: scaleSize(46),
+        height: scaleSize(5),
+        borderRadius: scaleSize(3),
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        marginBottom: scaleSize(18),
+    },
+    end_workout_options: {
+        borderRadius: scaleSize(18),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.12)',
+        overflow: "hidden",
+        backgroundColor: 'rgba(255,255,255,0.05)',
+    },
+    end_workout_option: {
+        width: '100%',
+        paddingVertical: scaleSize(18),
         alignItems: "center",
-        flexDirection: "row",
-        shadowColor: CTA_SHADOW_COLOR,
-        shadowOpacity: 0.2,
-        shadowRadius: scaleSize(8),
-        shadowOffset: { width: 0, height: scaleSize(3) },
-        elevation: 3,
-    },
-    finish_btn_text: {
-        fontSize: scaleSize(14),
-        fontFamily: "Outfit_700Bold",
-        color: '#E7F9F1',
-        marginRight: scaleSize(4.5),
-    },
-
-    cancel_btn: {
-        marginHorizontal: scaleSize(20),
-        marginTop: scaleSize(14),
-        height: scaleSize(40),
-        borderRadius: scaleSize(12),
-        backgroundColor: CTA_CANCEL_BG,
-        borderWidth: 0,
         justifyContent: "center",
-        alignItems: "center",
-        flexDirection: "row",
-        shadowColor: CTA_SHADOW_COLOR,
-        shadowOpacity: 0.18,
-        shadowRadius: scaleSize(8),
-        shadowOffset: { width: 0, height: scaleSize(3) },
-        elevation: 3,
     },
-    cancel_btn_text: { fontSize: scaleSize(14), fontFamily: "Outfit_700Bold", color: '#FFECEE', marginRight: scaleSize(4.5) },
+    end_workout_option_pressed: {
+        backgroundColor: 'rgba(255,255,255,0.08)',
+    },
+    end_workout_option_divider: {
+        height: StyleSheet.hairlineWidth,
+        width: '100%',
+        backgroundColor: 'rgba(255,255,255,0.12)',
+    },
+    end_workout_option_text: {
+        fontSize: scaleSize(16),
+        fontFamily: "Outfit_600SemiBold",
+        color: theme.textPrimary,
+        textAlign: "center",
+    },
+    end_workout_option_text_finish: {
+        color: theme.successButton,
+    },
+    end_workout_option_text_cancel: {
+        color: '#FF8993',
+    },
 
 });
 
