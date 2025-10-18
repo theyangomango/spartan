@@ -1,6 +1,7 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 import { FlatList } from "react-native";
 import ExerciseCard from "./ExerciseCard";
+import scaleSize from "../../../../helper/scaleSize";
 
 const ExercisesFlatlist = React.memo(
     ({
@@ -12,6 +13,8 @@ const ExercisesFlatlist = React.memo(
         savedLookup = {},
         animatedPress = false,
         bottomPadding = 120,
+        scrollEnabled = true,
+        listHeaderComponent = null,
     }) => {
         const renderItem = useCallback(
             ({ item }) => (
@@ -29,9 +32,26 @@ const ExercisesFlatlist = React.memo(
             [selectExercise, deselectExercise, toggleSavedExercise, selectedLookup, savedLookup, animatedPress]
         );
 
+        const contentPadding = useMemo(
+            () => ({
+                paddingBottom: bottomPadding,
+                paddingTop: scaleSize(8),
+            }),
+            [bottomPadding]
+        );
+
+        const columnStyle = useMemo(
+            () => ({
+                justifyContent: "space-between",
+                paddingHorizontal: 0,
+                marginBottom: 0,
+            }),
+            []
+        );
+
         return (
             <FlatList
-                style={{ flex: 1 }}
+                style={scrollEnabled ? { flex: 1 } : null}
                 data={Array.isArray(exercises) ? exercises : []}
                 keyExtractor={(item, index) => String(item?.name || index)}
                 renderItem={renderItem}
@@ -42,9 +62,11 @@ const ExercisesFlatlist = React.memo(
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
                 numColumns={3}
-                columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 0 }}
-                contentContainerStyle={{ paddingBottom: bottomPadding, paddingTop: 8 }}
+                columnWrapperStyle={columnStyle}
+                contentContainerStyle={contentPadding}
                 extraData={{ selectedLookup, savedLookup }}
+                scrollEnabled={scrollEnabled}
+                ListHeaderComponent={listHeaderComponent}
             />
         );
     }

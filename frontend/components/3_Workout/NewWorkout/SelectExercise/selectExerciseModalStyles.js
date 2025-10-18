@@ -186,11 +186,37 @@ const styles = StyleSheet.create({
         color: TEXT_PRIMARY,
         marginTop: scaledSize(10),
         marginBottom: scaledSize(8),
-        paddingHorizontal: scaledSize(20),
+        paddingHorizontal: scaleSize(12)
     },
     listWrapper: {
         flex: 1,
-        paddingHorizontal: scaledSize(0),
+    },
+    bookmarkedSection: {
+        paddingBottom: scaledSize(6),
+    },
+    bookmarkedGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        marginBottom: scaledSize(4),
+    },
+    bookmarkedEmpty: {
+        marginBottom: scaledSize(12),
+        paddingHorizontal: scaledSize(16),
+        paddingVertical: scaledSize(14),
+        borderRadius: scaledSize(18),
+        marginHorizontal: scaleSize(6),
+        backgroundColor: theme.surface,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(90, 176, 255, 0.14)",
+    },
+    bookmarkedEmptyText: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(12),
+        color: TEXT_SECONDARY,
+        lineHeight: scaleSize(16),
+    },
+    sectionTitleSpacer: {
+        marginTop: scaledSize(16),
     },
     footer: {
         paddingTop: scaledSize(12),

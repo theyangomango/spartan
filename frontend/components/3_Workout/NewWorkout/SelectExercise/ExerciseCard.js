@@ -17,6 +17,8 @@ const COLORS = {
     accent: "#FF6B7A",
 };
 
+const CARD_WIDTH = "32.5%";
+
 const ExerciseCard = memo(
     ({
         name,
@@ -76,12 +78,12 @@ const ExerciseCard = memo(
                         style={styles.infoButton}
                         hitSlop={8}
                     >
-                        <Ionicons name="help-circle-outline" size={scaledSize(18)} color={COLORS.subtext} />
+                        <Ionicons name="help-circle-outline" size={scaledSize(19)} color={COLORS.subtext} />
                     </Pressable>
                 </View>
 
                 <View style={styles.previewWrapper}>
-                    <ExerciseImagePreview exercise={name} size={scaledSize(90)} />
+                    <ExerciseImagePreview exercise={name} size={scaledSize(100)} />
                 </View>
 
                 <View style={styles.infoSection}>
@@ -99,12 +101,15 @@ export default ExerciseCard;
 
 const styles = StyleSheet.create({
     card: {
-        width: "32.5%",
+        width: CARD_WIDTH,
+        maxWidth: CARD_WIDTH,
+        flexGrow: 0,
+        flexShrink: 0,
         backgroundColor: COLORS.cardBg,
         borderRadius: scaledSize(14),
-        paddingTop: scaledSize(8),
-        paddingBottom: scaleSize(10),
-        paddingHorizontal: scaledSize(14),
+        paddingTop: scaledSize(6),
+        paddingBottom: scaleSize(8),
+        paddingHorizontal: scaledSize(12),
         marginBottom: scaledSize(6),
         borderWidth: 1.5,
         borderColor: COLORS.border,
@@ -120,10 +125,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     infoButton: {
-        padding: scaledSize(4),
+        paddingVertical: scaledSize(4),
     },
     bookmarkButton: {
-        padding: scaledSize(4),
+        paddingVertical: scaledSize(4),
     },
     previewWrapper: {
         alignItems: "center",
