@@ -769,7 +769,7 @@ export default function Feed({ navigation, route }) {
             <TouchableOpacity
                 style={[
                     styles.createPostButton,
-                    { bottom: (insets.bottom || 0) + scaleSize(85) },
+                    { bottom: (insets.bottom || 0) + scaleSize(110) },
                 ]}
                 activeOpacity={0.85}
                 onPress={handleCreatePost}

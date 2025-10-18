@@ -28,7 +28,7 @@ function normalizeUser(u) {
 
 export default function FollowListBottomSheet({ isVisible, setIsVisible, title = 'Followers', users = [], navigation }) {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ['82%'], []);
+    const snapPoints = useMemo(() => ['100%'], []);
     const [list, setList] = useState([]);
     const insets = useSafeAreaInsets();
     const emptyMessage = useMemo(() => {
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
     },
     sheetBackground: {
-        backgroundColor: 'rgba(18, 21, 30, 0.96)',
+        backgroundColor: theme.bg,
         borderTopLeftRadius: scaleSize(s(26)),
         borderTopRightRadius: scaleSize(s(26)),
     },
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     handleIndicator: {
         width: scaleSize(s(36)),
         height: scaleSize(s(4)),
-        backgroundColor: 'rgba(255,255,255,0.22)',
+        backgroundColor: 'rgba(255, 255, 255, 0.78)',
         borderRadius: scaleSize(s(2)),
     },
     header: {

@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(14),
         color: TEXT_PRIMARY,
         marginTop: scaledSize(10),
         marginBottom: scaledSize(8),
@@ -195,9 +195,31 @@ const styles = StyleSheet.create({
         paddingBottom: scaledSize(6),
     },
     bookmarkedGrid: {
-        flexDirection: "row",
-        flexWrap: "wrap",
+        flexDirection: "column",
         marginBottom: scaledSize(4),
+    },
+    bookmarkedRow: {
+        width: "100%",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: scaledSize(6),
+    },
+    bookmarkedCardWrapper: {
+        flexGrow: 0,
+        flexShrink: 0,
+        width: "32.5%",
+        maxWidth: "32.5%",
+    },
+    bookmarkedCard: {
+        width: "100%",
+        maxWidth: "100%",
+    },
+    bookmarkedSpacer: {
+        width: "32.5%",
+        maxWidth: "32.5%",
+        flexGrow: 0,
+        flexShrink: 0,
+        opacity: 0,
     },
     bookmarkedEmpty: {
         marginBottom: scaledSize(12),

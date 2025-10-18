@@ -367,29 +367,67 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
             });
     }, [savedExercisesMap, indexedExercisesByName]);
 
+    const filteredBookmarkedExercises = useMemo(() => {
+        if (!bookmarkedExercises.length) return [];
+        if (!bodyPartValue) return bookmarkedExercises;
+        const filter = String(bodyPartValue || "").toLowerCase();
+        return bookmarkedExercises.filter((exercise) => {
+            const muscleLc = String(exercise?.muscleGroup || exercise?.muscle || "").toLowerCase();
+            if (!muscleLc) return false;
+            return muscleLc.includes(filter);
+        });
+    }, [bookmarkedExercises, bodyPartValue]);
+
+    const bookmarkedRows = useMemo(() => {
+        if (!filteredBookmarkedExercises.length) return [];
+        const rows = [];
+        for (let i = 0; i < filteredBookmarkedExercises.length; i += 3) {
+            rows.push(filteredBookmarkedExercises.slice(i, i + 3));
+        }
+        return rows;
+    }, [filteredBookmarkedExercises]);
+
+    const hasBookmarks = bookmarkedExercises.length > 0;
+    const hasFilteredBookmarks = bookmarkedRows.length > 0;
+
     const listHeaderComponent = useMemo(() => {
         return (
             <View style={styles.bookmarkedSection}>
                 <Text style={styles.sectionTitle}>Bookmarked Exercises</Text>
-                {bookmarkedExercises.length > 0 ? (
+                {hasFilteredBookmarks ? (
                     <View style={styles.bookmarkedGrid}>
-                        {bookmarkedExercises.map((ex, index) => (
-                            <ExerciseCard
-                                key={`${ex?.name || "bookmark"}-${index}`}
-                                name={ex.name}
-                                muscleGroup={ex.muscleGroup}
-                                selectExercise={selectExercise}
-                                deselectExercise={deselectExercise}
-                                isSelected={Boolean(selectedExercisesMap?.[ex.name])}
-                                isSaved
-                                toggleSaved={toggleSavedExercise}
-                            />
+                        {bookmarkedRows.map((row, rowIndex) => (
+                            <View key={`bookmark-row-${rowIndex}`} style={styles.bookmarkedRow}>
+                                {row.map((ex, index) => (
+                                    <View key={`${ex?.name || "bookmark"}-${rowIndex}-${index}`} style={styles.bookmarkedCardWrapper}>
+                                        <ExerciseCard
+                                            name={ex.name}
+                                            muscleGroup={ex.muscleGroup}
+                                            selectExercise={selectExercise}
+                                            deselectExercise={deselectExercise}
+                                            isSelected={Boolean(selectedExercisesMap?.[ex.name])}
+                                            isSaved
+                                            toggleSaved={toggleSavedExercise}
+                                            style={styles.bookmarkedCard}
+                                        />
+                                    </View>
+                                ))}
+                                {row.length < 3 &&
+                                    Array.from({ length: 3 - row.length }).map((_, fillerIndex) => (
+                                        <View
+                                            key={`bookmark-spacer-${rowIndex}-${fillerIndex}`}
+                                            style={styles.bookmarkedSpacer}
+                                        />
+                                    ))}
+                            </View>
                         ))}
                     </View>
                 ) : (
                     <View style={styles.bookmarkedEmpty}>
                         <Text style={styles.bookmarkedEmptyText}>
-                            No bookmarked exercises yet. Tap the bookmark icon to save favorites.
+                            {hasBookmarks
+                                ? "No bookmarked exercises match this focus."
+                                : "No bookmarked exercises yet. Tap the bookmark icon to save favorites."}
                         </Text>
                     </View>
                 )}
@@ -397,11 +435,13 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
             </View>
         );
     }, [
-        bookmarkedExercises,
+        bookmarkedRows,
         deselectExercise,
         selectExercise,
         selectedExercisesMap,
         toggleSavedExercise,
+        hasBookmarks,
+        hasFilteredBookmarks,
     ]);
 
     const filteredExercises = useMemo(() => {

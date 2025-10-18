@@ -17,7 +17,8 @@ const COLORS = {
     accent: "#FF6B7A",
 };
 
-const CARD_WIDTH = "32.5%";
+const CARD_WIDTH = "100%";
+const CARD_HEIGHT = scaledSize(220);
 
 const ExerciseCard = memo(
     ({
@@ -30,6 +31,8 @@ const ExerciseCard = memo(
         isSaved = false,
         toggleSaved,
         touchable = false,
+        style = null,
+        hideInfoButton = false,
     }) => {
         const Wrapper = touchable ? TouchableOpacity : Pressable;
         const wrapperProps = touchable ? { activeOpacity: 0.78 } : {};
@@ -58,8 +61,14 @@ const ExerciseCard = memo(
             toggleSaved({ name, muscle: muscleGroup });
         };
 
+        const shouldShowInfo = !hideInfoButton && typeof showExerciseInfo === "function";
+
         return (
-            <Wrapper {...wrapperProps} onPress={handlePress} style={[styles.card, isSelected && styles.cardActive]}>
+            <Wrapper
+                {...wrapperProps}
+                onPress={handlePress}
+                style={[styles.card, style, isSelected && styles.cardActive]}
+            >
                 <View style={styles.iconRow}>
                     <Pressable
                         onPress={handleToggleSaved}
@@ -73,13 +82,21 @@ const ExerciseCard = memo(
                             color={isSaved ? COLORS.accent : COLORS.subtext}
                         />
                     </Pressable>
-                    <Pressable
-                        onPress={() => showExerciseInfo?.(name)}
-                        style={styles.infoButton}
-                        hitSlop={8}
-                    >
-                        <Ionicons name="help-circle-outline" size={scaledSize(19)} color={COLORS.subtext} />
-                    </Pressable>
+                    {shouldShowInfo ? (
+                        <Pressable
+                            onPress={() => showExerciseInfo?.(name)}
+                            style={styles.infoButton}
+                            hitSlop={8}
+                        >
+                            <Ionicons
+                                name="help-circle-outline"
+                                size={scaledSize(19)}
+                                color={COLORS.subtext}
+                            />
+                        </Pressable>
+                    ) : (
+                        <View style={styles.infoButtonPlaceholder} />
+                    )}
                 </View>
 
                 <View style={styles.previewWrapper}>
@@ -103,6 +120,8 @@ const styles = StyleSheet.create({
     card: {
         width: CARD_WIDTH,
         maxWidth: CARD_WIDTH,
+        height: CARD_HEIGHT,
+        minHeight: CARD_HEIGHT,
         flexGrow: 0,
         flexShrink: 0,
         backgroundColor: COLORS.cardBg,
@@ -110,10 +129,10 @@ const styles = StyleSheet.create({
         paddingTop: scaledSize(6),
         paddingBottom: scaleSize(8),
         paddingHorizontal: scaledSize(12),
-        marginBottom: scaledSize(6),
         borderWidth: 1.5,
         borderColor: COLORS.border,
         overflow: "hidden",
+        flexDirection: "column",
     },
     cardActive: {
         borderColor: COLORS.borderActive,
@@ -127,15 +146,23 @@ const styles = StyleSheet.create({
     infoButton: {
         paddingVertical: scaledSize(4),
     },
+    infoButtonPlaceholder: {
+        width: scaledSize(24),
+        height: scaledSize(24),
+    },
     bookmarkButton: {
         paddingVertical: scaledSize(4),
     },
     previewWrapper: {
+        flexGrow: 1,
+        width: "100%",
+        marginTop: scaledSize(6),
+        marginBottom: scaledSize(12),
         alignItems: "center",
         justifyContent: "center",
     },
     infoSection: {
-        marginTop: scaledSize(14),
+        marginTop: scaledSize(4),
     },
     exerciseName: {
         fontFamily: "Outfit_700Bold",

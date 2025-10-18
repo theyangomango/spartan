@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: scaleSize(20),
-        paddingVertical: scaleSize(14),
+        paddingVertical: scaleSize(11),
         paddingHorizontal: scaleSize(18),
         marginBottom: scaleSize(14),
     },
