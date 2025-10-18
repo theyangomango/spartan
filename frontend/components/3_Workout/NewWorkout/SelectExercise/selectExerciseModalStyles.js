@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
     },
     listWrapper: {
         flex: 1,
-        paddingHorizontal: scaledSize(10),
+        paddingHorizontal: scaledSize(0),
     },
     footer: {
         paddingTop: scaledSize(12),

@@ -106,6 +106,46 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
   const [bodyPartValue, setBodyPartValue] = useState(null);
   const [equipmentValue, setEquipmentValue] = useState(null);
   const [selectedExercisesMap, setSelectedExercisesMap] = useState({});
+  const [savedExercisesMap, setSavedExercisesMap] = useState(() => {
+    const stored = global?.userData?.savedExercises;
+    if (!stored) return {};
+    if (Array.isArray(stored)) {
+      return stored.reduce((acc, entry) => {
+        if (!entry) return acc;
+        if (typeof entry === "string") {
+          acc[entry] = { name: entry, muscle: null };
+          return acc;
+        }
+        const name = entry?.name;
+        if (!name) return acc;
+        acc[name] = { ...entry, name, muscle: entry?.muscle ?? entry?.muscleGroup ?? null };
+        return acc;
+      }, {});
+    }
+    if (typeof stored === "object") {
+      return Object.entries(stored).reduce((acc, [key, value]) => {
+        if (!value && value !== 0) return acc;
+        if (typeof value === "string") {
+          const name = value || key;
+          acc[name] = { name, muscle: null };
+          return acc;
+        }
+        if (typeof value === "object") {
+          const name = value?.name || key;
+          if (!name) return acc;
+          acc[name] = {
+            ...value,
+            name,
+            muscle: value?.muscle ?? value?.muscleGroup ?? null,
+          };
+          return acc;
+        }
+        acc[key] = { name: key, muscle: null };
+        return acc;
+      }, {});
+    }
+    return {};
+  });
 
   const selectedExercisesRef = useRef(selectedExercisesMap);
   const opacity = useRef(new Animated.Value(0.5)).current;
@@ -117,6 +157,16 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
   useEffect(() => {
     selectedExercisesRef.current = selectedExercisesMap;
   }, [selectedExercisesMap]);
+
+  useEffect(() => {
+    try {
+      if (global?.userData) {
+        global.userData.savedExercises = savedExercisesMap;
+      }
+    } catch {
+      // ignored
+    }
+  }, [savedExercisesMap]);
 
   const selectedCount = useMemo(
     () => Object.keys(selectedExercisesMap).length,
@@ -172,6 +222,28 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
       const updated = { ...prev };
       delete updated[ex.name];
       return updated;
+    });
+  }, []);
+
+  const toggleSavedExercise = useCallback((ex) => {
+    const name = ex?.name;
+    if (!name) return;
+    setSavedExercisesMap((prev) => {
+      if (prev[name]) {
+        const next = { ...prev };
+        delete next[name];
+        return next;
+      }
+      const muscle = ex?.muscle ?? ex?.muscleGroup ?? null;
+      return {
+        ...prev,
+        [name]: {
+          ...ex,
+          name,
+          muscle,
+          muscleGroup: ex?.muscleGroup ?? ex?.muscle ?? muscle,
+        },
+      };
     });
   }, []);
 
@@ -437,7 +509,9 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                 exercises={filteredExercises}
                 selectExercise={selectExercise}
                 deselectExercise={deselectExercise}
+                toggleSavedExercise={toggleSavedExercise}
                 selectedLookup={selectedExercisesMap}
+                savedLookup={savedExercisesMap}
                 bottomPadding={listBottomPadding}
               />
             </View>

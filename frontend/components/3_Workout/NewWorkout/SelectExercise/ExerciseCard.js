@@ -18,7 +18,17 @@ const COLORS = {
 };
 
 const ExerciseCard = memo(
-    ({ name, muscleGroup, selectExercise, deselectExercise, showExerciseInfo, isSelected = false, touchable = false }) => {
+    ({
+        name,
+        muscleGroup,
+        selectExercise,
+        deselectExercise,
+        showExerciseInfo,
+        isSelected = false,
+        isSaved = false,
+        toggleSaved,
+        touchable = false,
+    }) => {
         const Wrapper = touchable ? TouchableOpacity : Pressable;
         const wrapperProps = touchable ? { activeOpacity: 0.78 } : {};
 
@@ -35,25 +45,43 @@ const ExerciseCard = memo(
             }
         };
 
+        const handleToggleSaved = (event) => {
+            event?.stopPropagation?.();
+            if (!toggleSaved) return;
+            try {
+                haptic();
+            } catch {
+                // no-op haptic failure
+            }
+            toggleSaved({ name, muscle: muscleGroup });
+        };
+
         return (
             <Wrapper {...wrapperProps} onPress={handlePress} style={[styles.card, isSelected && styles.cardActive]}>
                 <View style={styles.iconRow}>
-                    <Ionicons
-                        name={isSelected ? "bookmark" : "bookmark-outline"}
-                        size={scaledSize(18)}
-                        color={isSelected ? COLORS.accent : COLORS.subtext}
-                    />
+                    <Pressable
+                        onPress={handleToggleSaved}
+                        style={styles.bookmarkButton}
+                        hitSlop={8}
+                        disabled={!toggleSaved}
+                    >
+                        <Ionicons
+                            name={isSaved ? "bookmark" : "bookmark-outline"}
+                            size={scaledSize(16)}
+                            color={isSaved ? COLORS.accent : COLORS.subtext}
+                        />
+                    </Pressable>
                     <Pressable
                         onPress={() => showExerciseInfo?.(name)}
                         style={styles.infoButton}
                         hitSlop={8}
                     >
-                        <Ionicons name="help-circle-outline" size={scaledSize(22)} color={COLORS.subtext} />
+                        <Ionicons name="help-circle-outline" size={scaledSize(18)} color={COLORS.subtext} />
                     </Pressable>
                 </View>
 
                 <View style={styles.previewWrapper}>
-                    <ExerciseImagePreview exercise={name} size={scaledSize(140)} />
+                    <ExerciseImagePreview exercise={name} size={scaledSize(90)} />
                 </View>
 
                 <View style={styles.infoSection}>
@@ -71,13 +99,13 @@ export default ExerciseCard;
 
 const styles = StyleSheet.create({
     card: {
-        width: "49%",
+        width: "32.5%",
         backgroundColor: COLORS.cardBg,
-        borderRadius: scaledSize(18),
+        borderRadius: scaledSize(14),
         paddingTop: scaledSize(8),
-        paddingBottom: scaleSize(12),
+        paddingBottom: scaleSize(10),
         paddingHorizontal: scaledSize(14),
-        marginBottom: scaledSize(8),
+        marginBottom: scaledSize(6),
         borderWidth: 1.5,
         borderColor: COLORS.border,
         overflow: "hidden",
@@ -94,8 +122,10 @@ const styles = StyleSheet.create({
     infoButton: {
         padding: scaledSize(4),
     },
+    bookmarkButton: {
+        padding: scaledSize(4),
+    },
     previewWrapper: {
-        marginTop: scaledSize(12),
         alignItems: "center",
         justifyContent: "center",
     },
@@ -104,13 +134,13 @@ const styles = StyleSheet.create({
     },
     exerciseName: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(12),
         color: COLORS.text,
         marginBottom: scaledSize(4),
     },
     muscleGroupText: {
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(12),
         color: COLORS.subtext,
     },
 });

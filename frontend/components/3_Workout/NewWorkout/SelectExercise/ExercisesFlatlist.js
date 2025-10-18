@@ -3,7 +3,16 @@ import { FlatList } from "react-native";
 import ExerciseCard from "./ExerciseCard";
 
 const ExercisesFlatlist = React.memo(
-    ({ exercises = [], selectExercise, deselectExercise, selectedLookup = {}, animatedPress = false, bottomPadding = 120 }) => {
+    ({
+        exercises = [],
+        selectExercise,
+        deselectExercise,
+        toggleSavedExercise,
+        selectedLookup = {},
+        savedLookup = {},
+        animatedPress = false,
+        bottomPadding = 120,
+    }) => {
         const renderItem = useCallback(
             ({ item }) => (
                 <ExerciseCard
@@ -12,10 +21,12 @@ const ExercisesFlatlist = React.memo(
                     selectExercise={selectExercise}
                     deselectExercise={deselectExercise}
                     isSelected={Boolean(selectedLookup?.[item.name])}
+                    isSaved={Boolean(savedLookup?.[item.name])}
+                    toggleSaved={toggleSavedExercise}
                     touchable={!!animatedPress}
                 />
             ),
-            [selectExercise, deselectExercise, selectedLookup, animatedPress]
+            [selectExercise, deselectExercise, toggleSavedExercise, selectedLookup, savedLookup, animatedPress]
         );
 
         return (
@@ -30,10 +41,10 @@ const ExercisesFlatlist = React.memo(
                 removeClippedSubviews
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
-                numColumns={2}
+                numColumns={3}
                 columnWrapperStyle={{ justifyContent: "space-between", marginBottom: 0 }}
                 contentContainerStyle={{ paddingBottom: bottomPadding, paddingTop: 8 }}
-                extraData={selectedLookup}
+                extraData={{ selectedLookup, savedLookup }}
             />
         );
     }
