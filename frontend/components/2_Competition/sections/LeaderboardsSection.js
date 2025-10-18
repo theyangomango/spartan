@@ -1420,15 +1420,17 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignSelf: "stretch",
         width: "100%",
-        paddingTop: scaleSize(2),
+        paddingTop: scaleSize(16),
+        paddingBottom: scaleSize(8),
+        paddingHorizontal: scaleSize(10)
     },
     scopeToggleRow: {
         alignSelf: "flex-start",
         alignItems: "flex-start",
-        marginTop: scaleSize(4),
+        marginTop: scaleSize(6),
     },
     scopeToggleButton: {
-        flexDirection: "row",
+        flexDirection: "row", 
         alignItems: "center",
         alignSelf: "flex-start",
     },

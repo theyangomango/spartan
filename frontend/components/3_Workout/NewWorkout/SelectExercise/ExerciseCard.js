@@ -39,7 +39,7 @@ const ExerciseCard = memo(
                 <View style={styles.iconRow}>
                     <Ionicons
                         name={isSelected ? "bookmark" : "bookmark-outline"}
-                        size={scaledSize(16)}
+                        size={scaledSize(18)}
                         color={isSelected ? COLORS.accent : COLORS.subtext}
                     />
                     <Pressable
@@ -47,12 +47,12 @@ const ExerciseCard = memo(
                         style={styles.infoButton}
                         hitSlop={8}
                     >
-                        <Ionicons name="help-circle-outline" size={scaledSize(18)} color={COLORS.subtext} />
+                        <Ionicons name="help-circle-outline" size={scaledSize(22)} color={COLORS.subtext} />
                     </Pressable>
                 </View>
 
                 <View style={styles.previewWrapper}>
-                    <ExerciseImagePreview exercise={name} size={scaledSize(96)} />
+                    <ExerciseImagePreview exercise={name} size={scaledSize(140)} />
                 </View>
 
                 <View style={styles.infoSection}>
@@ -73,7 +73,8 @@ const styles = StyleSheet.create({
         width: "49%",
         backgroundColor: COLORS.cardBg,
         borderRadius: scaledSize(18),
-        paddingVertical: scaledSize(18),
+        paddingTop: scaledSize(8),
+        paddingBottom: scaleSize(12),
         paddingHorizontal: scaledSize(14),
         marginBottom: scaledSize(8),
         borderWidth: 1.5,
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
     },
     muscleGroupText: {
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(13),
         color: COLORS.subtext,
     },
 });
