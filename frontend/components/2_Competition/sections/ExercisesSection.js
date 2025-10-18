@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState, useEffect } from "react";
+import React, { useMemo, useCallback, useState } from "react";
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,6 +11,7 @@ import ExerciseCard from "../../3_Workout/NewWorkout/SelectExercise/ExerciseCard
 import { toExerciseSlug } from "../../common/exerciseImageMap";
 import { exercises as ALL_EXERCISES } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
 import { scaleSize } from "../layoutConstants";
+import useSyncSavedExercises from "../../../hooks/useSyncSavedExercises";
 
 const ICON_COLOR = "#D5E0F6";
 const TEXT_PRIMARY = "#F6F8FF";
@@ -141,15 +142,7 @@ export default function ExercisesSection() {
         }, {});
     }, [exercises]);
 
-    useEffect(() => {
-        try {
-            if (global?.userData) {
-                global.userData.savedExercises = savedExercisesMap;
-            }
-        } catch {
-            // ignore sync failures
-        }
-    }, [savedExercisesMap]);
+    useSyncSavedExercises(savedExercisesMap);
 
     const filteredExercises = useMemo(() => {
         const query = searchValue.trim().toLowerCase();
@@ -184,11 +177,17 @@ export default function ExercisesSection() {
             if (next[name]) {
                 delete next[name];
             } else {
-                next[name] = { name, muscleGroup: muscle || null, muscle: muscle || null };
+                const fallback = exercisesByName[name] || {};
+                next[name] = {
+                    name,
+                    muscleGroup: muscle || fallback?.muscleGroup || fallback?.muscle || null,
+                    muscle: muscle || fallback?.muscle || fallback?.muscleGroup || null,
+                    slug: fallback?.slug || null,
+                };
             }
             return next;
         });
-    }, []);
+    }, [exercisesByName]);
 
     const handleFilterPress = useCallback((value) => {
         setBodyPartValue((prev) => (prev === value ? null : value));
@@ -208,6 +207,7 @@ export default function ExercisesSection() {
                         name: entry,
                         muscleGroup: fallback?.muscleGroup ?? fallback?.muscle ?? "—",
                         muscle: fallback?.muscle ?? fallback?.muscleGroup ?? null,
+                        slug: fallback?.slug ?? null,
                     };
                 }
 
@@ -233,6 +233,7 @@ export default function ExercisesSection() {
                     name,
                     muscleGroup,
                     muscle,
+                    slug: entry?.slug ?? fallback?.slug ?? null,
                 };
             })
             .filter(Boolean)
@@ -279,6 +280,7 @@ export default function ExercisesSection() {
                                         <ExerciseCard
                                             name={exercise.name}
                                             muscleGroup={exercise.muscleGroup}
+                                            slug={exercise.slug}
                                             selectExercise={handleExercisePress}
                                             deselectExercise={handleExercisePress}
                                             isSelected={false}
@@ -497,7 +499,7 @@ const styles = StyleSheet.create({
         color: TEXT_PRIMARY,
         marginTop: scaleSize(10),
         marginBottom: scaleSize(8),
-        paddingHorizontal: scaleSize(12),
+        paddingHorizontal: scaleSize(20),
     },
     sectionTitleSpacer: {
         marginTop: scaleSize(16),

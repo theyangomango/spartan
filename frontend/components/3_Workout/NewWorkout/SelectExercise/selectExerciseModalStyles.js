@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
         color: TEXT_PRIMARY,
         marginTop: scaledSize(10),
         marginBottom: scaledSize(8),
-        paddingHorizontal: scaleSize(12)
+        paddingHorizontal: scaleSize(20)
     },
     listWrapper: {
         flex: 1,

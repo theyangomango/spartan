@@ -28,6 +28,7 @@ import styles, {
     ICON_COLOR,
     TEXT_SECONDARY,
 } from "./selectExerciseModalStyles";
+import useSyncSavedExercises from "../../../../hooks/useSyncSavedExercises";
 
 const scaledSize = (size) => scaleSize(size);
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -159,15 +160,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
         selectedExercisesRef.current = selectedExercisesMap;
     }, [selectedExercisesMap]);
 
-    useEffect(() => {
-        try {
-            if (global?.userData) {
-                global.userData.savedExercises = savedExercisesMap;
-            }
-        } catch {
-            // ignored
-        }
-    }, [savedExercisesMap]);
+    useSyncSavedExercises(savedExercisesMap);
 
     const selectedCount = useMemo(
         () => Object.keys(selectedExercisesMap).length,
@@ -236,6 +229,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                 return next;
             }
             const muscle = ex?.muscle ?? ex?.muscleGroup ?? null;
+            const fallback = indexedExercisesByName[name] || {};
             return {
                 ...prev,
                 [name]: {
@@ -243,10 +237,11 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                     name,
                     muscle,
                     muscleGroup: ex?.muscleGroup ?? ex?.muscle ?? muscle,
+                    slug: ex?.slug ?? fallback?.slug ?? null,
                 },
             };
         });
-    }, []);
+    }, [indexedExercisesByName]);
 
     const dismiss = useCallback(
         (afterClose) => {
@@ -332,6 +327,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                             fallback?.muscle ??
                             "—",
                         muscle: fallback?.muscle ?? fallback?.muscleGroup ?? null,
+                        slug: fallback?.slug ?? null,
                     };
                 }
 
@@ -357,6 +353,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                     name,
                     muscleGroup,
                     muscle,
+                    slug: entry?.slug ?? fallback?.slug ?? null,
                 };
             })
             .filter(Boolean)
@@ -403,6 +400,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                                         <ExerciseCard
                                             name={ex.name}
                                             muscleGroup={ex.muscleGroup}
+                                            slug={ex.slug}
                                             selectExercise={selectExercise}
                                             deselectExercise={deselectExercise}
                                             isSelected={Boolean(selectedExercisesMap?.[ex.name])}

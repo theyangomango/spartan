@@ -25,6 +25,40 @@ export default function useUserDoc(uid, options = {}) {
         return out;
     };
 
+    const normalizeSavedExercises = (raw) => {
+        if (!raw) return {};
+        if (Array.isArray(raw)) {
+            return raw.reduce((acc, entry) => {
+                if (!entry) return acc;
+                const name = String(entry?.name || entry).trim();
+                if (!name) return acc;
+                const muscleGroup = entry?.muscleGroup ?? entry?.muscle ?? null;
+                acc[name] = {
+                    name,
+                    muscleGroup,
+                    muscle: entry?.muscle ?? entry?.muscleGroup ?? muscleGroup ?? null,
+                    slug: entry?.slug ?? null,
+                };
+                return acc;
+            }, {});
+        }
+        if (typeof raw === "object") {
+            return Object.entries(raw).reduce((acc, [key, value]) => {
+                const name = String(value?.name || key).trim();
+                if (!name) return acc;
+                const muscleGroup = value?.muscleGroup ?? value?.muscle ?? null;
+                acc[name] = {
+                    name,
+                    muscleGroup,
+                    muscle: value?.muscle ?? value?.muscleGroup ?? muscleGroup ?? null,
+                    slug: value?.slug ?? null,
+                };
+                return acc;
+            }, {});
+        }
+        return {};
+    };
+
     // Seed from global.userData if already available to avoid initial flash
     const [user, setUser] = useState(() => {
         try {
@@ -46,7 +80,8 @@ export default function useUserDoc(uid, options = {}) {
     useEffect(() => {
         if (!uid) return;
         const unsub = onSnapshot(doc(db, "users", uid), (snap) => {
-            const data = snap.data() || {};
+            const rawData = snap.data() || {};
+            const data = { ...rawData, savedExercises: normalizeSavedExercises(rawData?.savedExercises) };
             const local = (() => { try { return global?.userData?.templates; } catch { return undefined; } })();
             const localSig = (() => { try { return global?.__templatesLocalSig; } catch { return undefined; } })();
             const remoteSig = JSON.stringify(data?.templates || []);

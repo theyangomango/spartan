@@ -37,6 +37,7 @@ const ExercisesFlatlist = React.memo(
                             <ExerciseCard
                                 name={exercise.name}
                                 muscleGroup={exercise.muscleGroup}
+                                slug={exercise.slug}
                                 selectExercise={selectExercise}
                                 deselectExercise={deselectExercise}
                                 isSelected={Boolean(selectedLookup?.[exercise.name])}
@@ -54,7 +55,7 @@ const ExercisesFlatlist = React.memo(
                         ))}
                 </View>
             ),
-            [selectExercise, deselectExercise, toggleSavedExercise, selectedLookup, savedLookup, animatedPress]
+            [selectExercise, deselectExercise, toggleSavedExercise, selectedLookup, savedLookup, animatedPress, hideInfoButton]
         );
 
         const contentPadding = useMemo(

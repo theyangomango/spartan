@@ -24,6 +24,7 @@ const ExerciseCard = memo(
     ({
         name,
         muscleGroup,
+        slug,
         selectExercise,
         deselectExercise,
         showExerciseInfo,
@@ -58,7 +59,7 @@ const ExerciseCard = memo(
             } catch {
                 // no-op haptic failure
             }
-            toggleSaved({ name, muscle: muscleGroup });
+            toggleSaved({ name, muscle: muscleGroup, slug });
         };
 
         const shouldShowInfo = !hideInfoButton && typeof showExerciseInfo === "function";
