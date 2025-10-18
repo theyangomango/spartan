@@ -4,11 +4,12 @@ import { Ionicons } from "@expo/vector-icons";
 import scaleSize from "../../../../helper/scaleSize";
 import ExerciseImagePreview from "./ExerciseImagePreview";
 import { strong as haptic } from "../../../../utils/haptics";
+import theme from '../../../../theme/mfpDark'
 
 const scaledSize = (size) => scaleSize(size);
 
 const COLORS = {
-    cardBg: "#1F2533",
+    cardBg: theme.surface,
     border: "rgba(255, 255, 255, 0.04)",
     borderActive: "#57B9FF",
     text: "#F7F9FF",
