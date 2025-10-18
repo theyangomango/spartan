@@ -70,22 +70,19 @@ export default ExerciseCard;
 
 const styles = StyleSheet.create({
     card: {
-        width: "47%",
+        width: "49%",
         backgroundColor: COLORS.cardBg,
         borderRadius: scaledSize(18),
         paddingVertical: scaledSize(18),
         paddingHorizontal: scaledSize(14),
-        marginBottom: scaledSize(20),
-        borderWidth: StyleSheet.hairlineWidth,
+        marginBottom: scaledSize(8),
+        borderWidth: 1.5,
         borderColor: COLORS.border,
         overflow: "hidden",
     },
     cardActive: {
         borderColor: COLORS.borderActive,
         shadowColor: "#57B9FF",
-        shadowOffset: { width: 0, height: scaledSize(6) },
-        shadowOpacity: 0.25,
-        shadowRadius: scaledSize(12),
     },
     iconRow: {
         flexDirection: "row",

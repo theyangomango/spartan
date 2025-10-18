@@ -31,69 +31,28 @@ import styles, {
 const scaledSize = (size) => scaleSize(size);
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 
-const BODY_ICONS = {
-  allFront: [
-    require("../../../../../body/chest.png"),
-    require("../../../../../body/shoulders.png"),
-    require("../../../../../body/bicep.png"),
-    require("../../../../../body/abs.png"),
-    require("../../../../../body/quads.png"),
-    require("../../../../../body/calves.png"),
-  ],
-  chest: [require("../../../../../body/chest.png")],
-  back: [
-    require("../../../../../body/back.png"),
-    require("../../../../../body/traps.png"),
-    require("../../../../../body/hamstrings.png"),
-    require("../../../../../body/glutes.png"),
-  ],
-  shoulders: [require("../../../../../body/shoulders.png")],
-  arms: [
-    require("../../../../../body/bicep.png"),
-    require("../../../../../body/forearms.png"),
-  ],
-  legs: [
-    require("../../../../../body/quads.png"),
-    require("../../../../../body/calves.png"),
-  ],
-  abs: [
-    require("../../../../../body/abs.png"),
-    require("../../../../../body/obliques.png"),
-  ],
-  fullBody: [
-    require("../../../../../body/chest.png"),
-    require("../../../../../body/shoulders.png"),
-    require("../../../../../body/bicep.png"),
-    require("../../../../../body/abs.png"),
-    require("../../../../../body/quads.png"),
-    require("../../../../../body/calves.png"),
-    require("../../../../../body/back.png"),
-    require("../../../../../body/hamstrings.png"),
-    require("../../../../../body/glutes.png"),
-  ],
-};
-
 const MUSCLE_FILTERS = [
   {
-    label: "All",
-    value: null,
-    iconSources: BODY_ICONS.allFront,
-  },
-  { label: "Chest", value: "Chest", iconSources: BODY_ICONS.chest },
-  {
-    label: "Back",
-    value: "Back",
-    iconSources: BODY_ICONS.back,
-  },
-  { label: "Shoulders", value: "Shoulders", iconSources: BODY_ICONS.shoulders },
-  { label: "Arms", value: "Arms", iconSources: BODY_ICONS.arms },
-  { label: "Legs", value: "Legs", iconSources: BODY_ICONS.legs },
-  { label: "Abs", value: "Abs", iconSources: BODY_ICONS.abs },
-  {
     label: "Full Body",
-    value: "Full Body",
-    iconSources: BODY_ICONS.fullBody,
+    value: null,
+    segments: [
+      "calves",
+      "quads",
+      "abs",
+      "obliques",
+      "forearms",
+      "arms",
+      "shoulders",
+      "chest",
+      "traps",
+    ],
   },
+  { label: "Chest", value: "Chest", segments: ["chest"] },
+  { label: "Shoulders", value: "Shoulders", segments: ["shoulders"] },
+  { label: "Arms", value: "Arms", segments: ["arms", "forearms"] },
+  { label: "Legs", value: "Legs", segments: ["quads", "calves"] },
+  { label: "Abs", value: "Abs", segments: ["abs", "obliques"] },
+  { label: "Back", value: "Back", segments: [] },
 ];
 
 const EQUIPMENT_OPTIONS = [
@@ -353,7 +312,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                     color={ICON_COLOR}
                   />
                 </Pressable>
-                <Pressable
+                {/* <Pressable
                   style={[styles.circleButton, styles.headerActionButton]}
                   onPress={() => setFiltersOpen((prev) => !prev)}
                   hitSlop={10}
@@ -373,7 +332,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                     size={scaledSize(20)}
                     color={ICON_COLOR}
                   />
-                </Pressable>
+                </Pressable> */}
               </View>
             </View>
 
@@ -430,7 +389,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                           ]}
                         >
                           <MuscleGroupIcon
-                            sources={option.iconSources}
+                            segments={option.segments}
                             dimmed={!isActive}
                           />
                         </View>
