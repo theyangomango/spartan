@@ -1162,20 +1162,12 @@ export default function LeaderboardsSection({ navigation }) {
                     style={[
                         styles.header,
                         { paddingHorizontal: SIZES.headerPaddingHorizontal + scaleSize(4) },
-                        !isCustomTribe && styles.headerCondensed,
                     ]}
                 >
-                    {isCustomTribe ? (
-                        <>
-                            <View style={styles.headerLeftContainer}>{renderScopeToggle()}</View>
-                            <View style={styles.headerRightContainer}>{renderHeaderRightContent()}</View>
-                        </>
-                    ) : (
-                        <View style={styles.headerPillsRow}>
-                            {renderScopeToggle()}
-                            {renderHeaderRightContent()}
-                        </View>
-                    )}
+                    <View style={styles.headerPillsRow}>
+                        {renderScopeToggle()}
+                        {renderHeaderRightContent()}
+                    </View>
                 </View>
             </View>
 
@@ -1395,23 +1387,6 @@ const styles = StyleSheet.create({
         width: "100%",
         paddingTop: SIZES.headerPaddingTop,
         alignItems: "center",
-    },
-    headerCondensed: {
-        justifyContent: "space-between",
-    },
-    headerLeftContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        flex: 1,
-        marginRight: scaleSize(16),
-    },
-    headerRightContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        flex: 1,
-        marginLeft: scaleSize(16),
     },
     headerPillsRow: {
         flex: 1,
