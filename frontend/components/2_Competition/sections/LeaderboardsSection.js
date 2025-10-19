@@ -964,7 +964,7 @@ export default function LeaderboardsSection({ navigation }) {
     const gradientConfig = useMemo(() => {
         if (isCustomTribe) {
             return {
-                colors: ["#05060D", "#161930", "#223561", "#2F4E91", "#3D65BC", theme.bg],
+                colors: ["#120A04", "#261308", "#3B1D0B", "#5A2F10", "#BF6F57", theme.bg],
                 locations: [0, 0.2, 0.48, 0.7, 0.9, 1],
             };
         }

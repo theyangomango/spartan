@@ -109,6 +109,9 @@ const withAlpha = (color, alpha = 1) => {
     return `rgba(${rgba.r},${rgba.g},${rgba.b},${a})`;
 };
 
+const BRAND_ACCENT = theme.primary;
+const BRAND_ACCENT_LIGHT = mixHex(theme.primary, "#FFFFFF", 0.35);
+
 const readUid = (value) => {
     if (!value) return '';
     if (typeof value === 'string' || typeof value === 'number') return String(value);
@@ -361,41 +364,22 @@ export default function NotificationCard({
     };
 
     const palette = useMemo(() => {
-        let base = {
-            IconCmp: MessageCircle,
-            accent: "#64748B",
-            accent2: "#94A3B8",
-            badgeBg: "rgba(100,116,139,0.06)",
+        const iconByType = {
+            "liked-post": Heart,
+            "liked-comment": Heart,
+            comment: MessageCircle,
+            "replied-comment": MessageCircle,
+            mention: AtSign,
+            follow: UserPlus,
+            "follow-request": UserPlus,
+            "follow-accepted": Check,
+            "workout-invite": Activity,
         };
 
-        switch (item.type) {
-            case "liked-post":
-            case "liked-comment":
-                base = { IconCmp: Heart, accent: "#FF387E", accent2: "#FF74A8", badgeBg: "rgba(255,56,126,0.08)" };
-                break;
-            case "comment":
-            case "replied-comment":
-                base = { IconCmp: MessageCircle, accent: "#2D92FF", accent2: "#6AB6FF", badgeBg: "rgba(45,146,255,0.08)" };
-                break;
-            case "mention":
-                base = { IconCmp: AtSign, accent: "#885FFF", accent2: "#A78BFA", badgeBg: "rgba(136,95,255,0.08)" };
-                break;
-            case "follow":
-            case "follow-request":
-                base = { IconCmp: UserPlus, accent: "#16A34A", accent2: "#22C55E", badgeBg: "rgba(22,163,74,0.12)" };
-                break;
-            case "follow-accepted":
-                base = { IconCmp: Check, accent: "#2D92FF", accent2: "#6AB6FF", badgeBg: "rgba(45,146,255,0.1)" };
-                break;
-            case "workout-invite":
-                base = { IconCmp: Activity, accent: "#0EA5E9", accent2: "#38BDF8", badgeBg: "rgba(14,165,233,0.1)" };
-                break;
-            default:
-                break;
-        }
-
-        const accentHex = hexToRgba(base.accent) ? base.accent : "#4F5B76";
-        const accent2Hex = hexToRgba(base.accent2) ? base.accent2 : "#7A85A1";
+        const IconCmp = iconByType[item?.type] || MessageCircle;
+        const accentHex = BRAND_ACCENT;
+        const accent2Hex = BRAND_ACCENT_LIGHT;
+        const badgeBg = withAlpha(accentHex, 0.14);
 
         const cardBg = theme.surface;
         const buttonBg = withAlpha(accentHex, 0.16);
@@ -408,10 +392,11 @@ export default function NotificationCard({
         const solidButtonBgDisabled = withAlpha(accentHex, 0.22);
 
         return {
-            ...base,
+            IconCmp,
             accent: accentHex,
             accent2: accent2Hex,
             cardBg,
+            badgeBg,
             buttonBg,
             buttonBgActive,
             buttonBorder,
@@ -439,9 +424,9 @@ export default function NotificationCard({
         solidButtonBgDisabled,
     } = palette;
 
-    const neutralButtonBg = withAlpha(theme.muted, 0.16);
-    const neutralButtonBorder = withAlpha(theme.muted, 0.28);
-    const neutralButtonText = mixHex(theme.muted, "#F1F5FF", 0.22);
+    const neutralButtonBg = withAlpha(BRAND_ACCENT, 0.12);
+    const neutralButtonBorder = withAlpha(BRAND_ACCENT, 0.3);
+    const neutralButtonText = mixHex(BRAND_ACCENT, "#F1F5FF", 0.25);
 
     const isFollowing = followState === 'following';
     const isRequested = followState === 'requested';
