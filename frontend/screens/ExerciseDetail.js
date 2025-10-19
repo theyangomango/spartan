@@ -474,12 +474,12 @@ const styles = StyleSheet.create({
     },
     shareText: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: ts(14),
+        fontSize: ts(13.5),
         color: theme.surface,
     },
     favoriteText: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: ts(14),
+        fontSize: ts(13.5),
         color: theme.textPrimary,
     },
     howToBlock: {
