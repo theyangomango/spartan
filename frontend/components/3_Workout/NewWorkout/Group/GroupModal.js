@@ -249,11 +249,11 @@ const styles = StyleSheet.create({
         marginBottom: scaledSize(10),
     },
     modalText: {
-        fontFamily: "Nunito_800ExtraBold",
-        fontSize: scaleSize(13),
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(14),
         color: theme.textPrimary,
         includeFontPadding: false,
-        letterSpacing: 0.2,
+        letterSpacing: 0.4,
     },
 
     searchContainer: {

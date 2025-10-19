@@ -9,7 +9,7 @@ import scaleSize from "../../../../helper/scaleSize";
 
 const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite }) => {
     const bottomSheetRef = useRef(null);
-    const snapPoints = useMemo(() => ["85%"], []);
+    const snapPoints = useMemo(() => ["93%"], []);
 
     useEffect(() => {
         if (groupModalExpandFlag) {
@@ -27,7 +27,7 @@ const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite
                 appearsOnIndex={0}
                 disappearsOnIndex={-1}
                 pressBehavior="close"
-                style={[props?.style, { backgroundColor: "rgba(2, 6, 23, 0.65)" }]}
+                style={[props?.style, { backgroundColor: "rgba(0, 0, 0, 0.9)" }]}
             />
         ),
         []
@@ -40,7 +40,7 @@ const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite
                 index={-1}
                 snapPoints={snapPoints}
                 backdropComponent={renderBackdrop}
-                backgroundStyle={{ backgroundColor: theme.surface }}
+                backgroundStyle={{ backgroundColor: theme.bg }}
                 handleStyle={{ display: "none" }}
                 enablePanDownToClose
                 onClose={closeGroupModal}
