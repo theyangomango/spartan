@@ -137,6 +137,7 @@ const ActiveWorkoutModal = ({
 
     const scrollY = useRef(new RNAnimated.Value(0)).current;
     const listRef = useRef(null);
+    const ensuredSelfViewRef = useRef(new Set());
     const [keyboardHeight, setKeyboardHeight] = useState(0);
 
     // Track keyboard height and add bottom padding so content can scroll above it
@@ -189,8 +190,9 @@ const ActiveWorkoutModal = ({
     const [liveEnabled, setLiveEnabled] = useState(initialLiveEnable);
     useEffect(() => {
         if (!initialLiveEnable) return;
+        setLiveEnabled(true);
         try { if (global.__enableLiveForWid === cardWid) global.__enableLiveForWid = null; } catch { }
-    }, [initialLiveEnable, cardWid]);
+    }, [initialLiveEnable, cardWid, setLiveEnabled]);
 
     useEffect(() => {
         if (!forceSelfView) return;
@@ -498,6 +500,22 @@ const ActiveWorkoutModal = ({
     }, [cardWid, meUid, members, myActiveWid, participants, workout?.__justStarted, workout?.wid]);
     const isActiveSelf = viewingSelfEffective && hasActiveWorkoutContext;
     const dimDueToContext = !viewingSelfEffective;
+
+    useEffect(() => {
+        const widKey = String(cardWid || "");
+        const myKey = String(meUid || "");
+        if (!widKey || !myKey) return;
+        if (!hasActiveWorkoutContext) return;
+        if (lockFriend) return;
+        if (viewingSelfEffective) return;
+        if (String(viewing?.uid || viewing) === myKey) return;
+        const ensured = ensuredSelfViewRef.current;
+        if (ensured.has(widKey)) return;
+        ensured.add(widKey);
+        setViewing(myKey);
+        onViewingChange?.(true);
+    }, [cardWid, hasActiveWorkoutContext, lockFriend, meUid, onViewingChange, setViewing, viewing, viewingSelfEffective]);
+
     // Smoothly animate context dim to avoid harsh jumps when switching between spectating and self
     const contentDimAnim = useRef(new RNAnimated.Value(1)).current;
     const targetOpacity = reminderVisible ? 0.6 : (dimDueToContext ? 0.6 : 1);
