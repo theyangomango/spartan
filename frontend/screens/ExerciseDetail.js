@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Alert,
     SafeAreaView,
@@ -16,7 +16,10 @@ import useStableSafeAreaInsets from '../hooks/useStableSafeAreaInsets';
 import theme from '../theme/mfpDark';
 import scaleSize, { ts } from '../helper/scaleSize';
 import ExerciseImagePreview from '../components/3_Workout/NewWorkout/SelectExercise/ExerciseImagePreview';
+import { toExerciseSlug } from '../components/common/exerciseImageMap';
 import { withStrongPress } from '../utils/haptics';
+import useSyncSavedExercises from '../hooks/useSyncSavedExercises';
+import { subscribeUserData, emitUserDataUpdate } from '../utils/userDataEvents';
 
 const TABS = [
     { key: 'about', label: 'About' },
@@ -25,6 +28,65 @@ const TABS = [
 ];
 
 const STEP_SOURCE_KEYS = ['howToSteps', 'instructions', 'steps', 'howTo'];
+
+const normalizeSavedExercises = (raw) => {
+    if (!raw) return {};
+    if (Array.isArray(raw)) {
+        return raw.reduce((acc, entry) => {
+            if (!entry) return acc;
+            const name = String(entry?.name || entry).trim();
+            if (!name) return acc;
+            const muscleGroup = entry?.muscleGroup ?? entry?.muscle ?? null;
+            acc[name] = {
+                name,
+                muscleGroup,
+                muscle: entry?.muscle ?? entry?.muscleGroup ?? muscleGroup ?? null,
+                slug: entry?.slug ?? null,
+            };
+            return acc;
+        }, {});
+    }
+    if (typeof raw === 'object') {
+        return Object.entries(raw).reduce((acc, [key, value]) => {
+            if (!value && value !== 0) return acc;
+            const name = String(value?.name || key).trim();
+            if (!name) return acc;
+            const muscleGroup = value?.muscleGroup ?? value?.muscle ?? null;
+            acc[name] = {
+                name,
+                muscleGroup,
+                muscle: value?.muscle ?? value?.muscleGroup ?? muscleGroup ?? null,
+                slug: value?.slug ?? null,
+            };
+            return acc;
+        }, {});
+    }
+    return {};
+};
+
+const savedExercisesSignature = (map) => {
+    if (!map || typeof map !== 'object') return '';
+    const entries = Object.keys(map)
+        .sort((a, b) => a.localeCompare(b))
+        .map((key) => {
+            const value = map[key] || {};
+            return [
+                key,
+                value?.muscleGroup ?? null,
+                value?.muscle ?? null,
+                value?.slug ?? null,
+            ];
+        });
+    return JSON.stringify(entries);
+};
+
+const getInitialSavedExercises = () => {
+    try {
+        return normalizeSavedExercises(global?.userData?.savedExercises);
+    } catch {
+        return {};
+    }
+};
 
 const normalizeHowToSteps = (raw) => {
     if (!raw) return [];
@@ -89,6 +151,7 @@ export default function ExerciseDetail() {
     const route = useRoute();
     const insets = useStableSafeAreaInsets();
     const [activeTab, setActiveTab] = useState('about');
+    const [savedExercisesMap, setSavedExercisesMap] = useState(() => getInitialSavedExercises());
     const headerTopPadding = useMemo(
         () => (insets?.top ? scaleSize(12) : scaleSize(18)),
         [insets?.top]
@@ -108,6 +171,22 @@ export default function ExerciseDetail() {
 
     const muscleGroup = exerciseParam?.muscleGroup || exerciseParam?.muscle || '—';
     const equipment = exerciseParam?.equipment || '—';
+    const normalizedMuscleGroup = useMemo(() => {
+        if (!muscleGroup || (typeof muscleGroup === 'string' && muscleGroup.trim() === '')) return null;
+        if (muscleGroup === '—') return null;
+        return muscleGroup;
+    }, [muscleGroup]);
+    const resolvedSlug = useMemo(() => {
+        const candidate = typeof exerciseParam?.slug === 'string' ? exerciseParam.slug.trim() : '';
+        if (candidate) return candidate;
+        return toExerciseSlug(name);
+    }, [exerciseParam?.slug, name]);
+    const isFavorite = useMemo(() => Boolean(savedExercisesMap?.[name]), [savedExercisesMap, name]);
+    const favoriteButtonLabel = isFavorite ? 'Remove from Favorites' : 'Add to Favorites';
+    const favoriteAccessibilityLabel = isFavorite
+        ? 'Remove exercise from favorites'
+        : 'Add exercise to favorites';
+
     const howToSteps = useMemo(() => {
         const resolvedSteps = resolveProvidedHowToSteps(exerciseParam);
         if (resolvedSteps.length) return resolvedSteps;
@@ -117,6 +196,36 @@ export default function ExerciseDetail() {
             equipment,
         });
     }, [exerciseParam, displayTitle, muscleGroup, equipment]);
+
+    useEffect(() => {
+        const unsubscribe = subscribeUserData((payload) => {
+            const next = normalizeSavedExercises(payload?.savedExercises);
+            setSavedExercisesMap((prev) => {
+                const prevSig = savedExercisesSignature(prev);
+                const nextSig = savedExercisesSignature(next);
+                if (prevSig === nextSig) return prev;
+                return next;
+            });
+        });
+        return unsubscribe;
+    }, []);
+
+    useEffect(() => {
+        try {
+            const nextSig = savedExercisesSignature(savedExercisesMap);
+            const globalNormalized = normalizeSavedExercises(global?.userData?.savedExercises);
+            const globalSig = savedExercisesSignature(globalNormalized);
+            if (nextSig !== globalSig) {
+                if (!global.userData) global.userData = {};
+                global.userData.savedExercises = savedExercisesMap || {};
+                emitUserDataUpdate();
+            }
+        } catch {
+            // ignore
+        }
+    }, [savedExercisesMap]);
+
+    useSyncSavedExercises(savedExercisesMap);
 
     const handleBack = useCallback(() => {
         navigation.goBack?.();
@@ -131,12 +240,27 @@ export default function ExerciseDetail() {
         }
     }, [displayTitle]);
 
-    const handleFavorite = useCallback(() => {
-        Alert.alert(
-            'Coming soon',
-            'Favorites are on the roadmap. Keep logging workouts to see history and progress here soon!'
-        );
-    }, []);
+    const handleToggleFavorite = useCallback(() => {
+        if (!name) return;
+        setSavedExercisesMap((prev) => {
+            const exists = prev?.[name];
+            if (exists) {
+                const next = { ...prev };
+                delete next[name];
+                return next;
+            }
+            const next = {
+                ...prev,
+                [name]: {
+                    name,
+                    muscleGroup: normalizedMuscleGroup,
+                    muscle: normalizedMuscleGroup,
+                    slug: resolvedSlug,
+                },
+            };
+            return next;
+        });
+    }, [name, normalizedMuscleGroup, resolvedSlug]);
 
     const handleTabChange = useCallback((tabKey) => {
         setActiveTab(tabKey);
@@ -186,26 +310,39 @@ export default function ExerciseDetail() {
 
             <Pressable
                 style={[styles.actionButton, styles.shareButton]}
-                onPress={withStrongPress(handleShare)}
+                onPress={withStrongPress(handleToggleFavorite)}
                 accessibilityRole="button"
-                accessibilityLabel="Share exercise"
+                accessibilityLabel={favoriteAccessibilityLabel}
+                accessibilityState={{ selected: isFavorite }}
             >
-                <View style={[styles.actionIcon, styles.shareIcon]}>
-                    <Ionicons name="share-outline" size={scaleSize(18)} color={theme.surface} />
+                <View
+                    style={[
+                        styles.actionIcon,
+                        styles.shareIcon,
+                        isFavorite && styles.favoriteIconActive,
+                    ]}
+                >
+                    <Ionicons
+                        name={isFavorite ? 'bookmark' : 'bookmark-outline'}
+                        size={scaleSize(16)}
+                        color={isFavorite ? theme.primary : theme.surface}
+                    />
                 </View>
-                <Text style={styles.shareText}>Share Exercise</Text>
+                <Text style={styles.shareText}>{favoriteButtonLabel}</Text>
+                <View style={styles.actionIconSpacer} />
             </Pressable>
 
             <Pressable
                 style={[styles.actionButton, styles.favoriteButton]}
-                onPress={withStrongPress(handleFavorite)}
+                onPress={withStrongPress(handleShare)}
                 accessibilityRole="button"
-                accessibilityLabel="Add exercise to favorites"
+                accessibilityLabel="Share exercise"
             >
                 <View style={[styles.actionIcon, styles.favoriteIcon]}>
-                    <Ionicons name="bookmark-outline" size={scaleSize(16)} color={theme.textPrimary} />
+                    <Ionicons name="share-outline" size={scaleSize(18)} color={theme.textPrimary} />
                 </View>
-                <Text style={styles.favoriteText}>Add to Favorites</Text>
+                <Text style={styles.favoriteText}>Share Exercise</Text>
+                <View style={styles.actionIconSpacer} />
             </Pressable>
 
             <View style={styles.infoBlock}>
@@ -472,15 +609,28 @@ const styles = StyleSheet.create({
     favoriteIcon: {
         backgroundColor: 'rgba(255,255,255,0.1)',
     },
+    favoriteIconActive: {
+        backgroundColor: 'rgba(45, 158, 255, 0.22)',
+    },
     shareText: {
+        flex: 1,
         fontFamily: 'Outfit_700Bold',
-        fontSize: ts(13.5),
+        fontSize: ts(13),
         color: theme.surface,
+        textAlign: 'center',
     },
     favoriteText: {
+        flex: 1,
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: ts(13.5),
+        fontSize: ts(13),
         color: theme.textPrimary,
+        textAlign: 'center',
+    },
+    actionIconSpacer: {
+        width: scaleSize(30),
+        height: scaleSize(30),
+        marginLeft: scaleSize(10),
+        opacity: 0,
     },
     howToBlock: {
         backgroundColor: theme.surface,

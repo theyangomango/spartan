@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,6 +12,7 @@ import { toExerciseSlug } from "../../common/exerciseImageMap";
 import { exercises as ALL_EXERCISES } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
 import { scaleSize } from "../layoutConstants";
 import useSyncSavedExercises from "../../../hooks/useSyncSavedExercises";
+import { subscribeUserData } from "../../../utils/userDataEvents";
 
 const ICON_COLOR = "#D5E0F6";
 const TEXT_PRIMARY = "#F6F8FF";
@@ -55,51 +56,65 @@ const normalizeEquipment = (raw) => {
     return "Other";
 };
 
+const normalizeSavedExercises = (raw) => {
+    if (!raw) return {};
+    if (Array.isArray(raw)) {
+        return raw.reduce((acc, entry) => {
+            if (!entry) return acc;
+            const name = String(entry?.name || entry).trim();
+            if (!name) return acc;
+            const muscleGroup = entry?.muscleGroup ?? entry?.muscle ?? null;
+            acc[name] = {
+                name,
+                muscleGroup,
+                muscle: entry?.muscle ?? entry?.muscleGroup ?? muscleGroup ?? null,
+                slug: entry?.slug ?? null,
+            };
+            return acc;
+        }, {});
+    }
+    if (typeof raw === "object") {
+        return Object.entries(raw).reduce((acc, [key, value]) => {
+            if (!value && value !== 0) return acc;
+            const name = String(value?.name || key).trim();
+            if (!name) return acc;
+            const muscleGroup = value?.muscleGroup ?? value?.muscle ?? null;
+            acc[name] = {
+                name,
+                muscleGroup,
+                muscle: value?.muscle ?? value?.muscleGroup ?? muscleGroup ?? null,
+                slug: value?.slug ?? null,
+            };
+            return acc;
+        }, {});
+    }
+    return {};
+};
+
+const savedExercisesSignature = (map) => {
+    if (!map || typeof map !== "object") return "";
+    const entries = Object.keys(map)
+        .sort((a, b) => a.localeCompare(b))
+        .map((key) => {
+            const value = map[key] || {};
+            return [
+                key,
+                value?.muscleGroup ?? null,
+                value?.muscle ?? null,
+                value?.slug ?? null,
+            ];
+        });
+    return JSON.stringify(entries);
+};
+
 export default function ExercisesSection() {
     const navigation = useNavigation();
     const insets = useStableSafeAreaInsets();
     const [searchValue, setSearchValue] = useState("");
     const [bodyPartValue, setBodyPartValue] = useState(null);
-    const [savedExercisesMap, setSavedExercisesMap] = useState(() => {
-        const stored = global?.userData?.savedExercises;
-        if (!stored) return {};
-        if (Array.isArray(stored)) {
-            return stored.reduce((acc, entry) => {
-                if (!entry) return acc;
-                if (typeof entry === "string") {
-                    acc[entry] = { name: entry, muscle: null };
-                    return acc;
-                }
-                const name = entry?.name;
-                if (!name) return acc;
-                acc[name] = { ...entry, name, muscle: entry?.muscle ?? entry?.muscleGroup ?? null };
-                return acc;
-            }, {});
-        }
-        if (typeof stored === "object") {
-            return Object.entries(stored).reduce((acc, [key, value]) => {
-                if (!value && value !== 0) return acc;
-                if (typeof value === "string") {
-                    const name = value || key;
-                    acc[name] = { name, muscle: null };
-                    return acc;
-                }
-                if (typeof value === "object") {
-                    const name = value?.name || key;
-                    if (!name) return acc;
-                    acc[name] = {
-                        ...value,
-                        name,
-                        muscle: value?.muscle ?? value?.muscleGroup ?? null,
-                    };
-                    return acc;
-                }
-                acc[key] = { name: key, muscle: null };
-                return acc;
-            }, {});
-        }
-        return {};
-    });
+    const [savedExercisesMap, setSavedExercisesMap] = useState(() =>
+        normalizeSavedExercises(global?.userData?.savedExercises)
+    );
 
     const bottomInsetPadding = useMemo(
         () => (insets?.bottom || 0) + scaleSize(24),
@@ -143,6 +158,19 @@ export default function ExercisesSection() {
     }, [exercises]);
 
     useSyncSavedExercises(savedExercisesMap);
+
+    useEffect(() => {
+        const unsubscribe = subscribeUserData((payload) => {
+            const next = normalizeSavedExercises(payload?.savedExercises);
+            setSavedExercisesMap((prev) => {
+                const prevSig = savedExercisesSignature(prev);
+                const nextSig = savedExercisesSignature(next);
+                if (prevSig === nextSig) return prev;
+                return next;
+            });
+        });
+        return unsubscribe;
+    }, []);
 
     const filteredExercises = useMemo(() => {
         const query = searchValue.trim().toLowerCase();
