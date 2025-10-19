@@ -37,6 +37,7 @@ export default function FoodDetail({ navigation, route }) {
         return Math.round(x * 100) / 100;
     };
     const mode = route?.params?.mode || 'edit'; // 'edit' | 'add'
+    const readOnly = !!route?.params?.readOnly;
     const food = route?.params?.food || null;   // FatSecret-shaped when adding
     const entry = route?.params?.entry || {};
     const mealNameInit = route?.params?.mealName || 'Dinner';
@@ -151,6 +152,7 @@ export default function FoodDetail({ navigation, route }) {
     }, []);
 
     const adjust = (delta) => {
+        if (readOnly) return;
         setServings((s) => {
             let v = round2((Number(s) || 0) + delta);
             if (!Number.isFinite(v) || v <= 0) v = 0.5;
@@ -159,6 +161,7 @@ export default function FoodDetail({ navigation, route }) {
     };
 
     const onChangeText = (t) => {
+        if (readOnly) return;
         // Allow intermediate decimal input states like "." or "1."
         // 1) strip invalid chars, 2) keep only first dot, 3) store as string
         let v = String(t).replace(/[^0-9.]/g, '');
@@ -306,8 +309,12 @@ export default function FoodDetail({ navigation, route }) {
                 <Pressable style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={8}>
                     <Ionicons name="chevron-back" size={22} color={COLORS.text} />
                 </Pressable>
-                <Text style={styles.headerTitle} numberOfLines={1}>Add Food</Text>
-                {mode === 'add' ? (
+                <Text style={styles.headerTitle} numberOfLines={1}>
+                    {readOnly ? 'Food Details' : (mode === 'add' ? 'Add Food' : 'Edit Food')}
+                </Text>
+                {readOnly ? (
+                    <View style={styles.saveBtn} />
+                ) : mode === 'add' ? (
                     <Pressable style={styles.saveBtn} onPress={() => { try { haptic(); } catch { } addNew(); }} disabled={saving} hitSlop={8}>
                         <Ionicons name="add" size={22} color={saving ? 'rgba(255,255,255,0.5)' : COLORS.text} />
                     </Pressable>
@@ -337,24 +344,35 @@ export default function FoodDetail({ navigation, route }) {
                 <View style={styles.rowWrap}>
                     <Text style={styles.rowLabel}>Number of Servings</Text>
                     <View style={styles.inputWrap}>
-                        <Pressable style={[styles.stepBtn, styles.stepLeft]} onPress={() => { try { haptic(); } catch { } adjust(-0.5); }}>
+                        <Pressable
+                            style={[styles.stepBtn, styles.stepLeft]}
+                            onPress={!readOnly ? () => { try { haptic(); } catch { } adjust(-0.5); } : undefined}
+                            disabled={readOnly}
+                        >
                             <Ionicons name="remove" size={16} color={COLORS.text} />
                         </Pressable>
                         <DismissableTextInput
                             value={String(servings)}
                             onChangeText={onChangeText}
-                            onBlur={() => {
+                            onBlur={!readOnly ? () => {
                                 if (servings === '') return;
                                 setServings((s) => round2(Number(s) || 0) || 1);
-                            }}
+                            } : undefined}
                             keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'}
                             inputMode="decimal"
                             style={styles.input}
                             placeholder="1"
                             placeholderTextColor={COLORS.subtext}
                             returnKeyType="done"
+                            editable={!readOnly}
+                            selectTextOnFocus={!readOnly}
+                            pointerEvents={readOnly ? 'none' : 'auto'}
                         />
-                        <Pressable style={[styles.stepBtn, styles.stepRight]} onPress={() => { try { haptic(); } catch { } adjust(+0.5); }}>
+                        <Pressable
+                            style={[styles.stepBtn, styles.stepRight]}
+                            onPress={!readOnly ? () => { try { haptic(); } catch { } adjust(+0.5); } : undefined}
+                            disabled={readOnly}
+                        >
                             <Ionicons name="add" size={16} color={COLORS.text} />
                         </Pressable>
                     </View>
@@ -368,7 +386,8 @@ export default function FoodDetail({ navigation, route }) {
                         {MEAL_OPTIONS.map((opt) => (
                             <Pressable
                                 key={opt}
-                                onPress={() => { try { haptic(); } catch { } setMeal(opt); }}
+                                onPress={!readOnly ? () => { try { haptic(); } catch { } setMeal(opt); } : undefined}
+                                disabled={readOnly}
                                 style={[styles.mealChip, meal === opt && styles.mealChipActive]}
                             >
                                 <Text style={[styles.mealChipText, meal === opt && styles.mealChipTextActive]}>{opt}</Text>

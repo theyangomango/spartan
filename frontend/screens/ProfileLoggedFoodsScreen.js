@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
     ActivityIndicator,
+    FlatList,
     Pressable,
     SafeAreaView,
-    SectionList,
     StatusBar,
     StyleSheet,
     Text,
@@ -20,6 +20,8 @@ import { canViewerAccessProfile } from "../utils/workoutPrivacy";
 import { clearFooterSuppression } from "../state/footerSuppressionStore";
 import { withStrongPress } from "../utils/haptics";
 import { groupLoggedFoodsByDay } from "../utils/loggedFoods";
+import MealItemCard from "../components/2_MacroTracking/MealItemCard";
+import { summarizeFood } from "../utils/nutrition";
 
 const LockedView = ({ subtitle }) => (
     <View style={styles.lockedContainer}>
@@ -40,75 +42,32 @@ const formatDayLabel = (dayKey) => {
     const date = new Date(year, month - 1, day);
     if (Number.isNaN(date.getTime())) return dayKey;
     try {
-        return date.toLocaleDateString(undefined, {
-            weekday: "long",
-            month: "long",
-            day: "numeric",
-            year: "numeric",
-        });
+        const weekday = date.toLocaleDateString(undefined, { weekday: "long" });
+        const pad2 = (n) => String(n).padStart(2, "0");
+        const monthPart = pad2(date.getMonth() + 1);
+        const dayPart = pad2(date.getDate());
+        const yearPart = String(date.getFullYear()).slice(-2);
+        return `${weekday}, ${monthPart}/${dayPart}/${yearPart}`;
     } catch {
         return dayKey;
     }
 };
 
-const formatQuantity = (quantity) => {
-    const value = Number(quantity) || 0;
-    if (!value) return "";
-    const rounded = Number.isInteger(value) ? value : value.toFixed(1);
-    const label = value === 1 ? "Serving" : "Servings";
-    return `${rounded} ${label}`;
+const COLORS = {
+    bg: theme.bg,
+    card: theme.surface,
+    text: "#F8FAFC",
+    subtext: "rgba(203, 213, 225, 0.85)",
+    hairline: "rgba(148, 163, 184, 0.18)",
+    ringTint: theme.primary,
+    accent: theme.primary,
 };
-
-const FoodRow = ({ item }) => {
-    const quantityLabel = formatQuantity(item.quantity);
-    const metaParts = [];
-    if (item.meal) metaParts.push(item.meal);
-    if (quantityLabel) metaParts.push(quantityLabel);
-    if (item.brand) metaParts.push(item.brand);
-    const metaLine = metaParts.join(" • ");
-
-    return (
-        <View style={styles.foodRow}>
-            <View style={styles.foodRowHeader}>
-                <Text style={styles.foodName} numberOfLines={1}>{item.name || "Food"}</Text>
-                {Number(item.macros?.calories) ? (
-                    <Text style={styles.foodCalories}>{Math.round(item.macros.calories)} kcal</Text>
-                ) : null}
-            </View>
-            {metaLine ? (
-                <Text style={styles.foodMeta} numberOfLines={2}>{metaLine}</Text>
-            ) : null}
-            {item.desc ? (
-                <Text style={styles.foodDesc} numberOfLines={2}>{item.desc}</Text>
-            ) : null}
-            <View style={styles.foodMacroRow}>
-                <Text style={[styles.foodMacro, styles.foodMacroP]}>
-                    P {Math.round(item.macros?.protein || 0)}g
-                </Text>
-                <Text style={[styles.foodMacro, styles.foodMacroC]}>
-                    C {Math.round(item.macros?.carbs || 0)}g
-                </Text>
-                <Text style={[styles.foodMacro, styles.foodMacroF]}>
-                    F {Math.round(item.macros?.fat || 0)}g
-                </Text>
-            </View>
-        </View>
-    );
-};
-
-const SectionHeader = ({ title, totals }) => (
-    <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>{formatDayLabel(title)}</Text>
-        <Text style={styles.sectionSubtitle}>
-            {`${Math.round(totals.calories)} kcal • P${Math.round(totals.protein)}g • C${Math.round(totals.carbs)}g • F${Math.round(totals.fat)}g`}
-        </Text>
-    </View>
-);
 
 const toSections = (loggedFoods) => {
     const grouped = groupLoggedFoodsByDay(loggedFoods);
     return grouped.map(({ dayKey, items }) => {
-        const totals = items.reduce(
+        const entries = Array.isArray(items) ? items : [];
+        const totals = entries.reduce(
             (acc, item) => ({
                 calories: acc.calories + (Number(item.macros?.calories) || 0),
                 protein: acc.protein + (Number(item.macros?.protein) || 0),
@@ -117,8 +76,8 @@ const toSections = (loggedFoods) => {
             }),
             { calories: 0, protein: 0, carbs: 0, fat: 0 }
         );
-        return { title: dayKey, data: items, totals };
-    });
+        return { dayKey, items: entries, totals };
+    }).filter((section) => Array.isArray(section.items) && section.items.length > 0);
 };
 
 export default function ProfileLoggedFoodsScreen({ navigation, route }) {
@@ -180,17 +139,63 @@ export default function ProfileLoggedFoodsScreen({ navigation, route }) {
     ), [userData, canViewContent]);
 
     const totalItems = useMemo(() => (
-        sections.reduce((acc, section) => acc + section.data.length, 0)
+        sections.reduce((acc, section) => acc + (Array.isArray(section.items) ? section.items.length : 0), 0)
     ), [sections]);
 
     const handleBack = useCallback(() => {
         navigation.goBack();
     }, [navigation]);
 
-    const renderItem = useCallback(({ item }) => <FoodRow item={item} />, []);
-    const renderSectionHeader = useCallback(
-        ({ section }) => <SectionHeader title={section.title} totals={section.totals} />,
-        []
+    const renderSummary = useCallback((entry) => {
+        const parts = [];
+        if (entry.meal) parts.push(entry.meal);
+        const base = summarizeFood(entry.desc, entry.brand, entry.quantity ?? entry.qty ?? 1);
+        if (base) parts.push(base);
+        return parts.join(" • ");
+    }, []);
+
+    const renderDay = useCallback(
+        ({ item }) => {
+            const entries = Array.isArray(item?.items) ? item.items : [];
+            return (
+                <View style={styles.daySection}>
+                    <View style={styles.dayHeader}>
+                        <View style={styles.dayHeaderRow}>
+                            <Text style={styles.dayTitle}>{formatDayLabel(item.dayKey)}</Text>
+                            <Text style={styles.dayCalories}>{`${Math.round(item.totals.calories)} kcal`}</Text>
+                        </View>
+                        <Text style={styles.daySubtitle}>
+                            {`P${Math.round(item.totals.protein)}g • C${Math.round(item.totals.carbs)}g • F${Math.round(item.totals.fat)}g`}
+                        </Text>
+                    </View>
+                    <View style={styles.dayCards}>
+                        {entries.map((entry, index) => (
+                            <MealItemCard
+                                key={entry.key}
+                                entry={entry}
+                                COLORS={COLORS}
+                                cardStyle={[
+                                    styles.card,
+                                    index === 0 && styles.cardFirst,
+                                    index === entries.length - 1 && styles.cardLast,
+                                ]}
+                                showCaloriesRight
+                                renderSummary={renderSummary}
+                                enableSwipe={false}
+                                onPress={() => navigation.navigate('FoodDetail', {
+                                    entry: entry.raw || entry,
+                                    mealName: entry.meal,
+                                    dayKey: entry.dayKey,
+                                    readOnly: true,
+                                    mode: 'edit',
+                                })}
+                            />
+                        ))}
+                    </View>
+                </View>
+            );
+        },
+        [navigation, renderSummary]
     );
 
     let mainContent = null;
@@ -223,16 +228,14 @@ export default function ProfileLoggedFoodsScreen({ navigation, route }) {
         );
     } else {
         mainContent = (
-            <SectionList
-                sections={sections}
-                keyExtractor={(item) => item.key}
-                renderItem={renderItem}
-                renderSectionHeader={renderSectionHeader}
-                stickySectionHeadersEnabled={false}
+            <FlatList
+                data={sections}
+                keyExtractor={(item) => item.dayKey}
+                renderItem={renderDay}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.listContent}
-                ItemSeparatorComponent={() => <View style={styles.itemSeparator} />}
-                SectionSeparatorComponent={() => <View style={styles.sectionSeparator} />}
+                ListHeaderComponent={<View style={styles.listTopSpacer} />}
+                ItemSeparatorComponent={() => <View style={styles.sectionSeparator} />}
             />
         );
     }
@@ -343,85 +346,65 @@ const styles = StyleSheet.create({
         lineHeight: scaleSize(20),
     },
     listContent: {
-        paddingHorizontal: scaleSize(18),
+        paddingHorizontal: 0,
         paddingBottom: scaleSize(120),
     },
-    itemSeparator: {
-        height: scaleSize(14),
+    listTopSpacer: {
+        height: scaleSize(2),
     },
     sectionSeparator: {
-        height: scaleSize(28),
+        height: scaleSize(18),
     },
-    sectionHeader: {
-        marginBottom: scaleSize(12),
+    daySection: {
     },
-    sectionTitle: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(16),
-        color: "#F8FAFC",
+    dayHeader: {
+        paddingHorizontal: scaleSize(22),
+        paddingTop: scaleSize(14),
+        paddingBottom: scaleSize(10),
     },
-    sectionSubtitle: {
-        marginTop: scaleSize(2),
-        fontFamily: "Outfit_400Regular",
-        fontSize: scaleSize(12),
-        color: "rgba(203, 213, 225, 0.78)",
-    },
-    foodRow: {
-        padding: scaleSize(16),
-        borderRadius: scaleSize(16),
-        backgroundColor: "rgba(30, 41, 59, 0.72)",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(148, 163, 184, 0.16)",
-    },
-    foodRowHeader: {
+    dayHeaderRow: {
         flexDirection: "row",
+        alignItems: "center",
         justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: scaleSize(6),
     },
-    foodName: {
-        flex: 1,
-        fontFamily: "Nunito_800ExtraBold",
-        fontSize: scaleSize(14),
+    dayTitle: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(13.5),
         color: "#F8FAFC",
-        marginRight: scaleSize(8),
+        letterSpacing: 0.18,
+        textTransform: "uppercase",
     },
-    foodCalories: {
-        fontFamily: "Nunito_700Bold",
-        fontSize: scaleSize(12),
-        color: "#FDE68A",
+    dayCalories: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(12.5),
+        color: "rgba(248, 250, 252, 0.92)",
     },
-    foodMeta: {
-        fontFamily: "Nunito_600SemiBold",
-        fontSize: scaleSize(12),
-        color: "rgba(209, 213, 219, 0.85)",
-        marginBottom: scaleSize(4),
+    daySubtitle: {
+        marginTop: scaleSize(3),
+        fontFamily: "Outfit_400Regular",
+        fontSize: scaleSize(11.5),
+        color: "rgba(148, 163, 184, 0.85)",
+        letterSpacing: 0.25,
     },
-    foodDesc: {
-        fontFamily: "Nunito_500Medium",
-        fontSize: scaleSize(12),
-        color: "rgba(148, 163, 184, 0.9)",
-        marginBottom: scaleSize(6),
+    dayCards: {
+        paddingHorizontal: 0,
+        paddingVertical: scaleSize(4),
     },
-    foodMacroRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        marginTop: scaleSize(6),
+    card: {
+        borderRadius: 0,
+        borderWidth: 0,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderColor: COLORS.hairline,
+        marginVertical: 0,
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(26),
+        backgroundColor: COLORS.card,
     },
-    foodMacro: {
-        fontFamily: "Nunito_700Bold",
-        fontSize: scaleSize(12),
-        marginRight: scaleSize(12),
+    cardFirst: {
+        borderTopWidth: StyleSheet.hairlineWidth,
     },
-    foodMacroP: {
-        color: "#93C5FD",
-    },
-    foodMacroC: {
-        color: "#FCA5A5",
-    },
-    foodMacroF: {
-        color: "#FBCFE8",
+    cardLast: {
+        borderBottomWidth: StyleSheet.hairlineWidth,
     },
     lockedContainer: {
         flex: 1,
