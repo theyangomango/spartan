@@ -2,13 +2,14 @@
 import React, { useState } from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FontAwesome6, FontAwesome5 } from "@expo/vector-icons";
+import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize from "../../helper/scaleSize";
 import theme from "../../theme/mfpDark";
 
 const ACCENT = theme.primary;
 const HAIRLINE = theme.hairline;
+const BACK_ICON_COLOR = theme.textSecondary;
 
 const BASE_TOP_PADDING = scaleSize(6);
 
@@ -54,9 +55,15 @@ export default function MessagesHeader({
                 <TouchableOpacity
                     activeOpacity={0.6}
                     onPress={toFeedScreen}
-                    style={[styles.iconCircle, styles.leftIcon]}
+                    style={styles.leftIcon}
+                    hitSlop={{
+                        top: scaleSize(8),
+                        bottom: scaleSize(8),
+                        left: scaleSize(8),
+                        right: scaleSize(8),
+                    }}
                 >
-                    <FontAwesome6 name="chevron-left" size={scaleSize(13)} color={ACCENT} />
+                    <Ionicons name="chevron-back" size={scaleSize(20)} color={BACK_ICON_COLOR} />
                 </TouchableOpacity>
 
                 {/* Create group — simplified to a single icon for cleaner look */}
@@ -122,7 +129,17 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: scaleSize(3) },
         elevation: 2,
     },
-    leftIcon: { left: scaleSize(20) },
+    leftIcon: {
+        position: "absolute",
+        left: scaleSize(20),
+        top: "50%",
+        transform: [{ translateY: -scaleSize(18) }],
+        height: scaleSize(36),
+        width: scaleSize(36),
+        borderRadius: scaleSize(18),
+        alignItems: "center",
+        justifyContent: "center",
+    },
     rightIcon: { right: scaleSize(23), justifyContent: "center" },
     // no extra bubble; keep the pill clean
     plusBadge: {

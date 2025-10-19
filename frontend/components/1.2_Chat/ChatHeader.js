@@ -2,15 +2,15 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
-import { FontAwesome6 } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { usePfp } from "../../helper/usePFPs";
 import scaleSize, { ts } from "../../helper/scaleSize";
 import theme from "../../theme/mfpDark";
 
-const ACCENT = theme.primary;
 const HAIRLINE = theme.hairline;
 const BG = theme.bg;
+const BACK_ICON_COLOR = theme.textSecondary;
 
 const BACK_GUTTER = 24;
 const SINGLE_PFP_SIZE = scaleSize(36);
@@ -58,7 +58,7 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
 
     return (
         <View style={styles.header}>
-            {/* Scooted content so it never overlaps the pill */}
+            {/* Scooted content so it never overlaps the back icon hit area */}
             <View style={styles.centerRow} pointerEvents="box-none">
                 <View style={styles.pfpContainer}>
                     {usersExcludingSelf.length > 1 ? (
@@ -92,14 +92,14 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
                     )}
                 </View>
             </View>
-            {/* Back pill — same as MessagesHeader */}
+            {/* Back icon mirrors Notifications styling */}
             <TouchableOpacity
                 activeOpacity={0.6}
                 onPress={onBack}
                 hitSlop={{ top: scaleSize(8), bottom: scaleSize(8), left: scaleSize(8), right: scaleSize(8) }}
-                style={[styles.iconCircle, styles.leftIcon]}
+                style={styles.leftIcon}
             >
-                <FontAwesome6 name="chevron-left" size={scaleSize(13)} color={ACCENT} />
+                <Ionicons name="chevron-back" size={scaleSize(20)} color={BACK_ICON_COLOR} />
             </TouchableOpacity>
             <View style={{ width: scaleSize(12) }} />
         </View>
@@ -116,33 +116,24 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
     },
 
-    // exact pill spec + ensure it’s on top
-    iconCircle: {
+    leftIcon: {
         position: "absolute",
+        left: scaleSize(20),
         top: "50%",
-        transform: [{ translateY: -scaleSize(14) }],
-        width: scaleSize(28),
-        height: scaleSize(28),
-        borderRadius: scaleSize(14),
-        backgroundColor: theme.surface,
-        borderWidth: scaleSize(1),
-        borderColor: HAIRLINE,
+        transform: [{ translateY: -scaleSize(18) }],
+        height: scaleSize(36),
+        width: scaleSize(36),
+        borderRadius: scaleSize(18),
         alignItems: "center",
         justifyContent: "center",
-        shadowColor: "#000",
-        shadowOpacity: 0.18,
-        shadowRadius: scaleSize(7),
-        shadowOffset: { width: 0, height: scaleSize(3) },
-        elevation: 2,
     },
-    leftIcon: { left: scaleSize(20) },
 
-    // leave space = left(20) + pill(28) + gutter(24)
+    // leave space = left(20) + icon hitbox(36) + gutter(24)
     centerRow: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: scaleSize(14),
-        paddingLeft: scaleSize(20 + 28 + BACK_GUTTER),
+        paddingLeft: scaleSize(20 + 36 + BACK_GUTTER),
     },
     pfpContainer: {
         width: SINGLE_PFP_SIZE,

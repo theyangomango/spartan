@@ -646,9 +646,9 @@ const styles = StyleSheet.create({
     },
     firstCard: { borderTopWidth: StyleSheet.hairlineWidth },
     lastCard: { borderBottomWidth: StyleSheet.hairlineWidth },
-    pfpWrap: { position: "relative", marginRight: scaleSize(16) },
+    pfpWrap: { position: "relative", marginRight: scaleSize(14) },
     pfp: {
-        width: scaleSize(34),
+        width: scaleSize(38),
         aspectRatio: 1,
         borderRadius: scaleSize(22),
         borderWidth: StyleSheet.hairlineWidth,
