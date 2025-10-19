@@ -15,8 +15,8 @@ const s = (n) => scaleSize(n);
 
 // Tunables via scale
 const SIZES = {
-    pfp: s(44),
-    handleFont: s(15),
+    pfp: s(38),
+    handleFont: s(13),
     nameFont: s(12.5),
     icon: s(24),
     iconFilled: s(16),

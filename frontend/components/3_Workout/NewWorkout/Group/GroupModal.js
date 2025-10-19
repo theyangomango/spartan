@@ -197,6 +197,7 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
                         user={item}
                         onSelect={toggleUser}
                         isSelected={selectedUsers.some((u) => u.uid === item.uid)}
+                        baseBg={theme.bg}
                     />
                 )}
                 renderSectionHeader={({ section }) => (
