@@ -57,7 +57,7 @@ import Credits from './frontend/screens/Credits';
 import PrivateProfileInfo from './frontend/screens/PrivateProfileInfo';
 import DeleteAccount from './frontend/screens/DeleteAccount';
 import ProfileWorkoutsAndPostsScreen from './frontend/screens/ProfileWorkoutsAndPostsScreen';
-import ProfileTemplatesScreen from './frontend/screens/ProfileTemplatesScreen';
+import ProfileLoggedFoodsScreen from './frontend/screens/ProfileLoggedFoodsScreen';
 import NoInternet from './frontend/screens/NoInternet';
 // Dark theme palette
 import theme from './frontend/theme/mfpDark';
@@ -1085,7 +1085,7 @@ return (
 
                         <RootStack.Screen name="Profile" component={Profile} />
                         <RootStack.Screen name="ProfileWorkoutsAndPosts" component={ProfileWorkoutsAndPostsScreen} />
-                        <RootStack.Screen name="ProfileTemplates" component={ProfileTemplatesScreen} />
+                        <RootStack.Screen name="ProfileLoggedFoods" component={ProfileLoggedFoodsScreen} />
                         <RootStack.Screen name="Explore" component={Explore} />
 
                         {/* Messaging / social */}

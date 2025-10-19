@@ -1,18 +1,16 @@
 import React, { memo } from "react";
 import { StyleSheet, View, Pressable, Text } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
-import { Grid2, Clock, Weight } from 'iconsax-react-native';
+import { Grid2, Clock } from 'iconsax-react-native';
 import PostsSection from "./Posts/PostsSection";
 import HistorySection from "./History/HistorySection";
-import TemplatesSection from "./Templates/TemplatesSection";
 import { withStrongPress } from "../../../utils/haptics";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const scaledSize = (size) => scaleSize(size);
 
-const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, templates, completedWorkouts, isBottomSheetExpanded, onOpenWorkout, onScrollExpandRequest, contentLocked = false, lockedSubtitle = '', ownerData = null }) => {
-    const normalizedTemplates = Array.isArray(templates) ? templates : [];
+const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, completedWorkouts, isBottomSheetExpanded, onOpenWorkout, onScrollExpandRequest, contentLocked = false, lockedSubtitle = '', ownerData = null }) => {
     const insets = useSafeAreaInsets();
     const isViewingSelf = (() => {
         const ownerUid = ownerData?.uid ? String(ownerData.uid) : null;
@@ -23,7 +21,6 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, templates,
             return false;
         }
     })();
-    const viewingSelfTemplates = isViewingSelf;
 
     if (contentLocked) {
         const safeBottom = insets?.bottom || 0;
@@ -36,7 +33,7 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, templates,
                 </View>
                 <Text style={styles.lockedTitle}>This account is private</Text>
                 <Text style={styles.lockedSubtitle}>
-                    {lockedSubtitle || 'Follow this user to see their posts, workouts, and templates.'}
+                    {lockedSubtitle || 'Follow this user to see their posts, workouts, and logged food items.'}
                 </Text>
             </View>
         );
@@ -53,14 +50,6 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, templates,
                 <View style={styles.panel_btn}>
                     <Pressable onPress={withStrongPress(() => setSelectedPanel('history'))}>
                         <Clock size={scaledSize(28)} color={selectedPanel === 'history' ? "#359ffc" : "#888"} />
-                    </Pressable>
-                </View>
-                <View style={[styles.panel_btn]}>
-                    <Pressable onPress={withStrongPress(() => setSelectedPanel('templates'))}>
-                        <Weight
-                            size={scaledSize(28)}
-                            color={selectedPanel === 'templates' ? "#359ffc" : "#888"}
-                        />
                     </Pressable>
                 </View>
             </View>
@@ -84,13 +73,6 @@ const ProfileBottomModal = ({ selectedPanel, setSelectedPanel, posts, templates,
                 onScrollExpandRequest={onScrollExpandRequest}
                 ownerData={ownerData}
                 viewingSelf={isViewingSelf}
-            />
-            <TemplatesSection
-                templates={normalizedTemplates}
-                isVisible={selectedPanel === 'templates'}
-                isBottomSheetExpanded={isBottomSheetExpanded}
-                onScrollExpandRequest={onScrollExpandRequest}
-                viewingSelf={viewingSelfTemplates}
             />
         </View>
     );

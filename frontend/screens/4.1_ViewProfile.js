@@ -20,6 +20,7 @@ import blockUser from "../../backend/user/blockUser";
 import unblockUser from "../../backend/user/unblockUser";
 import { useFocusEffect } from "@react-navigation/native";
 import { clearFooterSuppression } from "../state/footerSuppressionStore";
+import { countLoggedFoods } from "../utils/loggedFoods";
 
 import scaleSize from "../helper/scaleSize";
 
@@ -166,6 +167,12 @@ export default function ViewProfile({ navigation, route }) {
             : filterViewableWorkouts(profileUserData?.completedWorkouts || [], viewerUid, viewerData, profileUserData)
     ), [profileUserData?.completedWorkouts, viewerUid, viewerData, profileUserData, canViewContent]);
 
+    const loggedFoodsCount = useMemo(() => (
+        !canViewContent
+            ? 0
+            : countLoggedFoods(profileUserData?.loggedFoods || {})
+    ), [profileUserData?.loggedFoods, canViewContent]);
+
     return (
         <SafeAreaView style={styles.main_ctnr}>
             <StatusBar barStyle="light-content" backgroundColor={theme.bg} />
@@ -197,11 +204,11 @@ export default function ViewProfile({ navigation, route }) {
                                 initialUser: profileUserData || user || null,
                             });
                         }}
-                        onPressTemplates={() => {
+                        onPressLoggedFoods={() => {
                             if (!canViewContent) return;
                             const targetUid = String(profileUserData?.uid || user?.uid || '');
                             if (!targetUid) return;
-                            navigation.navigate('ProfileTemplates', {
+                            navigation.navigate('ProfileLoggedFoods', {
                                 targetUid,
                                 isViewingSelf: false,
                                 initialUser: profileUserData || user || null,
@@ -209,9 +216,9 @@ export default function ViewProfile({ navigation, route }) {
                         }}
                         postsCount={canViewContent && Array.isArray(profileUserData?.posts) ? profileUserData.posts.length : 0}
                         workoutsCount={canViewContent ? visibleCompletedWorkouts.length : 0}
-                        templatesCount={canViewContent && Array.isArray(profileUserData?.templates) ? profileUserData.templates.length : 0}
+                        loggedFoodsCount={loggedFoodsCount}
                         contentLocked={!canViewContent}
-                        lockedSubtitle={profileUserData?.settings?.profilePrivate ? 'Only approved followers can see these posts, workouts, and templates.' : ''}
+                        lockedSubtitle={profileUserData?.settings?.profilePrivate ? 'Only approved followers can see these posts, workouts, and logged food items.' : ''}
                     />
                 </View>
             </ScrollView>

@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { Weight, Copy } from "iconsax-react-native";
+import { Weight } from "iconsax-react-native";
 import scaleSize from "../../../helper/scaleSize";
 import { withStrongPress } from "../../../utils/haptics";
 const formatCount = (value, singular) => {
@@ -20,16 +20,20 @@ const formatWorkoutsCompleted = (value) => {
 
 const ProfileContentCards = ({
     onPressWorkoutsAndPosts,
-    onPressTemplates,
+    onPressLoggedFoods = () => {},
     postsCount = 0,
     workoutsCount = 0,
-    templatesCount = 0,
+    loggedFoodsCount = 0,
     contentLocked = false,
     lockedSubtitle = '',
 }) => {
     const workoutsCompletedSubtitle = useMemo(() => formatWorkoutsCompleted(workoutsCount), [workoutsCount]);
-
-    const templatesSubtitle = useMemo(() => formatCount(templatesCount, 'Template'), [templatesCount]);
+    const postsSubtitle = useMemo(() => formatCount(postsCount, 'Post'), [postsCount]);
+    const combinedSubtitle = useMemo(
+        () => `${workoutsCompletedSubtitle} • ${postsSubtitle}`,
+        [workoutsCompletedSubtitle, postsSubtitle]
+    );
+    const loggedFoodsSubtitle = useMemo(() => formatCount(loggedFoodsCount, 'Food'), [loggedFoodsCount]);
 
     if (contentLocked) {
         return (
@@ -39,7 +43,7 @@ const ProfileContentCards = ({
                 </View>
                 <Text style={styles.lockedTitle}>This account is private</Text>
                 <Text style={styles.lockedSubtitle}>
-                    {lockedSubtitle || 'Follow to unlock posts, workouts, and templates.'}
+                    {lockedSubtitle || 'Follow to unlock posts, workouts, and logged food items.'}
                 </Text>
             </View>
         );
@@ -56,11 +60,11 @@ const ProfileContentCards = ({
                 ]}
             >
                 <View style={[styles.iconBadge, styles.workoutsBadge]}>
-                    <Weight size={scaleSize(24)} color="#F0F5FF" />
+                    <Weight size={scaleSize(23)} color="#fff" />
                 </View>
                 <View style={styles.cardTextWrap}>
                     <Text style={styles.cardTitle}>Workouts & Posts</Text>
-                    <Text style={styles.cardSubtitle} numberOfLines={1}>{workoutsCompletedSubtitle}</Text>
+                    <Text style={styles.cardSubtitle} numberOfLines={1}>{combinedSubtitle}</Text>
                 </View>
                 <Ionicons
                     name="chevron-forward"
@@ -71,19 +75,19 @@ const ProfileContentCards = ({
             </Pressable>
 
             <Pressable
-                onPress={withStrongPress(onPressTemplates)}
+                onPress={withStrongPress(onPressLoggedFoods)}
                 style={({ pressed }) => [
                     styles.card,
                     styles.lastCard,
                     pressed && styles.cardPressed
                 ]}
             >
-                <View style={[styles.iconBadge, styles.templatesBadge]}>
-                    <Copy size={scaleSize(23)} color="#F4EEFF" />
+                <View style={[styles.iconBadge, styles.loggedFoodsBadge]}>
+                    <Ionicons name="restaurant-outline" size={scaleSize(20)} color='#fff' />
                 </View>
                 <View style={styles.cardTextWrap}>
-                    <Text style={styles.cardTitle}>Templates</Text>
-                    <Text style={styles.cardSubtitle} numberOfLines={1}>{templatesSubtitle}</Text>
+                    <Text style={styles.cardTitle}>Logged Food Items</Text>
+                    <Text style={styles.cardSubtitle} numberOfLines={1}>{loggedFoodsSubtitle}</Text>
                 </View>
                 <Ionicons
                     name="chevron-forward"
@@ -139,9 +143,9 @@ const styles = StyleSheet.create({
         // backgroundColor: 'rgba(108, 152, 252, 0.28)',
         // borderColor: 'rgba(141, 183, 255, 0.52)',
     },
-    templatesBadge: {
-        // backgroundColor: 'rgba(182, 156, 255, 0.28)',
-        // borderColor: 'rgba(210, 189, 255, 0.5)',
+    loggedFoodsBadge: {
+        // backgroundColor: 'rgba(254, 226, 226, 0.28)',
+        // borderColor: 'rgba(254, 215, 170, 0.5)',
     },
     cardTextWrap: {
         flex: 1,

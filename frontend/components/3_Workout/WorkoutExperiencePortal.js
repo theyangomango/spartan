@@ -1,13 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Platform } from "react-native";
-import WorkoutSummaryModal from "./WorkoutSummaryModal";
 import GroupModalBottomSheet from "./NewWorkout/Group/GroupModalBottomSheet";
+import UserStatsAfterWorkoutSheet from "../2_Competition/UserStats/UserStatsAfterWorkoutSheet";
 import useWorkoutManager from "../../logic/useWorkoutManager";
 import useWorkoutStore, { WORKOUT_SHEET_STATES } from "../../state/workoutStore";
 import millisToHoursMinutesSeconds from "../../helper/millisToHoursMinutesSeconds";
-import updateDoc from "../../../backend/helper/firebase/updateDoc";
-import makeID from "../../../backend/helper/makeID";
-import { navigationRef } from "../../../navigationRef";
+import { navigationRef, jumpToTab } from "../../../navigationRef";
 
 const noop = () => {};
 
@@ -37,20 +34,6 @@ const ensureSheetExpanded = () => {
     }
 };
 
-const mapSetsFromWorkout = (workout) =>
-    (Array.isArray(workout?.exercises) ? workout.exercises : []).map((ex) => ({
-        name: ex?.name || "",
-        muscle: ex?.muscle || "",
-        sets: (Array.isArray(ex?.sets) ? ex.sets : []).map((s) => ({
-            weight: Number(s?.weight) || 0,
-            reps: Number(s?.reps) || 0,
-            type: (() => {
-                const raw = typeof s?.type === "string" ? s.type.toLowerCase() : "";
-                return raw === "warmup" || raw === "dropset" || raw === "failure" ? raw : null;
-            })(),
-        })),
-    }));
-
 export default function WorkoutExperiencePortal({ uid, enabled }) {
     const navigation = navigationRef.current;
 
@@ -60,7 +43,6 @@ export default function WorkoutExperiencePortal({ uid, enabled }) {
         setIsNewWorkoutVisible,
         isSummaryModalVisible,
         setIsSummaryModalVisible,
-        completedWorkout,
         startNewWorkoutFromTemplate,
         updateNewWorkout,
         cancelWorkout,
@@ -75,7 +57,7 @@ export default function WorkoutExperiencePortal({ uid, enabled }) {
 
     const [inviteSheetOpen, setInviteSheetOpen] = useState(false);
     const inviteHandlerRef = useRef(null);
-    const saveTemplatePendingRef = useRef(false);
+    const [hexSnapshot, setHexSnapshot] = useState({ from: null, to: null });
 
     const showGroupModalCb = useCallback(() => setInviteSheetOpen(true), []);
     const registerInviteHandlerCb = useCallback((fn) => {
@@ -221,64 +203,40 @@ export default function WorkoutExperiencePortal({ uid, enabled }) {
         setIsSummaryModalVisible(false);
     }, [setIsSummaryModalVisible]);
 
-    const handleSaveSummaryTemplate = useCallback(async () => {
-        if (!enabled || saveTemplatePendingRef.current) return;
-        const workout = completedWorkout;
-        if (!workout) return;
+    useEffect(() => {
+        if (!enabled || !isSummaryModalVisible) return;
 
-        const hasTemplate =
-            workout?.tid != null ||
-            workout?.templateId != null ||
-            (workout?.template && workout.template.tid != null);
-
-        if (hasTemplate || !uid) {
-            handleSummaryClose();
-            return;
-        }
-
-        saveTemplatePendingRef.current = true;
-        try {
-            const tid = makeID();
-            const exercises = mapSetsFromWorkout(workout);
-            const newTemplate = { id: tid, tid, name: "New Template", exercises, lastDate: null };
-            const prevTemplates = (() => {
-                try {
-                    return Array.isArray(global?.userData?.templates)
-                        ? [...global.userData.templates]
-                        : [];
-                } catch {
-                    return [];
-                }
-            })();
-            const nextTemplates = [...prevTemplates, newTemplate];
-
+        const captureHex = () => {
             try {
-                await updateDoc("users", uid, { templates: nextTemplates });
-            } catch (err) {
-                if (Platform.OS !== "web") {
-                    console.log("handleSaveSummaryTemplate updateDoc error", err);
-                }
-            }
-
-            try {
-                if (!global.userData || typeof global.userData !== "object") {
-                    global.userData = {};
-                }
-                global.userData.templates = nextTemplates;
-                global.__templatesLocalSig = JSON.stringify(nextTemplates || []);
-                global.__templatesDirty = true;
+                const fromHex = global?.__hexChangeFrom || null;
+                const toHex = global?.__hexChangeTo || null;
+                setHexSnapshot({ from: fromHex, to: toHex });
             } catch {
-                // ignore global sync issues
+                setHexSnapshot({ from: null, to: null });
             }
-        } catch (err) {
-            if (Platform.OS !== "web") {
-                console.log("handleSaveSummaryTemplate error", err);
+        };
+
+        captureHex();
+
+        const params = { scrollToTop: true, _t: Date.now() };
+        const navigated = jumpToTab("Feed", params);
+        if (!navigated) {
+            try {
+                navigation?.navigate?.("Tabs", { screen: "Feed", params });
+            } catch {
+                try {
+                    navigationRef.navigate("Tabs", { screen: "Feed", params });
+                } catch {
+                    // ignore navigation fallback errors
+                }
             }
-        } finally {
-            saveTemplatePendingRef.current = false;
-            handleSummaryClose();
         }
-    }, [completedWorkout, enabled, handleSummaryClose, uid]);
+        try {
+            global.scrollFeedToTop?.();
+        } catch {
+            // ignore best-effort scroll errors
+        }
+    }, [enabled, isSummaryModalVisible, navigation]);
 
     if (!enabled) {
         return null;
@@ -291,14 +249,13 @@ export default function WorkoutExperiencePortal({ uid, enabled }) {
                 closeGroupModal={closeGroupModalCb}
                 onInvite={onInviteCb}
             />
-            {isSummaryModalVisible && (
-                <WorkoutSummaryModal
-                    isVisible={isSummaryModalVisible}
-                    workout={completedWorkout}
-                    onClose={handleSummaryClose}
-                    onSaveTemplate={handleSaveSummaryTemplate}
-                />
-            )}
+            <UserStatsAfterWorkoutSheet
+                visible={isSummaryModalVisible}
+                onClose={handleSummaryClose}
+                user={global?.userData || null}
+                fromHexagon={hexSnapshot.from}
+                toHexagon={hexSnapshot.to}
+            />
         </>
     );
 }

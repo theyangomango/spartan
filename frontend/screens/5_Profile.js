@@ -16,26 +16,8 @@ import ProfileContentCards from "../components/5_Profile/ProfileBottom/ProfileCo
 
 import theme from "../theme/mfpDark";
 import { subscribeUserData } from "../utils/userDataEvents";
+import { countLoggedFoods } from "../utils/loggedFoods";
 import { clearFooterSuppression } from "../state/footerSuppressionStore";
-
-const templateListsEqual = (a, b) => {
-    if (a === b) return true;
-    if (!Array.isArray(a) || !Array.isArray(b)) return false;
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i += 1) {
-        const left = a[i] || {};
-        const right = b[i] || {};
-        const leftId = left?.tid ?? left?.id ?? null;
-        const rightId = right?.tid ?? right?.id ?? null;
-        if (leftId !== rightId) return false;
-        if ((left?.name || '') !== (right?.name || '')) return false;
-        const leftExercises = Array.isArray(left?.exercises) ? left.exercises.length : Number(left?.exercises || 0);
-        const rightExercises = Array.isArray(right?.exercises) ? right.exercises.length : Number(right?.exercises || 0);
-        if (leftExercises !== rightExercises) return false;
-        if ((left?.lastDate || null) !== (right?.lastDate || null)) return false;
-    }
-    return true;
-};
 
 export default function Profile({ navigation }) {
     const [, setRerender] = useState(0);
@@ -45,10 +27,6 @@ export default function Profile({ navigation }) {
         return () => off && off();
     }, []);
     const userData = global.userData || {};
-    const [templates, setTemplates] = useState(() => {
-        const raw = userData?.templates;
-        return Array.isArray(raw) ? raw : [];
-    });
     const [isEditProfileBottomSheetVisible, setIsEditProfileBottomSheetVisible] = useState(false);
 
     // Reuse this flag to show the Competition-style UserStatsBottomSheet
@@ -57,6 +35,7 @@ export default function Profile({ navigation }) {
     const [followListMode, setFollowListMode] = useState('followers'); // or 'following'
 
     const [pfp, setPFP] = useState(() => (global?.userData?.image || ""));
+    const [loggedFoodsCount, setLoggedFoodsCount] = useState(() => countLoggedFoods(userData?.loggedFoods || {}));
 
     // Workout viewer state (reuses Feed viewer)
     const [profileSelectedWorkout, setProfileSelectedWorkout] = useState(null);
@@ -86,23 +65,12 @@ export default function Profile({ navigation }) {
         // wipe the data so reopening is instant (mirrors Feed behaviour).
     }, []);
 
-    useEffect(() => {
-        const unsubscribe = subscribeUserData((nextUser) => {
-            const nextTemplates = Array.isArray(nextUser?.templates) ? nextUser.templates : [];
-            setTemplates((prev) => (templateListsEqual(prev, nextTemplates) ? prev : nextTemplates));
-        });
-        return unsubscribe;
-    }, []);
-
     // If another tab requests opening SelectPhotos, honor it on focus
     const lastOpenSigRef = React.useRef(0);
     useEffect(() => {
         const unsub = navigation.addListener('focus', () => {
             clearFooterSuppression();
-            try {
-                const globalTemplates = Array.isArray(global?.userData?.templates) ? global.userData.templates : [];
-                setTemplates((prev) => (templateListsEqual(prev, globalTemplates) ? prev : globalTemplates));
-            } catch {}
+            setLoggedFoodsCount(countLoggedFoods(global?.userData?.loggedFoods || {}));
             const sig = Number(global?.profileOpenSelectPhotosSignal || 0);
             if (sig && sig !== lastOpenSigRef.current) {
                 lastOpenSigRef.current = sig;
@@ -111,6 +79,12 @@ export default function Profile({ navigation }) {
         });
         return unsub;
     }, [navigation]);
+    useEffect(() => {
+        const unsubscribe = subscribeUserData((nextUser) => {
+            setLoggedFoodsCount(countLoggedFoods(nextUser?.loggedFoods || {}));
+        });
+        return unsubscribe;
+    }, []);
 
     function uploadPost() {
         navigation.navigate('PostOptions', {
@@ -169,8 +143,8 @@ export default function Profile({ navigation }) {
                                 initialUser: userData || null,
                             });
                         }}
-                        onPressTemplates={() => {
-                            navigation.navigate('ProfileTemplates', {
+                        onPressLoggedFoods={() => {
+                            navigation.navigate('ProfileLoggedFoods', {
                                 targetUid: String(userData?.uid || ''),
                                 isViewingSelf: true,
                                 initialUser: userData || null,
@@ -178,7 +152,7 @@ export default function Profile({ navigation }) {
                         }}
                         postsCount={Array.isArray(userData?.posts) ? userData.posts.length : 0}
                         workoutsCount={Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts.length : 0}
-                        templatesCount={Array.isArray(templates) ? templates.length : 0}
+                        loggedFoodsCount={loggedFoodsCount}
                     />
                 </View>
             </ScrollView>
