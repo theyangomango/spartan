@@ -63,6 +63,12 @@ const COLORS = {
     accent: theme.primary,
 };
 
+const MACRO_COLORS = {
+    protein: "#6c97fccc",
+    carbs: "#FF7CB5cc",
+    fat: "#FFC874cc",
+};
+
 const toSections = (loggedFoods) => {
     const grouped = groupLoggedFoodsByDay(loggedFoods);
     return grouped.map(({ dayKey, items }) => {
@@ -164,11 +170,15 @@ export default function ProfileLoggedFoodsScreen({ navigation, route }) {
                             <Text style={styles.dayTitle}>{formatDayLabel(item.dayKey)}</Text>
                             <Text style={styles.dayCalories}>{`${Math.round(item.totals.calories)} kcal`}</Text>
                         </View>
-                        <Text style={styles.daySubtitle}>
-                            {`P${Math.round(item.totals.protein)}g • C${Math.round(item.totals.carbs)}g • F${Math.round(item.totals.fat)}g`}
-                        </Text>
-                    </View>
-                    <View style={styles.dayCards}>
+                    <Text style={styles.daySubtitle}>
+                        <Text style={styles.daySubtitleProtein}>{`P${Math.round(item.totals.protein)}g`}</Text>
+                        <Text style={styles.daySubtitleDot}>{' • '}</Text>
+                        <Text style={styles.daySubtitleCarbs}>{`C${Math.round(item.totals.carbs)}g`}</Text>
+                        <Text style={styles.daySubtitleDot}>{' • '}</Text>
+                        <Text style={styles.daySubtitleFat}>{`F${Math.round(item.totals.fat)}g`}</Text>
+                    </Text>
+                </View>
+                <View style={styles.dayCards}>
                         {entries.map((entry, index) => (
                             <MealItemCard
                                 key={entry.key}
@@ -302,7 +312,7 @@ const styles = StyleSheet.create({
     },
     headerTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(18),
+        fontSize: scaleSize(16),
         color: "#F1F5FF",
     },
     headerSubtitle: {
@@ -381,10 +391,22 @@ const styles = StyleSheet.create({
     },
     daySubtitle: {
         marginTop: scaleSize(3),
-        fontFamily: "Outfit_400Regular",
+        fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(11.5),
         color: "rgba(148, 163, 184, 0.85)",
         letterSpacing: 0.25,
+    },
+    daySubtitleProtein: {
+        color: MACRO_COLORS.protein,
+    },
+    daySubtitleCarbs: {
+        color: MACRO_COLORS.carbs,
+    },
+    daySubtitleFat: {
+        color: MACRO_COLORS.fat,
+    },
+    daySubtitleDot: {
+        color: "rgba(148, 163, 184, 0.75)",
     },
     dayCards: {
         paddingHorizontal: 0,
