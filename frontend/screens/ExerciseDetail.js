@@ -24,6 +24,66 @@ const TABS = [
     { key: 'progress', label: 'Progress' },
 ];
 
+const STEP_SOURCE_KEYS = ['howToSteps', 'instructions', 'steps', 'howTo'];
+
+const normalizeHowToSteps = (raw) => {
+    if (!raw) return [];
+    if (Array.isArray(raw)) {
+        return raw
+            .map((item) => (typeof item === 'string' ? item.trim() : ''))
+            .filter(Boolean);
+    }
+    if (typeof raw === 'string') {
+        return raw
+            .split(/\r?\n+/)
+            .map((item) => item.trim())
+            .filter(Boolean);
+    }
+    return [];
+};
+
+const resolveProvidedHowToSteps = (exercise = {}) => {
+    for (const key of STEP_SOURCE_KEYS) {
+        const candidate = normalizeHowToSteps(exercise?.[key]);
+        if (candidate.length) return candidate;
+    }
+
+    const howToObject = exercise?.howTo;
+    if (howToObject && typeof howToObject === 'object') {
+        const fromObject = normalizeHowToSteps(howToObject.steps || howToObject.items || howToObject.list || howToObject);
+        if (fromObject.length) return fromObject;
+    }
+
+    return [];
+};
+
+const buildFallbackHowToSteps = ({ title, muscleGroup, equipment }) => {
+    const safeTitle = typeof title === 'string' && title.trim() ? title.trim() : 'this exercise';
+
+    let sanitizedEquipment =
+        typeof equipment === 'string' && equipment.trim() && equipment.trim() !== '—'
+            ? equipment.trim()
+            : null;
+    if (sanitizedEquipment) {
+        const lowered = sanitizedEquipment.toLowerCase();
+        if (['body weight', 'bodyweight', 'none', 'no equipment'].includes(lowered)) {
+            sanitizedEquipment = null;
+        }
+    }
+    const sanitizedMuscle =
+        typeof muscleGroup === 'string' && muscleGroup.trim() && muscleGroup.trim() !== '—'
+            ? muscleGroup.trim().toLowerCase()
+            : 'target muscles';
+
+    return [
+        sanitizedEquipment
+            ? `Set up for ${safeTitle} and position your equipment (${sanitizedEquipment}).`
+            : `Set up for ${safeTitle} by getting into a strong, stable starting position.`,
+        `Keep your ${sanitizedMuscle} engaged and move through a controlled range of motion.`,
+        `Breathe steadily, focus on smooth reps, and reset before starting the next set.`,
+    ];
+};
+
 export default function ExerciseDetail() {
     const navigation = useNavigation();
     const route = useRoute();
@@ -48,6 +108,15 @@ export default function ExerciseDetail() {
 
     const muscleGroup = exerciseParam?.muscleGroup || exerciseParam?.muscle || '—';
     const equipment = exerciseParam?.equipment || '—';
+    const howToSteps = useMemo(() => {
+        const resolvedSteps = resolveProvidedHowToSteps(exerciseParam);
+        if (resolvedSteps.length) return resolvedSteps;
+        return buildFallbackHowToSteps({
+            title: displayTitle,
+            muscleGroup,
+            equipment,
+        });
+    }, [exerciseParam, displayTitle, muscleGroup, equipment]);
 
     const handleBack = useCallback(() => {
         navigation.goBack?.();
@@ -97,6 +166,24 @@ export default function ExerciseDetail() {
                 </View>
             </View>
 
+            {howToSteps.length > 0 && (
+                <View style={styles.howToBlock}>
+                    <Text style={styles.howToTitle}>{`How to do ${displayTitle}`}</Text>
+                    {howToSteps.map((step, index) => (
+                        <View
+                            key={`howTo-${index}`}
+                            style={[
+                                styles.howToRow,
+                                index === howToSteps.length - 1 && styles.howToRowLast,
+                            ]}
+                        >
+                            <Text style={styles.howToIndex}>{`${index + 1}.`}</Text>
+                            <Text style={styles.howToText}>{step}</Text>
+                        </View>
+                    ))}
+                </View>
+            )}
+
             <Pressable
                 style={[styles.actionButton, styles.shareButton]}
                 onPress={withStrongPress(handleShare)}
@@ -116,7 +203,7 @@ export default function ExerciseDetail() {
                 accessibilityLabel="Add exercise to favorites"
             >
                 <View style={[styles.actionIcon, styles.favoriteIcon]}>
-                    <Ionicons name="bookmark-outline" size={scaleSize(18)} color={theme.textPrimary} />
+                    <Ionicons name="bookmark-outline" size={scaleSize(16)} color={theme.textPrimary} />
                 </View>
                 <Text style={styles.favoriteText}>Add to Favorites</Text>
             </Pressable>
@@ -240,7 +327,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         flex: 1,
         fontFamily: 'Outfit_700Bold',
-        fontSize: ts(16),
+        fontSize: ts(14),
         color: theme.textPrimary,
         textAlign: 'center',
         marginHorizontal: scaleSize(10),
@@ -352,7 +439,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         borderRadius: scaleSize(20),
-        paddingVertical: scaleSize(11),
+        paddingVertical: scaleSize(10),
         paddingHorizontal: scaleSize(18),
         marginBottom: scaleSize(14),
     },
@@ -387,13 +474,47 @@ const styles = StyleSheet.create({
     },
     shareText: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: ts(13),
+        fontSize: ts(14),
         color: theme.surface,
     },
     favoriteText: {
         fontFamily: 'Outfit_600SemiBold',
+        fontSize: ts(14),
+        color: theme.textPrimary,
+    },
+    howToBlock: {
+        backgroundColor: theme.surface,
+        borderRadius: scaleSize(20),
+        padding: scaleSize(18),
+        marginBottom: scaleSize(20),
+    },
+    howToTitle: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: ts(15),
+        color: theme.textPrimary,
+        marginBottom: scaleSize(12),
+    },
+    howToRow: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: scaleSize(10),
+    },
+    howToRowLast: {
+        marginBottom: 0,
+    },
+    howToIndex: {
+        fontFamily: 'Outfit_600SemiBold',
         fontSize: ts(13),
         color: theme.textPrimary,
+        marginRight: scaleSize(10),
+        lineHeight: ts(18),
+    },
+    howToText: {
+        flex: 1,
+        fontFamily: 'Outfit_400Regular',
+        fontSize: ts(13),
+        color: theme.textSecondary,
+        lineHeight: ts(18),
     },
     infoBlock: {
         backgroundColor: theme.surface,

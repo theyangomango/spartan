@@ -13,13 +13,13 @@ import {
     ts,
 } from "../components/2_Competition/layoutConstants";
 import LeaderboardsSection from "../components/2_Competition/sections/LeaderboardsSection";
-import TemplatesSection from "../components/2_Competition/sections/TemplatesSection";
 import ExercisesSection from "../components/2_Competition/sections/ExercisesSection";
+import TemplatesSection from "../components/2_Competition/sections/TemplatesSection";
 
 const VIEW_TABS = [
     { key: "leaderboard", label: "Leaderboards" },
-    { key: "templates", label: "Templates" },
     { key: "exercises", label: "Exercises" },
+    { key: "templates", label: "Templates" },
 ];
 
 export default function Competition({ navigation }) {
