@@ -146,6 +146,17 @@ const styles = StyleSheet.create({
     // Hexagon wrapper (no card background)
     hexWrap: {
         paddingTop: scaledSize(26),
+        alignItems: 'center',
+    },
+    hexDescription: {
+        marginTop: scaledSize(14),
+        marginBottom: scaledSize(28),
+        paddingHorizontal: scaledSize(12),
+        fontSize: scaleSize(12.5),
+        lineHeight: scaleSize(18),
+        fontFamily: "Outfit_400Regular",
+        color: COLORS.subtext,
+        textAlign: 'center',
     },
 
     exerciseList: {

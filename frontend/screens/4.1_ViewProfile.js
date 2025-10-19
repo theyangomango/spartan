@@ -229,6 +229,7 @@ export default function ViewProfile({ navigation, route }) {
                 navigation={navigation}
                 isVisible={isViewStatsBottomSheetVisible}
                 setIsVisible={setIsViewStatsBottomSheetVisible}
+                heightRatio={0.88}
             />
 
             <FollowListBottomSheet

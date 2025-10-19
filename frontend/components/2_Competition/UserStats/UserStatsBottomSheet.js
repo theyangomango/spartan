@@ -17,14 +17,17 @@ const toDayKey = (d) => {
     } catch { return ''; }
 };
 
-const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheetProgressSV }) => {
+const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheetProgressSV, heightRatio = 1 }) => {
     const bottomSheetRef = useRef(null);
     const { height: windowHeight } = useWindowDimensions();
     const { top: insetTop = 0 } = useSafeAreaInsets();
     const snapPoints = useMemo(() => {
         const fullHeight = Math.max(0, windowHeight + insetTop);
-        return [fullHeight];
-    }, [windowHeight, insetTop]);
+        const ratio = Number(heightRatio);
+        const clampedRatio = Number.isFinite(ratio) && ratio > 0 && ratio <= 1 ? ratio : 1;
+        const targetHeight = Math.max(scaleSize(180), fullHeight * clampedRatio);
+        return [targetHeight];
+    }, [windowHeight, insetTop, heightRatio]);
     const isFullHeight = snapPoints[0] >= windowHeight + insetTop - 1;
     const [tick, setTick] = useState(0);
     const animatedIndexSV = useSharedValue(-1);

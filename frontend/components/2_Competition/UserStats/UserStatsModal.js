@@ -417,6 +417,9 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                         <HexagonalStats statsHexagon={user.statsHexagon} {...hexProps} />
                         {hexOverlay ? (typeof hexOverlay === 'function' ? hexOverlay() : hexOverlay) : null}
                     </View>
+                    <Text style={styles.hexDescription}>
+                        Scores are calculated based on your logged lifts—i.e. a 100 lb dumbbell press is weighted more than a 100 lb barbell press.
+                    </Text>
                 </View>
 
                 {/* Exercises */}
