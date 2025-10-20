@@ -45,7 +45,7 @@ const MUSCLE_FILTERS = [
     { label: "Chest", value: "chest", segments: ["chest"] },
     { label: "Shoulders", value: "shoulders", segments: ["shoulders"] },
     { label: "Arms", value: "arms", segments: ["arms", "forearms"] },
-    { label: "Legs", value: "legs", segments: ["quads", "calves"] },
+    { label: "Legs", value: "legs", segments: ["legs", "quads", "calves", "hamstrings", "glutes"] },
     { label: "Abs", value: "abs", segments: ["abs", "obliques"] },
     { label: "Back", value: "back", segments: [] },
 ];

@@ -290,24 +290,6 @@ export default function ExerciseDetail() {
                 </View>
             </View>
 
-            {howToSteps.length > 0 && (
-                <View style={styles.howToBlock}>
-                    <Text style={styles.howToTitle}>{`How to do ${displayTitle}`}</Text>
-                    {howToSteps.map((step, index) => (
-                        <View
-                            key={`howTo-${index}`}
-                            style={[
-                                styles.howToRow,
-                                index === howToSteps.length - 1 && styles.howToRowLast,
-                            ]}
-                        >
-                            <Text style={styles.howToIndex}>{`${index + 1}.`}</Text>
-                            <Text style={styles.howToText}>{step}</Text>
-                        </View>
-                    ))}
-                </View>
-            )}
-
             <Pressable
                 style={[styles.actionButton, styles.shareButton]}
                 onPress={withStrongPress(handleToggleFavorite)}
@@ -345,12 +327,23 @@ export default function ExerciseDetail() {
                 <View style={styles.actionIconSpacer} />
             </Pressable>
 
-            <View style={styles.infoBlock}>
-                <Text style={styles.infoTitle}>How to log this Exercise?</Text>
-                <Text style={styles.infoBody}>
-                    {`When building a workout, tap “Add Exercise” and search for “${displayTitle}”. Add sets with your reps and weight so we can track your history and progress right here.`}
-                </Text>
-            </View>
+            {howToSteps.length > 0 && (
+                <View style={styles.howToBlock}>
+                    <Text style={styles.howToTitle}>{`How to do ${displayTitle}`}</Text>
+                    {howToSteps.map((step, index) => (
+                        <View
+                            key={`howTo-${index}`}
+                            style={[
+                                styles.howToRow,
+                                index === howToSteps.length - 1 && styles.howToRowLast,
+                            ]}
+                        >
+                            <Text style={styles.howToIndex}>{`${index + 1}.`}</Text>
+                            <Text style={styles.howToText}>{step}</Text>
+                        </View>
+                    ))}
+                </View>
+            )}
         </View>
     );
 
@@ -509,7 +502,7 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: scaleSize(18),
+        paddingHorizontal: scaleSize(12),
     },
     sectionSpacing: {
         paddingTop: scaleSize(18),
@@ -661,23 +654,6 @@ const styles = StyleSheet.create({
     },
     howToText: {
         flex: 1,
-        fontFamily: 'Outfit_400Regular',
-        fontSize: ts(13),
-        color: theme.textSecondary,
-        lineHeight: ts(18),
-    },
-    infoBlock: {
-        backgroundColor: theme.surface,
-        borderRadius: scaleSize(20),
-        padding: scaleSize(18),
-    },
-    infoTitle: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: ts(15),
-        color: theme.textPrimary,
-        marginBottom: scaleSize(10),
-    },
-    infoBody: {
         fontFamily: 'Outfit_400Regular',
         fontSize: ts(13),
         color: theme.textSecondary,
