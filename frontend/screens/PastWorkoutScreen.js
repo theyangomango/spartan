@@ -9,7 +9,7 @@ import {
     Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import PastWorkoutExerciseLog from "../components/1_Feed/PastWorkoutExerciseLog";
 import theme from "../theme/mfpDark";
@@ -209,6 +209,11 @@ const PastWorkoutScreen = () => {
         ]);
     }, [isOwner, deletingWorkout, performDeleteWorkout]);
 
+    const handlePressDetailMenu = useCallback(() => {
+        if (!isOwner) return;
+        handleRequestDeleteWorkout();
+    }, [isOwner, handleRequestDeleteWorkout]);
+
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.header}>
@@ -255,6 +260,22 @@ const PastWorkoutScreen = () => {
                                     <Text style={styles.templateSubtitle} numberOfLines={1}>
                                         Template: {templateName}
                                     </Text>
+                                ) : null}
+                            </View>
+                            <View style={styles.logsHeaderRight}>
+                                {isOwner ? (
+                                    <Pressable
+                                        onPress={handlePressDetailMenu}
+                                        hitSlop={8}
+                                        style={styles.logsOptionsButton}
+                                        disabled={deletingWorkout}
+                                    >
+                                        <MaterialCommunityIcons
+                                            name="dots-vertical"
+                                            size={scaleSize(18)}
+                                            color={deletingWorkout ? theme.textSecondary : theme.textPrimary}
+                                        />
+                                    </Pressable>
                                 ) : null}
                             </View>
                         </View>
@@ -331,6 +352,11 @@ const styles = StyleSheet.create({
         flex: 1,
         marginRight: scaleSize(12),
     },
+    logsHeaderRight: {
+        flexShrink: 0,
+        flexDirection: "row",
+        alignItems: "center",
+    },
     logsTitle: {
         color: theme.textPrimary,
         fontFamily: "Mulish_800ExtraBold",
@@ -351,6 +377,9 @@ const styles = StyleSheet.create({
         color: theme.textSecondary,
         fontFamily: "Outfit_500Medium",
         fontSize: scaleSize(11.5),
+    },
+    logsOptionsButton: {
+        padding: scaleSize(6),
     },
     noExercisesText: {
         paddingHorizontal: scaleSize(18),
