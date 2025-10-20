@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     headerTitle: {
         flex: 1,
         textAlign: "center",
-        fontFamily: "Mulish_800ExtraBold",
+        fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(17),
         color: theme.textPrimary,
     },
