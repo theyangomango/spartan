@@ -10,11 +10,13 @@ import {
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import FastImage from "react-native-fast-image";
 
 import PastWorkoutExerciseLog from "../components/1_Feed/PastWorkoutExerciseLog";
 import EditingWorkoutModal from "../components/3_Workout/NewWorkout/EditingWorkoutModal";
 import theme from "../theme/mfpDark";
 import scaleSize from "../helper/scaleSize";
+import { usePfp } from "../helper/usePFPs";
 import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
 import updateCompletedWorkout from "../../backend/workouts/updateCompletedWorkout";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
@@ -121,6 +123,21 @@ const resolveWeightUnit = () => {
     }
 };
 
+const resolveWorkoutTitle = (workout, caption) => (
+    workout?.templateName ||
+    workout?.template?.name ||
+    workout?.name ||
+    caption ||
+    "Workout"
+);
+
+const initialsFrom = (name = "") => {
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+};
+
 const PastWorkoutScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
@@ -181,6 +198,38 @@ const PastWorkoutScreen = () => {
         [workout?.templateName, workout?.template?.name]
     );
 
+    const caption = useMemo(() => {
+        const value = workout?.caption ?? workout?.notes ?? templateName ?? "";
+        if (value == null) return "";
+        return String(value).trim();
+    }, [workout?.caption, workout?.notes, templateName]);
+
+    const title = useMemo(() => resolveWorkoutTitle(workout, caption), [workout, caption]);
+
+    const shouldShowSubtitle = useMemo(() => {
+        if (!workout) return false;
+        if (caption.length === 0) return false;
+        const normalizedCaption = caption.toLowerCase();
+        const normalizedTitle = (title || "").trim().toLowerCase();
+        if (!normalizedTitle) return true;
+        return normalizedCaption !== normalizedTitle;
+    }, [caption, workout, title]);
+
+    const workoutName = useMemo(() => {
+        if (!workout) return "";
+        const candidate = workout?.templateName || workout?.template?.name || workout?.name;
+        if (typeof candidate === "string") return candidate.trim();
+        if (candidate) return String(candidate).trim();
+        return "";
+    }, [workout]);
+
+    const isWorkoutTitle = useMemo(() => {
+        if (!workoutName) return false;
+        const normalizedTitle = (title || "").trim();
+        if (!normalizedTitle) return false;
+        return normalizedTitle.toLowerCase() === workoutName.toLowerCase();
+    }, [title, workoutName]);
+
     const durationLabel = useMemo(() => formatDuration(workout?.duration), [workout?.duration]);
     const volumeLabel = useMemo(() => formatNumber(workout?.volume), [workout?.volume]);
     const recordsLabel = useMemo(
@@ -205,6 +254,30 @@ const PastWorkoutScreen = () => {
         return "";
     }, [owner?.uid, workout?.uid, workout?.creatorUid, workout?.creatorUID, workout?.userUid]);
 
+    const displayName = useMemo(() => {
+        const candidates = [
+            owner?.handle,
+            owner?.username,
+            owner?.tag,
+            owner?.name,
+            workout?.handle,
+            workout?.ownerHandle,
+        ];
+        for (const value of candidates) {
+            if (typeof value !== "string") continue;
+            const trimmed = value.trim();
+            if (trimmed) return trimmed;
+        }
+        if (workoutOwnerUid) return `user-${workoutOwnerUid.slice(-4)}`;
+        return "user";
+    }, [owner?.handle, owner?.username, owner?.tag, owner?.name, workout?.handle, workout?.ownerHandle, workoutOwnerUid]);
+
+    const pfpUri = usePfp(
+        workoutOwnerUid || "",
+        owner?.pfpVersion ?? workout?.pfpVersion ?? 0,
+        owner?.pfp || owner?.pfpUrl || owner?.avatar || owner?.image || owner?.photoURL || ""
+    );
+
     const viewerUid = (() => {
         try {
             return global?.userData?.uid ? String(global.userData.uid) : "";
@@ -220,6 +293,10 @@ const PastWorkoutScreen = () => {
     const handleBack = useCallback(() => {
         navigation.goBack();
     }, [navigation]);
+
+    const handlePressOwnerProfile = useCallback(() => {}, []);
+
+    const handlePressWorkoutHeader = useCallback(() => {}, []);
 
     const performDeleteWorkout = useCallback(async () => {
         if (!isOwner || deletingWorkout) return;
@@ -392,66 +469,119 @@ const PastWorkoutScreen = () => {
             <ScrollView contentContainerStyle={styles.content}>
                 {workout ? (
                     <View style={styles.detailSection}>
-                        <View style={styles.logsHeader}>
-                            <View style={styles.logsHeaderTopRow}>
-                                <View style={styles.logsTitleWrap}>
-                                    <Text style={styles.logsTitle} numberOfLines={1}>
-                                        {workout?.name || workout?.templateName || "Workout"}
-                                    </Text>
-                                    {timestampLabel ? (
-                                        <View style={styles.subtitleRow}>
-                                            <Text style={styles.logsSubtitle} numberOfLines={1}>
+                        <View style={styles.sectionHeader}>
+                            <View style={styles.sectionTop}>
+                                <View style={styles.headerRow}>
+                                    <Pressable
+                                        style={styles.avatarWrap}
+                                        onPress={handlePressOwnerProfile}
+                                        hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                                    >
+                                        {pfpUri ? (
+                                            <FastImage
+                                                source={{
+                                                    uri: pfpUri,
+                                                    priority: FastImage.priority.high,
+                                                    cache: FastImage.cacheControl.immutable,
+                                                }}
+                                                style={styles.avatar}
+                                                resizeMode={FastImage.resizeMode.cover}
+                                            />
+                                        ) : (
+                                            <View style={[styles.avatar, styles.avatarFallback]}>
+                                                <Text style={styles.avatarInitials}>{initialsFrom(displayName)}</Text>
+                                            </View>
+                                        )}
+                                    </Pressable>
+
+                                    <View style={styles.headerTextCol}>
+                                        <Pressable onPress={handlePressOwnerProfile}>
+                                            <Text style={styles.nameText} numberOfLines={1}>
+                                                {displayName}
+                                            </Text>
+                                        </Pressable>
+                                        {!!timestampLabel && (
+                                            <Text style={styles.timestampText} numberOfLines={1}>
                                                 {timestampLabel}
                                             </Text>
-                                        </View>
-                                    ) : null}
-                                    {templateName ? (
-                                        <Text style={styles.templateSubtitle} numberOfLines={1}>
-                                            Template: {templateName}
-                                        </Text>
-                                    ) : null}
-                                </View>
-                                <View style={styles.logsHeaderRight}>
+                                        )}
+                                    </View>
+
                                     {isOwner ? (
                                         <Pressable
+                                            style={styles.moreButton}
                                             onPress={handlePressDetailMenu}
-                                            hitSlop={8}
-                                            style={styles.logsOptionsButton}
+                                            hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
                                             disabled={deletingWorkout}
                                         >
                                             <MaterialCommunityIcons
                                                 name="dots-vertical"
-                                                size={scaleSize(18)}
+                                                size={scaleSize(20)}
                                                 color={deletingWorkout ? theme.textSecondary : theme.textPrimary}
                                             />
                                         </Pressable>
                                     ) : null}
                                 </View>
-                            </View>
-                            <View style={styles.metricsRow}>
-                                <View style={styles.metricsLeft}>
-                                    <View style={styles.metricColumnLeft}>
-                                        <Text style={styles.metricLabel}>Duration</Text>
-                                        <Text style={styles.metricValue}>{durationLabel}</Text>
-                                    </View>
 
-                                    <View style={[styles.metricColumnLeft, styles.metricCenter]}>
-                                        <Text style={styles.metricLabel}>Volume</Text>
-                                        <Text style={styles.metricValue}>
-                                            {volumeLabel} {weightUnit}
+                                {workout ? (
+                                    <Pressable
+                                        onPress={handlePressWorkoutHeader}
+                                        style={styles.titleBlock}
+                                        hitSlop={{ top: scaleSize(6), bottom: scaleSize(6) }}
+                                    >
+                                        <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
+                                            {title}
                                         </Text>
+                                        {shouldShowSubtitle ? (
+                                            <Text style={styles.captionText}>
+                                                {caption}
+                                            </Text>
+                                        ) : null}
+                                    </Pressable>
+                                ) : (
+                                    <View style={styles.titleBlock}>
+                                        <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
+                                            {title}
+                                        </Text>
+                                        {shouldShowSubtitle ? (
+                                            <Text style={styles.captionText}>
+                                                {caption}
+                                            </Text>
+                                        ) : null}
                                     </View>
-                                </View>
-
-                                <View style={styles.metricRight}>
-                                    <Text style={styles.metricLabel}>Records</Text>
-                                    <View style={styles.recordsValueRow}>
-                                        <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" />
-                                        <Text style={[styles.metricValue, styles.recordsValueText]}>{recordsLabel}</Text>
-                                    </View>
-                                </View>
+                                )}
                             </View>
+
+                            {workout ? (
+                                <Pressable
+                                    onPress={handlePressWorkoutHeader}
+                                    style={styles.metricsRow}
+                                >
+                                    <View style={styles.metricsLeft}>
+                                        <View style={styles.metricColumnLeft}>
+                                            <Text style={styles.metricLabel}>Duration</Text>
+                                            <Text style={styles.metricValue}>{durationLabel}</Text>
+                                        </View>
+
+                                        <View style={[styles.metricColumnLeft, styles.metricCenter]}>
+                                            <Text style={styles.metricLabel}>Volume</Text>
+                                            <Text style={styles.metricValue}>
+                                                {volumeLabel} {weightUnit}
+                                            </Text>
+                                        </View>
+                                    </View>
+
+                                    <View style={styles.metricRight}>
+                                        <Text style={styles.metricLabel}>Records</Text>
+                                        <View style={styles.recordsValueRow}>
+                                            <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" />
+                                            <Text style={[styles.metricValue, styles.recordsValueText]}>{recordsLabel}</Text>
+                                        </View>
+                                    </View>
+                                </Pressable>
+                            ) : null}
                         </View>
+
                         {exercises.length > 0 ? (
                             exercises.map((exercise, index) => (
                                 <PastWorkoutExerciseLog
@@ -519,54 +649,83 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(14),
         backgroundColor: theme.surface,
     },
-    logsHeader: {
-        paddingHorizontal: scaleSize(18),
-        paddingBottom: scaleSize(12),
+    sectionHeader: {
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: theme.hairline,
+        paddingBottom: scaleSize(12),
+        marginBottom: scaleSize(6),
     },
-    logsHeaderTopRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
+    sectionTop: {
+        paddingHorizontal: scaleSize(18),
     },
-    logsTitleWrap: {
-        flex: 1,
-        marginRight: scaleSize(12),
-    },
-    logsHeaderRight: {
-        flexShrink: 0,
+    headerRow: {
         flexDirection: "row",
         alignItems: "center",
     },
-    logsTitle: {
+    avatarWrap: {
+        width: scaleSize(34),
+        aspectRatio: 1,
+        borderRadius: scaleSize(23),
+        overflow: "hidden",
+        marginRight: scaleSize(10),
+    },
+    avatar: {
+        width: "100%",
+        height: "100%",
+        borderRadius: scaleSize(23),
+        backgroundColor: theme.field,
+    },
+    avatarFallback: {
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    avatarInitials: {
         color: theme.textPrimary,
-        fontFamily: "Mulish_800ExtraBold",
-        fontSize: scaleSize(14),
+        fontFamily: "Poppins_600SemiBold",
+        fontSize: scaleSize(15),
     },
-    subtitleRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginTop: scaleSize(5),
+    headerTextCol: {
+        flex: 1,
+        minWidth: 0,
     },
-    logsSubtitle: {
+    nameText: {
+        color: theme.textPrimary,
+        fontFamily: "Poppins_600SemiBold",
+        fontSize: scaleSize(13),
+    },
+    timestampText: {
         color: theme.textSecondary,
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(12),
-    },
-    templateSubtitle: {
-        marginTop: scaleSize(4),
-        color: theme.textSecondary,
-        fontFamily: "Outfit_500Medium",
+        fontFamily: "Outfit_400Regular",
         fontSize: scaleSize(11.5),
+        marginTop: scaleSize(2),
     },
-    logsOptionsButton: {
-        padding: scaleSize(6),
+    moreButton: {
+        paddingHorizontal: scaleSize(4),
+        paddingVertical: scaleSize(4),
+    },
+    titleBlock: {
+        marginTop: scaleSize(12),
+        paddingBottom: scaleSize(5),
+    },
+    titleText: {
+        color: theme.textPrimary,
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(13),
+    },
+    workoutTitleText: {
+        color: "#74abf7ff",
+    },
+    captionText: {
+        color: theme.textPrimary,
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(13),
+        marginTop: scaleSize(4),
     },
     metricsRow: {
         flexDirection: "row",
         justifyContent: "space-between",
-        marginTop: scaleSize(12),
+        paddingTop: scaleSize(6),
+        marginHorizontal: scaleSize(20),
     },
     metricsLeft: {
         flex: 1,
