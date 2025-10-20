@@ -823,9 +823,7 @@ const SimpleFeedPost = ({
                         <View style={[styles.metricColumn, styles.metricRight]}>
                             <Text style={styles.metricLabel}>Records</Text>
                             <View style={styles.recordsValueRow}>
-                                <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" style={styles.recordsIconFirst} />
-                                <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#C0C0C0" style={styles.recordsIcon} />
-                                <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#CD7F32" style={styles.recordsIcon} />
+                                <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" />
                                 <Text style={[styles.metricValue, styles.recordsValueText]}>{recordsLabel}</Text>
                             </View>
                         </View>
