@@ -308,9 +308,9 @@ const PastWorkoutScreen = () => {
             "Workout options",
             undefined,
             [
+                { text: "Edit Workout", onPress: () => setEditingVisible(true), style: 'default' },
                 { text: "Cancel", style: "cancel" },
-                { text: "Edit Workout", onPress: () => setEditingVisible(true) },
-                { text: "Delete Workout", style: "destructive", onPress: handleRequestDeleteWorkout },
+
             ],
         );
     }, [handleRequestDeleteWorkout, isOwner]);
