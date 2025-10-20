@@ -6,47 +6,47 @@ export const workoutTypography = StyleSheet.create({
     exerciseName: {
         fontFamily: "Mulish_800ExtraBold",
         color: theme.primary,
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(14.5),
         flexShrink: 1,
     },
     muscleLabel: {
         fontFamily: "Poppins_700Bold",
-        fontSize: scaleSize(11),
+        fontSize: scaleSize(10.5),
         color: "#fff",
     },
     columnLabel: {
         fontFamily: "Mulish_800ExtraBold",
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(12.5),
         color: theme.textPrimary,
     },
     addSet: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(12.5),
         color: theme.textPrimary,
     },
     setNumber: {
         fontFamily: "Poppins_700Bold",
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(11.5),
         color: theme.textPrimary,
     },
     setLetter: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(12.5),
+        fontSize: scaleSize(12),
         color: theme.textPrimary,
     },
     previousStat: {
         fontFamily: "Poppins_700Bold",
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(12.5),
         color: theme.textPrimary,
     },
     statValue: {
         fontFamily: "Poppins_700Bold",
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(14.5),
         color: theme.textPrimary,
     },
     emptyRow: {
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(11.5),
         color: theme.textSecondary,
     },
 });

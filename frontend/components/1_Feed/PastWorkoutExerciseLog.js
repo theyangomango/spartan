@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   },
   nameText: {
     flexShrink: 1,
-    fontSize: scaleSize(14.5),
+    fontSize: scaleSize(14),
     lineHeight: scaleSize(20),
   },
   labelsRow: {

@@ -82,6 +82,45 @@ const formatTimestamp = (value) => {
     return datePart || timePart || "";
 };
 
+const formatDuration = (durationMs) => {
+    const ms = Number(durationMs);
+    if (!Number.isFinite(ms) || ms <= 0) return "--";
+    const totalMinutes = Math.max(0, Math.round(ms / 60000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
+    if (hours > 0) return `${hours}h`;
+    if (minutes > 0) return `${minutes}m`;
+    const totalSeconds = Math.max(0, Math.round(ms / 1000));
+    if (totalSeconds >= 60) {
+        const mins = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${mins}m ${seconds}s`;
+    }
+    return `${totalSeconds}s`;
+};
+
+const formatNumber = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return "--";
+    try {
+        return num.toLocaleString();
+    } catch {
+        return String(num);
+    }
+};
+
+const resolveWeightUnit = () => {
+    try {
+        const raw = global?.userData?.settings?.units || global?.userData?.units;
+        if (!raw) return "lb";
+        const normalized = String(raw).toLowerCase();
+        return normalized === "kg" ? "kg" : "lb";
+    } catch {
+        return "lb";
+    }
+};
+
 const PastWorkoutScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
@@ -141,6 +180,14 @@ const PastWorkoutScreen = () => {
         () => workout?.templateName || workout?.template?.name || "",
         [workout?.templateName, workout?.template?.name]
     );
+
+    const durationLabel = useMemo(() => formatDuration(workout?.duration), [workout?.duration]);
+    const volumeLabel = useMemo(() => formatNumber(workout?.volume), [workout?.volume]);
+    const recordsLabel = useMemo(
+        () => formatNumber(workout?.PBs ?? workout?.pbs ?? 0),
+        [workout?.PBs, workout?.pbs]
+    );
+    const weightUnit = useMemo(() => resolveWeightUnit(), []);
 
     const workoutOwnerUid = useMemo(() => {
         const candidates = [
@@ -346,38 +393,63 @@ const PastWorkoutScreen = () => {
                 {workout ? (
                     <View style={styles.detailSection}>
                         <View style={styles.logsHeader}>
-                            <View style={styles.logsTitleWrap}>
-                                <Text style={styles.logsTitle} numberOfLines={1}>
-                                    {workout?.name || workout?.templateName || "Workout"}
-                                </Text>
-                                {timestampLabel ? (
-                                    <View style={styles.subtitleRow}>
-                                        <Text style={styles.logsSubtitle} numberOfLines={1}>
-                                            {timestampLabel}
+                            <View style={styles.logsHeaderTopRow}>
+                                <View style={styles.logsTitleWrap}>
+                                    <Text style={styles.logsTitle} numberOfLines={1}>
+                                        {workout?.name || workout?.templateName || "Workout"}
+                                    </Text>
+                                    {timestampLabel ? (
+                                        <View style={styles.subtitleRow}>
+                                            <Text style={styles.logsSubtitle} numberOfLines={1}>
+                                                {timestampLabel}
+                                            </Text>
+                                        </View>
+                                    ) : null}
+                                    {templateName ? (
+                                        <Text style={styles.templateSubtitle} numberOfLines={1}>
+                                            Template: {templateName}
+                                        </Text>
+                                    ) : null}
+                                </View>
+                                <View style={styles.logsHeaderRight}>
+                                    {isOwner ? (
+                                        <Pressable
+                                            onPress={handlePressDetailMenu}
+                                            hitSlop={8}
+                                            style={styles.logsOptionsButton}
+                                            disabled={deletingWorkout}
+                                        >
+                                            <MaterialCommunityIcons
+                                                name="dots-vertical"
+                                                size={scaleSize(18)}
+                                                color={deletingWorkout ? theme.textSecondary : theme.textPrimary}
+                                            />
+                                        </Pressable>
+                                    ) : null}
+                                </View>
+                            </View>
+                            <View style={styles.metricsRow}>
+                                <View style={styles.metricsLeft}>
+                                    <View style={styles.metricColumnLeft}>
+                                        <Text style={styles.metricLabel}>Duration</Text>
+                                        <Text style={styles.metricValue}>{durationLabel}</Text>
+                                    </View>
+
+                                    <View style={[styles.metricColumnLeft, styles.metricCenter]}>
+                                        <Text style={styles.metricLabel}>Volume</Text>
+                                        <Text style={styles.metricValue}>
+                                            {volumeLabel} {weightUnit}
                                         </Text>
                                     </View>
-                                ) : null}
-                                {templateName ? (
-                                    <Text style={styles.templateSubtitle} numberOfLines={1}>
-                                        Template: {templateName}
-                                    </Text>
-                                ) : null}
-                            </View>
-                            <View style={styles.logsHeaderRight}>
-                                {isOwner ? (
-                                    <Pressable
-                                        onPress={handlePressDetailMenu}
-                                        hitSlop={8}
-                                        style={styles.logsOptionsButton}
-                                        disabled={deletingWorkout}
-                                    >
-                                        <MaterialCommunityIcons
-                                            name="dots-vertical"
-                                            size={scaleSize(18)}
-                                            color={deletingWorkout ? theme.textSecondary : theme.textPrimary}
-                                        />
-                                    </Pressable>
-                                ) : null}
+                                </View>
+
+                                <View style={styles.metricRight}>
+                                    <Text style={styles.metricLabel}>Records</Text>
+                                    <View style={styles.recordsValueRow}>
+                                        <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" />
+                                        <Text style={[styles.metricValue, styles.recordsValueText]}>{recordsLabel}</Text>
+                                    </View>
+                                </View>
                             </View>
                         </View>
                         {exercises.length > 0 ? (
@@ -448,13 +520,15 @@ const styles = StyleSheet.create({
         backgroundColor: theme.surface,
     },
     logsHeader: {
+        paddingHorizontal: scaleSize(18),
+        paddingBottom: scaleSize(12),
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: theme.hairline,
+    },
+    logsHeaderTopRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: scaleSize(18),
-        paddingBottom: scaleSize(10),
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: theme.hairline,
     },
     logsTitleWrap: {
         flex: 1,
@@ -488,6 +562,43 @@ const styles = StyleSheet.create({
     },
     logsOptionsButton: {
         padding: scaleSize(6),
+    },
+    metricsRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginTop: scaleSize(12),
+    },
+    metricsLeft: {
+        flex: 1,
+        flexDirection: "row",
+    },
+    metricColumnLeft: {
+        width: "32%",
+    },
+    metricCenter: {
+        paddingHorizontal: scaleSize(1),
+    },
+    metricRight: {
+        alignItems: "flex-end",
+    },
+    metricLabel: {
+        color: "rgba(255,255,255,0.58)",
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(11),
+        letterSpacing: 0.2,
+        paddingBottom: scaleSize(1.5),
+    },
+    metricValue: {
+        color: theme.textPrimary,
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(14),
+    },
+    recordsValueRow: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    recordsValueText: {
+        marginLeft: scaleSize(6),
     },
     noExercisesText: {
         paddingHorizontal: scaleSize(18),

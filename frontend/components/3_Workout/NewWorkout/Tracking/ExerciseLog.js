@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     },
     nameContainer: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: scaleSize(10), paddingBottom: scaleSize(4), flex: 1 },
     avatar: { marginRight: scaleSize(10) },
-    nameText: { flexShrink: 1, fontSize: scaleSize(14.5), lineHeight: scaleSize(20) },
+    nameText: { flexShrink: 1, fontSize: scaleSize(14), lineHeight: scaleSize(20) },
     optionsButton: {
         backgroundColor: theme.restPillBg,
         borderRadius: scaleSize(10),
