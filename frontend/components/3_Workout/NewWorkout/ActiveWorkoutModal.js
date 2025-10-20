@@ -1118,12 +1118,12 @@ const ActiveWorkoutModal = ({
                 <View style={styles.end_workout_overlay}>
                     <Pressable style={styles.end_workout_backdrop} onPress={closeEndWorkoutSheet} />
                     <View style={styles.end_workout_sheet}>
-                        <View style={styles.end_workout_sheet_handle} />
                         <View style={styles.end_workout_options}>
                             <Pressable
                                 onPress={withStrongPress(handleEndWorkoutFinish)}
                                 style={({ pressed }) => [
                                     styles.end_workout_option,
+                                    styles.end_workout_option_finish,
                                     pressed && styles.end_workout_option_pressed,
                                 ]}
                             >
@@ -1131,11 +1131,12 @@ const ActiveWorkoutModal = ({
                                     Finish Workout
                                 </Text>
                             </Pressable>
-                            <View style={styles.end_workout_option_divider} />
                             <Pressable
                                 onPress={withStrongPress(handleEndWorkoutCancel)}
                                 style={({ pressed }) => [
                                     styles.end_workout_option,
+                                    styles.end_workout_option_cancel,
+                                    styles.end_workout_option_last,
                                     pressed && styles.end_workout_option_pressed,
                                 ]}
                             >
@@ -1357,64 +1358,74 @@ const styles = StyleSheet.create({
     end_workout_overlay: {
         flex: 1,
         justifyContent: "flex-end",
-        backgroundColor: 'rgba(0,0,0,0.48)',
+        backgroundColor: 'rgba(0,0,0,0.5)',
     },
     end_workout_sheet: {
         backgroundColor: theme.surface,
-        borderTopLeftRadius: scaleSize(24),
-        borderTopRightRadius: scaleSize(24),
-        paddingTop: scaleSize(12),
-        paddingBottom: scaleSize(32),
-        paddingHorizontal: scaleSize(20),
+        borderTopLeftRadius: scaleSize(26),
+        borderTopRightRadius: scaleSize(26),
+        paddingTop: scaleSize(16),
+        paddingBottom: scaleSize(36),
+        paddingHorizontal: scaleSize(22),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.06)',
         shadowColor: '#000000',
-        shadowOpacity: 0.3,
-        shadowRadius: scaleSize(18),
+        shadowOpacity: 0.18,
+        shadowRadius: scaleSize(12),
         shadowOffset: { width: 0, height: -scaleSize(4) },
-        elevation: 12,
+        elevation: 10,
     },
     end_workout_backdrop: {
         flex: 1,
     },
     end_workout_sheet_handle: {
         alignSelf: "center",
-        width: scaleSize(46),
-        height: scaleSize(5),
-        borderRadius: scaleSize(3),
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        marginBottom: scaleSize(18),
+        width: scaleSize(34),
+        height: scaleSize(4),
+        borderRadius: scaleSize(2),
+        marginBottom: scaleSize(12),
     },
     end_workout_options: {
-        borderRadius: scaleSize(18),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,255,255,0.12)',
-        overflow: "hidden",
-        backgroundColor: 'rgba(255,255,255,0.05)',
+        marginTop: scaleSize(6),
     },
     end_workout_option: {
         width: '100%',
-        paddingVertical: scaleSize(18),
+        paddingVertical: scaleSize(13),
+        paddingHorizontal: scaleSize(18),
         alignItems: "center",
         justifyContent: "center",
+        borderRadius: scaleSize(18),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.06)',
+        backgroundColor: 'rgba(255,255,255,0.04)',
+        marginBottom: scaleSize(12),
+    },
+    end_workout_option_finish: {
+        borderColor: 'rgba(108,216,176,0.32)',
+        backgroundColor: 'rgba(100, 193, 159, 0.21)',
+    },
+    end_workout_option_cancel: {
+        borderColor: 'rgba(255, 137, 147, 0.57)',
+        backgroundColor: 'rgba(193, 90, 98, 0.18)',
+    },
+    end_workout_option_last: {
+        marginBottom: 0,
     },
     end_workout_option_pressed: {
-        backgroundColor: 'rgba(255,255,255,0.08)',
-    },
-    end_workout_option_divider: {
-        height: StyleSheet.hairlineWidth,
-        width: '100%',
-        backgroundColor: 'rgba(255,255,255,0.12)',
+        opacity: 0.85,
     },
     end_workout_option_text: {
-        fontSize: scaleSize(16),
-        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(13),
+        fontFamily: "Outfit_700Bold",
         color: theme.textPrimary,
         textAlign: "center",
+        letterSpacing: 0.2,
     },
     end_workout_option_text_finish: {
-        color: theme.successButton,
+        color: '#52cba3e5',
     },
     end_workout_option_text_cancel: {
-        color: '#FF8993',
+        color: 'rgba(255,137,147,0.92)',
     },
 
 });

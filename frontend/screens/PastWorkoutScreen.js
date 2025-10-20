@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState } from "react";
+import React, { useMemo, useCallback, useState, useEffect } from "react";
 import {
     SafeAreaView,
     View,
@@ -12,9 +12,11 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 
 import PastWorkoutExerciseLog from "../components/1_Feed/PastWorkoutExerciseLog";
+import EditingWorkoutModal from "../components/3_Workout/NewWorkout/EditingWorkoutModal";
 import theme from "../theme/mfpDark";
 import scaleSize from "../helper/scaleSize";
 import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
+import updateCompletedWorkout from "../../backend/workouts/updateCompletedWorkout";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
 
 const HEADER_ICON_SIZE = scaleSize(20);
@@ -83,8 +85,13 @@ const formatTimestamp = (value) => {
 const PastWorkoutScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
-    const workout = route.params?.workout ?? null;
+    const routeWorkout = route.params?.workout ?? null;
+    const [workout, setWorkout] = useState(routeWorkout);
     const owner = route.params?.owner ?? {};
+
+    useEffect(() => {
+        setWorkout(routeWorkout);
+    }, [routeWorkout]);
 
     const exercises = useMemo(
         () =>
@@ -115,6 +122,20 @@ const PastWorkoutScreen = () => {
     }, [workout]);
 
     const timestampLabel = useMemo(() => formatTimestamp(workoutTimestamp), [workoutTimestamp]);
+
+    const workoutIdentifier = useMemo(() => ({
+        wid: routeWorkout?.wid ?? routeWorkout?.id ?? routeWorkout?.workoutId ?? routeWorkout?.pid ?? null,
+        created: routeWorkout?.created ?? routeWorkout?.createdAt ?? routeWorkout?.finishedAt ?? routeWorkout?.completedAt ?? null,
+    }), [
+        routeWorkout?.wid,
+        routeWorkout?.id,
+        routeWorkout?.workoutId,
+        routeWorkout?.pid,
+        routeWorkout?.created,
+        routeWorkout?.createdAt,
+        routeWorkout?.finishedAt,
+        routeWorkout?.completedAt,
+    ]);
 
     const templateName = useMemo(
         () => workout?.templateName || workout?.template?.name || "",
@@ -147,6 +168,7 @@ const PastWorkoutScreen = () => {
 
     const isOwner = Boolean(viewerUid && workoutOwnerUid && viewerUid === workoutOwnerUid);
     const [deletingWorkout, setDeletingWorkout] = useState(false);
+    const [editingVisible, setEditingVisible] = useState(false);
 
     const handleBack = useCallback(() => {
         navigation.goBack();
@@ -209,10 +231,89 @@ const PastWorkoutScreen = () => {
         ]);
     }, [isOwner, deletingWorkout, performDeleteWorkout]);
 
+    const handleSaveEditedWorkout = useCallback(async (updatedWorkout) => {
+        if (!isOwner || !updatedWorkout) return;
+        const uid = viewerUid;
+        if (!uid) throw new Error("missing-uid");
+
+        try {
+            const payload = {
+                ...(workout || {}),
+                ...(updatedWorkout || {}),
+            };
+
+            console.log("[PastWorkoutScreen] updateCompletedWorkout -> start", {
+                uid,
+                identifier: workoutIdentifier,
+                payload,
+            });
+
+            const result = await updateCompletedWorkout(uid, workoutIdentifier, payload);
+            console.log("[PastWorkoutScreen] updateCompletedWorkout -> result", result);
+
+            if (!result?.ok) {
+                console.warn("[PastWorkoutScreen] updateCompletedWorkout returned non-ok result", result);
+                throw new Error(result?.error || "update-failed");
+            }
+
+            const nextWorkouts = Array.isArray(result.completedWorkouts) ? result.completedWorkouts : [];
+
+            const updatedEntry = (() => {
+                const targetWid = payload?.wid ?? payload?.id ?? payload?.workoutId ?? payload?.pid ?? null;
+                const targetCreated = payload?.created ?? payload?.createdAt ?? payload?.finishedAt ?? payload?.completedAt ?? null;
+                return nextWorkouts.find((item) => {
+                    if (!item || typeof item !== "object") return false;
+                    const wid = item?.wid ?? item?.id ?? item?.workoutId ?? item?.pid ?? null;
+                    if (targetWid && wid != null && String(wid) === String(targetWid)) return true;
+                    if (targetCreated) {
+                        const created = item?.created ?? item?.createdAt ?? item?.finishedAt ?? item?.completedAt ?? null;
+                        if (created && Math.abs(toMillis(created) - toMillis(targetCreated)) < 2000) return true;
+                    }
+                    return false;
+                }) || payload;
+            })();
+
+            setWorkout(updatedEntry);
+
+            try {
+                if (global?.userData) {
+                    global.userData.completedWorkouts = nextWorkouts;
+                    if (result.statsExercises) global.userData.statsExercises = result.statsExercises;
+                    if (result.statsHexagon) global.userData.statsHexagon = result.statsHexagon;
+                    if (result.statsHexagonMeta) global.userData.statsHexagonMeta = result.statsHexagonMeta;
+                    if (Number.isFinite(result.statsTotalVolume)) global.userData.statsTotalVolume = result.statsTotalVolume;
+                    if (Number.isFinite(result.statsTotalHours)) global.userData.statsTotalHours = result.statsTotalHours;
+                    if (Number.isFinite(result.statsTotalWorkouts)) global.userData.statsTotalWorkouts = result.statsTotalWorkouts;
+                    if (result.workoutsByDate) global.userData.workoutsByDate = result.workoutsByDate;
+                    emitHexagonUpdate();
+                }
+            } catch (syncError) {
+                console.warn("[PastWorkoutScreen] Failed to sync global user data after update", syncError);
+            }
+
+            return result;
+        } catch (error) {
+            console.error("[PastWorkoutScreen] updateCompletedWorkout failed", {
+                error,
+                identifier: workoutIdentifier,
+            });
+            Alert.alert("Save failed", "Please try again.");
+            throw error;
+        }
+    }, [isOwner, viewerUid, workout, workoutIdentifier]);
+
     const handlePressDetailMenu = useCallback(() => {
         if (!isOwner) return;
-        handleRequestDeleteWorkout();
-    }, [isOwner, handleRequestDeleteWorkout]);
+        Alert.alert(
+            "Workout options",
+            undefined,
+            [
+                { text: "Cancel", style: "cancel" },
+                { text: "Edit Workout", onPress: () => setEditingVisible(true) },
+                { text: "Delete Workout", style: "destructive", onPress: handleRequestDeleteWorkout },
+            ],
+        );
+    }, [handleRequestDeleteWorkout, isOwner]);
 
     return (
         <SafeAreaView style={styles.safeArea}>
@@ -300,6 +401,13 @@ const PastWorkoutScreen = () => {
                     </View>
                 )}
             </ScrollView>
+
+            <EditingWorkoutModal
+                visible={editingVisible}
+                workout={workout}
+                onClose={() => setEditingVisible(false)}
+                onSave={handleSaveEditedWorkout}
+            />
         </SafeAreaView>
     );
 };

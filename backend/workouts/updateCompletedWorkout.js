@@ -1,0 +1,397 @@
+import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
+import { db } from "../../firebase.config";
+import computeHexagonFromStats from "../../shared/computeHexagon.js";
+
+const toNumber = (value, fallback = 0) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+};
+
+const calculate1RM = (weight, reps) => {
+    const w = Number(weight) || 0;
+    const r = Number(reps) || 0;
+    if (w <= 0 || r <= 0) return 0;
+    return w / (1.0278 - 0.0278 * r);
+};
+
+const toMillis = (value) => {
+    if (value == null) return 0;
+    if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+    if (value?.toMillis) {
+        try {
+            return value.toMillis();
+        } catch {
+            return 0;
+        }
+    }
+    if (typeof value === "object") {
+        const seconds = Number(value.seconds ?? value._seconds);
+        if (Number.isFinite(seconds)) {
+            const nanos = Number(value.nanoseconds ?? value._nanoseconds ?? 0);
+            const extra = Number.isFinite(nanos) ? Math.floor(nanos / 1e6) : 0;
+            return seconds * 1000 + extra;
+        }
+    }
+    const ts = new Date(value).getTime();
+    return Number.isFinite(ts) ? ts : 0;
+};
+
+const toDayKey = (value) => {
+    const ms = toMillis(value);
+    if (!ms) return "";
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return "";
+    d.setHours(0, 0, 0, 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const parseDayKey = (key) => {
+    if (!key) return 0;
+    try {
+        const [y, m, d] = String(key).split("-").map((x) => Number(x));
+        const dt = new Date(y, (m || 1) - 1, d || 1);
+        dt.setHours(0, 0, 0, 0);
+        const ts = dt.getTime();
+        return Number.isFinite(ts) ? ts : 0;
+    } catch {
+        return 0;
+    }
+};
+
+const inferGroup = (name) => {
+    const n = String(name || "").toLowerCase();
+    if (!n) return null;
+    if (/shoulder|overhead|press|raise|shrug|upright row/.test(n)) return "shoulders";
+    if (/bench|chest|fly|push-up|push up/.test(n)) return "chest";
+    if (/curl|tricep|skullcrusher|preacher|extension/.test(n)) return "arms";
+    if (/squat|deadlift|lunge|leg\s|calf|hip thrust|glute/.test(n)) return "legs";
+    if (/row|pull[- ]?up|chin[- ]?up|lat|trap/.test(n)) return "back";
+    if (/ab|core|crunch|sit[- ]?up|plank|twist|leg raise|v[- ]?up/.test(n)) return "abs";
+    if (/full body|total body|circuit/.test(n)) return "full";
+    return null;
+};
+
+const distributeFullBody = (tsMap, ts) => {
+    const dist = { legs: 0.35, back: 0.3, shoulders: 0.2, arms: 0.1, abs: 0.05, chest: 0 };
+    Object.entries(dist).forEach(([group, factor]) => {
+        const prev = tsMap[group] || 0;
+        const candidate = Number(ts) || 0;
+        if (candidate > prev && factor > 0) {
+            tsMap[group] = candidate;
+        }
+    });
+};
+
+const deriveBestTimestamp = (workout) => (
+    Math.max(
+        toMillis(workout?.finishedAt),
+        toMillis(workout?.completedAt),
+        toMillis(workout?.updatedAt),
+        toMillis(workout?.startedAt),
+        toMillis(workout?.createdAt),
+        toMillis(workout?.created),
+        0,
+    )
+);
+
+const normalizeIdentifier = (input) => {
+    if (!input && input !== 0) return null;
+    if (typeof input === "string" || typeof input === "number") {
+        const wid = String(input).trim();
+        return wid ? { wid } : null;
+    }
+    if (typeof input !== "object") return null;
+    const widRaw = input?.wid ?? input?.id ?? input?.workoutId ?? input?.widStr ?? null;
+    const createdRaw = input?.created ?? input?.createdAt ?? input?.finishedAt ?? input?.completedAt ?? null;
+    const wid = typeof widRaw === "string" ? widRaw.trim() : (widRaw != null ? String(widRaw).trim() : "");
+    let created = 0;
+    if (createdRaw != null) {
+        const ms = toMillis(createdRaw);
+        if (ms) created = ms;
+    }
+    return wid || created ? { wid: wid || null, created: created || 0 } : null;
+};
+
+const findWorkoutInList = (workouts, identifier) => {
+    if (!Array.isArray(workouts) || workouts.length === 0) return { index: -1, workout: null };
+    const targetWid = identifier?.wid ? String(identifier.wid) : null;
+    const targetCreated = identifier?.created || 0;
+
+    for (let i = 0; i < workouts.length; i += 1) {
+        const workout = workouts[i];
+        const wid = workout?.wid ?? workout?.id ?? workout?.workoutId ?? workout?.pid ?? null;
+        const created = deriveBestTimestamp(workout);
+        const widMatch = targetWid && wid != null && String(wid) === targetWid;
+        const createdMatch = targetCreated && Math.abs(created - targetCreated) < 2000;
+        if (widMatch || createdMatch) {
+            return { index: i, workout };
+        }
+    }
+    return { index: -1, workout: null };
+};
+
+const ensureExercisesAreArrays = (workout) => {
+    if (!workout || typeof workout !== "object") return workout;
+    const exercises = Array.isArray(workout.exercises)
+        ? workout.exercises.map((exercise) => {
+            if (!exercise || typeof exercise !== "object") return {};
+            const sets = Array.isArray(exercise.sets) ? exercise.sets.map((set) => ({
+                ...(set || {}),
+            })) : [];
+            return { ...exercise, sets };
+        })
+        : [];
+    return { ...workout, exercises };
+};
+
+const rebuildStatsFromWorkouts = (workouts) => {
+    const statsMap = Object.create(null);
+    let totalVolume = 0;
+    let totalHours = 0;
+    const workoutsByDate = {};
+
+    (Array.isArray(workouts) ? workouts : []).forEach((workout) => {
+        const wid = workout?.wid ?? workout?.id ?? workout?.workoutId ?? workout?.pid ?? null;
+        const widStr = wid != null ? String(wid).trim() : "";
+        const dayKey = toDayKey(deriveBestTimestamp(workout));
+        if (dayKey) workoutsByDate[dayKey] = true;
+
+        const exercises = Array.isArray(workout?.exercises) ? workout.exercises : [];
+        let workoutVolume = toNumber(workout?.volume);
+        if (!workoutVolume && exercises.length) {
+            workoutVolume = exercises.reduce((acc, exercise) => {
+                const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
+                return acc + sets.reduce((sum, set) => sum + toNumber(set?.reps ?? set?.rep ?? set?.r) * toNumber(set?.weight ?? set?.lbs ?? set?.kg ?? set?.load), 0);
+            }, 0);
+        }
+        totalVolume += workoutVolume;
+
+        let durationMs = toNumber(workout?.duration);
+        if (!durationMs) {
+            const startTs = toMillis(workout?.startedAt ?? workout?.createdAt ?? workout?.created);
+            const endTs = toMillis(workout?.finishedAt ?? workout?.completedAt ?? workout?.endedAt);
+            if (endTs && startTs && endTs > startTs) {
+                durationMs = endTs - startTs;
+            }
+        }
+        totalHours += durationMs / 3600000;
+
+        exercises.forEach((exercise) => {
+            const name = String(exercise?.name || "").trim();
+            if (!name) return;
+            const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
+            if (!sets.length) return;
+            const entry = statsMap[name] || { sets: [] };
+            sets.forEach((set) => {
+                const reps = toNumber(set?.reps ?? set?.rep ?? set?.r);
+                const weight = toNumber(set?.weight ?? set?.lbs ?? set?.kg ?? set?.load);
+                if (reps <= 0 || weight <= 0) return;
+                const setDay = toDayKey(set?.date) || dayKey || toDayKey(Date.now());
+                entry.sets.push({
+                    weight,
+                    reps,
+                    date: setDay,
+                    wid: widStr || undefined,
+                    privacyMode: workout?.privacyMode ?? "followers",
+                });
+            });
+            statsMap[name] = entry;
+        });
+    });
+
+    const statsExercises = {};
+    const lastTrainedTs = {
+        shoulders: 0, chest: 0, arms: 0, legs: 0, back: 0, abs: 0,
+    };
+
+    Object.entries(statsMap).forEach(([name, entry]) => {
+        const sets = entry.sets;
+        if (!Array.isArray(sets) || sets.length === 0) return;
+
+        let totalReps = 0;
+        let totalVolumeEx = 0;
+        let best1RM = 0;
+        let bestSet = null;
+        const timelineMap = new Map();
+
+        sets.forEach((set) => {
+            const reps = toNumber(set.reps);
+            const weight = toNumber(set.weight);
+            totalReps += reps;
+            totalVolumeEx += reps * weight;
+            const est = calculate1RM(weight, reps);
+            if (est > best1RM) {
+                best1RM = est;
+                bestSet = { weight, reps };
+            }
+            const day = set.date || toDayKey(Date.now());
+            if (!timelineMap.has(day)) {
+                timelineMap.set(day, { volume: 0, best: 0 });
+            }
+            const dayEntry = timelineMap.get(day);
+            dayEntry.volume += reps * weight;
+            if (est > dayEntry.best) dayEntry.best = est;
+        });
+
+        const progress = [];
+        const sortedDays = Array.from(timelineMap.keys()).sort();
+        let runningBest = 0;
+        sortedDays.forEach((day) => {
+            const { volume, best } = timelineMap.get(day);
+            runningBest = Math.max(runningBest, best);
+            progress.push({ date: day, "1RM": runningBest || best || 0, volume });
+        });
+
+        const statsEntry = {
+            sets,
+            Reps: totalReps,
+            Volume: totalVolumeEx,
+            progress1RM: progress,
+        };
+        if (best1RM > 0) {
+            statsEntry["1RM"] = best1RM;
+            statsEntry.bestSet = bestSet;
+        }
+
+        statsExercises[name] = statsEntry;
+
+        const group = inferGroup(name);
+        if (!group) return;
+        let latestTs = 0;
+        progress.forEach((row) => {
+            const ts = parseDayKey(row?.date);
+            if (ts > latestTs) latestTs = ts;
+        });
+        if (!latestTs) {
+            sets.forEach((set) => {
+                const ts = parseDayKey(set?.date);
+                if (ts > latestTs) latestTs = ts;
+            });
+        }
+        if (!latestTs) return;
+        if (group === "full") {
+            distributeFullBody(lastTrainedTs, latestTs);
+        } else if (lastTrainedTs[group] < latestTs) {
+            lastTrainedTs[group] = latestTs;
+        }
+    });
+
+    const { statsHexagon } = computeHexagonFromStats({
+        statsExercises,
+        prevStatsHexagon: {},
+        trainedExerciseNames: Object.keys(statsExercises),
+    });
+
+    const lastTrainedByGroup = {};
+    Object.entries(lastTrainedTs).forEach(([group, ts]) => {
+        if (ts) {
+            lastTrainedByGroup[group] = ts;
+        }
+    });
+
+    return {
+        statsExercises,
+        statsHexagon,
+        lastTrainedByGroup,
+        statsTotalVolume: totalVolume,
+        statsTotalHours: Number(totalHours.toFixed(3)),
+        statsTotalWorkouts: Array.isArray(workouts) ? workouts.length : 0,
+        workoutsByDate,
+    };
+};
+
+const sanitizeWorkoutForClient = (workout) => {
+    if (!workout || typeof workout !== "object") return workout;
+    const exercises = Array.isArray(workout.exercises)
+        ? workout.exercises.map((exercise) => {
+            if (!exercise || typeof exercise !== "object") return {};
+            const sets = Array.isArray(exercise.sets)
+                ? exercise.sets.map((set) => ({ ...(set || {}) }))
+                : [];
+            return { ...exercise, sets };
+        })
+        : [];
+    return { ...workout, exercises };
+};
+
+export default async function updateCompletedWorkout(uid, identifierInput, updatedWorkoutInput) {
+    const normalizedUid = typeof uid === "string" ? uid.trim() : "";
+    if (!normalizedUid) throw new Error("updateCompletedWorkout: missing uid");
+    if (!updatedWorkoutInput || typeof updatedWorkoutInput !== "object") {
+        throw new Error("updateCompletedWorkout: missing updated workout");
+    }
+
+    const identifier = normalizeIdentifier(identifierInput) || normalizeIdentifier(updatedWorkoutInput);
+    if (!identifier) throw new Error("updateCompletedWorkout: missing identifier");
+
+    const preparedWorkout = ensureExercisesAreArrays(updatedWorkoutInput);
+    const userRef = doc(db, "users", normalizedUid);
+
+    const result = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(userRef);
+        if (!snap.exists()) throw new Error("User not found");
+
+        const data = snap.data() || {};
+        const workouts = Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [];
+        const { index, workout: existingWorkout } = findWorkoutInList(workouts, identifier);
+        if (index < 0 || !existingWorkout) {
+            throw new Error("Workout not found");
+        }
+
+        const mergedWorkout = {
+            ...existingWorkout,
+            ...preparedWorkout,
+        };
+
+        const updatedTimestamp = Date.now();
+
+        const updatedForFirestore = {
+            ...mergedWorkout,
+            updatedAt: updatedTimestamp,
+        };
+
+        const updatedForClient = {
+            ...sanitizeWorkoutForClient(mergedWorkout),
+            updatedAt: updatedTimestamp,
+        };
+
+        const nextWorkoutsForFirestore = [...workouts];
+        nextWorkoutsForFirestore[index] = updatedForFirestore;
+
+        const nextWorkoutsForClient = [...workouts];
+        nextWorkoutsForClient[index] = updatedForClient;
+
+        const rebuilt = rebuildStatsFromWorkouts(nextWorkoutsForClient);
+
+        tx.update(userRef, {
+            completedWorkouts: nextWorkoutsForFirestore,
+            statsExercises: rebuilt.statsExercises,
+            statsHexagon: rebuilt.statsHexagon,
+            statsHexagonMeta: {
+                lastTrainedByGroup: rebuilt.lastTrainedByGroup,
+                updatedAt: serverTimestamp(),
+            },
+            statsTotalVolume: rebuilt.statsTotalVolume,
+            statsTotalHours: rebuilt.statsTotalHours,
+            statsTotalWorkouts: rebuilt.statsTotalWorkouts,
+            workoutsByDate: rebuilt.workoutsByDate,
+        });
+
+        return {
+            updatedWorkout: updatedForClient,
+            completedWorkouts: nextWorkoutsForClient,
+            statsExercises: rebuilt.statsExercises,
+            statsHexagon: rebuilt.statsHexagon,
+            statsHexagonMeta: {
+                lastTrainedByGroup: rebuilt.lastTrainedByGroup,
+                updatedAt: Date.now(),
+            },
+            statsTotalVolume: rebuilt.statsTotalVolume,
+            statsTotalHours: rebuilt.statsTotalHours,
+            statsTotalWorkouts: rebuilt.statsTotalWorkouts,
+            workoutsByDate: rebuilt.workoutsByDate,
+        };
+    });
+
+    return { ok: true, ...result };
+}
