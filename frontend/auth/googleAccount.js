@@ -15,7 +15,8 @@ function normalizeHandle(source) {
   return safe.slice(0, 20);
 }
 
-export async function upsertGoogleUser(profile) {
+export async function upsertGoogleUser(profile, options = {}) {
+  const { preferredHandle } = options || {};
   const usersSnapshot = await readDoc('global', 'users').catch(() => null);
   const allUsers = Array.isArray(usersSnapshot?.all) ? usersSnapshot.all : [];
 
@@ -41,7 +42,8 @@ export async function upsertGoogleUser(profile) {
   }
 
   const uid = makeID();
-  const baseHandleSource = normalizeHandle(
+  const normalizedPreferredHandle = normalizeHandle(preferredHandle);
+  const profileHandleSource = normalizeHandle(
     email?.split('@')[0]
       || profile?.given_name
       || profile?.family_name
@@ -50,7 +52,12 @@ export async function upsertGoogleUser(profile) {
   );
 
   const fallbackHandle = `user${uid.slice(0, 6).toLowerCase()}`;
-  const baseHandle = baseHandleSource && baseHandleSource.length >= 3 ? baseHandleSource : fallbackHandle;
+  const baseHandleSource = profileHandleSource && profileHandleSource.length >= 3
+    ? profileHandleSource
+    : fallbackHandle;
+  const baseHandle = normalizedPreferredHandle && normalizedPreferredHandle.length >= 3
+    ? normalizedPreferredHandle
+    : baseHandleSource;
   const handleExists = (candidate) => allUsers.some((user) => String(user?.handle || '').toLowerCase() === candidate.toLowerCase());
 
   let candidateHandle = baseHandle;

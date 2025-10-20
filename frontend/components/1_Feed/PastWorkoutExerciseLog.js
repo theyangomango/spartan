@@ -103,13 +103,13 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0 }) => {
               </View>
 
               <View style={styles.weightValueContainer}>
-                <Text style={done ? [workoutTypography.statValue, styles.statValueText, styles.statValueTextDone] : [workoutTypography.statValue, styles.statValueText]} numberOfLines={1}>
+                <Text style={done ? [workoutTypography.statValue, styles.statValueDone] : workoutTypography.statValue} numberOfLines={1}>
                   {formatWeight(set)}
                 </Text>
               </View>
 
               <View style={styles.repsValueContainer}>
-                <Text style={done ? [workoutTypography.statValue, styles.statValueText, styles.statValueTextDone] : [workoutTypography.statValue, styles.statValueText]} numberOfLines={1}>
+                <Text style={done ? [workoutTypography.statValue, styles.statValueDone] : workoutTypography.statValue} numberOfLines={1}>
                   {formatReps(set)}
                 </Text>
               </View>
@@ -155,12 +155,15 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     marginRight: scaleSize(10),
     flex: 1,
+    paddingBottom: scaleSize(4),
   },
   avatar: {
     marginRight: scaleSize(10),
   },
   nameText: {
     flexShrink: 1,
+    fontSize: scaleSize(14.5),
+    lineHeight: scaleSize(20),
   },
   labelsRow: {
     flexDirection: "row",
@@ -224,10 +227,7 @@ const styles = StyleSheet.create({
     width: "18%",
     alignItems: "center",
   },
-  statValueText: {
-    fontFamily: "Outfit_700Bold",
-  },
-  statValueTextDone: {
+  statValueDone: {
     color: "#afafaf",
   },
   emptyRow: {

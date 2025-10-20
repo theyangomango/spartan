@@ -35,10 +35,11 @@ const GoogleAuthButton = ({
   const onPress = useCallback(async () => {
     if (busy) return;
 
+    let proceedPayload;
     try {
       if (typeof shouldProceed === 'function') {
-        const proceed = await shouldProceed();
-        if (!proceed) {
+        proceedPayload = await shouldProceed();
+        if (!proceedPayload) {
           return;
         }
       }
@@ -57,7 +58,20 @@ const GoogleAuthButton = ({
       const profile = await signIn();
       if (!profile) return;
 
-      const result = await upsertGoogleUser(profile);
+      const preferredHandle = (() => {
+        if (typeof proceedPayload === 'string') return proceedPayload;
+        if (proceedPayload && typeof proceedPayload === 'object') {
+          if (typeof proceedPayload.preferredHandle === 'string') {
+            return proceedPayload.preferredHandle;
+          }
+          if (typeof proceedPayload.handle === 'string') {
+            return proceedPayload.handle;
+          }
+        }
+        return undefined;
+      })();
+
+      const result = await upsertGoogleUser(profile, { preferredHandle });
       handleSuccess(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Google sign-in failed. Please try again.';

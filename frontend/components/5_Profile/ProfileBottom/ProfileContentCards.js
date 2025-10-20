@@ -114,7 +114,7 @@ const styles = StyleSheet.create({
     card: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: scaleSize(17),
+        paddingVertical: scaleSize(15),
         paddingHorizontal: scaleSize(18),
         backgroundColor: 'transparent',
     },
