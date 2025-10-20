@@ -9,6 +9,11 @@ export function heavy() {
   try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Rigid); } catch {}
 }
 
+export function deep() {
+  try { Haptics.notificationAsync?.(Haptics.NotificationFeedbackType.Success); } catch {}
+  try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy); } catch {}
+}
+
 export async function burst(count = 6, intervalMs = 45) {
   const taps = Math.max(1, Math.min(count, 10));
   try { await Haptics.notificationAsync?.(Haptics.NotificationFeedbackType.Error); } catch {}
@@ -43,6 +48,7 @@ export function error() {
 export default {
   strong,
   heavy,
+  deep,
   burst,
   withStrongPress,
   success,

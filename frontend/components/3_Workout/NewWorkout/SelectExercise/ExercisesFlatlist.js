@@ -1,7 +1,13 @@
 import React, { useCallback, useMemo } from "react";
-import { FlatList, View, StyleSheet } from "react-native";
+import { View, StyleSheet } from "react-native";
+import { FlashList } from "@shopify/flash-list";
 import ExerciseCard from "./ExerciseCard";
 import scaleSize from "../../../../helper/scaleSize";
+
+const ITEMS_PER_ROW = 3;
+const ESTIMATED_CARD_HEIGHT = scaleSize(220);
+const ROW_SPACING = scaleSize(6);
+const ESTIMATED_ROW_HEIGHT = ESTIMATED_CARD_HEIGHT + ROW_SPACING;
 
 const ExercisesFlatlist = React.memo(
     ({
@@ -20,8 +26,8 @@ const ExercisesFlatlist = React.memo(
         const rows = useMemo(() => {
             if (!Array.isArray(exercises)) return [];
             const chunked = [];
-            for (let i = 0; i < exercises.length; i += 3) {
-                chunked.push(exercises.slice(i, i + 3));
+            for (let i = 0; i < exercises.length; i += ITEMS_PER_ROW) {
+                chunked.push(exercises.slice(i, i + ITEMS_PER_ROW));
             }
             return chunked;
         }, [exercises]);
@@ -49,14 +55,30 @@ const ExercisesFlatlist = React.memo(
                             />
                         </View>
                     ))}
-                    {row.length < 3 &&
-                        Array.from({ length: 3 - row.length }).map((_, fillerIndex) => (
+                    {row.length < ITEMS_PER_ROW &&
+                        Array.from({ length: ITEMS_PER_ROW - row.length }).map((_, fillerIndex) => (
                             <View key={`spacer-${rowIndex}-${fillerIndex}`} style={styles.cardSpacer} />
                         ))}
                 </View>
             ),
-            [selectExercise, deselectExercise, toggleSavedExercise, selectedLookup, savedLookup, animatedPress, hideInfoButton]
+            [
+                selectExercise,
+                deselectExercise,
+                toggleSavedExercise,
+                selectedLookup,
+                savedLookup,
+                animatedPress,
+                hideInfoButton,
+            ]
         );
+
+        const keyExtractor = useCallback((row, index) => {
+            const key = row
+                .map((exercise) => exercise?.name || "exercise")
+                .join("|")
+                .toLowerCase();
+            return `${key}-${index}`;
+        }, []);
 
         const contentPadding = useMemo(
             () => ({
@@ -66,25 +88,23 @@ const ExercisesFlatlist = React.memo(
             [bottomPadding]
         );
 
+        const containerStyle = scrollEnabled ? styles.flex : null;
+
         return (
-            <FlatList
-                style={scrollEnabled ? { flex: 1 } : null}
-                data={rows}
-                keyExtractor={(row, index) =>
-                    `${row.map((exercise) => exercise?.name).join("|") || "row"}-${index}`
-                }
-                renderItem={renderRow}
-                initialNumToRender={12}
-                windowSize={9}
-                maxToRenderPerBatch={20}
-                removeClippedSubviews
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={contentPadding}
-                extraData={{ selectedLookup, savedLookup, rows, hideInfoButton }}
-                scrollEnabled={scrollEnabled}
-                ListHeaderComponent={listHeaderComponent}
-            />
+            <View style={containerStyle}>
+                <FlashList
+                    data={rows}
+                    keyExtractor={keyExtractor}
+                    renderItem={renderRow}
+                    estimatedItemSize={ESTIMATED_ROW_HEIGHT}
+                    keyboardShouldPersistTaps="handled"
+                    showsVerticalScrollIndicator={false}
+                    contentContainerStyle={contentPadding}
+                    extraData={{ selectedLookup, savedLookup, hideInfoButton }}
+                    scrollEnabled={scrollEnabled}
+                    ListHeaderComponent={listHeaderComponent}
+                />
+            </View>
         );
     }
 );
@@ -96,7 +116,7 @@ const styles = StyleSheet.create({
         width: "100%",
         flexDirection: "row",
         justifyContent: "space-between",
-        marginBottom: scaleSize(6),
+        marginBottom: ROW_SPACING,
     },
     cardWrapper: {
         flexGrow: 0,
@@ -114,5 +134,8 @@ const styles = StyleSheet.create({
         flexGrow: 0,
         flexShrink: 0,
         opacity: 0,
+    },
+    flex: {
+        flex: 1,
     },
 });

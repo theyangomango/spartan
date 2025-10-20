@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useMemo } from 'react';
+import { Pressable, StyleSheet, View, InteractionManager } from 'react-native';
 import { Home, Cup, Weight, Profile as ProfileIcon } from 'iconsax-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useWorkoutStore, { WORKOUT_SHEET_STATES } from '../state/workoutStore';
@@ -7,6 +7,7 @@ import { jumpToTab, navigationRef } from '../../navigationRef';
 import theme from '../theme/mfpDark';
 import Animated, { useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';
 import scaleSize from "../helper/scaleSize";
+import { deep as triggerStartWorkoutHaptic } from "../utils/haptics";
 import { openActiveWorkout, startFreshWorkout } from "../workout/workoutActions";
 
 const FOOTER_BASE_HEIGHT = scaleSize(87);
@@ -35,6 +36,26 @@ const Footer = ({
     disableInteractions = false,
     workoutSheetProgressSV = null,
 }) => {
+    useEffect(() => {
+        let interactionHandle = null;
+        let timeoutId = null;
+        const prefetchHeavyModules = () => {
+            Promise.all([
+                import('./3_Workout/NewWorkout/SelectExercise/SelectExerciseModal').catch(() => {}),
+                import('./3_Workout/NewWorkout/ActiveWorkoutModal').catch(() => {}),
+                import('@shopify/flash-list').catch(() => {}),
+            ]);
+        };
+        if (InteractionManager?.runAfterInteractions) {
+            interactionHandle = InteractionManager.runAfterInteractions(prefetchHeavyModules);
+        } else {
+            timeoutId = setTimeout(prefetchHeavyModules, 0);
+        }
+        return () => {
+            try { interactionHandle?.cancel?.(); } catch {}
+            if (timeoutId) clearTimeout(timeoutId);
+        };
+    }, []);
     const globalOverlayEnabled = Boolean(global?.__USE_GLOBAL_FOOTER);
     if (!isOverlay && globalOverlayEnabled) {
         return null;
@@ -104,10 +125,13 @@ const Footer = ({
     const weightCircleColor = workoutHighlighted ? COLORS.actionCircleActive : COLORS.actionCircle;
 
     const handleStartWorkout = useCallback(() => {
+        triggerStartWorkoutHaptic?.();
         if (hasActiveWorkout) {
             openActiveWorkout();
             return;
         }
+        console.log?.("[footer] start workout press");
+        console.time?.("footer::startWorkout");
         const options = { forceFresh: true, skipUI: false };
         const startFn = typeof startWorkoutHandler === 'function' ? startWorkoutHandler : null;
         if (startFn) {
@@ -115,12 +139,17 @@ const Footer = ({
                 startFn(null, options);
             } catch {
                 startFreshWorkout(null, options);
+                console.timeEnd?.("footer::startWorkout");
                 return;
             }
             openActiveWorkout();
+            console.timeEnd?.("footer::startWorkout");
+            console.log?.("[footer] routed to existing workout");
             return;
         }
         startFreshWorkout(null, options);
+        console.timeEnd?.("footer::startWorkout");
+        console.log?.("[footer] fallback startFreshWorkout complete");
     }, [hasActiveWorkout, startWorkoutHandler]);
 
     return (

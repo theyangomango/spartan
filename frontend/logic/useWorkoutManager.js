@@ -548,7 +548,15 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 };
 
                 const localWorkout = { ...newWorkout, __justStarted: true };
+                try {
+                    console.log?.("[WorkoutManager] setWorkoutInStore start");
+                    console.time?.("useWorkoutManager::setWorkoutInStore");
+                } catch {}
                 setWorkoutInStore(localWorkout);
+                try {
+                    console.timeEnd?.("useWorkoutManager::setWorkoutInStore");
+                    console.log?.("[WorkoutManager] setWorkoutInStore done");
+                } catch {}
                 setSheetState(skipUI ? WORKOUT_SHEET_STATES.COLLAPSED : WORKOUT_SHEET_STATES.EXPANDED);
                 if (!skipUI) {
                     try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
@@ -560,10 +568,17 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 startTimer(created);
 
                 clearPersistDebounce();
-                setDoc(doc(db, "users", uid), { currentWorkout: newWorkout }, { merge: true })
-                    .catch((e) => console.log("setDoc users.currentWorkout error", e));
+                const scheduleRemotePersist = () => {
+                    setDoc(doc(db, "users", uid), { currentWorkout: newWorkout }, { merge: true })
+                        .catch((e) => console.log("setDoc users.currentWorkout error", e));
 
-                createWorkoutDoc(wid, name, appliedPrivacy).catch((e) => console.log("createWorkoutDoc error", e));
+                    createWorkoutDoc(wid, name, appliedPrivacy).catch((e) => console.log("createWorkoutDoc error", e));
+                };
+                if (InteractionManager?.runAfterInteractions) {
+                    InteractionManager.runAfterInteractions(scheduleRemotePersist);
+                } else {
+                    scheduleRemotePersist();
+                }
             } else {
                 if (!skipUI) {
                     setIsNewWorkoutVisible(true);
@@ -601,8 +616,15 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
             // 3) Clear my user doc (authoritative)
             if (uid) {
-                try { await setDoc(doc(db, "users", uid), { currentWorkout: null }, { merge: true }); }
-                catch (e) { console.log("setDoc users.currentWorkout (cancel) error", e); await updateDoc("users", uid, { currentWorkout: null }); }
+                const clearRemote = async () => {
+                    try { await setDoc(doc(db, "users", uid), { currentWorkout: null }, { merge: true }); }
+                    catch (e) { console.log("setDoc users.currentWorkout (cancel) error", e); await updateDoc("users", uid, { currentWorkout: null }); }
+                };
+                if (InteractionManager?.runAfterInteractions) {
+                    InteractionManager.runAfterInteractions(clearRemote);
+                } else {
+                    await clearRemote();
+                }
             }
         } catch (e) {
             console.log("cancelWorkout error", e);
@@ -1014,12 +1036,21 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             (state) => state.workout,
             (next) => {
                 try {
-                    persistCurrentWorkout(next);
+                    if (InteractionManager?.runAfterInteractions) {
+                        InteractionManager.runAfterInteractions(() => persistCurrentWorkout(next));
+                    } else {
+                        persistCurrentWorkout(next);
+                    }
                 } catch { /* ignore transient issues */ }
             }
         );
         try {
-            persistCurrentWorkout(useWorkoutStore.getState().workout);
+            const currentWorkout = useWorkoutStore.getState().workout;
+            if (InteractionManager?.runAfterInteractions) {
+                InteractionManager.runAfterInteractions(() => persistCurrentWorkout(currentWorkout));
+            } else {
+                persistCurrentWorkout(currentWorkout);
+            }
         } catch { /* best effort */ }
         return () => {
             try { unsubscribe?.(); } catch { }

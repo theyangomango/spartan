@@ -3,7 +3,6 @@ import React, { useEffect, useState, useRef, useMemo, useCallback, memo } from "
 import {
     StyleSheet,
     View,
-    ScrollView,
     Modal,
     Text,
     TextInput,
@@ -16,27 +15,19 @@ import {
     Keyboard,
     Easing,
 } from "react-native";
-import { Dimensions, FlatList } from "react-native";
-// AsyncStorage removed for reminder gating; show only on create/join events
-let FlashListLib = null;
-try { FlashListLib = require("@shopify/flash-list"); } catch { }
-const canUseFlashList = !!(FlashListLib && FlashListLib.FlashList && UIManager?.getViewManagerConfig && UIManager.getViewManagerConfig('CellContainer') && UIManager.getViewManagerConfig('AutoLayoutView'));
-const BaseListComponent = canUseFlashList ? FlashListLib.FlashList : FlatList;
-const AnimatedFlashList = RNAnimated.createAnimatedComponent(BaseListComponent);
+import { Dimensions, FlatList, ActivityIndicator } from "react-native";
 import Animated, { useAnimatedStyle, interpolate, interpolateColor, Extrapolate, useAnimatedReaction, runOnJS } from "react-native-reanimated";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Weight } from "iconsax-react-native";
 import { strong as haptic, withStrongPress } from "../../../utils/haptics";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import { StatKeyboardProvider } from "./Tracking/StatKeyboardContext";
-import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import { usePfp } from "../../../helper/usePFPs";
 import sendNotification from "../../../../backend/sendNotification";
 import theme from "../../../theme/mfpDark";
 // Lazy-load confetti only when needed to keep bundle lean during editing
 
 // Realtime / Firestore
-import { getFirestore, doc, setDoc, serverTimestamp, arrayUnion, addDoc, collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
+import { getFirestore, doc, setDoc, serverTimestamp, arrayUnion, addDoc, collection, onSnapshot, query, orderBy, limit, deleteDoc } from "firebase/firestore";
 
 // Group bits
 import { useGroupViewing } from "./Group/useGroupViewing";
@@ -103,6 +94,9 @@ const ActiveWorkoutModal = ({
     animatedIndex,
     onExpandSheet,
 }) => {
+ 
+    const mountStartRef = useRef(Date.now());
+    const loggedMountRef = useRef(false);
 
     // Enable LayoutAnimation on Android
     if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -139,6 +133,106 @@ const ActiveWorkoutModal = ({
     const listRef = useRef(null);
     const ensuredSelfViewRef = useRef(new Set());
     const [keyboardHeight, setKeyboardHeight] = useState(0);
+    const [SelectExerciseModalComponent, setSelectExerciseModalComponent] = useState(null);
+    const loadingSelectExerciseModalRef = useRef(false);
+    const [AnimatedWorkoutList, setAnimatedWorkoutList] = useState(() => RNAnimated.createAnimatedComponent(FlatList));
+    const hasUpgradedListRef = useRef(false);
+    const [isFlashListReady, setIsFlashListReady] = useState(false);
+    const [isPostMountSettled, setIsPostMountSettled] = useState(() => !!lockFriend);
+
+    const loadSelectExerciseModal = useCallback(() => {
+        if (SelectExerciseModalComponent || loadingSelectExerciseModalRef.current) return;
+        loadingSelectExerciseModalRef.current = true;
+        import("./SelectExercise/SelectExerciseModal")
+            .then((mod) => {
+                loadingSelectExerciseModalRef.current = false;
+                setSelectExerciseModalComponent(() => mod.default || mod);
+            })
+            .catch((err) => {
+                loadingSelectExerciseModalRef.current = false;
+                console.log("SelectExerciseModal load error", err);
+            });
+    }, [SelectExerciseModalComponent]);
+
+    useEffect(() => {
+        if (hasUpgradedListRef.current) return;
+        let cancelled = false;
+        const tryUpgrade = () => {
+            import("@shopify/flash-list")
+                .then((mod) => {
+                    if (cancelled || hasUpgradedListRef.current) return;
+                    const Candidate = mod?.FlashList;
+                    const canUse =
+                        Candidate &&
+                        UIManager?.getViewManagerConfig &&
+                        UIManager.getViewManagerConfig("CellContainer") &&
+                        UIManager.getViewManagerConfig("AutoLayoutView");
+                    if (!canUse) return;
+                    const AnimatedCandidate = RNAnimated.createAnimatedComponent(Candidate);
+                    hasUpgradedListRef.current = true;
+                    setAnimatedWorkoutList(() => AnimatedCandidate);
+                    setIsFlashListReady(true);
+                })
+                .catch(() => {
+                    // keep FlatList fallback
+                });
+        };
+        let interactionHandle = null;
+        if (InteractionManager && InteractionManager.runAfterInteractions) {
+            interactionHandle = InteractionManager.runAfterInteractions(tryUpgrade);
+        } else {
+            tryUpgrade();
+        }
+        return () => {
+            cancelled = true;
+            try {
+                interactionHandle?.cancel?.();
+            } catch {
+                // ignore interaction cancellation issues
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (lockFriend) {
+            setIsPostMountSettled(true);
+            return;
+        }
+        if (isPostMountSettled) return;
+        let cancelled = false;
+        let interactionHandle = null;
+        const settle = () => {
+            if (cancelled) return;
+            setIsPostMountSettled(true);
+        };
+        if (InteractionManager && InteractionManager.runAfterInteractions) {
+            interactionHandle = InteractionManager.runAfterInteractions(settle);
+        } else {
+            interactionHandle = setTimeout(settle, 0);
+        }
+        return () => {
+            cancelled = true;
+            try {
+                interactionHandle?.cancel?.();
+            } catch {
+                if (typeof interactionHandle === "number") clearTimeout(interactionHandle);
+            }
+        };
+    }, [isPostMountSettled, lockFriend]);
+
+    useEffect(() => {
+        if (!loggedMountRef.current) {
+            loggedMountRef.current = true;
+            const ms = Date.now() - mountStartRef.current;
+            console.log?.("[ActiveWorkoutModal] mount duration(ms)", ms);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (isPostMountSettled) {
+            console.log?.("[ActiveWorkoutModal] post-mount settled at +", Date.now() - mountStartRef.current, "ms");
+        }
+    }, [isPostMountSettled]);
 
     // Track keyboard height and add bottom padding so content can scroll above it
     useEffect(() => {
@@ -170,9 +264,23 @@ const ActiveWorkoutModal = ({
     }, [cardWid]);
 
     // Only auto-join when NOT locked to friend-view and wid matches my active wid
-    const shouldAutoJoin = streamLive && !lockFriend && !!(myActiveWid && cardWid && myActiveWid === cardWid);
+const shouldAutoJoin = streamLive && !lockFriend && !!(myActiveWid && cardWid && myActiveWid === cardWid);
 
-    // Decide initial target for the viewer hook
+const [groupViewingEnabled, setGroupViewingEnabled] = useState(() => lockFriend || shouldAutoJoin);
+
+useEffect(() => {
+    if (shouldAutoJoin) setGroupViewingEnabled(true);
+}, [shouldAutoJoin]);
+
+const enableGroupViewing = useCallback(() => {
+    setGroupViewingEnabled((prev) => (prev ? prev : true));
+}, []);
+
+useEffect(() => {
+    if (lockFriend) setGroupViewingEnabled(true);
+}, [lockFriend]);
+
+// Decide initial target for the viewer hook
     const initialViewingUid = lockFriend
         ? forcedUid
         : (forceSelfView
@@ -200,6 +308,8 @@ const ActiveWorkoutModal = ({
         catch { }
     }, [forceSelfView, cardWid]);
 
+    const groupViewingInitLoggedRef = useRef(false);
+    const groupViewingCallStart = Date.now();
     const {
         viewing,
         viewingSelf,
@@ -224,8 +334,12 @@ const ActiveWorkoutModal = ({
         suppressSelfStream: true,
         // Enable when: explicitly toggled OR locked to friend. We avoid referencing viewingSelfEffective here
         // to prevent TDZ issues and keep logic simple; spectating flows call setLiveEnabled(true) via menu open.
-        enabled: !!streamLive && (!!liveEnabled || lockFriend),
+        enabled: groupViewingEnabled && isPostMountSettled && !!streamLive && (!!liveEnabled || lockFriend),
     });
+    if (!groupViewingInitLoggedRef.current) {
+        groupViewingInitLoggedRef.current = true;
+        console.log?.("[ActiveWorkoutModal] useGroupViewing init ms", Date.now() - groupViewingCallStart);
+    }
 
     useEffect(() => {
         if (!forceSelfView) return;
@@ -240,12 +354,57 @@ const ActiveWorkoutModal = ({
     // Effective flags/content when locked
     const viewingSelfEffective = lockFriend ? false : viewingSelf;
 
+    const presencePublishedRef = useRef(false);
+    useEffect(() => {
+        presencePublishedRef.current = false;
+    }, [workout?.wid]);
     useEffect(() => {
         if (!streamLive) return;
-        if (!viewingSelfEffective) return;
-        setLiveEnabled((prev) => (prev ? prev : true));
-    }, [viewingSelfEffective, streamLive]);
+        if (!isPostMountSettled) return;
+        if (!groupViewingEnabled) return;
+        if (lockFriend) return;
+        if (presencePublishedRef.current) return;
+        const widStr = String(workout?.wid || "");
+        const meUidStr = String(global?.userData?.uid || "");
+        if (!widStr || !meUidStr) return;
+        presencePublishedRef.current = true;
+        let cancelled = false;
+        const publish = async () => {
+            try {
+                await setDoc(
+                    doc(db, "workouts", widStr, "live", meUidStr),
+                    {
+                        uid: meUidStr,
+                        handle: global?.userData?.handle || "",
+                        image: global?.userData?.image || "",
+                        updatedAt: serverTimestamp(),
+                    },
+                    { merge: true }
+                );
+            } catch (e) {
+                console.log("ActiveWorkoutModal presence publish error", e?.message || e);
+            }
+        };
+        publish();
+        return () => {
+            if (cancelled) return;
+            cancelled = true;
+            try {
+                deleteDoc(doc(db, "workouts", widStr, "live", meUidStr));
+            } catch { }
+        };
+    }, [streamLive, isPostMountSettled, groupViewingEnabled, lockFriend, workout?.wid, db]);
 
+    useEffect(() => {
+        if (!groupViewingEnabled) return;
+        if (!streamLive) return;
+        if (!isPostMountSettled) return;
+        if (!(liveEnabled || lockFriend)) return;
+        console.log?.("[ActiveWorkoutModal] enabling group viewing at +", Date.now() - mountStartRef.current, "ms");
+    }, [groupViewingEnabled, streamLive, isPostMountSettled, liveEnabled, lockFriend]);
+
+    const editingInitLoggedRef = useRef(false);
+    const editingCallStart = Date.now();
     const {
         replaceIndex,
         setReplaceIndex,
@@ -255,6 +414,10 @@ const ActiveWorkoutModal = ({
         normalizeSet,
         makeBlankSetsLike,
     } = useWorkoutEditing({ workout, updateWorkout, viewingSelf: viewingSelfEffective });
+    if (!editingInitLoggedRef.current) {
+        editingInitLoggedRef.current = true;
+        console.log?.("[ActiveWorkoutModal] useWorkoutEditing init ms", Date.now() - editingCallStart, "sets", Array.isArray(exercisesData) ? exercisesData.length : 0);
+    }
 
     // keep caller informed (if they care)
     useEffect(() => { onViewingChange?.(!!viewingSelfEffective); }, [viewingSelfEffective, onViewingChange]);
@@ -323,9 +486,18 @@ const ActiveWorkoutModal = ({
         );
     }, [viewingSelfEffective, workoutNameValue, baseWorkoutName, handleChangeWorkoutTitle, workoutCreatedDisplay]);
 
-    const showSelectExerciseModal = useCallback(() => { if (viewingSelfEffective) setSelectExerciseModalVisible(true); }, [viewingSelfEffective]);
+    const showSelectExerciseModal = useCallback(() => {
+        if (!viewingSelfEffective) return;
+        loadSelectExerciseModal();
+        setSelectExerciseModalVisible(true);
+    }, [viewingSelfEffective, loadSelectExerciseModal]);
     const closeSelectExerciseModal = useCallback(() => { setSelectExerciseModalVisible(false); setReplaceIndex(null); }, [setReplaceIndex]);
-    const replaceExercise = useCallback((index) => { if (viewingSelfEffective) { setReplaceIndex(index); setSelectExerciseModalVisible(true); } }, [viewingSelfEffective, setReplaceIndex]);
+    const replaceExercise = useCallback((index) => {
+        if (!viewingSelfEffective) return;
+        loadSelectExerciseModal();
+        setReplaceIndex(index);
+        setSelectExerciseModalVisible(true);
+    }, [viewingSelfEffective, loadSelectExerciseModal, setReplaceIndex]);
 
     const handleAppendOrReplace = useCallback((picked) => {
         if (!viewingSelfEffective || !workout) return;
@@ -541,7 +713,7 @@ const ActiveWorkoutModal = ({
             estimatedItemSize: ESTIMATED_EXERCISE_BASE_HEIGHT,
             estimatedListHeight: ESTIMATED_EXERCISE_BASE_HEIGHT + ESTIMATED_LIST_EXTRA_SPACE,
         };
-        if (!canUseFlashList) return fallback;
+        if (!isFlashListReady) return fallback;
         if (!exercisesData.length) return fallback;
 
         const totalHeight = exercisesData.reduce((sum, ex) => {
@@ -560,10 +732,10 @@ const ActiveWorkoutModal = ({
                 Math.round(totalHeight + ESTIMATED_LIST_EXTRA_SPACE)
             ),
         };
-    }, [exercisesData, canUseFlashList]);
+    }, [exercisesData, isFlashListReady]);
 
     const listPerformanceProps = useMemo(() => {
-        if (canUseFlashList) {
+        if (isFlashListReady) {
             return {
                 estimatedItemSize: flashListEstimates.estimatedItemSize,
                 estimatedListSize: {
@@ -579,7 +751,7 @@ const ActiveWorkoutModal = ({
             windowSize: 9,
             removeClippedSubviews: Platform.OS === 'android',
         };
-    }, [canUseFlashList, flashListEstimates.estimatedItemSize, flashListEstimates.estimatedListHeight, screenWidth]);
+    }, [isFlashListReady, flashListEstimates.estimatedItemSize, flashListEstimates.estimatedListHeight, screenWidth]);
 
     const scrollHandler = useMemo(
         () => RNAnimated.event(
@@ -796,15 +968,26 @@ const ActiveWorkoutModal = ({
 
     const handleOpenMenu = useCallback(() => {
         if (lockFriend || (!viewingSelfEffective && !hasActiveWorkoutContext)) return;
+        enableGroupViewing();
         setLiveEnabled(true);
         try { openMenu(); } catch { }
-    }, [lockFriend, openMenu, viewingSelfEffective, hasActiveWorkoutContext]);
+    }, [enableGroupViewing, lockFriend, openMenu, viewingSelfEffective, hasActiveWorkoutContext]);
 
-    const handleLongPressInvite = useCallback(() => {
+    const handleShowGroupModal = useCallback(() => {
         if (lockFriend || (!viewingSelfEffective && !hasActiveWorkoutContext)) return;
+        enableGroupViewing();
         setLiveEnabled(true);
         try { showGroupModal?.(); } catch { }
-    }, [lockFriend, showGroupModal, viewingSelfEffective, hasActiveWorkoutContext]);
+    }, [enableGroupViewing, lockFriend, showGroupModal, viewingSelfEffective, hasActiveWorkoutContext]);
+
+    const handleLongPressInvite = useCallback(() => {
+        handleShowGroupModal();
+    }, [handleShowGroupModal]);
+
+    const handleInviteFromMenu = useCallback(() => {
+        closeMenu();
+        handleShowGroupModal();
+    }, [closeMenu, handleShowGroupModal]);
 
     // Listen for cheer events for this workout to trigger confetti when others cheer
     useEffect(() => {
@@ -1012,66 +1195,50 @@ const ActiveWorkoutModal = ({
             <RNAnimated.View style={[styles.headerShadow, { opacity: borderOpacity }]} />
             {/* Body */}
             <Animated.View style={[styles.bodyContainer, bodyAnimatedStyle]} pointerEvents={collapsedOverlayActive ? 'none' : 'auto'}>
-                {friendWaiting ? (
+                {!isPostMountSettled ? (
+                    <View style={styles.bodyDeferred}>
+                        <ActivityIndicator size="large" color={theme.primary} />
+                    </View>
+                ) : friendWaiting ? (
                     <View style={styles.waitingWrap}>
                         <Text style={styles.waitingText}>Loading friend…</Text>
                     </View>
                 ) : (
-                    viewingSelfEffective ? (
-                        <ScrollView
-                            style={{ flex: 1 }}
-                            contentContainerStyle={styles.scrollview}
+                    <RNAnimated.View style={viewingSelfEffective ? styles.selfListWrap : [styles.listWrap, { opacity: contentDimAnim }]}>
+                        <AnimatedWorkoutList
+                            key={`wlist-${cardWid}`}
+                            ref={listRef}
+                            data={exercisesData}
+                            keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
+                            renderItem={renderExerciseItem}
+                            ListFooterComponent={renderFooter}
+                            ListHeaderComponent={workoutTitleDisplay}
+                            showsVerticalScrollIndicator={false}
+                            scrollEventThrottle={16}
+                            onScroll={viewingSelfEffective ? undefined : scrollHandler}
                             keyboardShouldPersistTaps="handled"
                             keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
-                        >
-                            {workoutTitleDisplay}
-                            {exercisesData.map((ex, exerciseIndex) => (
-                                <ExerciseLog
-                                    key={`${ex?.name || "ex"}-${exerciseIndex}`}
-                                    name={ex.name}
-                                    muscle={ex.muscle}
-                                    exerciseIndex={exerciseIndex}
-                                    sets={ex.sets}
-                                    updateSets={updateSets}
-                                    replaceExercise={replaceExercise}
-                                    deleteExercise={deleteExercise}
-                                    readOnly={!viewingSelfEffective}
-                                    showOptionsTriggerIcon
-                                    syncColumnOnEdit={viewingSelfEffective}
-                                    onStatFocus={handleStatFocus}
-                                />
-                            ))}
-                            {renderFooter()}
-                        </ScrollView>
-                    ) : (
-                        <RNAnimated.View style={[styles.listWrap, { opacity: contentDimAnim }]}>
-                            <AnimatedFlashList
-                                key={`wlist-${cardWid}`}
-                                ref={listRef}
-                                data={exercisesData}
-                                keyExtractor={(ex, i) => `${ex?.name || "ex"}-${i}`}
-                                renderItem={renderExerciseItem}
-                                ListFooterComponent={renderFooter}
-                                showsVerticalScrollIndicator={false}
-                                scrollEventThrottle={16}
-                                onScroll={scrollHandler}
-                                keyboardShouldPersistTaps="handled"
-                                keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'none'}
-                                {...listPerformanceProps}
-                                contentContainerStyle={styles.scrollview}
-                                ListHeaderComponent={workoutTitleDisplay}
-                            />
-                        </RNAnimated.View>
-                    )
+                            {...listPerformanceProps}
+                            estimatedItemSize={flashListEstimates.estimatedItemSize}
+                            contentContainerStyle={styles.scrollview}
+                            extraData={keyboardHeight}
+                        />
+                    </RNAnimated.View>
                 )}
             </Animated.View>
             {/* Add / Replace Exercises */}
             <Modal animationType="none" transparent visible={selectExerciseModalVisible} presentationStyle="overFullScreen">
-                <SelectExerciseModal
-                    closeModal={closeSelectExerciseModal}
-                    appendExercises={handleAppendOrReplace}
-                    userWorkoutStats={activeStats}
-                />
+                {SelectExerciseModalComponent ? (
+                    <SelectExerciseModalComponent
+                        closeModal={closeSelectExerciseModal}
+                        appendExercises={handleAppendOrReplace}
+                        userWorkoutStats={activeStats}
+                    />
+                ) : (
+                    <View style={styles.modalFallback}>
+                        <ActivityIndicator size="large" color={theme.primary} />
+                    </View>
+                )}
             </Modal>
             {/* Rest Timer Modal */}
             <RestTimerModal
@@ -1155,7 +1322,7 @@ const ActiveWorkoutModal = ({
                     onClose={closeMenu}
                     participants={participants}
                     viewing={viewing || { uid: viewingSelfEffective ? meUid : (friendUidFromWorkout || "") }}
-                    onInvite={() => { closeMenu(); showGroupModal?.(); }}
+                    onInvite={handleInviteFromMenu}
                     onSelectParticipant={(p) => {
                         const nextUid = String(p?.uid || meUid);
                         setViewing(nextUid);
@@ -1311,6 +1478,8 @@ const styles = StyleSheet.create({
     },
     // Ensure FlashList receives a parent with a valid size
     listWrap: { flex: 1 },
+    selfListWrap: { flex: 1 },
+    bodyDeferred: { flex: 1, alignItems: "center", justifyContent: "center" },
 
     waitingWrap: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: 'transparent' },
     waitingText: { marginTop: scaleSize(6), fontFamily: "Nunito_700Bold", color: theme.textPrimary },
@@ -1426,6 +1595,12 @@ const styles = StyleSheet.create({
     },
     end_workout_option_text_cancel: {
         color: 'rgba(255,137,147,0.92)',
+    },
+    modalFallback: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "rgba(0,0,0,0.45)",
     },
 
 });

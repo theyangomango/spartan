@@ -85,6 +85,19 @@ const normalizeEquipment = (raw) => {
     return "Other";
 };
 
+const EXERCISE_CATALOG = exercises.map((ex) => ({
+    ...ex,
+    nameLc: String(ex?.name || "").toLowerCase(),
+    mgLc: String(ex?.muscleGroup || "").toLowerCase(),
+    equipNorm: normalizeEquipment(ex?.equipment),
+}));
+
+const EXERCISE_LOOKUP_BY_NAME = EXERCISE_CATALOG.reduce((acc, ex) => {
+    if (!ex?.name) return acc;
+    acc[ex.name] = ex;
+    return acc;
+}, {});
+
 const getSetCount = (statsMap = {}, name) => {
     const exerciseStats = statsMap?.[name];
     if (!exerciseStats) return 0;
@@ -229,7 +242,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                 return next;
             }
             const muscle = ex?.muscle ?? ex?.muscleGroup ?? null;
-            const fallback = indexedExercisesByName[name] || {};
+            const fallback = EXERCISE_LOOKUP_BY_NAME[name] || {};
             return {
                 ...prev,
                 [name]: {
@@ -241,7 +254,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                 },
             };
         });
-    }, [indexedExercisesByName]);
+    }, []);
 
     const dismiss = useCallback(
         (afterClose) => {
@@ -293,23 +306,6 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
         });
     }, [appendExercises, dismiss, resetSelections]);
 
-    const indexedExercises = useMemo(() => {
-        return exercises.map((ex) => ({
-            ...ex,
-            nameLc: String(ex?.namee || "").toLowerCase(),
-            mgLc: String(ex?.muscleGroup || "").toLowerCase(),
-            equipNorm: normalizeEquipment(ex?.equipment),
-        }));
-    }, []);
-
-    const indexedExercisesByName = useMemo(() => {
-        return indexedExercises.reduce((acc, ex) => {
-            if (!ex?.name) return acc;
-            acc[ex.name] = ex;
-            return acc;
-        }, {});
-    }, [indexedExercises]);
-
     const bookmarkedExercises = useMemo(() => {
         const values = savedExercisesMap ? Object.values(savedExercisesMap) : [];
         if (!values.length) return [];
@@ -318,7 +314,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
             .map((entry) => {
                 if (!entry) return null;
                 if (typeof entry === "string") {
-                    const fallback = indexedExercisesByName[entry] || {};
+                    const fallback = EXERCISE_LOOKUP_BY_NAME[entry] || {};
                     return {
                         ...fallback,
                         name: entry,
@@ -333,7 +329,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
 
                 const name = entry?.name;
                 if (!name) return null;
-                const fallback = indexedExercisesByName[name] || {};
+                const fallback = EXERCISE_LOOKUP_BY_NAME[name] || {};
                 const muscleGroup =
                     entry?.muscleGroup ??
                     entry?.muscle ??
@@ -362,7 +358,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                 const nameB = b.name || "";
                 return nameA.localeCompare(nameB);
             });
-    }, [savedExercisesMap, indexedExercisesByName]);
+    }, [savedExercisesMap]);
 
     const filteredBookmarkedExercises = useMemo(() => {
         if (!bookmarkedExercises.length) return [];
@@ -448,7 +444,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
         const equipFilter = equipmentValue ?? null;
         const statsMap = statsExercises || {};
 
-        let list = indexedExercises.filter((ex) => {
+        let list = EXERCISE_CATALOG.filter((ex) => {
             const nameMatch = ex.nameLc.includes(q);
             const groupMatch = !bodyFilter || ex.mgLc === bodyFilter;
             const equipMatch = !equipFilter || ex.equipNorm === equipFilter;
@@ -463,13 +459,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
         });
 
         return list;
-    }, [
-        searchQuery,
-        bodyPartValue,
-        equipmentValue,
-        indexedExercises,
-        statsExercises,
-    ]);
+    }, [searchQuery, bodyPartValue, equipmentValue, statsExercises]);
 
     const listBottomPadding = useMemo(
         () => insetBottom + scaledSize(160),
