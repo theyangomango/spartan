@@ -43,7 +43,7 @@ import useWorkoutEditing from "./hooks/useWorkoutEditing";
 import scaleSize from "../../../helper/scaleSize";
 import { formatWorkoutTimestamp } from "../../../utils/date";
 import ConfirmWorkoutModal from "./components/ConfirmWorkoutModal";
-import WorkoutReminderModal from "./components/WorkoutReminderModal";
+// import WorkoutReminderModal from "./components/WorkoutReminderModal";
 
 const HANDLE_HORIZONTAL_PADDING = scaleSize(0);
 const HEADER_COLLAPSED_TRANSLATE = scaleSize(0);
@@ -107,7 +107,7 @@ const ActiveWorkoutModal = (props) => {
     if (!contentReady) {
         return (
             <StatKeyboardProvider>
-                <View style={styles.bodyDeferred}>
+                <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color={theme.primary} />
                 </View>
             </StatKeyboardProvider>
@@ -160,10 +160,10 @@ const WorkoutModalContent = ({
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
     const [finishConfirmModalVisible, setFinishConfirmModalVisible] = useState(false);
     const [isFinishing, setIsFinishing] = useState(false);
-    // Reminder modal (self only)
-    const [reminderVisible, setReminderVisible] = useState(false);
+    // Reminder modal disabled.
+    // const [reminderVisible, setReminderVisible] = useState(false);
     const [endWorkoutSheetVisible, setEndWorkoutSheetVisible] = useState(false);
-    const reminderShownRef = useRef(new Set());
+    // const reminderShownRef = useRef(new Set());
     const {
         restModalVisible,
         restModalKey,
@@ -701,8 +701,7 @@ useEffect(() => {
     });
 
     // Dimming logic:
-    // - When Reminder Modal is visible: dim content
-    // - Else, dim only while viewing someone else's workout (self view stays full opacity)
+    // - Reminder modal disabled, so we dim only while viewing someone else's workout (self view stays full opacity)
     // Track whether I'm actively part of this workout (wid match, just started, or listed in participants/members)
     const hasActiveWorkoutContext = useMemo(() => {
         const widCard = String(cardWid || "");
@@ -741,7 +740,7 @@ useEffect(() => {
 
     // Smoothly animate context dim to avoid harsh jumps when switching between spectating and self
     const contentDimAnim = useRef(new RNAnimated.Value(1)).current;
-    const targetOpacity = reminderVisible ? 0.6 : (dimDueToContext ? 0.6 : 1);
+    const targetOpacity = dimDueToContext ? 0.6 : 1;
     useEffect(() => {
         try {
             RNAnimated.timing(contentDimAnim, {
@@ -1153,27 +1152,26 @@ useEffect(() => {
         registerInviteHandler?.(handleInviteSelected);
     }, [registerInviteHandler, handleInviteSelected]);
 
-    // Show the reminder whenever a new workout starts (per wid once per mount).
-    // Triggered by local flag `__justStarted` or the global one-shot `__showWorkoutReminderForWid`.
-    useEffect(() => {
-        try {
-            if (!viewingSelfEffective) return;
-            const wid = String(workout?.wid || "");
-            if (!wid || reminderShownRef.current.has(wid)) return;
-
-            const shouldFromFlag = (typeof global !== 'undefined') && (global.__showWorkoutReminderForWid === wid);
-            const shouldFromLocal = !!workout?.__justStarted;
-            if (shouldFromFlag || shouldFromLocal) {
-                reminderShownRef.current.add(wid);
-                setReminderVisible(true);
-                // Clear triggers so it doesn't reshow on any subsequent small state updates
-                try { if (shouldFromFlag) global.__showWorkoutReminderForWid = null; } catch { }
-                if (shouldFromLocal) {
-                    try { updateWorkout?.({ ...(workout || {}), __justStarted: false }); } catch { }
-                }
-            }
-        } catch { }
-    }, [viewingSelfEffective, workout?.wid, workout?.__justStarted, updateWorkout]);
+    // Reminder modal disabled.
+    // useEffect(() => {
+    //     try {
+    //         if (!viewingSelfEffective) return;
+    //         const wid = String(workout?.wid || "");
+    //         if (!wid || reminderShownRef.current.has(wid)) return;
+    //
+    //         const shouldFromFlag = (typeof global !== 'undefined') && (global.__showWorkoutReminderForWid === wid);
+    //         const shouldFromLocal = !!workout?.__justStarted;
+    //         if (shouldFromFlag || shouldFromLocal) {
+    //             reminderShownRef.current.add(wid);
+    //             setReminderVisible(true);
+    //             // Clear triggers so it doesn't reshow on any subsequent small state updates
+    //             try { if (shouldFromFlag) global.__showWorkoutReminderForWid = null; } catch { }
+    //             if (shouldFromLocal) {
+    //                 try { updateWorkout?.({ ...(workout || {}), __justStarted: false }); } catch { }
+    //             }
+    //         }
+    //     } catch { }
+    // }, [viewingSelfEffective, workout?.wid, workout?.__justStarted, updateWorkout]);
 
     // Focus handler from child set inputs: gently scroll the exercise into view
     const handleStatFocus = useCallback((exerciseIndex /*, setIndex */) => {
@@ -1382,10 +1380,13 @@ useEffect(() => {
                     }}
                 />
             )}
+            {/* Workout reminder modal disabled */}
+            {/*
             <WorkoutReminderModal
                 visible={reminderVisible}
                 onDismiss={() => setReminderVisible(false)}
             />
+            */}
             {/* Confetti overlay (mount when cheering is relevant: spectating live OR self active) */}
             {(friendOngoing || isActiveSelf) && (() => {
                 const ConfettiCannon = loadConfettiModule(); return ConfettiCannon ? (
@@ -1530,7 +1531,12 @@ const styles = StyleSheet.create({
     // Ensure FlashList receives a parent with a valid size
     listWrap: { flex: 1 },
     selfListWrap: { flex: 1 },
-    bodyDeferred: { flex: 1, alignItems: "center", justifyContent: "center" },
+    loadingContainer: {
+        height: '100%',
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: theme.bg,
+    },
 
     waitingWrap: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: 'transparent' },
     waitingText: { marginTop: scaleSize(6), fontFamily: "Nunito_700Bold", color: theme.textPrimary },

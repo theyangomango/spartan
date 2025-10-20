@@ -973,11 +973,6 @@ export default function LeaderboardsSection({ navigation }) {
             locations: [0, 0.22, 0.52, 0.74, 0.92, 1],
         };
     }, [isCustomTribe]);
-    const topGradientHeight = useMemo(
-        () => podiumSectionHeight + HEADER_GRADIENT_OVERLAP + scaleSize(180, "h"),
-        [podiumSectionHeight]
-    );
-
     const leaderboardCanvas = useMemo(() => {
         const lightenColor = (hex, amount = 0.1) => {
             if (typeof hex !== "string") return hex;
@@ -1111,7 +1106,7 @@ export default function LeaderboardsSection({ navigation }) {
                 locations={gradientConfig.locations}
                 start={{ x: 0.5, y: 0 }}
                 end={{ x: 0.5, y: 1 }}
-                style={[styles.topGradient, { height: topGradientHeight }]}
+                style={styles.topGradient}
             />
             <Modal
                 visible={isBodyFocusMenuVisible}
@@ -1369,10 +1364,7 @@ const styles = StyleSheet.create({
     },
     leaderboardContainer: { alignSelf: "stretch" },
     topGradient: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
+        ...StyleSheet.absoluteFillObject,
     },
     headerGradientWrapper: {
         width: "100%",

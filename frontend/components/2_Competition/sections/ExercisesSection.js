@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,6 +13,7 @@ import { exercises as ALL_EXERCISES } from "../../3_Workout/NewWorkout/SelectExe
 import { scaleSize } from "../layoutConstants";
 import useSyncSavedExercises from "../../../hooks/useSyncSavedExercises";
 import { subscribeUserData } from "../../../utils/userDataEvents";
+import { withStrongPress } from "../../../utils/haptics";
 
 const ICON_COLOR = "#D5E0F6";
 const TEXT_PRIMARY = "#F6F8FF";
@@ -115,6 +116,7 @@ export default function ExercisesSection() {
     const [savedExercisesMap, setSavedExercisesMap] = useState(() =>
         normalizeSavedExercises(global?.userData?.savedExercises)
     );
+    const [, startFilterTransition] = useTransition();
 
     const bottomInsetPadding = useMemo(
         () => (insets?.bottom || 0) + scaleSize(24),
@@ -217,9 +219,14 @@ export default function ExercisesSection() {
         });
     }, [exercisesByName]);
 
-    const handleFilterPress = useCallback((value) => {
-        setBodyPartValue((prev) => (prev === value ? null : value));
-    }, []);
+    const handleFilterPress = useCallback(
+        (value) => {
+            startFilterTransition(() => {
+                setBodyPartValue((prev) => (prev === value ? null : value));
+            });
+        },
+        [startFilterTransition]
+    );
 
     const bookmarkedExercises = useMemo(() => {
         const values = savedExercisesMap ? Object.values(savedExercisesMap) : [];
@@ -400,7 +407,7 @@ export default function ExercisesSection() {
                                         isActive && styles.muscleFilterChipActive,
                                         index === MUSCLE_FILTERS.length - 1 && styles.muscleFilterChipLast,
                                     ]}
-                                    onPress={() => handleFilterPress(option.value)}
+                                    onPress={withStrongPress(() => handleFilterPress(option.value))}
                                     accessibilityRole="button"
                                     accessibilityLabel={option.label}
                                 >
