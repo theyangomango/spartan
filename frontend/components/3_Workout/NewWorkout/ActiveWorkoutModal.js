@@ -70,7 +70,58 @@ const ESTIMATED_SET_ROW_HEIGHT = scaleSize(52);
 const ESTIMATED_LIST_EXTRA_SPACE = scaleSize(160);
 const ESTIMATED_ITEM_MAX_HEIGHT = scaleSize(520);
 
-const ActiveWorkoutModal = ({
+const ActiveWorkoutModal = (props) => {
+    const {
+        forceViewingFriend = false,
+        workout,
+        streamLive = true,
+    } = props;
+
+    const meUid = String(global?.userData?.uid || "");
+    const myActiveWid = String(global?.userData?.currentWorkout?.wid || "");
+    const cardWid = String(workout?.wid || "");
+    const friendUidFromWorkout = String(workout?.creatorUID || workout?.creatorUid || "");
+    const forcedUid = typeof forceViewingFriend === "string"
+        ? forceViewingFriend
+        : (forceViewingFriend ? friendUidFromWorkout : null);
+    const lockFriend = !!forcedUid;
+    const shouldAutoJoin = streamLive && !lockFriend && !!(myActiveWid && cardWid && myActiveWid === cardWid);
+
+    const initialReady = lockFriend || shouldAutoJoin;
+    const [contentReady, setContentReady] = useState(initialReady);
+
+    useEffect(() => {
+        if (contentReady) return;
+        let handle = null;
+        if (InteractionManager?.runAfterInteractions) {
+            handle = InteractionManager.runAfterInteractions(() => setContentReady(true));
+        } else {
+            const timeoutId = setTimeout(() => setContentReady(true), 0);
+            handle = { cancel: () => clearTimeout(timeoutId) };
+        }
+        return () => {
+            try { handle?.cancel?.(); } catch { /* noop */ }
+        };
+    }, [contentReady]);
+
+    if (!contentReady) {
+        return (
+            <StatKeyboardProvider>
+                <View style={styles.bodyDeferred}>
+                    <ActivityIndicator size="large" color={theme.primary} />
+                </View>
+            </StatKeyboardProvider>
+        );
+    }
+
+    return (
+        <StatKeyboardProvider>
+            <WorkoutModalContent {...props} />
+        </StatKeyboardProvider>
+    );
+};
+
+const WorkoutModalContent = ({
     workout,
     cancelWorkout,
     updateWorkout,

@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useWorkoutStore, { WORKOUT_SHEET_STATES } from '../state/workoutStore';
 import { jumpToTab, navigationRef } from '../../navigationRef';
 import theme from '../theme/mfpDark';
-import Animated, { useAnimatedStyle, useDerivedValue } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useDerivedValue, useSharedValue, withSpring, withSequence } from 'react-native-reanimated';
 import scaleSize from "../helper/scaleSize";
 import { deep as triggerStartWorkoutHaptic } from "../utils/haptics";
 import { openActiveWorkout, startFreshWorkout } from "../workout/workoutActions";
@@ -124,6 +124,20 @@ const Footer = ({
     const weightIconColor = workoutHighlighted ? COLORS.actionIconActive : COLORS.actionIcon;
     const weightCircleColor = workoutHighlighted ? COLORS.actionCircleActive : COLORS.actionCircle;
 
+    const weightPressScale = useSharedValue(1);
+    const weightHighlightScale = useSharedValue(workoutHighlighted ? 1.04 : 1);
+
+    useEffect(() => {
+        weightHighlightScale.value = withSpring(workoutHighlighted ? 1.05 : 1, {
+            damping: workoutHighlighted ? 17 : 14,
+            stiffness: workoutHighlighted ? 220 : 160,
+        });
+    }, [weightHighlightScale, workoutHighlighted]);
+
+    const weightAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: weightHighlightScale.value * weightPressScale.value }],
+    }));
+
     const handleStartWorkout = useCallback(() => {
         triggerStartWorkoutHaptic?.();
         if (hasActiveWorkout) {
@@ -151,6 +165,18 @@ const Footer = ({
         console.timeEnd?.("footer::startWorkout");
         console.log?.("[footer] fallback startFreshWorkout complete");
     }, [hasActiveWorkout, startWorkoutHandler]);
+
+    const handleWeightPressIn = useCallback(() => {
+        weightPressScale.value = withSpring(0.88, { stiffness: 360, damping: 18 });
+        handleStartWorkout();
+    }, [handleStartWorkout, weightPressScale]);
+
+    const handleWeightPressOut = useCallback(() => {
+        weightPressScale.value = withSequence(
+            withSpring(1.12, { stiffness: 260, damping: 14, mass: 0.3 }),
+            withSpring(1, { stiffness: 200, damping: 15 })
+        );
+    }, [weightPressScale]);
 
     return (
         <Animated.View style={[styles.outer_view, outerAnimatedStyle]} pointerEvents={footerPointerEvents}>
@@ -198,18 +224,20 @@ const Footer = ({
                     <View style={styles.workout_indicator_ctnr}>
                         <Pressable
                             delayPressIn={0}
-                            onPressIn={handleStartWorkout}
+                            onPressIn={handleWeightPressIn}
+                            onPressOut={handleWeightPressOut}
                             hitSlop={10}
                         >
-                            <View
+                            <Animated.View
                                 style={[
                                     styles.workout_action,
                                     { backgroundColor: weightCircleColor },
                                     workoutHighlighted && styles.workout_action_active,
+                                    weightAnimatedStyle,
                                 ]}
                             >
                                 <Weight size={24} color={'#000'} variant="Bold" />
-                            </View>
+                            </Animated.View>
                         </Pressable>
                     </View>
                 </View>
@@ -301,8 +329,9 @@ const styles = StyleSheet.create({
         elevation: scaleSize(5),
     },
     workout_action_active: {
-        shadowOpacity: 0.42,
-        transform: [{ scale: 1.03 }],
+        shadowOpacity: 0.45,
+        shadowRadius: scaleSize(14),
+        elevation: scaleSize(7),
     },
     icon: { padding: scaleSize(13.5), borderRadius: scaleSize(25) },
     selectedIcon: {
