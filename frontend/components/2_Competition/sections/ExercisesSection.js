@@ -441,13 +441,13 @@ const styles = StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: theme.bg,
-        paddingTop: scaleSize(12),
+        paddingTop: scaleSize(4),
     },
     searchOuter: {
         flexDirection: "row",
         alignItems: "center",
         marginHorizontal: scaleSize(16),
-        marginBottom: scaleSize(18),
+        marginBottom: scaleSize(4),
     },
     searchContainer: {
         flex: 1,
