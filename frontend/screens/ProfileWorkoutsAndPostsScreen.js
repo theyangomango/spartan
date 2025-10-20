@@ -9,7 +9,7 @@ import {
     Text,
     View,
 } from "react-native";
-import { Ionicons, FontAwesome6 } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -857,7 +857,7 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
                         style={styles.headerBackButton}
                         hitSlop={10}
                     >
-                        <FontAwesome6 name="chevron-left" size={scaleSize(13)} color={theme.primary} />
+                        <Ionicons name="chevron-back" size={scaleSize(22)} color={theme.textPrimary} />
                     </TouchableOpacity>
 
                     <View style={styles.segmentWrap}>
@@ -1010,20 +1010,12 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: scaleSize(20),
         top: '50%',
-        transform: [{ translateY: -scaleSize(14) }],
-        width: scaleSize(28),
-        height: scaleSize(28),
-        borderRadius: scaleSize(14),
+        transform: [{ translateY: -scaleSize(17) }],
+        width: scaleSize(34),
+        height: scaleSize(34),
+        borderRadius: scaleSize(17),
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: theme.surface,
-        borderWidth: scaleSize(1),
-        borderColor: theme.hairline,
-        shadowColor: '#000',
-        shadowOpacity: 0.18,
-        shadowRadius: scaleSize(7),
-        shadowOffset: { width: 0, height: scaleSize(3) },
-        elevation: 2,
     },
     segmentWrap: {
         borderRadius: scaleSize(999),

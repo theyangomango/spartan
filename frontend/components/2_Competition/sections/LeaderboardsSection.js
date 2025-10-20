@@ -1397,7 +1397,8 @@ const styles = StyleSheet.create({
         width: "100%",
         paddingTop: scaleSize(16),
         paddingBottom: scaleSize(8),
-        paddingHorizontal: scaleSize(9)
+        paddingLeft: scaleSize(9),
+        paddingRight: scaleSize(4)
     },
     scopeToggleRow: {
         alignSelf: "flex-start",
