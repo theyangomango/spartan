@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import React, {
+    useCallback,
+    useDeferredValue,
+    useEffect,
+    useMemo,
+    useState,
+    useTransition,
+} from "react";
 import { StyleSheet, Text, View, ScrollView, Pressable, TextInput } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
@@ -151,6 +158,17 @@ export default function ExercisesSection() {
         }, []);
     }, []);
 
+    const filterSegmentsLookup = useMemo(() => {
+        return MUSCLE_FILTERS.reduce((acc, option) => {
+            if (option?.value == null) return acc;
+            const segments = Array.isArray(option.segments) ? option.segments : [];
+            acc[option.value] = segments.length
+                ? segments.map((segment) => String(segment).toLowerCase())
+                : [String(option.value).toLowerCase()];
+            return acc;
+        }, {});
+    }, []);
+
     const exercisesByName = useMemo(() => {
         return exercises.reduce((acc, item) => {
             if (!item?.name) return acc;
@@ -158,6 +176,18 @@ export default function ExercisesSection() {
             return acc;
         }, {});
     }, [exercises]);
+
+    const exercisesByFilter = useMemo(() => {
+        const map = {};
+        Object.entries(filterSegmentsLookup).forEach(([value, segments]) => {
+            map[value] = exercises.filter((exercise) => {
+                const mgLc = exercise.mgLc;
+                if (!mgLc) return false;
+                return segments.some((segment) => mgLc.includes(segment));
+            });
+        });
+        return map;
+    }, [exercises, filterSegmentsLookup]);
 
     useSyncSavedExercises(savedExercisesMap);
 
@@ -174,19 +204,25 @@ export default function ExercisesSection() {
         return unsubscribe;
     }, []);
 
-    const filteredExercises = useMemo(() => {
-        const query = searchValue.trim().toLowerCase();
-        const bodyFilter = bodyPartValue;
+    const normalizedSearch = useMemo(
+        () => searchValue.trim().toLowerCase(),
+        [searchValue]
+    );
+    const deferredSearch = useDeferredValue(normalizedSearch);
 
-        return exercises.filter((exercise) => {
-            const nameMatch =
-                !query ||
-                exercise.nameLc.includes(query) ||
-                exercise.mgLc.includes(query);
-            const bodyMatch = !bodyFilter || exercise.mgLc.includes(bodyFilter);
-            return nameMatch && bodyMatch;
-        });
-    }, [exercises, searchValue, bodyPartValue]);
+    const filteredByBody = useMemo(() => {
+        if (!bodyPartValue) return exercises;
+        return exercisesByFilter[bodyPartValue] || exercises;
+    }, [bodyPartValue, exercises, exercisesByFilter]);
+
+    const filteredExercises = useMemo(() => {
+        if (!deferredSearch) return filteredByBody;
+        return filteredByBody.filter(
+            (exercise) =>
+                exercise.nameLc.includes(deferredSearch) ||
+                exercise.mgLc.includes(deferredSearch)
+        );
+    }, [filteredByBody, deferredSearch]);
 
     const emptySelection = useMemo(() => ({}), []);
 
@@ -282,13 +318,17 @@ export default function ExercisesSection() {
     const filteredBookmarkedExercises = useMemo(() => {
         if (!bookmarkedExercises.length) return [];
         if (!bodyPartValue) return bookmarkedExercises;
-        const filter = String(bodyPartValue || "").toLowerCase();
+        const segments =
+            filterSegmentsLookup[bodyPartValue] ||
+            [String(bodyPartValue || "").toLowerCase()];
         return bookmarkedExercises.filter((exercise) => {
-            const muscleLc = String(exercise?.muscleGroup || exercise?.muscle || "").toLowerCase();
+            const muscleLc = String(
+                exercise?.muscleGroup || exercise?.muscle || ""
+            ).toLowerCase();
             if (!muscleLc) return false;
-            return muscleLc.includes(filter);
+            return segments.some((segment) => muscleLc.includes(segment));
         });
-    }, [bookmarkedExercises, bodyPartValue]);
+    }, [bookmarkedExercises, bodyPartValue, filterSegmentsLookup]);
 
     const bookmarkedRows = useMemo(() => {
         if (!filteredBookmarkedExercises.length) return [];

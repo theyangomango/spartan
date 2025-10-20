@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from "react";
-import { Image, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import FastImage from "react-native-fast-image";
 
 import scaleSize from "../../../../helper/scaleSize";
 import { getExerciseImageSource, toExerciseSlug } from "../../../common/exerciseImageMap";
@@ -43,9 +44,9 @@ const ExerciseImagePreview = ({
     return (
         <View style={[styles.container, { width: dimension, height: dimension }, style]}>
             {source ? (
-                <Image
+                <FastImage
                     source={source}
-                    resizeMode="contain"
+                    resizeMode={FastImage.resizeMode.contain}
                     style={[styles.image, imageStyle]}
                 />
             ) : null}

@@ -12,9 +12,9 @@ import { TouchableOpacity } from "react-native";
 const CARD_MIN_HEIGHT = scaleSize(72);
 const PROFILE_SIZE = scaleSize(36);
 const SMALL_PROFILE_SIZE = scaleSize(30);
-const HANDLE_FONT = ts(13.5);
-const CONTENT_FONT = ts(13);
-const DATE_FONT = ts(12.5);
+const HANDLE_FONT = ts(13);
+const CONTENT_FONT = ts(12.5);
+const DATE_FONT = ts(12);
 
 const SMALL_PFP_STYLE = {
     width: SMALL_PROFILE_SIZE,
@@ -101,6 +101,7 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
 
     return (
         <TouchableOpacity
+            activeOpacity={0.7}
             onPress={() => {
                 try { haptic(); } catch {}
                 toChat?.(index, usersExcludingSelf);
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         backgroundColor: theme.surface,
         borderBottomWidth: 0.75,
-        borderColor: theme.hairline,
+        borderColor: theme.field,
     },
     firstCard: {
         borderTopWidth: StyleSheet.hairlineWidth,
