@@ -26,6 +26,8 @@ const ProfileContentCards = ({
     loggedFoodsCount = 0,
     contentLocked = false,
     lockedSubtitle = '',
+    showLoggedFoodsCard = true,
+    loggedFoodsLocked = false,
 }) => {
     const workoutsCompletedSubtitle = useMemo(() => formatWorkoutsCompleted(workoutsCount), [workoutsCount]);
     const postsSubtitle = useMemo(() => formatCount(postsCount, 'Post'), [postsCount]);
@@ -55,7 +57,7 @@ const ProfileContentCards = ({
                 onPress={withStrongPress(onPressWorkoutsAndPosts)}
                 style={({ pressed }) => [
                     styles.card,
-                    styles.cardDivider,
+                    showLoggedFoodsCard ? styles.cardDivider : styles.lastCard,
                     pressed && styles.cardPressed
                 ]}
             >
@@ -74,28 +76,38 @@ const ProfileContentCards = ({
                 />
             </Pressable>
 
-            <Pressable
-                onPress={withStrongPress(onPressLoggedFoods)}
-                style={({ pressed }) => [
-                    styles.card,
-                    styles.lastCard,
-                    pressed && styles.cardPressed
-                ]}
-            >
-                <View style={[styles.iconBadge, styles.loggedFoodsBadge]}>
-                    <Ionicons name="restaurant-outline" size={scaleSize(20)} color='#fff' />
-                </View>
-                <View style={styles.cardTextWrap}>
-                    <Text style={styles.cardTitle}>Logged Food Items</Text>
-                    <Text style={styles.cardSubtitle} numberOfLines={1}>{loggedFoodsSubtitle}</Text>
-                </View>
-                <Ionicons
-                    name="chevron-forward"
-                    size={scaleSize(18)}
-                    color="rgba(198, 206, 222, 0.84)"
-                    style={styles.chevron}
-                />
-            </Pressable>
+            {showLoggedFoodsCard && (
+                <Pressable
+                    onPress={withStrongPress(onPressLoggedFoods)}
+                    style={({ pressed }) => [
+                        styles.card,
+                        styles.lastCard,
+                        pressed && !loggedFoodsLocked && styles.cardPressed
+                    ]}
+                    disabled={loggedFoodsLocked}
+                >
+                    <View style={[styles.iconBadge, styles.loggedFoodsBadge]}>
+                        <Ionicons name="restaurant-outline" size={scaleSize(20)} color='#fff' />
+                        {loggedFoodsLocked && (
+                            <View style={styles.lockBadge}>
+                                <Ionicons name="lock-closed" size={scaleSize(10)} color="#111827" />
+                            </View>
+                        )}
+                    </View>
+                    <View style={styles.cardTextWrap}>
+                        <Text style={styles.cardTitle}>Logged Food Items</Text>
+                        <Text style={styles.cardSubtitle} numberOfLines={1}>{loggedFoodsSubtitle}</Text>
+                    </View>
+                    {!loggedFoodsLocked && (
+                        <Ionicons
+                            name="chevron-forward"
+                            size={scaleSize(18)}
+                            color="rgba(198, 206, 222, 0.84)"
+                            style={styles.chevron}
+                        />
+                    )}
+                </Pressable>
+            )}
         </View>
     );
 };
@@ -138,6 +150,7 @@ const styles = StyleSheet.create({
         borderWidth: scaleSize(1),
         // backgroundColor: 'rgba(38, 45, 64, 0.82)',
         // borderColor: 'rgba(168, 188, 224, 0.28)',
+        position: 'relative',
     },
     workoutsBadge: {
         // backgroundColor: 'rgba(108, 152, 252, 0.28)',
@@ -165,6 +178,19 @@ const styles = StyleSheet.create({
     },
     chevron: {
         marginLeft: scaleSize(10),
+    },
+    lockBadge: {
+        position: 'absolute',
+        bottom: -scaleSize(2),
+        right: -scaleSize(4.5),
+        width: scaleSize(16),
+        aspectRatio: 1,
+        borderRadius: scaleSize(7),
+        backgroundColor: '#F9FAFB',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(15, 23, 42, 0.25)',
     },
     lockedContainer: {
         alignItems: 'center',

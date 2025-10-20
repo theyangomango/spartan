@@ -159,6 +159,10 @@ export default function ViewProfile({ navigation, route }) {
 
     const viewerData = (() => { try { return global?.userData || null; } catch { return null; } })();
     const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
+    const profileUid = profileUserData?.uid
+        ? String(profileUserData.uid)
+        : String(user?.uid || '');
+    const isViewingSelf = Boolean(profileUid && viewerUid && profileUid === viewerUid);
     const canViewContent = canViewerAccessProfile(profileUserData, viewerUid, viewerData);
 
     const visibleCompletedWorkouts = useMemo(() => (
@@ -168,10 +172,10 @@ export default function ViewProfile({ navigation, route }) {
     ), [profileUserData?.completedWorkouts, viewerUid, viewerData, profileUserData, canViewContent]);
 
     const loggedFoodsCount = useMemo(() => (
-        !canViewContent
+        !isViewingSelf
             ? 0
             : countLoggedFoods(profileUserData?.loggedFoods || {})
-    ), [profileUserData?.loggedFoods, canViewContent]);
+    ), [profileUserData?.loggedFoods, isViewingSelf]);
 
     return (
         <SafeAreaView style={styles.main_ctnr}>
@@ -205,12 +209,12 @@ export default function ViewProfile({ navigation, route }) {
                             });
                         }}
                         onPressLoggedFoods={() => {
-                            if (!canViewContent) return;
+                            if (!canViewContent || !isViewingSelf) return;
                             const targetUid = String(profileUserData?.uid || user?.uid || '');
                             if (!targetUid) return;
                             navigation.navigate('ProfileLoggedFoods', {
                                 targetUid,
-                                isViewingSelf: false,
+                                isViewingSelf,
                                 initialUser: profileUserData || user || null,
                             });
                         }}
@@ -219,6 +223,7 @@ export default function ViewProfile({ navigation, route }) {
                         loggedFoodsCount={loggedFoodsCount}
                         contentLocked={!canViewContent}
                         lockedSubtitle={profileUserData?.settings?.profilePrivate ? 'Only approved followers can see these posts, workouts, and logged food items.' : ''}
+                        loggedFoodsLocked={!isViewingSelf}
                     />
                 </View>
             </ScrollView>

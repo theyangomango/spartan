@@ -23,12 +23,12 @@ import { groupLoggedFoodsByDay } from "../utils/loggedFoods";
 import MealItemCard from "../components/2_MacroTracking/MealItemCard";
 import { summarizeFood } from "../utils/nutrition";
 
-const LockedView = ({ subtitle }) => (
+const LockedView = ({ title = "This account is private", subtitle }) => (
     <View style={styles.lockedContainer}>
         <View style={styles.lockedIconWrap}>
             <Ionicons name="lock-closed" size={scaleSize(42)} color="#A5B4FC" />
         </View>
-        <Text style={styles.lockedTitle}>This account is private</Text>
+        <Text style={styles.lockedTitle}>{title}</Text>
         <Text style={styles.lockedSubtitle}>
             {subtitle || "Follow to view logged food items from this profile."}
         </Text>
@@ -91,7 +91,9 @@ export default function ProfileLoggedFoodsScreen({ navigation, route }) {
     const initialUser = params?.initialUser || null;
     const passedUid = params?.targetUid || initialUser?.uid || "";
     const targetUid = passedUid ? String(passedUid) : "";
-    const isViewingSelf = !!params?.isViewingSelf;
+    const viewerData = (() => { try { return global?.userData || null; } catch { return null; } })();
+    const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
+    const isViewingSelf = Boolean(targetUid && viewerUid && targetUid === viewerUid);
 
     const [userData, setUserData] = useState(() => (initialUser && initialUser.uid ? initialUser : null));
     const [isUserLoading, setIsUserLoading] = useState(!initialUser);
@@ -104,7 +106,10 @@ export default function ProfileLoggedFoodsScreen({ navigation, route }) {
     );
 
     useEffect(() => {
-        if (!targetUid) return;
+        if (!targetUid || !isViewingSelf) {
+            setIsUserLoading(false);
+            return;
+        }
         let cancelled = false;
         setIsUserLoading(true);
         readDoc("users", targetUid)
@@ -119,7 +124,7 @@ export default function ProfileLoggedFoodsScreen({ navigation, route }) {
         return () => {
             cancelled = true;
         };
-    }, [targetUid]);
+    }, [targetUid, isViewingSelf]);
 
     useEffect(() => {
         if (!isViewingSelf) return undefined;
@@ -134,9 +139,7 @@ export default function ProfileLoggedFoodsScreen({ navigation, route }) {
         }
     }, [isViewingSelf]);
 
-    const viewerData = (() => { try { return global?.userData || null; } catch { return null; } })();
-    const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
-    const canViewContent = canViewerAccessProfile(userData, viewerUid, viewerData);
+    const canViewContent = isViewingSelf && canViewerAccessProfile(userData, viewerUid, viewerData);
 
     const sections = useMemo(() => (
         !userData || !canViewContent
@@ -215,6 +218,13 @@ export default function ProfileLoggedFoodsScreen({ navigation, route }) {
                 <Text style={styles.emptyTitle}>Profile unavailable</Text>
                 <Text style={styles.emptySubtitle}>We could not determine which profile to load.</Text>
             </View>
+        );
+    } else if (!isViewingSelf) {
+        mainContent = (
+            <LockedView
+                title="Only visible to this user"
+                subtitle="Logged food items are private and can only be viewed by the owner."
+            />
         );
     } else if (!userData && isUserLoading) {
         mainContent = (
