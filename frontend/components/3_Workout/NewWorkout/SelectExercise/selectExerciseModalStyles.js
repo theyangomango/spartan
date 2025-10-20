@@ -74,10 +74,12 @@ const styles = StyleSheet.create({
     searchContainer: {
         flexDirection: "row",
         alignItems: "center",
-        marginTop: scaledSize(14),
+        marginTop: scaledSize(6),
+        marginBottom: scaleSize(4),
         backgroundColor: SURFACE,
         borderRadius: scaledSize(16),
         paddingHorizontal: scaledSize(14),
+        marginHorizontal: scaleSize(12),
         paddingVertical: scaledSize(10),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(90, 176, 255, 0.25)",
