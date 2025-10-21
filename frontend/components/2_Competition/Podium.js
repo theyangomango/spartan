@@ -19,7 +19,7 @@ const BAR_HEIGHT_CENTER = scaleSize(133);
 const BAR_HEIGHT_RIGHT = scaleSize(83);
 const BAR_WIDTH = scaleSize(80);
 
-const FONT_HANDLE = ts(13);
+const FONT_HANDLE = ts(13.5);
 const FONT_BAR = ts(27);
 
 const BAR_RADIUS = scaleSize(10);
@@ -152,13 +152,15 @@ export default function Podium({ data, topOffset = 0 }) {
                         )}
                     </View>
                     {data.length >= 2 && (
-                        <VerifiedHandle
-                            handle={data[1].handle}
-                            isVerified={Boolean(data[1]?.isVerified ?? data[1]?.verified)}
-                            textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
-                            numberOfLines={1}
-                            containerStyle={styles.handleRow}
-                        />
+                        <View style={styles.handleWrapper}>
+                            <VerifiedHandle
+                                handle={data[1].handle}
+                                isVerified={Boolean(data[1]?.isVerified ?? data[1]?.verified)}
+                                textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
+                                numberOfLines={1}
+                                containerStyle={styles.handleRow}
+                            />
+                        </View>
                     )}
                     <View style={[styles.bar_ctnr, styles.silver_ctnr, { height: BAR_HEIGHT_LEFT, width: BAR_WIDTH }]}>
                         {/* Unified number color for all bars */}
@@ -178,13 +180,15 @@ export default function Podium({ data, topOffset = 0 }) {
                         )}
                     </View>
                     {data.length >= 1 && (
-                        <VerifiedHandle
-                            handle={data[0].handle}
-                            isVerified={Boolean(data[0]?.isVerified ?? data[0]?.verified)}
-                            textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
-                            numberOfLines={1}
-                            containerStyle={styles.handleRow}
-                        />
+                        <View style={styles.handleWrapper}>
+                            <VerifiedHandle
+                                handle={data[0].handle}
+                                isVerified={Boolean(data[0]?.isVerified ?? data[0]?.verified)}
+                                textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
+                                numberOfLines={1}
+                                containerStyle={styles.handleRow}
+                            />
+                        </View>
                     )}
                     <View style={[styles.bar_ctnr, styles.gold_ctnr, { height: BAR_HEIGHT_CENTER, width: BAR_WIDTH }]}>
                         <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR }]}>1</Text>
@@ -203,13 +207,15 @@ export default function Podium({ data, topOffset = 0 }) {
                         )}
                     </View>
                     {data.length >= 3 && (
-                        <VerifiedHandle
-                            handle={data[2].handle}
-                            isVerified={Boolean(data[2]?.isVerified ?? data[2]?.verified)}
-                            textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
-                            numberOfLines={1}
-                            containerStyle={styles.handleRow}
-                        />
+                        <View style={styles.handleWrapper}>
+                            <VerifiedHandle
+                                handle={data[2].handle}
+                                isVerified={Boolean(data[2]?.isVerified ?? data[2]?.verified)}
+                                textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
+                                numberOfLines={1}
+                                containerStyle={styles.handleRow}
+                            />
+                        </View>
                     )}
                     <View style={[styles.bar_ctnr, styles.bronze_ctnr, { height: BAR_HEIGHT_RIGHT, width: BAR_WIDTH }]}>
                         <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR }]}>3</Text>
@@ -292,6 +298,8 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_600SemiBold',
         color: '#fff',
         paddingTop: HANDLE_PT,
+    },
+    handleWrapper: {
         paddingBottom: HANDLE_PB,
     },
     handleRow: {

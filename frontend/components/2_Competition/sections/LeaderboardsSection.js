@@ -948,7 +948,12 @@ export default function LeaderboardsSection({ navigation }) {
                 const exStats = u?.statsExercises?.[comparedExercise] || {};
                 stat = exStats?.[exerciseStatKey] ?? 0;
             }
-            return { handle: u?.handle, pfp: u?.image, stat };
+            return {
+                handle: u?.handle,
+                pfp: u?.image,
+                stat,
+                isVerified: Boolean(u?.isVerified ?? u?.verified ?? false),
+            };
         });
         return top3.filter(Boolean);
     }, [
