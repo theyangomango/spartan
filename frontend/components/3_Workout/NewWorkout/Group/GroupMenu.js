@@ -6,12 +6,15 @@ import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Feather } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import theme from "../../../../theme/mfpDark";
+import VerifiedHandle from "../../../common/VerifiedHandle";
+import useUserVerified from "../../../../hooks/useUserVerified";
 
 const { height: screenHeight } = Dimensions.get("window");
 const scaledSize = (size) => scaleSize(size);
 
 const ParticipantItem = ({ participant, selected, onPress }) => {
     const uri = participant?.pfp || participant?.image || participant?.photoURL || participant?.avatar || "";
+    const isVerified = useUserVerified(participant?.uid, Boolean(participant?.isVerified));
     return (
         <Pressable onPress={onPress} style={styles.participantRow}>
             <View style={styles.participantPfpWrap}>
@@ -25,9 +28,15 @@ const ParticipantItem = ({ participant, selected, onPress }) => {
                 )}
             </View>
             <View style={{ flex: 1 }}>
-                <Text numberOfLines={1} style={styles.participantHandle}>
-                    {participant?.handle ? `@${participant.handle}` : participant?.name || "Friend"}
-                </Text>
+                <VerifiedHandle
+                    handle={participant?.handle || participant?.name || "Friend"}
+                    isVerified={isVerified}
+                    textStyle={styles.participantHandle}
+                    iconSize={scaleSize(14.5)}
+                    numberOfLines={1}
+                    containerStyle={styles.participantHandleRow}
+                    preserveTextAlignment
+                />
                 {!!participant?.name && participant?.handle && (
                     <Text numberOfLines={1} style={styles.participantSub}>
                         {participant?.name}
@@ -175,6 +184,7 @@ const styles = StyleSheet.create({
         borderColor: theme.hairline,
     },
     participantPfp: { width: "100%", height: "100%" },
+    participantHandleRow: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
     participantHandle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(13.5), color: theme.textPrimary },
     participantSub: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(13), color: theme.textSecondary, marginTop: scaleSize(1) },
 });
