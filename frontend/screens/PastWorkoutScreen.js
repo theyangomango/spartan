@@ -22,6 +22,8 @@ import updateCompletedWorkout from "../../backend/workouts/updateCompletedWorkou
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
 import isThisUser from "../helper/isThisUser";
 import { strong as hapticStrong } from "../utils/haptics";
+import VerifiedHandle from "../components/common/VerifiedHandle";
+import useUserVerified from "../hooks/useUserVerified";
 
 const HEADER_ICON_SIZE = scaleSize(20);
 
@@ -288,6 +290,24 @@ const PastWorkoutScreen = () => {
         owner?.pfpVersion ?? workout?.pfpVersion ?? 0,
         owner?.pfp || owner?.pfpUrl || owner?.avatar || owner?.image || owner?.photoURL || ""
     );
+
+    const fallbackVerified = useMemo(
+        () => Boolean(
+            owner?.isVerified ||
+            owner?.verified ||
+            workout?.isVerified ||
+            workout?.verified
+        ),
+        [owner?.isVerified, owner?.verified, workout?.isVerified, workout?.verified]
+    );
+
+    const isOwnerVerified = useUserVerified(workoutOwnerUid, fallbackVerified);
+
+    const sanitizedHandle = useMemo(() => {
+        if (!displayName) return "";
+        const trimmed = displayName.replace(/^@+/, "").trim();
+        return trimmed || displayName;
+    }, [displayName]);
 
     const viewerUid = (() => {
         try {
@@ -599,9 +619,15 @@ const PastWorkoutScreen = () => {
 
                                     <View style={styles.headerTextCol}>
                                         <Pressable onPress={handlePressOwnerProfile}>
-                                            <Text style={styles.nameText} numberOfLines={1}>
-                                                {displayName}
-                                            </Text>
+                                            <VerifiedHandle
+                                                handle={sanitizedHandle || "Friend"}
+                                                isVerified={isOwnerVerified}
+                                                textStyle={styles.nameText}
+                                                iconSize={scaleSize(15)}
+                                                numberOfLines={1}
+                                                ellipsizeMode="tail"
+                                                preserveTextAlignment
+                                            />
                                         </Pressable>
                                         {!!timestampLabel && (
                                             <Text style={styles.timestampText} numberOfLines={1}>
