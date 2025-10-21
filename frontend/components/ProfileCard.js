@@ -8,6 +8,7 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { withStrongPress } from '../utils/haptics';
 import VerifiedHandle from './common/VerifiedHandle';
+import useUserVerified from '../hooks/useUserVerified';
 
 const { height } = Dimensions.get('window');
 
@@ -36,6 +37,8 @@ const ProfileCard = ({ user, onSelect, isSelected, baseBg, selectedBg }) => {
         user?.pfp || user?.pfpUrl || user?.image || user?.photoURL || user?.avatar || ""
     );
     const radius = SIZES.pfp / 2;
+
+    const isVerified = useUserVerified(user?.uid, Boolean(user?.isVerified ?? user?.verified));
 
     return (
         <Pressable
@@ -69,7 +72,8 @@ const ProfileCard = ({ user, onSelect, isSelected, baseBg, selectedBg }) => {
             <View style={styles.text_ctnr}>
                 <VerifiedHandle
                     handle={user.handle}
-                    isVerified={Boolean(user?.isVerified ?? user?.verified)}
+                    isVerified={isVerified}
+                    iconSize={scaleSize(15.5)}
                     textStyle={[styles.handle_text, { fontSize: scaleSize(SIZES.handleFont) }]}
                     numberOfLines={1}
                 />
