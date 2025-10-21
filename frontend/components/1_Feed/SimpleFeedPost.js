@@ -24,6 +24,8 @@ import { buildExerciseSummaries } from "../../utils/workoutSummary";
 import deletePost from "../../../backend/posts/deletePost";
 import deleteCompletedWorkout from "../../../backend/workouts/deleteCompletedWorkout";
 import { emitHexagonUpdate } from "../../utils/hexagonEvents";
+import VerifiedHandle from "../common/VerifiedHandle";
+import useUserVerified from "../../hooks/useUserVerified";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -504,6 +506,34 @@ const SimpleFeedPost = ({
         return '';
     }, [data?.uid, data?.creatorUid, data?.creatorUID, data?.ownerUid, data?.userUid]);
 
+    const fallbackVerified = useMemo(() => (
+        Boolean(
+            data?.isVerified ||
+            data?.verified ||
+            data?.creator?.isVerified ||
+            data?.creator?.verified ||
+            data?.owner?.isVerified ||
+            data?.owner?.verified ||
+            data?.author?.isVerified ||
+            data?.author?.verified ||
+            data?.user?.isVerified ||
+            data?.user?.verified
+        )
+    ), [
+        data?.isVerified,
+        data?.verified,
+        data?.creator?.isVerified,
+        data?.creator?.verified,
+        data?.owner?.isVerified,
+        data?.owner?.verified,
+        data?.author?.isVerified,
+        data?.author?.verified,
+        data?.user?.isVerified,
+        data?.user?.verified,
+    ]);
+
+    const isPostVerified = useUserVerified(postOwnerUid, fallbackVerified);
+
     const isViewerOwner = viewerUid && postOwnerUid && viewerUid === postOwnerUid;
 
     const workoutDeleteIdentifier = useMemo(() => {
@@ -756,9 +786,15 @@ const SimpleFeedPost = ({
 
                         <View style={styles.headerTextCol}>
                             <Pressable onPress={() => onPressProfile?.(index, data)}>
-                                <Text style={styles.nameText} numberOfLines={1}>
-                                    {displayName}
-                                </Text>
+                                <VerifiedHandle
+                                    handle={displayName}
+                                    isVerified={isPostVerified}
+                                    textStyle={styles.nameText}
+                                    iconSize={scaleSize(15.5)}
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                    containerStyle={styles.nameRow}
+                                />
                             </Pressable>
                             {!!timestamp && (
                                 <Text style={styles.timestampText} numberOfLines={1}>
