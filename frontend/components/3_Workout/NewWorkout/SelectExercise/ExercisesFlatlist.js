@@ -22,6 +22,7 @@ const ExercisesFlatlist = React.memo(
         scrollEnabled = true,
         listHeaderComponent = null,
         hideInfoButton = false,
+        onScroll = undefined,
     }) => {
         const rows = useMemo(() => {
             if (!Array.isArray(exercises)) return [];
@@ -97,6 +98,8 @@ const ExercisesFlatlist = React.memo(
                     keyExtractor={keyExtractor}
                     renderItem={renderRow}
                     estimatedItemSize={ESTIMATED_ROW_HEIGHT}
+                    onScroll={onScroll}
+                    scrollEventThrottle={16}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={contentPadding}

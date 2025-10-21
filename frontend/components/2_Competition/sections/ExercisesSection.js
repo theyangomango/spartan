@@ -3,10 +3,20 @@ import React, {
     useDeferredValue,
     useEffect,
     useMemo,
+    useRef,
     useState,
     useTransition,
 } from "react";
-import { StyleSheet, Text, View, ScrollView, Pressable, TextInput } from "react-native";
+import {
+    Animated,
+    Easing,
+    StyleSheet,
+    Text,
+    View,
+    ScrollView,
+    Pressable,
+    TextInput,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -124,6 +134,107 @@ export default function ExercisesSection() {
         normalizeSavedExercises(global?.userData?.savedExercises)
     );
     const [, startFilterTransition] = useTransition();
+    const filterVisibility = useRef(new Animated.Value(1)).current;
+    const [filterMeasuredHeight, setFilterMeasuredHeight] = useState(0);
+    const [filterPointerEvents, setFilterPointerEvents] = useState("auto");
+    const lastScrollOffsetRef = useRef(0);
+    const isFilterHiddenRef = useRef(false);
+    const isAnimatingFilterRef = useRef(false);
+
+    const animateFilter = useCallback(
+        (toValue) => {
+            if (isAnimatingFilterRef.current) {
+                filterVisibility.stopAnimation?.();
+            }
+            isAnimatingFilterRef.current = true;
+            if (toValue === 1) {
+                setFilterPointerEvents("auto");
+            }
+            Animated.timing(filterVisibility, {
+                toValue,
+                duration: 220,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: false,
+            }).start(() => {
+                isAnimatingFilterRef.current = false;
+                if (toValue === 0) {
+                    setFilterPointerEvents("none");
+                }
+            });
+        },
+        [filterVisibility]
+    );
+
+    const showFilter = useCallback(() => {
+        if (!isFilterHiddenRef.current) return;
+        isFilterHiddenRef.current = false;
+        animateFilter(1);
+    }, [animateFilter]);
+
+    const hideFilter = useCallback(() => {
+        if (isFilterHiddenRef.current) return;
+        isFilterHiddenRef.current = true;
+        animateFilter(0);
+    }, [animateFilter]);
+
+    const handleFilterLayout = useCallback(
+        (event) => {
+            const height = event?.nativeEvent?.layout?.height || 0;
+            if (
+                height > 0 &&
+                (filterMeasuredHeight === 0 || height > filterMeasuredHeight + 1)
+            ) {
+                setFilterMeasuredHeight(height);
+            }
+        },
+        [filterMeasuredHeight]
+    );
+
+    const handleExercisesScroll = useCallback(
+        (event) => {
+            const offsetY = event?.nativeEvent?.contentOffset?.y ?? 0;
+            const lastOffset = lastScrollOffsetRef.current;
+            const delta = offsetY - lastOffset;
+            lastScrollOffsetRef.current = offsetY;
+
+            if (offsetY <= 12) {
+                showFilter();
+                return;
+            }
+
+            if (delta > 6) {
+                hideFilter();
+            } else if (delta < -6) {
+                showFilter();
+            }
+        },
+        [hideFilter, showFilter]
+    );
+
+    const filterHeightForAnimation = Math.max(filterMeasuredHeight, scaleSize(88));
+
+    const filterAnimatedStyle = useMemo(
+        () => ({
+            height: filterVisibility.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, filterHeightForAnimation],
+            }),
+            opacity: filterVisibility,
+            marginBottom: filterVisibility.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, scaleSize(4)],
+            }),
+            transform: [
+                {
+                    translateY: filterVisibility.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-(filterHeightForAnimation + scaleSize(12)), 0],
+                    }),
+                },
+            ],
+        }),
+        [filterHeightForAnimation, filterVisibility]
+    );
 
     const bottomInsetPadding = useMemo(
         () => (insets?.bottom || 0) + scaleSize(24),
@@ -427,7 +538,11 @@ export default function ExercisesSection() {
                 </View>
             </View>
 
-            <View style={styles.muscleFilterSection}>
+            <Animated.View
+                pointerEvents={filterPointerEvents}
+                style={[styles.muscleFilterSection, filterAnimatedStyle]}
+                onLayout={handleFilterLayout}
+            >
                 <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -464,7 +579,7 @@ export default function ExercisesSection() {
                         })}
                     </View>
                 </ScrollView>
-            </View>
+            </Animated.View>
 
             <View style={styles.listWrapper}>
                 <ExercisesFlatlist
@@ -478,6 +593,7 @@ export default function ExercisesSection() {
                     bottomPadding={bottomInsetPadding + scaleSize(140)}
                     listHeaderComponent={listHeaderComponent}
                     hideInfoButton
+                    onScroll={handleExercisesScroll}
                 />
             </View>
         </View>
@@ -503,6 +619,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(16),
         paddingVertical: scaleSize(12),
         borderRadius: scaleSize(18),
+        marginBottom: scaleSize(4),
         backgroundColor: theme.surface,
     },
     searchIcon: {
@@ -515,8 +632,8 @@ const styles = StyleSheet.create({
         color: TEXT_PRIMARY,
     },
     muscleFilterSection: {
-        height: scaleSize(88),
         justifyContent: "center",
+        overflow: "hidden",
     },
     muscleFilterScroll: {
         height: scaleSize(72),
