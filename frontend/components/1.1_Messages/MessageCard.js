@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
 import getDisplayTime from "../../helper/getDisplayTime";
@@ -8,6 +8,8 @@ import theme from "../../theme/mfpDark";
 import scaleSize, { ts } from "../../helper/scaleSize";
 import { strong as haptic } from "../../utils/haptics";
 import { TouchableOpacity } from "react-native";
+import VerifiedHandle from "../common/VerifiedHandle";
+import useUserVerified from "../../hooks/useUserVerified";
 
 const CARD_MIN_HEIGHT = scaleSize(72);
 const PROFILE_SIZE = scaleSize(36);
@@ -85,10 +87,24 @@ const Pfp = ({ uid, version = 0, fallbackUri, style }) => {
 };
 
 export default function MessageCard({ usersExcludingSelf, content, timestamp, toChat, index, isFirst, isLast }) {
-    const handles = usersExcludingSelf.map((user) => user.handle).join(", ");
+    const sanitizedHandles = useMemo(() => (
+        usersExcludingSelf.map((user) => {
+            const base = typeof user?.handle === "string" ? user.handle : "";
+            const trimmed = base.replace(/^@+/, "").trim();
+            if (trimmed) return trimmed;
+            const fallback = typeof user?.name === "string" ? user.name.trim() : "";
+            if (fallback) return fallback;
+            return "Friend";
+        })
+    ), [usersExcludingSelf]);
     const user0 = usersExcludingSelf[0];
     const user1 = usersExcludingSelf[1];
+    const handlesLabel = useMemo(() => sanitizedHandles.join(", "), [sanitizedHandles]);
     const timeStr = safeDisplayTime(timestamp);
+    const isSingleConversation = usersExcludingSelf.length === 1;
+    const fallbackVerified = Boolean(user0?.isVerified ?? user0?.verified);
+    const user0Uid = user0?.uid ? String(user0.uid) : "";
+    const isFirstVerified = useUserVerified(user0Uid, fallbackVerified);
 
     const preview =
         (content ?? "")
@@ -165,9 +181,21 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
             </View>
             {/* middle: text */}
             <View style={styles.textCol}>
-                <Text style={styles.handle} numberOfLines={1} ellipsizeMode="tail">
-                    {handles}
-                </Text>
+                {isSingleConversation ? (
+                    <VerifiedHandle
+                        handle={sanitizedHandles[0] || "Friend"}
+                        isVerified={isFirstVerified}
+                        textStyle={styles.handle}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                        preserveTextAlignment
+                        containerStyle={styles.handleRow}
+                    />
+                ) : (
+                    <Text style={styles.handle} numberOfLines={1} ellipsizeMode="tail">
+                        {handlesLabel}
+                    </Text>
+                )}
                 {!!preview && (
                     <Text style={styles.content} numberOfLines={1} ellipsizeMode="tail">
                         {preview}
@@ -220,17 +248,22 @@ const styles = StyleSheet.create({
 
     textCol: { flex: 1, minWidth: 0 },
     handle: {
-        paddingBottom: scaleSize(3),
         fontFamily: "Outfit_600SemiBold",
         color: theme.textPrimary,
         letterSpacing: 0.2,
         fontSize: HANDLE_FONT,
+    },
+    handleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        flexShrink: 1,
     },
     content: {
         fontFamily: "Outfit_400Regular",
         color: theme.textSecondary,
         opacity: 0.92,
         fontSize: CONTENT_FONT,
+        paddingTop: scaleSize(3)
     },
 
     timeCol: { paddingLeft: scaleSize(8), alignItems: "flex-end", justifyContent: "center" },

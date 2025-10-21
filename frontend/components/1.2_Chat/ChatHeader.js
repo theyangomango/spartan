@@ -7,6 +7,8 @@ import { useNavigation } from "@react-navigation/native";
 import { usePfp } from "../../helper/usePFPs";
 import scaleSize, { ts } from "../../helper/scaleSize";
 import theme from "../../theme/mfpDark";
+import VerifiedHandle from "../common/VerifiedHandle";
+import useUserVerified from "../../hooks/useUserVerified";
 
 const HAIRLINE = theme.hairline;
 const BG = theme.bg;
@@ -22,10 +24,15 @@ const AVATAR_BORDER = Math.max(1, scaleSize(1));
 
 const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
     const navigation = useNavigation();
-    const handles = usersExcludingSelf
-        .map((u) => (typeof u?.handle === 'string' && u.handle.trim() ? '@' + u.handle.trim() : ''))
-        .filter(Boolean)
-        .join(", ");
+    const sanitizedHandles = usersExcludingSelf
+        .map((u) => {
+            const base = typeof u?.handle === 'string' ? u.handle : '';
+            const trimmed = base.replace(/^@+/, '').trim();
+            if (trimmed) return trimmed;
+            const name = typeof u?.name === 'string' ? u.name.trim() : '';
+            return name || 'Friend';
+        });
+    const handles = sanitizedHandles.filter(Boolean).join(", ");
     // Show only first names (split by space)
     const names = usersExcludingSelf
         .map((u) => (typeof u?.name === 'string' ? u.name.trim().split(/\s+/)[0] : ''))
@@ -53,8 +60,13 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
         else navigation.goBack();
     };
 
-    const primaryLabel = names || (handles ? handles.replace(/@/g, '').trim() : 'Direct Message');
+    const primaryLabel = names || (handles ? handles : 'Direct Message');
     const secondaryLabel = handles;
+    const firstUser = usersExcludingSelf[0] || null;
+    const fallbackVerified = Boolean(firstUser?.isVerified ?? firstUser?.verified);
+    const firstUid = firstUser?.uid ? String(firstUser.uid) : '';
+    const isFirstVerified = useUserVerified(firstUid, fallbackVerified);
+    const showSingleVerified = usersExcludingSelf.length === 1 && sanitizedHandles[0];
 
     return (
         <View style={styles.header}>
@@ -82,9 +94,21 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
                 </View>
 
                 <View style={styles.textWrap}>
-                    <Text numberOfLines={1} style={styles.nameText}>
-                        {primaryLabel}
-                    </Text>
+                    {showSingleVerified ? (
+                        <VerifiedHandle
+                            handle={sanitizedHandles[0]}
+                            isVerified={isFirstVerified}
+                            textStyle={styles.nameText}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                            preserveTextAlignment
+                            containerStyle={styles.nameRow}
+                        />
+                    ) : (
+                        <Text numberOfLines={1} style={styles.nameText}>
+                            {primaryLabel}
+                        </Text>
+                    )}
                     {!!secondaryLabel && (
                         <Text numberOfLines={1} style={styles.handleText}>
                             {secondaryLabel}
@@ -165,6 +189,11 @@ const styles = StyleSheet.create({
     pfpPh: { backgroundColor: theme.field },
 
     textWrap: { flex: 1, justifyContent: "center" },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexShrink: 1,
+    },
     nameText: {
         fontFamily: "Nunito_700Bold",
         fontSize: ts(17),
