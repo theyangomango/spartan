@@ -108,14 +108,17 @@ export default function LeaderboardCard({
                     />
                 </View>
                 <View>
-                    <VerifiedHandle
-                        handle={handle}
-                        isVerified={isVerified}
-                        preserveTextAlignment
-                        textStyle={[styles.handle_text, { fontSize: scaleSize(FONT_HANDLE) }]}
-                        numberOfLines={1}
-                        containerStyle={styles.handle_row}
-                    />
+                    <View style={isVerified ? styles.handleRowVerified : styles.handleRowUnverified}>
+                        <VerifiedHandle
+                            handle={handle}
+                            isVerified={isVerified}
+                            preserveTextAlignment
+                            textStyle={[styles.handle_text, { fontSize: scaleSize(FONT_HANDLE) }]}
+                            numberOfLines={1}
+                            containerStyle={styles.handle_row}
+                        />
+                    </View>
+
                     <Text style={[styles.name_text, { fontSize: scaleSize(FONT_NAME) }]} numberOfLines={1}>
                         {name}
                     </Text>
@@ -228,9 +231,14 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(100),
         backgroundColor: '#2D3441',
     },
+    handleRowUnverified: {
+        paddingLeft: scaleSize(12)
+    },
+    handleRowVerified: {
+        paddingLeft: scaleSize(8)
+    },
     handle_text: {
         fontFamily: 'Outfit_700Bold',
-        paddingHorizontal: scaleSize(12),
         color: require("../../theme/mfpDark").default.textPrimary,
         maxWidth: scaleSize(width * 0.45),
         letterSpacing: 0.2,

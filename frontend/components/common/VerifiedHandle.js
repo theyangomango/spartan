@@ -73,7 +73,6 @@ export default function VerifiedHandle({
                     ]}
                 />
             ) : preserveTextAlignment ? (
-                // <View style={[styles.iconPlaceholder, { width: gapWidth }]} />
                 <></>
             ) : null}
             <Text
