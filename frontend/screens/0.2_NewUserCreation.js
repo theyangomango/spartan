@@ -8,9 +8,7 @@ import readDoc from '../../backend/helper/firebase/readDoc';
 import makeID from '../../backend/helper/makeID';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import arrayAppend from '../../backend/helper/firebase/arrayAppend';
-import incrementDocValue from '../../backend/helper/firebase/incrementDocValue';
 import buildInitialUser from '../utils/buildInitialUser';
-import { SPARTAN_ACCOUNT } from '../constants/spartanAccount';
 
 /* --- NEW: default PFP upload on sign-up --- */
 import uploadImage from '../../backend/storage/uploadImage';
@@ -120,15 +118,6 @@ const NewUserCreation = ({ navigation, route }) => {
             // Write to Firestore (await BOTH)
             await arrayAppend('global', 'users', 'all', newUser);
             await createDoc('users', newID, newUser);
-
-            // Also add this new user to Spartan's followers list + bump count
-            try {
-                const followerRef = { uid: newID, handle: trimmedUsername, name: trimmedName, pfp: defaultPfpUrl || '' };
-                await arrayAppend('users', SPARTAN_ACCOUNT.uid, 'followers', followerRef);
-                await incrementDocValue('users', SPARTAN_ACCOUNT.uid, 'followerCount', 1);
-            } catch (e) {
-                console.log('Failed to append to Spartan followers:', e?.message || e);
-            }
 
             try {
                 navigation.navigate('Tabs');

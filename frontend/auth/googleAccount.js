@@ -2,11 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import createDoc from '../../backend/helper/firebase/createDoc';
 import readDoc from '../../backend/helper/firebase/readDoc';
 import arrayAppend from '../../backend/helper/firebase/arrayAppend';
-import incrementDocValue from '../../backend/helper/firebase/incrementDocValue';
 import updateDoc from '../../backend/helper/firebase/updateDoc';
 import makeID from '../../backend/helper/makeID';
 import buildInitialUser from '../utils/buildInitialUser';
-import { SPARTAN_ACCOUNT } from '../constants/spartanAccount';
 
 function normalizeHandle(source) {
   if (!source) return '';
@@ -94,12 +92,6 @@ export async function upsertGoogleUser(profile, options = {}) {
     await arrayAppend('global', 'users', 'all', newUser);
   } catch {}
   await createDoc('users', uid, newUser);
-
-  try {
-    const followerRef = { uid, handle: candidateHandle, name: displayName, pfp: avatar || '' };
-    await arrayAppend('users', SPARTAN_ACCOUNT.uid, 'followers', followerRef);
-    await incrementDocValue('users', SPARTAN_ACCOUNT.uid, 'followerCount', 1);
-  } catch {}
 
   return { user: newUser, isNew: true };
 }

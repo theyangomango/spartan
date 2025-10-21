@@ -1,5 +1,4 @@
 import makeID from '../../backend/helper/makeID';
-import { SPARTAN_ACCOUNT } from '../constants/spartanAccount';
 
 function cloneTemplate(exercises, name) {
   return {
@@ -82,8 +81,8 @@ export default function buildInitialUser({
     ],
     followerCount: 0,
     followers: [],
-    following: [{ ...SPARTAN_ACCOUNT }],
-    followingCount: 1,
+    following: [],
+    followingCount: 0,
     followRequestsIn: [],
     followRequestsOut: [],
     handle,
