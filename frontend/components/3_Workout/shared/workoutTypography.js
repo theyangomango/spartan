@@ -36,7 +36,7 @@ export const workoutTypography = StyleSheet.create({
     },
     previousStat: {
         fontFamily: "Poppins_700Bold",
-        fontSize: scaleSize(12.5),
+        fontSize: scaleSize(14.5),
         color: theme.textPrimary,
     },
     statValue: {

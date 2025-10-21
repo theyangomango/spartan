@@ -190,7 +190,7 @@ const makeStyles = (COLORS) =>
         // Slightly lighter modal card + stronger outline and shadow for separation
         modalCard: {
             width: '86%',
-            backgroundColor: require('../../theme/mfpDark').MFP_DARK.field, // lighter than surface
+            backgroundColor: require('../../theme/mfpDark').MFP_DARK.surface, // lighter than surface
             borderRadius: scaleSize(18),
             paddingVertical: scaleSize(18),
             paddingHorizontal: scaleSize(16),

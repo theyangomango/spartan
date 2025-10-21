@@ -73,6 +73,47 @@ const ensureUri = (value) => {
 };
 const toUidString = (uid) => (uid == null ? "" : String(uid));
 
+const normalizePrevSetRow = (row) => {
+    if (!row || typeof row !== "object") return null;
+    const weight = Number(row?.weight) || 0;
+    const reps = Number(row?.reps) || 0;
+    return { weight, reps };
+};
+
+const extractLatestSetsFromStats = (entry) => {
+    if (!entry || typeof entry !== "object") return [];
+    const sets = Array.isArray(entry?.sets) ? entry.sets : [];
+    if (!sets.length) return [];
+    const lastWid = sets[sets.length - 1]?.wid;
+    if (lastWid) {
+        const collected = [];
+        for (let i = sets.length - 1; i >= 0; i--) {
+            const row = sets[i];
+            if (row?.wid !== lastWid) break;
+            const normalized = normalizePrevSetRow(row);
+            if (normalized) collected.push(normalized);
+        }
+        if (collected.length) return collected.reverse();
+    }
+    // Fallback when wid is missing: surface the most recent meaningful entries
+    const trimmed = [];
+    for (let i = sets.length - 1; i >= 0 && trimmed.length < 8; i--) {
+        const normalized = normalizePrevSetRow(sets[i]);
+        if (normalized) trimmed.push(normalized);
+    }
+    return trimmed.reverse();
+};
+
+const extractSetsFromCompletedWorkout = (exercise) => {
+    if (!exercise || typeof exercise !== "object") return [];
+    const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
+    if (!sets.length) return [];
+    const normalized = sets
+        .map((row) => normalizePrevSetRow(row))
+        .filter(Boolean);
+    return normalized;
+};
+
 // FlashList sizing helpers to keep footer actions from overlapping while template data hydrates
 const ESTIMATED_EXERCISE_BASE_HEIGHT = scaleSize(136);
 const ESTIMATED_SET_ROW_HEIGHT = scaleSize(52);
@@ -534,6 +575,36 @@ const ActiveWorkoutModal = ({
 
     // List data + emptiness flag (avoid inline recompute and allow conditional header/footer)
     const exercisesData = useMemo(() => (Array.isArray(baseWorkout?.exercises) ? baseWorkout.exercises : []), [baseWorkout?.exercises]);
+    const fallbackPreviousSetsByName = useMemo(() => {
+        const result = Object.create(null);
+        const statsSource = viewingSelfEffective ? userWorkoutStats : activeStats;
+        if (statsSource && typeof statsSource === "object") {
+            Object.entries(statsSource).forEach(([rawName, entry]) => {
+                const name = String(rawName || "").trim();
+                if (!name || result[name]) return;
+                const prevSets = extractLatestSetsFromStats(entry);
+                if (prevSets.length) result[name] = prevSets;
+            });
+        }
+        if (viewingSelfEffective) {
+            try {
+                const completed = Array.isArray(global?.userData?.completedWorkouts)
+                    ? global.userData.completedWorkouts
+                    : [];
+                for (let i = completed.length - 1; i >= 0 && i >= completed.length - 12; i--) {
+                    const wk = completed[i];
+                    const exs = Array.isArray(wk?.exercises) ? wk.exercises : [];
+                    for (const ex of exs) {
+                        const name = String(ex?.name || "").trim();
+                        if (!name || result[name]) continue;
+                        const prevSets = extractSetsFromCompletedWorkout(ex);
+                        if (prevSets.length) result[name] = prevSets;
+                    }
+                }
+            } catch { }
+        }
+        return result;
+    }, [activeStats, userWorkoutStats, viewingSelfEffective]);
     const isEmptyList = exercisesData.length === 0;
 
     const flashListEstimates = useMemo(() => {
@@ -627,8 +698,9 @@ const ActiveWorkoutModal = ({
             showOptionsTriggerIcon
             syncColumnOnEdit={viewingSelfEffective}
             onStatFocus={handleStatFocus}
+            fallbackPreviousSets={fallbackPreviousSetsByName?.[String(ex?.name || "")] || undefined}
         />
-    ), [deleteExercise, replaceExercise, updateSets, viewingSelfEffective, handleStatFocus]);
+    ), [deleteExercise, replaceExercise, updateSets, viewingSelfEffective, handleStatFocus, fallbackPreviousSetsByName]);
 
     const renderFooter = useCallback(() => (
         <>
@@ -1039,6 +1111,7 @@ const ActiveWorkoutModal = ({
                                     showOptionsTriggerIcon
                                     syncColumnOnEdit={viewingSelfEffective}
                                     onStatFocus={handleStatFocus}
+                                    fallbackPreviousSets={fallbackPreviousSetsByName?.[String(ex?.name || "")] || undefined}
                                 />
                             ))}
                             {renderFooter()}

@@ -31,6 +31,13 @@ const useDebounced = (fn, delay = 120) => {
     return { schedule, flush };
 };
 
+const normalizePrevCandidate = (candidate) => {
+    if (!candidate || typeof candidate !== "object") return null;
+    const weight = Number(candidate?.weight) || 0;
+    const reps = Number(candidate?.reps) || 0;
+    return { weight, reps };
+};
+
 function ExerciseLog({
     name,
     muscle,
@@ -43,6 +50,7 @@ function ExerciseLog({
     showOptionsTriggerIcon = false,
     syncColumnOnEdit = false,
     onStatFocus,         // optional: notify parent when any set input is focused
+    fallbackPreviousSets,
 }) {
     // ----- Android layout animation enable -----
     if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -112,17 +120,32 @@ function ExerciseLog({
     }, [deleteExercise, exerciseIndex]);
 
     // ----- Previous sets (read-only display) -----
+    const normalizedFallbackPrev = useMemo(() => {
+        if (!Array.isArray(fallbackPreviousSets)) return [];
+        return fallbackPreviousSets
+            .map((row) => normalizePrevCandidate(row))
+            .filter(Boolean);
+    }, [fallbackPreviousSets]);
+
     const previousSets = useMemo(() => {
-        if (!Array.isArray(sets)) return [];
-        return sets.map((set) => {
-            const prev = set?.prev;
-            if (!prev || typeof prev !== "object") return null;
-            return {
-                weight: Number(prev?.weight) || 0,
-                reps: Number(prev?.reps) || 0,
-            };
-        });
-    }, [sets]);
+        const inlinePrev = Array.isArray(sets)
+            ? sets.map((set) => normalizePrevCandidate(set?.prev))
+            : [];
+        const inlineHasData = inlinePrev.some(Boolean);
+
+        if (inlineHasData) {
+            if (!normalizedFallbackPrev.length) return inlinePrev;
+            return inlinePrev.map((row, idx) => row || normalizedFallbackPrev[idx] || null);
+        }
+
+        if (!normalizedFallbackPrev.length) return inlinePrev;
+
+        if (!Array.isArray(draft) || !draft.length) {
+            return normalizedFallbackPrev;
+        }
+
+        return draft.map((_, idx) => normalizedFallbackPrev[idx] || null);
+    }, [sets, normalizedFallbackPrev, draft]);
 
     // ----- Panel -----
     const [isPanelVisible, setIsPanelVisible] = useState(false);
@@ -322,7 +345,8 @@ const areEqual = (prev, next) => {
         prev.readOnly === next.readOnly &&
         prev.showOptionsTriggerIcon === next.showOptionsTriggerIcon &&
         prev.syncColumnOnEdit === next.syncColumnOnEdit &&
-        prev.sets === next.sets)
+        prev.sets === next.sets &&
+        prev.fallbackPreviousSets === next.fallbackPreviousSets)
     );
 };
 
