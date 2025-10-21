@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "rgba(8, 11, 20, 0.82)",
+        backgroundColor: "rgba(11, 11, 11, 0.82)",
         paddingHorizontal: scaledSize(24),
     },
     modalContainer: {
