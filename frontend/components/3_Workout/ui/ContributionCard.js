@@ -5,6 +5,7 @@ import theme from "../../../theme/mfpDark";
 import scaleSize from "../../../helper/scaleSize";
 import { usePfp } from "../../../helper/usePFPs";
 import ContributionStatsCards from "./ContributionStatsCards";
+import VerifiedHandle from "../../common/VerifiedHandle";
 
 const handleText = (item = {}) => {
     const raw =
@@ -118,7 +119,14 @@ const ContributionCard = ({ entry, isFirst = false, onPress }) => {
                         )}
                     </View>
                     <View style={styles.handleTextWrap}>
-                        <Text style={styles.handle} numberOfLines={1} ellipsizeMode="tail">{handleLabel}</Text>
+                        <VerifiedHandle
+                            handle={handleLabel}
+                            isVerified={Boolean(entry?.isVerified ?? entry?.verified)}
+                            preserveTextAlignment
+                            textStyle={styles.handle}
+                            numberOfLines={1}
+                            containerStyle={styles.handleRow}
+                        />
                         <Text style={styles.handleSub} numberOfLines={1} ellipsizeMode="tail">{contributionSubtext}</Text>
                     </View>
                 </View>
@@ -155,6 +163,9 @@ const styles = StyleSheet.create({
     handleTextWrap: {
         flexShrink: 1,
         minWidth: 0,
+    },
+    handleRow: {
+        flexShrink: 1,
     },
     avatarWrap: {
         borderRadius: scaleSize(14),

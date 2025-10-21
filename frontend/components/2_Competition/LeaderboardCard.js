@@ -7,6 +7,7 @@ import scaleSize from '../../helper/scaleSize';
 import { withStrongPress } from '../../utils/haptics';
 const ts = require('../../helper/scaleSize').ts;
 import theme from '../../theme/mfpDark';
+import VerifiedHandle from '../common/VerifiedHandle';
 
 const { width } = Dimensions.get("window");
 
@@ -44,6 +45,7 @@ export default function LeaderboardCard({
     handlePress,
     userIsSelf = false,
     bestSet = { reps: 0, weight: 0 },
+    isVerified = false,
 
     // NEW (all optional)
     metric = '1RM',
@@ -106,9 +108,14 @@ export default function LeaderboardCard({
                     />
                 </View>
                 <View>
-                    <Text style={[styles.handle_text, { fontSize: scaleSize(FONT_HANDLE) }]} numberOfLines={1}>
-                        {handle}
-                    </Text>
+                    <VerifiedHandle
+                        handle={handle}
+                        isVerified={isVerified}
+                        preserveTextAlignment
+                        textStyle={[styles.handle_text, { fontSize: scaleSize(FONT_HANDLE) }]}
+                        numberOfLines={1}
+                        containerStyle={styles.handle_row}
+                    />
                     <Text style={[styles.name_text, { fontSize: scaleSize(FONT_NAME) }]} numberOfLines={1}>
                         {name}
                     </Text>
@@ -195,6 +202,9 @@ const styles = StyleSheet.create({
         paddingRight: scaleSize(14),
         marginBottom: scaleSize(12.5),
         backgroundColor: theme.surface,
+    },
+    handle_row: {
+        maxWidth: width * 0.45,
     },
     self_card_ctnr: {
         borderRadius: scaleSize(20),

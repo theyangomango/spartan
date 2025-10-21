@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import FastImage from "react-native-fast-image";
 import scaleSize from "../../helper/scaleSize";
 const ts = require('../../helper/scaleSize').ts;
+import VerifiedHandle from "../common/VerifiedHandle";
 
 const PODIUM_HEIGHT = scaleSize(240);
 export { PODIUM_HEIGHT };
@@ -151,9 +152,13 @@ export default function Podium({ data, topOffset = 0 }) {
                         )}
                     </View>
                     {data.length >= 2 && (
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
-                            {data[1].handle}
-                        </Text>
+                        <VerifiedHandle
+                            handle={data[1].handle}
+                            isVerified={Boolean(data[1]?.isVerified ?? data[1]?.verified)}
+                            textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
+                            numberOfLines={1}
+                            containerStyle={styles.handleRow}
+                        />
                     )}
                     <View style={[styles.bar_ctnr, styles.silver_ctnr, { height: BAR_HEIGHT_LEFT, width: BAR_WIDTH }]}>
                         {/* Unified number color for all bars */}
@@ -173,9 +178,13 @@ export default function Podium({ data, topOffset = 0 }) {
                         )}
                     </View>
                     {data.length >= 1 && (
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
-                            {data[0].handle}
-                        </Text>
+                        <VerifiedHandle
+                            handle={data[0].handle}
+                            isVerified={Boolean(data[0]?.isVerified ?? data[0]?.verified)}
+                            textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
+                            numberOfLines={1}
+                            containerStyle={styles.handleRow}
+                        />
                     )}
                     <View style={[styles.bar_ctnr, styles.gold_ctnr, { height: BAR_HEIGHT_CENTER, width: BAR_WIDTH }]}>
                         <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR }]}>1</Text>
@@ -194,9 +203,13 @@ export default function Podium({ data, topOffset = 0 }) {
                         )}
                     </View>
                     {data.length >= 3 && (
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}>
-                            {data[2].handle}
-                        </Text>
+                        <VerifiedHandle
+                            handle={data[2].handle}
+                            isVerified={Boolean(data[2]?.isVerified ?? data[2]?.verified)}
+                            textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
+                            numberOfLines={1}
+                            containerStyle={styles.handleRow}
+                        />
                     )}
                     <View style={[styles.bar_ctnr, styles.bronze_ctnr, { height: BAR_HEIGHT_RIGHT, width: BAR_WIDTH }]}>
                         <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR }]}>3</Text>
@@ -280,6 +293,9 @@ const styles = StyleSheet.create({
         color: '#fff',
         paddingTop: HANDLE_PT,
         paddingBottom: HANDLE_PB,
+    },
+    handleRow: {
+        justifyContent: 'center',
     },
     bar_text: {
         fontFamily: 'Outfit_800ExtraBold',

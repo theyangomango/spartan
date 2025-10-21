@@ -10,6 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 
 import scaleSize from "../../../helper/scaleSize";
 import { strong as hapticStrong } from "../../../utils/haptics";
+import VerifiedHandle from "../../common/VerifiedHandle";
 
 const dynamicStyles = getCommentCardStyles();
 
@@ -113,7 +114,13 @@ export default function CommentCard({
 
             <View style={styles.card_texts_ctnr}>
                 <View style={styles.card_header}>
-                    <Text style={styles.handle_text}>{data.handle}</Text>
+                    <VerifiedHandle
+                        handle={data.handle}
+                        isVerified={Boolean(data?.isVerified ?? data?.verified)}
+                        textStyle={styles.handle_text}
+                        numberOfLines={1}
+                        containerStyle={styles.handle_row}
+                    />
                     <Text style={styles.time_text}>
                         · {getDisplayTimeDifference(data.timestamp, Date.now())}
                     </Text>
@@ -211,6 +218,9 @@ const styles = StyleSheet.create({
     card_header: {
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    handle_row: {
+        marginRight: scaleSize(6),
     },
     handle_text: {
         fontSize: dynamicStyles.fontSize,

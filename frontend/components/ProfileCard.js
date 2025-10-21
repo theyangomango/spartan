@@ -7,6 +7,7 @@ import theme from '../theme/mfpDark';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { withStrongPress } from '../utils/haptics';
+import VerifiedHandle from './common/VerifiedHandle';
 
 const { height } = Dimensions.get('window');
 
@@ -66,9 +67,12 @@ const ProfileCard = ({ user, onSelect, isSelected, baseBg, selectedBg }) => {
                 </View>
             </LinearGradient>
             <View style={styles.text_ctnr}>
-                <Text numberOfLines={1} style={[styles.handle_text, { fontSize: scaleSize(SIZES.handleFont) }]}>
-                    {user.handle}
-                </Text>
+                <VerifiedHandle
+                    handle={user.handle}
+                    isVerified={Boolean(user?.isVerified ?? user?.verified)}
+                    textStyle={[styles.handle_text, { fontSize: scaleSize(SIZES.handleFont) }]}
+                    numberOfLines={1}
+                />
                 <Text numberOfLines={1} style={[styles.name_text, { fontSize: scaleSize(SIZES.nameFont) }]}>
                     {user.name}
                 </Text>

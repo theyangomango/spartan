@@ -7,6 +7,7 @@ import { usePfp } from "../../../helper/usePFPs";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../theme/mfpDark";
 import { Weight } from "iconsax-react-native";
+import VerifiedHandle from "../../common/VerifiedHandle";
 
 function PostHeader({
     data,
@@ -50,7 +51,12 @@ function PostHeader({
 
                     <View style={styles.text_ctnr}>
                         <Pressable onPress={toViewProfile}>
-                            <Text style={[styles.handle_text, isLightHeader && styles.handle_text_dark]}>{data.handle}</Text>
+                            <VerifiedHandle
+                                handle={data.handle}
+                                isVerified={Boolean(data?.isVerified ?? data?.verified)}
+                                textStyle={[styles.handle_text, isLightHeader && styles.handle_text_dark]}
+                                numberOfLines={1}
+                            />
                         </Pressable>
 
                         {data.workout && (

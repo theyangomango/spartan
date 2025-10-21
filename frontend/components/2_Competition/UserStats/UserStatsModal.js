@@ -15,6 +15,7 @@ import UserStatsExerciseDetailScreen from "./UserStatsExerciseDetailScreen";
 import UserStatsWorkoutViewerScreen from "./UserStatsWorkoutViewerScreen";
 import { styles, COLORS, scaledSize, screenWidth } from "./UserStatsStyles";
 import formatHexStat from "../../../utils/formatHexStat";
+import VerifiedHandle from "../../common/VerifiedHandle";
 import {
     getExercisesGrouped,
     ensureWorkoutPrivacy,
@@ -382,9 +383,13 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                         style={styles.pfp}
                     />
                     <View style={{ flex: 1 }}>
-                        <Text numberOfLines={1} ellipsizeMode="tail" style={styles.handle}>
-                            {user.handle}
-                        </Text>
+                        <VerifiedHandle
+                            handle={user.handle}
+                            isVerified={Boolean(user?.isVerified ?? user?.verified)}
+                            textStyle={styles.handle}
+                            numberOfLines={1}
+                            containerStyle={styles.handleRow}
+                        />
                         <Text style={styles.subHandle}>{joinedLabel}</Text>
                     </View>
                 </Pressable>

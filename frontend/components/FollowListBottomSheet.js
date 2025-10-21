@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { strong as hapticStrong } from '../utils/haptics';
 
 import scaleSize from "../helper/scaleSize";
+import VerifiedHandle from "./common/VerifiedHandle";
 
 const { height: SCREEN_H } = Dimensions.get('window');
 const scale = SCREEN_H / 844;
@@ -24,6 +25,7 @@ function normalizeUser(u) {
         name: u?.name || u?.displayName || '',
         pfp: u?.pfp || u?.image || u?.photoURL || '',
         pfpVersion: u?.pfpVersion || u?.pfpVer || 0,
+        isVerified: Boolean(u?.isVerified ?? u?.verified ?? false),
     };
 }
 
@@ -102,7 +104,14 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
                     )}
                 </View>
                 <View style={styles.textC}>
-                    <Text numberOfLines={1} style={styles.handle}>{item?.handle || item?.uid}</Text>
+                    <VerifiedHandle
+                        handle={item?.handle || item?.uid}
+                        isVerified={Boolean(item?.isVerified)}
+                        preserveTextAlignment
+                        textStyle={styles.handle}
+                        numberOfLines={1}
+                        containerStyle={styles.handleRow}
+                    />
                     {!!item?.name && <Text numberOfLines={1} style={styles.name}>{item.name}</Text>}
                 </View>
             </Pressable>
@@ -208,6 +217,7 @@ const styles = StyleSheet.create({
     },
     pfp: { width: '100%', height: '100%', borderRadius: scaleSize(s(18)) },
     textC: { marginLeft: scaleSize(s(12)), flex: 1 },
+    handleRow: { flexShrink: 1, maxWidth: '100%' },
     handle: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(s(13.5)),

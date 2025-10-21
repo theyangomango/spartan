@@ -1,11 +1,12 @@
 import React from "react";
 import { StyleSheet, View, Text } from "react-native";
-import { Setting2, Add, Verify } from "iconsax-react-native";
+import { Setting2, Add } from "iconsax-react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import scaleSize from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
 import { withStrongPress } from "../../../utils/haptics";
 import { getUnifiedHeaderMetrics } from "../../../theme/headerMetrics";
+import VerifiedHandle from "../../common/VerifiedHandle";
 
 const METRICS = getUnifiedHeaderMetrics();
 const ICON_SIZE = METRICS.iconSize;
@@ -15,7 +16,6 @@ const ICON_COLOR = "#CBD5E1";
 const ICON_STROKE_WIDTH = 2.4;
 const CREATE_ICON_SIZE = ICON_SIZE + scaleSize(3.2);
 const CREATE_ICON_STROKE_WIDTH = 3.25;
-const VERIFIED_ICON_SIZE = scaleSize(19);
 
 export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
     const handle = global?.userData?.handle || '';
@@ -32,17 +32,13 @@ export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
             </RNBounceable>
             <RNBounceable>
                 <View style={styles.center}>
-                    <Text style={styles.handle_text} numberOfLines={1} ellipsizeMode="tail">
-                        {handle}
-                    </Text>
-                    {isVerified ? (
-                        <Verify
-                            size={VERIFIED_ICON_SIZE}
-                            color={theme.primary}
-                            variant="Bold"
-                            style={styles.verifiedIcon}
-                        />
-                    ) : null}
+                    <VerifiedHandle
+                        handle={handle}
+                        isVerified={isVerified}
+                        textStyle={styles.handle_text}
+                        numberOfLines={1}
+                        containerStyle={styles.handleRow}
+                    />
                     {/* <View style={styles.down_arrow_ctnr}>
                         <Entypo name="chevron-down" size={scaleSize(18)} color="#A3A7B0" />
                     </View> */}
@@ -73,16 +69,15 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingBottom: scaleSize(3.5),
     },
+    handleRow: {
+        flexShrink: 1,
+    },
     handle_text: {
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(17),
         color: theme.textPrimary,
         flexShrink: 1,
         includeFontPadding: false,
-    },
-    verifiedIcon: {
-        marginLeft: scaleSize(4),
-        transform: [{ translateY: scaleSize(2) }],
     },
     down_arrow_ctnr: {
         justifyContent: 'center',

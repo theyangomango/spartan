@@ -16,6 +16,7 @@ import { usePfp } from "../../../helper/usePFPs";
 import { subscribeUserData } from "../../../utils/userDataEvents";
 import { strong as haptic, withStrongPress } from "../../../utils/haptics";
 import { db } from "../../../../firebase.config";
+import VerifiedHandle from "../../common/VerifiedHandle";
 
 /* -------- helpers -------- */
 const ellipsize = (str = "", max = 60) => {
@@ -589,10 +590,13 @@ export default function NotificationCard({
                 {/* text */}
                 <View style={styles.textContainer}>
                     <View style={styles.topRow}>
-                        <Text style={styles.handle} numberOfLines={1}>
-                            {item.handle}
-                        </Text>
-
+                        <VerifiedHandle
+                            handle={item.handle}
+                            isVerified={Boolean(item?.isVerified ?? item?.verified)}
+                            textStyle={styles.handle}
+                            numberOfLines={1}
+                            containerStyle={styles.handleRow}
+                        />
                     </View>
                     <Text style={styles.message} numberOfLines={2}>
                         {getDisplayMessage(item)}
@@ -671,6 +675,7 @@ const styles = StyleSheet.create({
     },
     textContainer: { flex: 1, minWidth: 0, paddingRight: scaleSize(12) },
     topRow: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(1) },
+    handleRow: { flexShrink: 1, maxWidth: '100%' },
     handle: {
         fontSize: scaleSize(13),
         fontFamily: "Outfit_600SemiBold",

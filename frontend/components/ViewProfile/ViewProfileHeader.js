@@ -1,10 +1,11 @@
-import { StyleSheet, View, Text } from "react-native";
-import { ArrowDown2, ArrowLeft2, DirectInbox, Verify } from "iconsax-react-native";
+import { StyleSheet, View } from "react-native";
+import { ArrowDown2, ArrowLeft2, DirectInbox } from "iconsax-react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
 import { withStrongPress } from "../../utils/haptics";
 import { getUnifiedHeaderMetrics } from "../../theme/headerMetrics";
+import VerifiedHandle from "../common/VerifiedHandle";
 
 const METRICS = getUnifiedHeaderMetrics();
 const ICON_SIZE = METRICS.iconSize;
@@ -12,7 +13,6 @@ const HEADER_HORIZONTAL_PADDING = Math.max(0, METRICS.paddingH - scaleSize(6));
 const ICON_WRAPPER_SIZE = scaleSize(ICON_SIZE + 2);
 const ICON_COLOR = "#CBD5E1";
 const ICON_STROKE_WIDTH = 2.4;
-const VERIFIED_ICON_SIZE = scaleSize(19);
 
 export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOptions, isVerified = false }) {
     return (
@@ -23,17 +23,13 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
 
             <RNBounceable onPress={withStrongPress(onOpenOptions)} hitSlop={10} style={styles.center}>
                 <View style={styles.handleRow}>
-                    <Text style={styles.handle_text} numberOfLines={1} ellipsizeMode="tail">
-                        {handle}
-                    </Text>
-                    {isVerified ? (
-                        <Verify
-                            size={VERIFIED_ICON_SIZE}
-                            color={theme.primary}
-                            variant="Bold"
-                            style={styles.verifiedIcon}
-                        />
-                    ) : null}
+                    <VerifiedHandle
+                        handle={handle}
+                        isVerified={isVerified}
+                        textStyle={styles.handle_text}
+                        numberOfLines={1}
+                        containerStyle={styles.handleInner}
+                    />
                     {/* <ArrowDown2
                         size={scaleSize(18)}
                         color={theme.textSecondary}
@@ -74,6 +70,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         maxWidth: "100%",
     },
+    handleInner: {
+        maxWidth: "100%",
+        flexShrink: 1,
+    },
     handle_text: {
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(17),
@@ -81,10 +81,6 @@ const styles = StyleSheet.create({
         maxWidth: "100%",
         flexShrink: 1,
         includeFontPadding: false,
-    },
-    verifiedIcon: {
-        marginLeft: scaleSize(4),
-        transform: [{ translateY: scaleSize(2) }],
     },
     centerChevron: {
         marginLeft: scaleSize(6),

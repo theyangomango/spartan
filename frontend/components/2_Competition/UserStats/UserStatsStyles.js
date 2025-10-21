@@ -71,6 +71,10 @@ const styles = StyleSheet.create({
         color: COLORS.text,
         letterSpacing: 0.2,
     },
+    handleRow: {
+        flexShrink: 1,
+        maxWidth: '100%',
+    },
     subHandle: {
         marginTop: scaledSize(2),
         fontSize: scaleSize(11.5),

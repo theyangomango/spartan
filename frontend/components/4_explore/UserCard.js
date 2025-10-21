@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
 import scaleSize from '../../helper/scaleSize';
 import FastImage from 'react-native-fast-image';
 import { withStrongPress } from '../../utils/haptics';
+import VerifiedHandle from '../common/VerifiedHandle';
 
 const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
@@ -18,7 +19,12 @@ const UserCard = ({ user, toViewProfile }) => {
                 />
             </View>
             <View style={styles.text_ctnr}>
-                <Text numberOfLines={1} style={styles.handle_text}>{user.handle}</Text>
+                <VerifiedHandle
+                    handle={user.handle}
+                    isVerified={Boolean(user?.isVerified ?? user?.verified)}
+                    textStyle={styles.handle_text}
+                    numberOfLines={1}
+                />
                 <Text style={styles.name_text}>{user.name}</Text>
             </View>
 
