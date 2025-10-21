@@ -64,7 +64,7 @@ const sanitizeWorkout = (w) => {
         ? w.exercises.map((ex) => cleanObj({ ...ex, sets: normalizeSets(ex?.sets) }))
         : [];
     // Strip ephemeral local-only flags
-    const { __justStarted, ...rest } = w;
+    const { __justStarted, __focusTitle, ...rest } = w;
     // Enforce a valid privacy mode and remove undefined values before persisting
     const enforced = { ...rest, privacyMode: coercePrivacyMode(rest?.privacyMode) };
     const restClean = cleanObj(enforced);
@@ -547,7 +547,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     creator: creatorMetadata,
                 };
 
-                const localWorkout = { ...newWorkout, __justStarted: true };
+                const localWorkout = { ...newWorkout, __justStarted: true, __focusTitle: true };
                 try {
                     console.log?.("[WorkoutManager] setWorkoutInStore start");
                     console.time?.("useWorkoutManager::setWorkoutInStore");
@@ -969,7 +969,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     volume: 0, reps: 0, PBs: 0,
                 });
                 // Tag locally as just started/joined so UI can show reminder once.
-                localJoined = { ...joined, __justStarted: true };
+                localJoined = { ...joined, __justStarted: true, __focusTitle: true };
                 // Also set a global one-shot flag for safety (consumed by ActiveWorkoutModal)
                 try { global.__showWorkoutReminderForWid = String(wid); } catch {}
             }

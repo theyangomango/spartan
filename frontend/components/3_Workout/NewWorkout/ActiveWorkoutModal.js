@@ -178,6 +178,8 @@ const ActiveWorkoutModal = ({
 
     const scrollY = useRef(new RNAnimated.Value(0)).current;
     const listRef = useRef(null);
+    const titleInputRef = useRef(null);
+    const hasFocusedTitleRef = useRef("");
     const ensuredSelfViewRef = useRef(new Set());
     const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -318,6 +320,19 @@ const ActiveWorkoutModal = ({
         return label || null;
     }, [baseWorkout?.created, baseWorkout?.createdAt]);
 
+    useEffect(() => {
+        if (!viewingSelfEffective) {
+            hasFocusedTitleRef.current = "";
+            return;
+        }
+        const wid = String(workout?.wid || "");
+        if (!wid) {
+            hasFocusedTitleRef.current = "";
+        } else if (hasFocusedTitleRef.current && hasFocusedTitleRef.current !== wid) {
+            hasFocusedTitleRef.current = "";
+        }
+    }, [viewingSelfEffective, workout?.wid]);
+
     const workoutNameValue = String(workout?.name ?? '');
     const baseWorkoutName = String(baseWorkout?.name ?? '');
 
@@ -326,11 +341,76 @@ const ActiveWorkoutModal = ({
         updateWorkout({ ...(workout || {}), name: text });
     }, [viewingSelfEffective, updateWorkout, workout]);
 
+    useEffect(() => {
+        if (!viewingSelfEffective) return;
+        const wid = String(workout?.wid || "");
+        if (!wid) return;
+        const shouldFocus = !!workout?.__focusTitle || (!!workout?.__justStarted && hasFocusedTitleRef.current !== wid);
+        if (!shouldFocus) return;
+        if (hasFocusedTitleRef.current === wid && !workout?.__focusTitle) return;
+
+        let cancelled = false;
+        const maxAttempts = 10;
+        const delayMs = 80;
+        const shouldClearFocusFlag = !!workout?.__focusTitle;
+
+        const selectAll = (input) => {
+            const length = workoutNameValue.length;
+            if (!Number.isFinite(length) || typeof input.setNativeProps !== "function") return;
+            try {
+                input.setNativeProps({ selection: { start: 0, end: length } });
+            } catch { }
+        };
+
+        const finalizeFocus = () => {
+            hasFocusedTitleRef.current = wid;
+            if (shouldClearFocusFlag) {
+                requestAnimationFrame(() => {
+                    if (cancelled) return;
+                    try { updateWorkout?.({ ...(workout || {}), __focusTitle: false }); } catch { }
+                });
+            }
+        };
+
+        const attemptFocus = (attempt = 0) => {
+            if (cancelled) return;
+            const input = titleInputRef.current;
+            if (input && typeof input.focus === "function") {
+                try { input.focus(); }
+                catch { /* ignore */ }
+                requestAnimationFrame(() => {
+                    if (cancelled) return;
+                    const liveInput = titleInputRef.current;
+                    if (!liveInput || liveInput !== input) return;
+                    selectAll(liveInput);
+                    finalizeFocus();
+                });
+                return;
+            }
+            if (attempt < maxAttempts && !cancelled) {
+                setTimeout(() => attemptFocus(attempt + 1), delayMs);
+            }
+        };
+
+        if (InteractionManager?.runAfterInteractions) {
+            InteractionManager.runAfterInteractions(() => attemptFocus(0));
+        } else {
+            attemptFocus(0);
+        }
+
+        return () => { cancelled = true; };
+    }, [viewingSelfEffective, workout?.__focusTitle, workout?.__justStarted, workout?.wid, workoutNameValue, updateWorkout, workout]);
+
+    const handleTitleInputRef = useCallback((node) => {
+        titleInputRef.current = node;
+    }, []);
+
     const workoutTitleDisplay = useMemo(() => {
         if (viewingSelfEffective) {
             return (
                 <View style={styles.titleDisplayContainer}>
                     <TextInput
+                        ref={handleTitleInputRef}
                         style={[styles.titleDisplayText, styles.titleDisplayInput]}
                         value={workoutNameValue}
                         onChangeText={handleChangeWorkoutTitle}
