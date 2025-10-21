@@ -7,21 +7,25 @@ export default function useFilteredFeed(followingUsers, max = 50) {
     const mapRef = useRef(new Map()); // id -> post object
     const orderRef = useRef([]);      // array of ids in display order
 
+    const myUid = global?.userData?.uid ? String(global.userData.uid) : null;
+
     useEffect(() => {
-        if (!Array.isArray(followingUsers) || followingUsers.length === 0) {
+        const followingArray = Array.isArray(followingUsers) ? followingUsers : [];
+        const allowedUids = new Set(
+            followingArray
+                .map((u) => (u?.uid || u))
+                .filter(Boolean)
+                .map(String)
+        );
+        if (myUid) allowedUids.add(myUid);
+
+        if (allowedUids.size === 0) {
             setFeed([]);
             return;
         }
 
         const postsRef = collection(db, 'posts');
         const q = query(postsRef, orderBy('created', 'desc'), limit(max));
-
-        const allowedUids = new Set(
-            (Array.isArray(followingUsers) ? followingUsers : [])
-                .map(u => (u?.uid || u))
-                .filter(Boolean)
-        );
-        if (global?.userData?.uid) allowedUids.add(global.userData.uid);
 
         // Exclusions: users I blocked or who blocked me
         const myBlocked = Array.isArray(global?.userData?.blocked) ? global.userData.blocked : [];
@@ -81,7 +85,7 @@ export default function useFilteredFeed(followingUsers, max = 50) {
 
         return () => unsub();
     // Use a stable string key derived from following to avoid crashes when undefined
-    }, [JSON.stringify(Array.isArray(followingUsers) ? followingUsers.map(u => (u?.uid || u)) : []), max]);
+    }, [JSON.stringify(Array.isArray(followingUsers) ? followingUsers.map(u => (u?.uid || u)) : []), max, myUid]);
 
     return feed;
 }
