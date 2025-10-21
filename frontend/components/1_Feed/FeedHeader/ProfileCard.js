@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,6 +8,8 @@ import theme from '../../../theme/mfpDark';
 
 import scaleSize from "../../../helper/scaleSize";
 import { withStrongPress } from '../../../utils/haptics';
+import VerifiedHandle from '../../common/VerifiedHandle';
+import useUserVerified from '../../../hooks/useUserVerified';
 
 const scale = (w) => w / 375;
 
@@ -16,6 +18,11 @@ const ProfileCard = ({ user, query, onPress }) => {
   const avatarSize = s(44);
   const pfpUri = usePfp(String(user?.uid || ''), user?.pfpVersion || 0) || user?.pfp || '';
   const hasPfp = !!pfpUri;
+  const sanitizedHandle = useMemo(() => {
+    const base = typeof user?.handle === 'string' ? user.handle : '';
+    return base.replace(/^@+/, '').trim() || 'user';
+  }, [user?.handle]);
+  const isVerified = useUserVerified(user?.uid, Boolean(user?.isVerified ?? user?.verified));
 
   return (
     <RNBounceable onPress={withStrongPress(onPress)} style={styles.profileCard} bounceEffectIn={0.96}>
@@ -32,7 +39,15 @@ const ProfileCard = ({ user, query, onPress }) => {
           )}
         </View>
         <View style={{ marginLeft: scaleSize(12), flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={styles.cardHandle}>@{user?.handle || 'user'}</Text>
+          <VerifiedHandle
+            handle={sanitizedHandle}
+            isVerified={isVerified}
+            textStyle={styles.cardHandle}
+            iconSize={scaleSize(14)}
+            numberOfLines={1}
+            preserveTextAlignment
+            containerStyle={styles.cardHandleRow}
+          />
           {!!user?.name && <Text numberOfLines={1} style={styles.cardName}>{user.name}</Text>}
         </View>
       </View>
@@ -55,6 +70,7 @@ const styles = StyleSheet.create({
   profileLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, minWidth: 0 },
   // Remove blue border ring; keep container for centering only
   avatarRing: { alignItems: 'center', justifyContent: 'center', borderWidth: 0, borderColor: 'transparent', backgroundColor: 'transparent' },
+  cardHandleRow: { flexDirection: 'row', alignItems: 'center', flexShrink: 1 },
   cardHandle: { fontFamily: 'Outfit_700Bold', fontSize: scaleSize(14), color: '#E5E7EB' },
   cardName: { marginTop: scaleSize(2), fontFamily: 'Outfit_400Regular', fontSize: scaleSize(12.5), color: '#A1A7B3' },
 });
