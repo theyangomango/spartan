@@ -5,7 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { collection, doc, getDoc, getDocs, limit, onSnapshot, query, where } from 'firebase/firestore';
 import scaleSize from '../../../helper/scaleSize';
 import { styles, COLORS, scaledSize } from './UserStatsStyles';
-import { withStrongPress } from '../../../utils/haptics';
+import { withStrongPress, strong as hapticStrong } from '../../../utils/haptics';
 import SimpleFeedPost from '../../1_Feed/SimpleFeedPost';
 import { extractWid, toMillis } from './userStatsUtils';
 import { db } from '../../../../firebase.config';
@@ -508,6 +508,8 @@ export default function UserStatsExerciseDetailScreen({
             pfp: source.pfp || '',
         };
 
+        if (targetUid) hapticStrong();
+
         if (targetUid && isThisUser(targetUid)) {
             navigateOneWay('Profile', 'slide-from-right');
             return;
@@ -553,10 +555,12 @@ export default function UserStatsExerciseDetailScreen({
         getParent: () => ({
             navigate: (route, params) => {
                 if (route === 'Profile') {
+                    hapticStrong();
                     navigateOneWay('Profile', 'slide-from-right');
                     return;
                 }
                 if (route === 'ViewProfile') {
+                    hapticStrong();
                     navigateOneWay('ViewProfile', { animation: 'slide-from-right', params });
                     return;
                 }
@@ -565,10 +569,12 @@ export default function UserStatsExerciseDetailScreen({
         }),
         navigate: (route, params) => {
             if (route === 'Profile') {
+                hapticStrong();
                 navigateOneWay('Profile', 'slide-from-right');
                 return;
             }
             if (route === 'ViewProfile') {
+                hapticStrong();
                 navigateOneWay('ViewProfile', { animation: 'slide-from-right', params });
                 return;
             }

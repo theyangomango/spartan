@@ -7,6 +7,7 @@ import useWorkoutStore from "../../../state/workoutStore";
 import { useNavigation } from "@react-navigation/native";
 
 import scaleSize from "../../../helper/scaleSize";
+import { strong as hapticStrong } from "../../../utils/haptics";
 
 // Lighter handle indicator for better visibility
 const HANDLE_LIGHT = "#E2E8F0"; // light slate/gray
@@ -116,6 +117,7 @@ const NewWorkoutBottomSheet = ({
         const meUid = String(global?.userData?.uid || "");
         const friendUidEff = String(effectiveWorkout?.creatorUID || effectiveWorkout?.creatorUid || meUid);
         if (!friendUidEff) return;
+        hapticStrong();
         const rootNav = navigation?.getParent?.('ROOT');
         if (friendUidEff === meUid) {
             if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });

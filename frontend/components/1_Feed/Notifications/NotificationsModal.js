@@ -16,6 +16,7 @@ import {
 } from "../../../state/notificationsStore";
 import { shallow } from "zustand/shallow";
 import { joinWorkoutFromPayload } from "../../../workout/workoutActions";
+import { strong as hapticStrong } from "../../../utils/haptics";
 
 export const NOTIFICATION_FILTERS = ["All", "Likes", "Comments", "Follows", "Workouts"];
 
@@ -193,6 +194,7 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
                 transition: 'slide-from-right',
             };
 
+            hapticStrong();
             try {
                 const { navigateRoot } = require('../../../../navigationRef');
                 if (navigateRoot('ViewProfile', payload)) return;

@@ -16,6 +16,7 @@ import UserCard from './UserCard'; // Ensure this path is correct
 import { debounce } from 'lodash'; // Install lodash if not already installed
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import scaleSize from '../../helper/scaleSize';
+import { strong as hapticStrong } from '../../utils/haptics';
 
 const { width: screenWidth } = Dimensions.get('window');
 // Centralized scaling utility
@@ -81,6 +82,7 @@ const SearchBarComponent = ({ navigation, allUsers, onSearchExpandChange }) => {
     };
 
     const toViewProfile = (user) => {
+        hapticStrong();
         navigation.navigate('ViewProfile', { user });
     };
 

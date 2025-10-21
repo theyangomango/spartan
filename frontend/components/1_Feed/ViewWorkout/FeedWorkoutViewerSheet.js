@@ -11,6 +11,7 @@ import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import makeID from "../../../../backend/helper/makeID";
 import theme from "../../../theme/mfpDark";
 import { canViewWorkout, sanitizeStatsForViewer } from "../../../utils/workoutPrivacy";
+import { strong as hapticStrong } from "../../../utils/haptics";
 
 import scaleSize from "../../../helper/scaleSize";
 
@@ -250,6 +251,7 @@ const FeedWorkoutViewerSheet = ({
                           onPressPfp={() => {
                             try { bottomSheetRef.current?.close(); } catch {}
                             if (!friendUidEff) return;
+                            hapticStrong();
                             const meUid = String(global?.userData?.uid || "");
                             const rootNav = navigation?.getParent?.('ROOT');
                             if (friendUidEff === meUid) {

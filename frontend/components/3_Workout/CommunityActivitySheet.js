@@ -37,6 +37,7 @@ import SimpleFeedPost from "../1_Feed/SimpleFeedPost";
 import { sanitizeStatsForViewer } from "../../utils/workoutPrivacy";
 import { buildExerciseSummaries } from "../../utils/workoutSummary";
 import { usePfp } from "../../helper/usePFPs";
+import { strong as hapticStrong } from "../../utils/haptics";
 
 const { height: screenHeight, width: screenWidth } = Dimensions.get("window");
 const scale = screenHeight / 844;
@@ -1797,6 +1798,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
 
     const navigateToUserProfile = useCallback((uid) => {
         if (!uid) return;
+        hapticStrong();
         const meUid = String(global?.userData?.uid || "");
         const rootNav = navigation?.getParent?.('ROOT');
         if (uid === meUid) {
@@ -1970,6 +1972,7 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                                             try { bottomSheetRef.current?.close(); } catch { }
                                             const uid = String(selectedItem?.friendUid || '');
                                             if (!uid) return;
+                                            hapticStrong();
                                             const meUid = String(global?.userData?.uid || '');
                                             const rootNav = navigation?.getParent?.('ROOT');
                                             if (uid === meUid) {

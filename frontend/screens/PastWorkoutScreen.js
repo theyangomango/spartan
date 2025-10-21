@@ -20,6 +20,8 @@ import { usePfp } from "../helper/usePFPs";
 import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
 import updateCompletedWorkout from "../../backend/workouts/updateCompletedWorkout";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
+import isThisUser from "../helper/isThisUser";
+import { strong as hapticStrong } from "../utils/haptics";
 
 const HEADER_ICON_SIZE = scaleSize(20);
 
@@ -136,6 +138,15 @@ const initialsFrom = (name = "") => {
     if (!parts.length) return "";
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+};
+
+const pickFirstString = (...values) => {
+    for (const value of values) {
+        if (typeof value !== "string") continue;
+        const trimmed = value.trim();
+        if (trimmed) return trimmed;
+    }
+    return "";
 };
 
 const PastWorkoutScreen = () => {
@@ -294,7 +305,99 @@ const PastWorkoutScreen = () => {
         navigation.goBack();
     }, [navigation]);
 
-    const handlePressOwnerProfile = useCallback(() => {}, []);
+    const ownerProfilePayload = useMemo(() => {
+        const targetUid = String(workoutOwnerUid || "").trim();
+        if (!targetUid) return null;
+
+        const handleValue = pickFirstString(
+            owner?.handle,
+            owner?.username,
+            owner?.tag,
+            workout?.handle,
+            workout?.ownerHandle
+        );
+
+        const nameValue = pickFirstString(
+            owner?.name,
+            owner?.displayName,
+            owner?.fullName,
+            workout?.ownerName,
+            workout?.name
+        );
+
+        const fallbackName = (() => {
+            if (nameValue) return nameValue;
+            if (typeof displayName === "string") {
+                const trimmed = displayName.replace(/^@+/, "").trim();
+                if (trimmed) return trimmed;
+            }
+            return "";
+        })();
+
+        const pfpValue = pickFirstString(
+            owner?.pfp,
+            owner?.pfpUrl,
+            owner?.avatar,
+            owner?.image,
+            owner?.photoURL,
+            workout?.pfp,
+            workout?.pfpUrl,
+            pfpUri
+        );
+
+        return {
+            uid: targetUid,
+            handle: handleValue || undefined,
+            name: fallbackName || undefined,
+            pfp: pfpValue || undefined,
+        };
+    }, [
+        workoutOwnerUid,
+        owner?.handle,
+        owner?.username,
+        owner?.tag,
+        owner?.name,
+        owner?.displayName,
+        owner?.fullName,
+        owner?.pfp,
+        owner?.pfpUrl,
+        owner?.avatar,
+        owner?.image,
+        owner?.photoURL,
+        workout?.handle,
+        workout?.ownerHandle,
+        workout?.ownerName,
+        workout?.name,
+        workout?.pfp,
+        workout?.pfpUrl,
+        displayName,
+        pfpUri,
+    ]);
+
+    const handlePressOwnerProfile = useCallback(() => {
+        if (!ownerProfilePayload?.uid) return;
+        hapticStrong();
+        const rootNav = navigation?.getParent?.("ROOT");
+        if (isThisUser(ownerProfilePayload.uid)) {
+            if (rootNav?.navigate) {
+                rootNav.navigate("Profile", { transition: "slide-from-right" });
+            } else {
+                navigation.navigate("Profile", { transition: "slide-from-right" });
+            }
+            return;
+        }
+        const user = {
+            uid: ownerProfilePayload.uid,
+            handle: ownerProfilePayload.handle,
+            name: ownerProfilePayload.name,
+            pfp: ownerProfilePayload.pfp,
+        };
+        if (rootNav?.navigate) {
+            rootNav.navigate("ViewProfile", { user });
+        } else {
+            navigation.navigate("ViewProfile", { user });
+        }
+    }, [navigation, ownerProfilePayload]);
 
     const handlePressWorkoutHeader = useCallback(() => {}, []);
 

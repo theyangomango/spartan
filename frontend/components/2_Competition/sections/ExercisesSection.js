@@ -138,6 +138,7 @@ export default function ExercisesSection() {
     const [filterMeasuredHeight, setFilterMeasuredHeight] = useState(0);
     const [filterPointerEvents, setFilterPointerEvents] = useState("auto");
     const lastScrollOffsetRef = useRef(0);
+    const lastScrollTimeRef = useRef(Date.now());
     const isFilterHiddenRef = useRef(false);
     const isAnimatingFilterRef = useRef(false);
 
@@ -196,15 +197,20 @@ export default function ExercisesSection() {
             const lastOffset = lastScrollOffsetRef.current;
             const delta = offsetY - lastOffset;
             lastScrollOffsetRef.current = offsetY;
+            const now = Date.now();
+            const dt = Math.max(now - lastScrollTimeRef.current, 1);
+            lastScrollTimeRef.current = now;
+            const speedPerMs = Math.abs(delta) / dt;
+            const shouldTriggerSpeed = speedPerMs >= 1.2; // ~700 px/sec
 
             if (offsetY <= 12) {
                 showFilter();
                 return;
             }
 
-            if (delta > 6) {
+            if (delta > 20) {
                 hideFilter();
-            } else if (delta < -6) {
+            } else if (delta < -28 && shouldTriggerSpeed) {
                 showFilter();
             }
         },

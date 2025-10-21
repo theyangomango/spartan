@@ -41,6 +41,7 @@ import deletePost from "../../backend/posts/deletePost";
 import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
 import readDoc from "../../backend/helper/firebase/readDoc";
+import { strong as hapticStrong } from "../utils/haptics";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -472,6 +473,7 @@ export default function Feed({ navigation, route }) {
         if (!post) return;
         const user = { handle: post.handle, uid: post.uid, pfp: post.pfp, name: post.name };
         const rootNav = navigation?.getParent?.("ROOT");
+        hapticStrong();
         if (isThisUser(post.uid)) {
             if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
             else navigation.navigate("Profile", { transition: "slide-from-right" });
@@ -484,6 +486,7 @@ export default function Feed({ navigation, route }) {
     const toViewProfileComments = useCallback((data) => {
         const user = { handle: data.handle, uid: data.uid, pfp: data.pfp, name: data.name };
         const rootNav = navigation?.getParent?.("ROOT");
+        hapticStrong();
         if (isThisUser(data.uid)) {
             if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
             else navigation.navigate("Profile", { transition: "slide-from-right" });

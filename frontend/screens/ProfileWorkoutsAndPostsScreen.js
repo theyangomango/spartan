@@ -23,7 +23,7 @@ import scaleSize from "../helper/scaleSize";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import readDocsByIds from "../../backend/helper/firebase/readDocsByIds";
 import { canViewerAccessProfile, filterViewableWorkouts } from "../utils/workoutPrivacy";
-import { withStrongPress } from "../utils/haptics";
+import { withStrongPress, strong as hapticStrong } from "../utils/haptics";
 import { clearFooterSuppression } from "../state/footerSuppressionStore";
 import { collection, doc, getDoc, getDocs, limit, query, where } from "firebase/firestore";
 import { db } from "../../firebase.config";
@@ -752,6 +752,7 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         const resolved = resolveFeedItem(data);
         const targetUid = String(resolved?.uid || resolved?.creatorUID || resolved?.creatorUid || '');
         if (!targetUid) return;
+        hapticStrong();
         const rootNav = navigation?.getParent?.('ROOT');
         if (isThisUser(targetUid)) {
             if (rootNav?.navigate) rootNav.navigate('Profile');
@@ -772,6 +773,7 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
 
     const handleViewProfileFromComments = useCallback((data) => {
         if (!data) return;
+        hapticStrong();
         const rootNav = navigation?.getParent?.('ROOT');
         if (isThisUser(data?.uid)) {
             if (rootNav?.navigate) rootNav.navigate('Profile');

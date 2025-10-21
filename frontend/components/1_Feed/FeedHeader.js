@@ -24,7 +24,7 @@ import { collection, query, where, onSnapshot, getDocs, orderBy, limit, doc } fr
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
-import { withStrongPress } from "../../utils/haptics";
+import { withStrongPress, strong as hapticStrong } from "../../utils/haptics";
 import DismissableTextInput from "../common/DismissableTextInput";
 // Single root navigator; no need for StackActions/nested refs here
 
@@ -168,6 +168,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
     // Navigate while keeping the overlay visible during the native-stack slide
     const navigateToUser = useCallback((item) => {
         if (!item) return;
+        hapticStrong();
         navigation?.navigate('ViewProfile', {
             user: { uid: item.uid, handle: item.handle, name: item.name, pfp: item.pfp },
             transition: 'slide-from-right',

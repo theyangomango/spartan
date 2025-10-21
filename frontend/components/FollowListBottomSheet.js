@@ -6,6 +6,7 @@ import theme from '../theme/mfpDark';
 import { usePfp } from '../helper/usePFPs';
 import isThisUser from '../helper/isThisUser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { strong as hapticStrong } from '../utils/haptics';
 
 import scaleSize from "../helper/scaleSize";
 
@@ -70,6 +71,7 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
     const onPressUser = (u) => {
         if (!u?.uid) return;
         try {
+            hapticStrong();
             const navigatingToSelf = isThisUser(u.uid);
             const rootNav = navigation?.getParent?.('ROOT');
             if (navigatingToSelf) {

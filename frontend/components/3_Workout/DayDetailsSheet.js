@@ -1039,6 +1039,7 @@ const DayDetailsSheet = ({
         const meUid = String(global?.userData?.uid || "");
         const rootNav = navigation?.getParent?.("ROOT");
 
+        haptic();
         if (targetUid === meUid) {
             if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
             else navigation?.navigate?.("Profile", { transition: "slide-from-right" });
@@ -1060,6 +1061,7 @@ const DayDetailsSheet = ({
         const pfp = user.pfp || user.pfpUrl || user.image || user.photoURL || "";
         const rootNav = navigation?.getParent?.("ROOT");
 
+        haptic();
         if (uid === meUid) {
             if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
             else navigation?.navigate?.("Profile", { transition: "slide-from-right" });

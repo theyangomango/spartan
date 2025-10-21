@@ -9,6 +9,7 @@ import { usePfp } from '../../../helper/usePFPs';
 import { useNavigation } from '@react-navigation/native';
 
 import scaleSize from "../../../helper/scaleSize";
+import { strong as hapticStrong } from "../../../utils/haptics";
 
 const dynamicStyles = getCommentCardStyles();
 
@@ -65,6 +66,7 @@ export default function CommentCard({
     }
 
     function handleNavigateToProfile() {
+        hapticStrong();
         if (data.uid === global.userData.uid) {
             try {
                 const rootNav = navigation?.getParent?.('ROOT');

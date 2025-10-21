@@ -5,6 +5,7 @@ import { useWindowDimensions, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import UserStatsModal from "./UserStatsModal";
 import scaleSize from "../../../helper/scaleSize";
+import { strong as hapticStrong } from "../../../utils/haptics";
 
 import { onHexagonUpdate } from "../../../utils/hexagonEvents";
 import { coercePrivacyMode } from "../../../utils/workoutPrivacy";
@@ -102,6 +103,7 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
     function toViewProfile() {
         const u = user || global?.userData;
         if (!u) return;
+        hapticStrong();
         navigation.navigate('ViewProfile', {
             user: {
                 handle: u.handle,

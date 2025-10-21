@@ -8,6 +8,7 @@ import { collection, getDocs, orderBy, where, query, limit } from 'firebase/fire
 import { db } from '../../firebase.config';
 import getAllUsers from '../helper/getAllUsers';
 import theme from '../theme/mfpDark';
+import { strong as hapticStrong } from '../utils/haptics';
 
 export default function SearchUsers({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -71,6 +72,7 @@ export default function SearchUsers({ navigation }) {
   const goBack = () => navigation.goBack();
   const openUser = (item) => {
     if (!item) return;
+    hapticStrong();
     const rootNav = navigation?.getParent?.('ROOT');
     if (item.uid === global?.userData?.uid) {
       if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
