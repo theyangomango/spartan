@@ -30,17 +30,14 @@ export default function Competition({ navigation }) {
         setActiveTab(key);
     }, []);
 
-    const activeSection = useMemo(() => {
-        switch (activeTab) {
-            case "templates":
-                return <TemplatesSection />;
-            case "exercises":
-                return <ExercisesSection />;
-            case "leaderboard":
-            default:
-                return <LeaderboardsSection navigation={navigation} />;
-        }
-    }, [activeTab, navigation]);
+    const sectionComponents = useMemo(
+        () => ({
+            leaderboard: <LeaderboardsSection navigation={navigation} />,
+            exercises: <ExercisesSection />,
+            templates: <TemplatesSection />,
+        }),
+        [navigation]
+    );
 
     return (
         <View style={styles.mainContainer}>
@@ -87,7 +84,25 @@ export default function Competition({ navigation }) {
                 </View>
             </View>
 
-            <View style={styles.sectionContainer}>{activeSection}</View>
+            <View style={styles.sectionContainer}>
+                {VIEW_TABS.map((tab) => {
+                    const isActive = activeTab === tab.key;
+                    const SectionElement = sectionComponents[tab.key];
+                    if (!SectionElement) return null;
+                    return (
+                        <View
+                            key={tab.key}
+                            style={[
+                                styles.sectionLayer,
+                                isActive ? styles.sectionLayerActive : styles.sectionLayerInactive,
+                            ]}
+                            pointerEvents={isActive ? "auto" : "none"}
+                        >
+                            {SectionElement}
+                        </View>
+                    );
+                })}
+            </View>
 
             <Footer currentScreenName="Competition" navigation={navigation} />
         </View>
@@ -101,6 +116,20 @@ const styles = StyleSheet.create({
     },
     sectionContainer: {
         flex: 1,
+        position: "relative",
+    },
+    sectionLayer: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+    },
+    sectionLayerActive: {
+        opacity: 1,
+    },
+    sectionLayerInactive: {
+        opacity: 0,
     },
     viewTabsContainer: {
         flexDirection: "row",
