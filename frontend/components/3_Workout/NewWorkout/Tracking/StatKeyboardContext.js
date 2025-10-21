@@ -8,6 +8,23 @@ import useStableSafeAreaInsets from "../../../../hooks/useStableSafeAreaInsets";
 
 const StatKeyboardContext = createContext(null);
 
+let externalCollapseKeyboard = null;
+let externalIsKeyboardActive = () => false;
+
+export const dismissStatKeyboard = () => {
+    if (typeof externalCollapseKeyboard === "function") {
+        try { externalCollapseKeyboard(); } catch { }
+    }
+};
+
+export const isStatKeyboardActive = () => {
+    try {
+        return !!externalIsKeyboardActive();
+    } catch {
+        return false;
+    }
+};
+
 export const useStatKeyboard = () => useContext(StatKeyboardContext);
 
 const MAX_REGISTERED = 400;
@@ -278,6 +295,21 @@ export function StatKeyboardProvider({ children }) {
         activeId,
         collapseKeyboard,
     ]);
+
+    useEffect(() => {
+        const collapse = () => collapseKeyboard();
+        const isActive = () => !!activeIdRef.current;
+        externalCollapseKeyboard = collapse;
+        externalIsKeyboardActive = isActive;
+        return () => {
+            if (externalCollapseKeyboard === collapse) {
+                externalCollapseKeyboard = null;
+            }
+            if (externalIsKeyboardActive === isActive) {
+                externalIsKeyboardActive = () => false;
+            }
+        };
+    }, [collapseKeyboard]);
 
     const visible = !!activeId;
     const handlers = activeId ? inputsRef.current.get(activeId) : null;

@@ -15,6 +15,7 @@ import useWorkoutStore, { WORKOUT_SHEET_STATES } from "../../../state/workoutSto
 import scaleSize from "../../../helper/scaleSize";
 import { navigationRef } from "../../../../navigationRef";
 import { shallow } from 'zustand/shallow';
+import { dismissStatKeyboard, isStatKeyboardActive } from "./Tracking/StatKeyboardContext";
 
 const FOOTER_HEIGHT = scaleSize(87);
 const COLLAPSED_PEEK = FOOTER_HEIGHT + scaleSize(48);
@@ -105,6 +106,11 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, vis
     const timerRefFallback = useRef("");
     const timerRef = sheetHandlers?.timerRef || timerRefFallback;
     const allowCloseRef = useRef(false);
+    const collapseKeyboardIfActive = useCallback(() => {
+        if (isStatKeyboardActive()) {
+            dismissStatKeyboard();
+        }
+    }, []);
 
     const renderBackdrop = useCallback((props) => <SheetBackdrop {...props} />, []);
 
@@ -231,6 +237,7 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, vis
                 suppressStickyElements={false}
                 style={[sheetStyle, styles.sheetOffset]}
                 onClose={() => {
+                    collapseKeyboardIfActive();
                     if (allowCloseRef.current) {
                         allowCloseRef.current = false;
                         setSheetState(WORKOUT_SHEET_STATES.HIDDEN);
@@ -244,6 +251,7 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, vis
                 }}
                 onChange={(index) => {
                     if (index < 0) {
+                        collapseKeyboardIfActive();
                         if (allowCloseRef.current) {
                             allowCloseRef.current = false;
                             return;
@@ -251,6 +259,7 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, vis
                         try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
                         setSheetState(WORKOUT_SHEET_STATES.COLLAPSED);
                     } else if (index === 0) {
+                        collapseKeyboardIfActive();
                         setSheetState(WORKOUT_SHEET_STATES.COLLAPSED);
                     } else {
                         setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
