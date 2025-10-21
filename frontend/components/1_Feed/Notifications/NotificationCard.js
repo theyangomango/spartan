@@ -429,6 +429,10 @@ export default function NotificationCard({
     const neutralButtonBorder = withAlpha(BRAND_ACCENT, 0.3);
     const neutralButtonText = mixHex(BRAND_ACCENT, "#F1F5FF", 0.25);
 
+    const followingBg = withAlpha('#3CB179', 0.22);
+    const followingBorder = withAlpha('#3CB179', 0.5);
+    const followingText = mixHex('#3CB179', '#F8FFF6', 0.12);
+
     const isFollowing = followState === 'following';
     const isRequested = followState === 'requested';
     const requestedButtonBg = withAlpha(accent, 0.12);
@@ -446,7 +450,7 @@ export default function NotificationCard({
                 style={[
                     styles.actionButton,
                     { backgroundColor: buttonBg, borderColor: buttonBorder },
-                    isFollowing && { backgroundColor: buttonBgActive, borderColor: buttonBorderActive },
+                    isFollowing && { backgroundColor: followingBg, borderColor: followingBorder },
                     isRequested && { backgroundColor: requestedButtonBg, borderColor: requestedButtonBorder },
                 ]}
                 onPress={handleFollowToggle}
@@ -456,7 +460,7 @@ export default function NotificationCard({
                     style={[
                         styles.actionLabel,
                         { color: buttonText },
-                        isFollowing && { color: buttonTextActive },
+                        isFollowing && { color: followingText },
                         isRequested && { color: requestedButtonText },
                     ]}
                 >
