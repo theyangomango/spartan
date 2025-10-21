@@ -14,8 +14,8 @@ const HAIRLINE = theme.hairline;
 const BG = theme.bg;
 const BACK_ICON_COLOR = theme.textSecondary;
 
-const BACK_GUTTER = 24;
-const SINGLE_PFP_SIZE = scaleSize(36);
+const BACK_GUTTER = 18;
+const SINGLE_PFP_SIZE = scaleSize(34);
 const SINGLE_PFP_RADIUS = Math.round(SINGLE_PFP_SIZE / 2);
 const STACKED_PFP_SIZE = scaleSize(28);
 const STACKED_PFP_RADIUS = Math.round(STACKED_PFP_SIZE / 2);
@@ -34,10 +34,7 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
         });
     const handles = sanitizedHandles.filter(Boolean).join(", ");
     // Show only first names (split by space)
-    const names = usersExcludingSelf
-        .map((u) => (typeof u?.name === 'string' ? u.name.trim().split(/\s+/)[0] : ''))
-        .filter((n) => n && n.length > 0)
-        .join(", ");
+    const names = "";
     const u0 = usersExcludingSelf[0];
     const u1 = usersExcludingSelf[1];
     const p0 = u0
@@ -60,8 +57,8 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
         else navigation.goBack();
     };
 
-    const primaryLabel = names || (handles ? handles : 'Direct Message');
-    const secondaryLabel = handles;
+    const hasHandles = handles.length > 0;
+    const primaryLabel = hasHandles ? handles : 'Direct Message';
     const firstUser = usersExcludingSelf[0] || null;
     const fallbackVerified = Boolean(firstUser?.isVerified ?? firstUser?.verified);
     const firstUid = firstUser?.uid ? String(firstUser.uid) : '';
@@ -100,6 +97,7 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
                             isVerified={isFirstVerified}
                             textStyle={styles.nameText}
                             numberOfLines={1}
+                            iconSize={scaleSize(19)}
                             ellipsizeMode="tail"
                             preserveTextAlignment
                             containerStyle={styles.nameRow}
@@ -107,11 +105,6 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
                     ) : (
                         <Text numberOfLines={1} style={styles.nameText}>
                             {primaryLabel}
-                        </Text>
-                    )}
-                    {!!secondaryLabel && (
-                        <Text numberOfLines={1} style={styles.handleText}>
-                            {secondaryLabel}
                         </Text>
                     )}
                 </View>
@@ -134,7 +127,7 @@ const styles = StyleSheet.create({
     header: {
         position: "relative",
         backgroundColor: BG,
-        height: scaleSize(62),
+        minHeight: scaleSize(56),
         justifyContent: "center",
         borderBottomColor: HAIRLINE,
         borderBottomWidth: 1,
@@ -188,7 +181,7 @@ const styles = StyleSheet.create({
     },
     pfpPh: { backgroundColor: theme.field },
 
-    textWrap: { flex: 1, justifyContent: "center" },
+    textWrap: { flex: 1, justifyContent: "center", minWidth: 0 },
     nameRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -196,19 +189,10 @@ const styles = StyleSheet.create({
     },
     nameText: {
         fontFamily: "Nunito_700Bold",
-        fontSize: ts(17),
+        fontSize: ts(16),
         color: theme.textPrimary,
-        lineHeight: ts(22),
         includeFontPadding: false,
-    },
-    handleText: {
-        fontFamily: "Nunito_600SemiBold",
-        fontSize: ts(13),
-        color: theme.textSecondary,
-        marginTop: scaleSize(2),
-        lineHeight: ts(18),
-        includeFontPadding: false,
-    },
+    }
 });
 
 export default ChatHeader;
