@@ -10,6 +10,7 @@ import { strong as hapticStrong } from '../utils/haptics';
 
 import scaleSize from "../helper/scaleSize";
 import VerifiedHandle from "./common/VerifiedHandle";
+import useUserVerified from "../hooks/useUserVerified";
 
 const { height: SCREEN_H } = Dimensions.get('window');
 const scale = SCREEN_H / 844;
@@ -94,6 +95,7 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
 
     const FollowRow = ({ item }) => {
         const pfpUri = usePfp(String(item?.uid || ''), item?.pfpVersion || 0) || item?.pfp || '';
+        const isVerified = useUserVerified(item?.uid, Boolean(item?.isVerified));
         return (
             <Pressable style={styles.item} onPress={() => onPressUser(item)}>
                 <View style={styles.pfpC}>
@@ -106,7 +108,7 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
                 <View style={styles.textC}>
                     <VerifiedHandle
                         handle={item?.handle || item?.uid}
-                        isVerified={Boolean(item?.isVerified)}
+                        isVerified={isVerified}
                         preserveTextAlignment
                         textStyle={styles.handle}
                         numberOfLines={1}
