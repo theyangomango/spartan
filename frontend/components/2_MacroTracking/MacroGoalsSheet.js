@@ -19,6 +19,7 @@ import LabeledNumber from './LabeledNumber';
 
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
+import theme from '../../theme/mfpDark'
 
 export default function MacroGoalsSheet({
     index,

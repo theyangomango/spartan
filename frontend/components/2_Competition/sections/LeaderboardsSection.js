@@ -214,6 +214,10 @@ export default function LeaderboardsSection({ navigation }) {
     const insets = useStableSafeAreaInsets();
     const podiumSectionHeight = useMemo(() => PODIUM_HEIGHT, []);
     const panelOverlap = useMemo(() => scaleSize(12), []);
+    const surfaceBackdropTop = useMemo(
+        () => Math.max(0, podiumSectionHeight - panelOverlap + scaleSize(8)),
+        [podiumSectionHeight, panelOverlap]
+    );
     const panelCollapsedHeight = useMemo(
         () => Math.max(1, Math.ceil(DEVICE_HEIGHT - podiumSectionHeight + panelOverlap)),
         [podiumSectionHeight, panelOverlap]
@@ -969,12 +973,12 @@ export default function LeaderboardsSection({ navigation }) {
     const gradientConfig = useMemo(() => {
         if (isCustomTribe) {
             return {
-                colors: ["#120A04", "#261308", "#3B1D0B", "#5A2F10", "#BF6F57", theme.bg],
+                colors: ["#1B0F07", "#34190C", "#4A230E", "#713314", "#D5816A", theme.surface],
                 locations: [0, 0.2, 0.48, 0.7, 0.9, 1],
             };
         }
         return {
-            colors: ["#03060C", "#0E1A35", "#1A3361", "#255198", "#2E6BC7", theme.bg],
+            colors: ["#080E1A", "#142548", "#264A7B", "#3167AF", "#3B82DF", theme.surface],
             locations: [0, 0.22, 0.52, 0.74, 0.92, 1],
         };
     }, [isCustomTribe]);
@@ -1113,6 +1117,16 @@ export default function LeaderboardsSection({ navigation }) {
                 end={{ x: 0.5, y: 1 }}
                 style={styles.topGradient}
             />
+            <View pointerEvents="none" style={[styles.bottomSurfaceBackdrop, { top: surfaceBackdropTop }]}>
+                <LinearGradient
+                    pointerEvents="none"
+                    colors={["rgba(23, 23, 28, 0)", theme.surface]}
+                    locations={[0, 0.5]}
+                    start={{ x: 0.5, y: 0 }}
+                    end={{ x: 0.5, y: 1 }}
+                    style={styles.bottomSurfaceGradient}
+                />
+            </View>
             <Modal
                 visible={isBodyFocusMenuVisible}
                 transparent
@@ -1173,10 +1187,7 @@ export default function LeaderboardsSection({ navigation }) {
 
             <ScrollView
                 style={styles.scrollRegion}
-                contentContainerStyle={[
-                    styles.scrollContent,
-                    { paddingBottom: scrollBottomPadding },
-                ]}
+                contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
                 contentInsetAdjustmentBehavior="never"
                 bounces
@@ -1190,7 +1201,7 @@ export default function LeaderboardsSection({ navigation }) {
                         topOffset={STAGE_VERTICAL_OFFSET}
                     />
                 </View>
-                <View style={{ marginTop: -panelOverlap }}>
+                <View style={[styles.leaderboardPanelWrap, { marginTop: -panelOverlap }]}>
                     <LeaderboardPanel
                         userList={rankedDisplay}
                         categoryCompared={comparedExercise}
@@ -1218,6 +1229,7 @@ export default function LeaderboardsSection({ navigation }) {
                         minHeightOverride={panelCollapsedHeight}
                         containerStyle={styles.leaderboardContainer}
                     />
+                    <View style={[styles.leaderboardFiller, { minHeight: scrollBottomPadding }]} />
                 </View>
             </ScrollView>
 
@@ -1367,9 +1379,30 @@ const styles = StyleSheet.create({
         overflow: "hidden",
         marginTop: -PODIUM_PULLUP,
     },
-    leaderboardContainer: { alignSelf: "stretch" },
+    leaderboardPanelWrap: {
+        flexGrow: 1,
+        flexBasis: 0,
+        alignSelf: "stretch",
+        minHeight: 0,
+    },
+    leaderboardContainer: {
+        alignSelf: "stretch",
+    },
+    leaderboardFiller: {
+        flexGrow: 1,
+        backgroundColor: theme.surface,
+    },
     topGradient: {
         ...StyleSheet.absoluteFillObject,
+    },
+    bottomSurfaceBackdrop: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+    },
+    bottomSurfaceGradient: {
+        flex: 1,
     },
     headerGradientWrapper: {
         width: "100%",
