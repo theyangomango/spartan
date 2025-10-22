@@ -10,7 +10,7 @@ import {
     Pressable,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import useStableSafeAreaInsets from '../hooks/useStableSafeAreaInsets';
 import theme from '../theme/mfpDark';
@@ -20,6 +20,7 @@ import { toExerciseSlug } from '../components/common/exerciseImageMap';
 import { withStrongPress } from '../utils/haptics';
 import useSyncSavedExercises from '../hooks/useSyncSavedExercises';
 import { subscribeUserData, emitUserDataUpdate } from '../utils/userDataEvents';
+import calculate1RM from '../helper/calculate1RM';
 
 const TABS = [
     { key: 'about', label: 'About' },
@@ -146,12 +147,287 @@ const buildFallbackHowToSteps = ({ title, muscleGroup, equipment }) => {
     ];
 };
 
+const HISTORY_SESSION_LIMIT = 15;
+const WEEKDAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const WORKOUT_TIMESTAMP_FIELDS = [
+    'finishedAt',
+    'completedAt',
+    'updatedAt',
+    'startedAt',
+    'createdAt',
+    'created',
+];
+
+const toMillisSafe = (value) => {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    if (value instanceof Date) return Number.isNaN(value.getTime()) ? 0 : value.getTime();
+    if (typeof value?.toMillis === 'function') {
+        const result = Number(value.toMillis());
+        return Number.isFinite(result) ? result : 0;
+    }
+    if (typeof value === 'object' && typeof value.seconds === 'number') {
+        return value.seconds * 1000;
+    }
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return 0;
+        const numeric = Number(trimmed);
+        if (Number.isFinite(numeric)) return numeric;
+        const parsed = new Date(trimmed).getTime();
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+};
+
+const parseDayKeyToDate = (dayKey) => {
+    if (typeof dayKey !== 'string') return null;
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dayKey.trim());
+    if (!match) return null;
+    const year = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const day = Number(match[3]);
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+    const candidate = new Date(year, month, day);
+    return Number.isNaN(candidate.getTime()) ? null : candidate;
+};
+
+const formatNumberCompact = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '0';
+    const rounded = Math.round(num * 10) / 10;
+    if (Math.abs(rounded - Math.round(rounded)) < 1e-6) return String(Math.round(rounded));
+    return rounded.toFixed(1).replace(/\.0$/, '');
+};
+
+const formatWeightValue = (weight) => {
+    const num = Number(weight);
+    if (!Number.isFinite(num) || num <= 0) return '—';
+    return formatNumberCompact(num);
+};
+
+const firstAvailableString = (...values) => {
+    for (const value of values) {
+        if (value === null || value === undefined) continue;
+        if (typeof value === 'string' || typeof value === 'number') {
+            const str = String(value).trim();
+            if (str) return str;
+        }
+    }
+    return '';
+};
+
+const deriveSessionTitle = (workout, timestamp) => {
+    const candidate = firstAvailableString(
+        workout?.templateName,
+        workout?.template?.name,
+        workout?.name,
+        workout?.title,
+        workout?.caption
+    );
+    if (candidate) return candidate;
+
+    const date = timestamp ? new Date(timestamp) : null;
+    if (date && !Number.isNaN(date.getTime())) {
+        const hours = date.getHours();
+        if (hours < 12) return 'Morning session';
+        if (hours < 17) return 'Afternoon session';
+        return 'Evening session';
+    }
+    return 'Workout session';
+};
+
+const buildSessionMeta = (timestamp, dayKey) => {
+    let dateObj = null;
+    if (timestamp) {
+        const candidate = new Date(timestamp);
+        if (!Number.isNaN(candidate.getTime())) dateObj = candidate;
+    }
+    if (!dateObj) {
+        const parsed = parseDayKeyToDate(dayKey);
+        if (parsed) dateObj = parsed;
+    }
+    if (!dateObj) return '';
+
+    let datePart = '';
+    let timePart = '';
+    try {
+        datePart = dateObj.toLocaleDateString(undefined, {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+        });
+    } catch {
+        datePart = '';
+    }
+    if (timestamp) {
+        try {
+            timePart = dateObj.toLocaleTimeString(undefined, {
+                hour: 'numeric',
+                minute: '2-digit',
+            });
+        } catch {
+            timePart = '';
+        }
+    }
+    if (datePart && timePart) return `${datePart} at ${timePart}`;
+    return datePart || timePart || '';
+};
+
+const setKeyForStatSet = (set) => {
+    if (!set || typeof set !== 'object') return '';
+    const weight = Number(set.weight);
+    const reps = Number(set.reps);
+    if (!Number.isFinite(weight) || !Number.isFinite(reps)) return '';
+    return `${Math.round(weight * 1000)}:${Math.round(reps * 1000)}`;
+};
+
+const normalizeStatSet = (rawSet) => {
+    if (!rawSet || typeof rawSet !== 'object') return null;
+    const weight = Number(rawSet.weight ?? rawSet.kg ?? rawSet.lbs ?? rawSet.load ?? 0);
+    const reps = Number(rawSet.reps ?? rawSet.rep ?? rawSet.r ?? 0);
+    if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(reps) || reps <= 0) return null;
+    const normalized = { weight, reps };
+
+    if (typeof rawSet.date === 'string' && rawSet.date.trim()) normalized.date = rawSet.date.trim();
+
+    if (rawSet.wid !== null && rawSet.wid !== undefined) {
+        try {
+            const widStr = String(rawSet.wid).trim();
+            if (widStr) normalized.wid = widStr;
+        } catch {
+            // ignore
+        }
+    }
+
+    const ts = toMillisSafe(rawSet.timestamp ?? rawSet.ts ?? null);
+    if (ts) normalized.timestamp = ts;
+
+    if (typeof rawSet.privacyMode === 'string' && rawSet.privacyMode.trim()) {
+        normalized.privacyMode = rawSet.privacyMode.trim();
+    }
+
+    return normalized;
+};
+
+const normalizeStatsExercises = (raw) => {
+    if (!raw || typeof raw !== 'object') return {};
+    return Object.entries(raw).reduce((acc, [key, value]) => {
+        if (!value || typeof value !== 'object') return acc;
+        const sets = Array.isArray(value.sets) ? value.sets.map(normalizeStatSet).filter(Boolean) : [];
+        acc[key] = { ...value, sets };
+        return acc;
+    }, {});
+};
+
+const extractWid = (workout) => {
+    if (!workout || typeof workout !== 'object') return '';
+    const candidates = [workout?.wid, workout?.id, workout?.workoutId, workout?.pid];
+    for (const candidate of candidates) {
+        if (candidate === null || candidate === undefined) continue;
+        const str = String(candidate).trim();
+        if (str) return str;
+    }
+    return '';
+};
+
+const resolveWorkoutTimestamp = (workout) => {
+    if (!workout || typeof workout !== 'object') return 0;
+    for (const field of WORKOUT_TIMESTAMP_FIELDS) {
+        const ms = toMillisSafe(workout?.[field]);
+        if (ms) return ms;
+    }
+    return 0;
+};
+
+const statsExercisesSignature = (map) => {
+    if (!map || typeof map !== 'object') return '';
+    const entries = Object.keys(map)
+        .sort((a, b) => a.localeCompare(b))
+        .map((key) => {
+            const entry = map[key] || {};
+            const sets = Array.isArray(entry.sets) ? entry.sets : [];
+            const last = sets[sets.length - 1] || {};
+            return [
+                key,
+                Number(entry?.['1RM'] || 0) || 0,
+                sets.length,
+                Number(last?.weight || 0) || 0,
+                Number(last?.reps || 0) || 0,
+                last?.date || null,
+                last?.wid || null,
+            ];
+        });
+    return JSON.stringify(entries);
+};
+
+const completedWorkoutsSignature = (list) => {
+    if (!Array.isArray(list)) return '';
+    const sample = list.slice(0, 40).map((workout) => {
+        const wid = extractWid(workout);
+        const ts = resolveWorkoutTimestamp(workout);
+        return [wid, ts];
+    });
+    return JSON.stringify(sample);
+};
+
+const sanitizeCompletedWorkouts = (raw) => {
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(Boolean);
+};
+
+const getInitialStatsExercises = () => {
+    try {
+        return normalizeStatsExercises(global?.userData?.statsExercises);
+    } catch {
+        return {};
+    }
+};
+
+const getInitialCompletedWorkouts = () => {
+    try {
+        return sanitizeCompletedWorkouts(global?.userData?.completedWorkouts);
+    } catch {
+        return [];
+    }
+};
+
+const resolvePreferredWeightUnit = (payload) => {
+    const source = payload || (() => {
+        try {
+            return global?.userData || null;
+        } catch {
+            return null;
+        }
+    })();
+    try {
+        const raw = source?.settings?.units ?? source?.units;
+        if (!raw) return 'lb';
+        const normalized = String(raw).trim().toLowerCase();
+        return normalized === 'kg' ? 'kg' : 'lb';
+    } catch {
+        return 'lb';
+    }
+};
+
+const findStatsEntry = (statsMap, exerciseName) => {
+    if (!statsMap || typeof statsMap !== 'object') return null;
+    if (!exerciseName) return null;
+    if (statsMap[exerciseName]) return statsMap[exerciseName];
+    const lower = exerciseName.toLowerCase();
+    const match = Object.keys(statsMap).find((key) => key.toLowerCase() === lower);
+    return match ? statsMap[match] : null;
+};
+
 export default function ExerciseDetail() {
     const navigation = useNavigation();
     const route = useRoute();
     const insets = useStableSafeAreaInsets();
     const [activeTab, setActiveTab] = useState('about');
     const [savedExercisesMap, setSavedExercisesMap] = useState(() => getInitialSavedExercises());
+    const [statsExercisesMap, setStatsExercisesMap] = useState(() => getInitialStatsExercises());
+    const [completedWorkouts, setCompletedWorkouts] = useState(() => getInitialCompletedWorkouts());
+    const [weightUnit, setWeightUnit] = useState(() => resolvePreferredWeightUnit());
     const headerTopPadding = useMemo(
         () => (insets?.top ? scaleSize(12) : scaleSize(18)),
         [insets?.top]
@@ -197,6 +473,132 @@ export default function ExerciseDetail() {
         });
     }, [exerciseParam, displayTitle, muscleGroup, equipment]);
 
+    const exerciseStatsEntry = useMemo(() => {
+        const direct = findStatsEntry(statsExercisesMap, name);
+        if (direct) return direct;
+        if (displayTitle && displayTitle !== name) {
+            return findStatsEntry(statsExercisesMap, displayTitle);
+        }
+        return null;
+    }, [statsExercisesMap, name, displayTitle]);
+
+    const historySessions = useMemo(() => {
+        const entry = exerciseStatsEntry;
+        const sets = Array.isArray(entry?.sets) ? entry.sets : [];
+        if (!sets.length) return [];
+
+        const workoutsArray = Array.isArray(completedWorkouts) ? completedWorkouts : [];
+        const workoutsByWid = new Map();
+        workoutsArray.forEach((workout) => {
+            const wid = extractWid(workout);
+            if (wid) workoutsByWid.set(wid, workout);
+        });
+
+        const grouped = new Map();
+        sets.forEach((set) => {
+            const wid = set?.wid ? String(set.wid) : '';
+            const dayKey = typeof set?.date === 'string' && set.date ? set.date : null;
+            const groupKey = wid ? `wid:${wid}` : `day:${dayKey || 'unknown'}`;
+            let session = grouped.get(groupKey);
+            if (!session) {
+                const workout = wid ? workoutsByWid.get(wid) : null;
+                session = {
+                    key: groupKey,
+                    wid: wid || null,
+                    dayKey,
+                    workout,
+                    sets: [],
+                    timestamps: [],
+                };
+                grouped.set(groupKey, session);
+            }
+            const timestamp = toMillisSafe(set?.timestamp);
+            if (timestamp) session.timestamps.push(timestamp);
+            session.sets.push({
+                weight: Number(set.weight) || 0,
+                reps: Number(set.reps) || 0,
+                raw: set,
+            });
+        });
+
+        let bestSetKey = '';
+        if (entry?.bestSet) {
+            bestSetKey = setKeyForStatSet(entry.bestSet);
+        }
+        const recordedBest1RM = Number(entry?.['1RM']) || 0;
+        let bestOneRm = recordedBest1RM > 0 ? recordedBest1RM : 0;
+        if ((!bestOneRm || bestOneRm <= 0) && entry?.bestSet) {
+            const computed = calculate1RM(
+                Number(entry.bestSet.weight) || 0,
+                Number(entry.bestSet.reps) || 0
+            );
+            bestOneRm = Number.isFinite(computed) ? computed : 0;
+        }
+
+        const unitNormalized = typeof weightUnit === 'string' ? weightUnit.trim().toLowerCase() : '';
+        const highlightUnit = unitNormalized === 'kg' ? 'kg' : unitNormalized === 'lb' ? 'lb' : '';
+        const highlightValue = bestOneRm > 0 ? formatWeightValue(bestOneRm) : '';
+        const highlightLabel =
+            bestSetKey && highlightValue && highlightValue !== '—'
+                ? `1RM (${highlightValue}${highlightUnit})`
+                : '';
+
+        let sessions = Array.from(grouped.values()).map((session) => {
+            const workoutTs = resolveWorkoutTimestamp(session.workout);
+            const setTs = session.timestamps.length ? Math.max(...session.timestamps) : 0;
+            const dayDate = parseDayKeyToDate(session.dayKey);
+            const fallbackTs = dayDate ? dayDate.getTime() : 0;
+            const timestamp = workoutTs || setTs || fallbackTs;
+            const dateObj = timestamp ? new Date(timestamp) : dayDate;
+            const dayLabel = dateObj ? WEEKDAY_LABELS[dateObj.getDay()] || '' : '';
+
+            const title = deriveSessionTitle(session.workout, timestamp || fallbackTs);
+            const meta = buildSessionMeta(timestamp || fallbackTs, session.dayKey);
+
+            let highlightConsumed = false;
+            const parsedSets = session.sets.map((item, index) => {
+                const repsNumber = Number.isFinite(item.reps) ? item.reps : 0;
+                const highlightMatch =
+                    !highlightConsumed &&
+                    bestSetKey &&
+                    setKeyForStatSet(item.raw) === bestSetKey;
+                if (highlightMatch) highlightConsumed = true;
+
+                return {
+                    key: `${session.key}-set-${index}`,
+                    index: index + 1,
+                    weightLabel: formatWeightValue(item.weight),
+                    repsLabel: repsNumber > 0 ? String(Math.round(repsNumber)) : '—',
+                    highlight: highlightMatch && highlightLabel ? highlightLabel : null,
+                };
+            });
+
+            return {
+                key: session.key,
+                wid: session.wid,
+                timestamp,
+                dayLabel,
+                title,
+                meta,
+                sets: parsedSets,
+            };
+        });
+
+        sessions.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        if (HISTORY_SESSION_LIMIT && sessions.length > HISTORY_SESSION_LIMIT) {
+            sessions = sessions.slice(0, HISTORY_SESSION_LIMIT);
+        }
+        return sessions;
+    }, [exerciseStatsEntry, completedWorkouts, weightUnit]);
+
+    const weightColumnLabel = useMemo(() => {
+        const normalized = typeof weightUnit === 'string' ? weightUnit.trim().toLowerCase() : '';
+        if (normalized === 'kg') return 'kg';
+        if (normalized === 'lb') return 'lb';
+        if (!normalized) return 'lb';
+        return normalized;
+    }, [weightUnit]);
+
     useEffect(() => {
         const unsubscribe = subscribeUserData((payload) => {
             const next = normalizeSavedExercises(payload?.savedExercises);
@@ -206,6 +608,22 @@ export default function ExerciseDetail() {
                 if (prevSig === nextSig) return prev;
                 return next;
             });
+            const nextStats = normalizeStatsExercises(payload?.statsExercises);
+            const nextStatsSig = statsExercisesSignature(nextStats);
+            setStatsExercisesMap((prev) => {
+                const prevSig = statsExercisesSignature(prev);
+                if (prevSig === nextStatsSig) return prev;
+                return nextStats;
+            });
+            const nextWorkouts = sanitizeCompletedWorkouts(payload?.completedWorkouts);
+            const nextWorkoutsSig = completedWorkoutsSignature(nextWorkouts);
+            setCompletedWorkouts((prev) => {
+                const prevSig = completedWorkoutsSignature(prev);
+                if (prevSig === nextWorkoutsSig) return prev;
+                return nextWorkouts;
+            });
+            const nextUnit = resolvePreferredWeightUnit(payload);
+            setWeightUnit((prev) => (prev === nextUnit ? prev : nextUnit));
         });
         return unsubscribe;
     }, []);
@@ -347,14 +765,78 @@ export default function ExerciseDetail() {
         </View>
     );
 
-    const renderHistory = () => (
-        <View style={styles.placeholder}>
-            <Text style={styles.placeholderTitle}>History is on the way</Text>
-            <Text style={styles.placeholderBody}>
-                Log {displayTitle} in your workouts to populate recent sessions and personal records.
-            </Text>
-        </View>
-    );
+    const renderHistory = () => {
+        if (!historySessions.length) {
+            return (
+                <View style={styles.placeholder}>
+                    <Text style={styles.placeholderTitle}>No history yet</Text>
+                    <Text style={styles.placeholderBody}>
+                        Log {displayTitle} in your workouts to populate recent sessions and personal records.
+                    </Text>
+                </View>
+            );
+        }
+
+        return (
+            <View style={styles.historySection}>
+                {historySessions.map((session) => (
+                    <View key={session.key} style={styles.historyCard}>
+                        <View style={styles.historyHeaderRow}>
+                            <View style={styles.historyHeaderTextBlock}>
+                                <Text style={styles.historyTitle}>{session.title}</Text>
+                                {session.meta ? (
+                                    <Text style={styles.historySubtitle}>{session.meta}</Text>
+                                ) : null}
+                            </View>
+                        </View>
+
+                        <View style={styles.historyTableHeader}>
+                            <View style={styles.historySetColumn}>
+                                <Text style={styles.historyTableHeaderText}>Set</Text>
+                            </View>
+                            <View style={styles.historyWeightColumn}>
+                                <Text style={styles.historyTableHeaderText}>{weightColumnLabel}</Text>
+                            </View>
+                            <View style={styles.historyRepsColumn}>
+                                <Text style={styles.historyTableHeaderText}>Reps</Text>
+                            </View>
+                        </View>
+
+                        {session.sets.map((set, index) => {
+                            const isLast = index === session.sets.length - 1;
+                            return (
+                                <View
+                                    key={set.key}
+                                    style={[styles.historyRow, isLast && styles.historyRowLast]}
+                                >
+                                    <View style={styles.historySetColumn}>
+                                        <Text style={styles.historySetValue}>{set.index}</Text>
+                                    </View>
+                                    <View style={styles.historyWeightColumn}>
+                                        <Text style={styles.historyValueText}>{set.weightLabel}</Text>
+                                        {set.highlight ? (
+                                            <View style={styles.historyBadge}>
+                                                <MaterialCommunityIcons
+                                                    name="medal-outline"
+                                                    size={scaleSize(12)}
+                                                    color="#FFD76F"
+                                                    style={styles.historyBadgeIcon}
+                                                />
+                                                <Text style={styles.historyBadgeText}>{set.highlight}</Text>
+                                            </View>
+                                        ) : null}
+                                    </View>
+                                    <View style={styles.historyRepsColumn}>
+                                        <Text style={styles.historyValueText}>{set.repsLabel}</Text>
+                                    </View>
+                                </View>
+                            );
+                        })}
+                    </View>
+                ))}
+            </View>
+        );
+    };
 
     const renderProgress = () => (
         <View style={styles.placeholder}>
@@ -658,6 +1140,122 @@ const styles = StyleSheet.create({
         fontSize: ts(13),
         color: theme.textSecondary,
         lineHeight: ts(18),
+    },
+    historySection: {
+        paddingTop: scaleSize(18),
+    },
+    historyCard: {
+        backgroundColor: 'rgba(255,255,255,0.05)',
+        borderRadius: scaleSize(20),
+        paddingVertical: scaleSize(16),
+        paddingHorizontal: scaleSize(16),
+        marginBottom: scaleSize(18),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.08)',
+    },
+    historyHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: scaleSize(14),
+        paddingHorizontal: scaleSize(6)
+    },
+    historyDayBadge: {
+        width: scaleSize(46),
+        height: scaleSize(46),
+        borderRadius: scaleSize(12),
+        backgroundColor: 'rgba(255,255,255,0.08)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: scaleSize(12),
+    },
+    historyDayBadgeText: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: ts(14),
+        color: theme.textPrimary,
+    },
+    historyHeaderTextBlock: {
+        flex: 1,
+    },
+    historyTitle: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: ts(15),
+        color: theme.textPrimary,
+    },
+    historySubtitle: {
+        marginTop: scaleSize(4),
+        fontFamily: 'Outfit_400Regular',
+        fontSize: ts(12),
+        color: theme.textSecondary,
+    },
+    historyTableHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingBottom: scaleSize(8),
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: 'rgba(255,255,255,0.12)',
+        marginBottom: scaleSize(4),
+    },
+    historyTableHeaderText: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: ts(11),
+        letterSpacing: 0.4,
+        color: 'rgba(255,255,255,0.6)',
+        textTransform: 'uppercase',
+    },
+    historySetColumn: {
+        width: scaleSize(52),
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    historyWeightColumn: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    historyRepsColumn: {
+        width: scaleSize(70),
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    historyRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: scaleSize(10),
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: 'rgba(255,255,255,0.08)',
+    },
+    historyRowLast: {
+        borderBottomWidth: 0,
+        paddingBottom: scaleSize(6),
+    },
+    historySetValue: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: ts(13),
+        color: 'rgba(255,255,255,0.7)',
+        textAlign: 'center',
+    },
+    historyValueText: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: ts(14),
+        color: theme.textPrimary,
+        textAlign: 'center',
+    },
+    historyBadge: {
+        marginTop: scaleSize(6),
+        paddingHorizontal: scaleSize(8),
+        paddingVertical: scaleSize(4),
+        borderRadius: scaleSize(12),
+        backgroundColor: 'rgba(255,215,111,0.15)',
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    historyBadgeIcon: {
+        marginRight: scaleSize(4),
+    },
+    historyBadgeText: {
+        fontFamily: 'Outfit_500Medium',
+        fontSize: ts(11),
+        color: '#FFD76F',
     },
     placeholder: {
         paddingVertical: scaleSize(60),
