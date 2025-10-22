@@ -10,7 +10,7 @@ import {
     Pressable,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 
 import useStableSafeAreaInsets from '../hooks/useStableSafeAreaInsets';
 import theme from '../theme/mfpDark';
@@ -804,29 +804,38 @@ export default function ExerciseDetail() {
 
                         {session.sets.map((set, index) => {
                             const isLast = index === session.sets.length - 1;
+                            const rowStyle = [styles.historyRow];
+                            if (isLast) rowStyle.push(styles.historyRowLast);
+                            if (set.highlight) rowStyle.push(styles.historyRowWithBadge);
                             return (
-                                <View
-                                    key={set.key}
-                                    style={[styles.historyRow, isLast && styles.historyRowLast]}
-                                >
-                                    <View style={styles.historySetColumn}>
+                                <View key={set.key} style={rowStyle}>
+                                    <View
+                                        style={[
+                                            styles.historySetColumn,
+                                            set.highlight && styles.historyCellWithBadge,
+                                        ]}
+                                    >
                                         <Text style={styles.historySetValue}>{set.index}</Text>
                                     </View>
-                                    <View style={styles.historyWeightColumn}>
+                                    <View
+                                        style={[
+                                            styles.historyWeightColumn,
+                                            set.highlight && styles.historyWeightColumnWithBadge,
+                                        ]}
+                                    >
                                         <Text style={styles.historyValueText}>{set.weightLabel}</Text>
                                         {set.highlight ? (
                                             <View style={styles.historyBadge}>
-                                                <MaterialCommunityIcons
-                                                    name="medal-outline"
-                                                    size={scaleSize(12)}
-                                                    color="#FFD76F"
-                                                    style={styles.historyBadgeIcon}
-                                                />
                                                 <Text style={styles.historyBadgeText}>{set.highlight}</Text>
                                             </View>
                                         ) : null}
                                     </View>
-                                    <View style={styles.historyRepsColumn}>
+                                    <View
+                                        style={[
+                                            styles.historyRepsColumn,
+                                            set.highlight && styles.historyCellWithBadge,
+                                        ]}
+                                    >
                                         <Text style={styles.historyValueText}>{set.repsLabel}</Text>
                                     </View>
                                 </View>
@@ -1212,10 +1221,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    historyWeightColumnWithBadge: {
+        justifyContent: 'flex-start',
+    },
     historyRepsColumn: {
         width: scaleSize(70),
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    historyCellWithBadge: {
+        justifyContent: 'flex-start',
     },
     historyRow: {
         flexDirection: 'row',
@@ -1227,6 +1242,11 @@ const styles = StyleSheet.create({
     historyRowLast: {
         borderBottomWidth: 0,
         paddingBottom: scaleSize(6),
+    },
+    historyRowWithBadge: {
+        alignItems: 'flex-start',
+        paddingTop: scaleSize(6),
+        paddingBottom: scaleSize(12),
     },
     historySetValue: {
         fontFamily: 'Outfit_600SemiBold',
@@ -1241,21 +1261,19 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     historyBadge: {
-        marginTop: scaleSize(6),
-        paddingHorizontal: scaleSize(8),
+        marginTop: scaleSize(4),
+        paddingHorizontal: scaleSize(10),
         paddingVertical: scaleSize(4),
         borderRadius: scaleSize(12),
         backgroundColor: 'rgba(255,215,111,0.15)',
-        flexDirection: 'row',
         alignItems: 'center',
-    },
-    historyBadgeIcon: {
-        marginRight: scaleSize(4),
+        justifyContent: 'center',
     },
     historyBadgeText: {
         fontFamily: 'Outfit_500Medium',
         fontSize: ts(11),
         color: '#FFD76F',
+        textAlign: 'center',
     },
     placeholder: {
         paddingVertical: scaleSize(60),
