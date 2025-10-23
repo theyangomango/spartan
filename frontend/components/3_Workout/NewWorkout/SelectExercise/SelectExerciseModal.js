@@ -29,6 +29,7 @@ import styles, {
     TEXT_SECONDARY,
 } from "./selectExerciseModalStyles";
 import useSyncSavedExercises from "../../../../hooks/useSyncSavedExercises";
+import { toExerciseSlug } from "../../../common/exerciseImageMap";
 
 const scaledSize = (size) => scaleSize(size);
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -108,11 +109,125 @@ const getSetCount = (statsMap = {}, name) => {
     return typeof fallback === "number" ? fallback : 0;
 };
 
+const STOP_WORDS = new Set(["press", "presses"]);
+
+const singularizeToken = (token) => {
+    if (!token) return token;
+    if (token.endsWith("ies") && token.length > 3) return `${token.slice(0, -3)}y`;
+    if (token.endsWith("ses") && token.length > 3) return token.slice(0, -2);
+    if (token.endsWith("s") && !token.endsWith("ss") && token.length > 3) return token.slice(0, -1);
+    return token;
+};
+
+const buildExerciseNameKeys = (name) => {
+    const keys = [];
+    const seen = new Set();
+    const add = (value) => {
+        if (!value) return;
+        const key = value.trim();
+        if (!key || seen.has(key)) return;
+        seen.add(key);
+        keys.push(key);
+    };
+
+    const trimmed = typeof name === "string" ? name.trim() : "";
+    if (!trimmed) return { unique: "", keys: [] };
+
+    const lower = trimmed.toLowerCase();
+    add(lower);
+
+    const noParens = lower.replace(/\([^)]*\)/g, " ").replace(/\s+/g, " ").trim();
+    add(noParens);
+
+    const slug = toExerciseSlug(trimmed);
+    add(slug);
+
+    const sanitized = lower
+        .replace(/&/g, " and ")
+        .replace(/[^a-z0-9\s]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    add(sanitized);
+
+    const tokens = sanitized ? sanitized.split(" ").filter(Boolean) : [];
+    if (tokens.length) {
+        const joinedTokens = tokens.join(" ");
+        add(joinedTokens);
+        add(tokens.join("|"));
+        add([...tokens].sort().join("|"));
+
+        const singularTokens = tokens.map(singularizeToken);
+        if (singularTokens.some((token, index) => token !== tokens[index])) {
+            const singularJoined = singularTokens.join(" ");
+            add(singularJoined);
+            add(singularTokens.join("|"));
+            add([...singularTokens].sort().join("|"));
+        }
+
+        const withoutStops = tokens.filter((token) => !STOP_WORDS.has(token));
+        if (withoutStops.length) {
+            const withoutStopsJoined = withoutStops.join(" ");
+            add(withoutStopsJoined);
+            add(withoutStops.join("|"));
+            add([...withoutStops].sort().join("|"));
+
+            const withoutStopsSingular = withoutStops.map(singularizeToken);
+            if (withoutStopsSingular.some((token, index) => token !== withoutStops[index])) {
+                const withoutStopsSingularJoined = withoutStopsSingular.join(" ");
+                add(withoutStopsSingularJoined);
+                add(withoutStopsSingular.join("|"));
+                add([...withoutStopsSingular].sort().join("|"));
+            }
+        }
+    }
+
+    const unique = keys[0] || slug || sanitized || lower;
+    return { unique, keys };
+};
+
 export default function SelectExerciseModal({ closeModal, appendExercises }) {
     const statsExercises = global?.userData?.statsExercises;
     const insets = useSafeAreaInsets();
     const insetTop = insets?.top ?? 0;
     const insetBottom = insets?.bottom ?? 0;
+    const completedWorkouts = useMemo(
+        () =>
+            Array.isArray(global?.userData?.completedWorkouts)
+                ? global.userData.completedWorkouts
+                : [],
+        [(global?.userData?.completedWorkouts || [])],
+    );
+    const exerciseWorkoutCounts = useMemo(() => {
+        if (!completedWorkouts.length) return {};
+        const counts = Object.create(null);
+        completedWorkouts.forEach((workout) => {
+            const exercises = Array.isArray(workout?.exercises) ? workout.exercises : [];
+            if (!exercises.length) return;
+            const seen = new Set();
+            exercises.forEach((exercise) => {
+                const { unique, keys } = buildExerciseNameKeys(exercise?.name);
+                if (!unique || !keys.length || seen.has(unique)) return;
+                seen.add(unique);
+                keys.forEach((key) => {
+                    counts[key] = (counts[key] || 0) + 1;
+                });
+            });
+        });
+        return counts;
+    }, [completedWorkouts]);
+    const resolveWorkoutCount = useCallback(
+        (exerciseName) => {
+            const { keys } = buildExerciseNameKeys(exerciseName);
+            if (!keys.length) return 0;
+            let best = 0;
+            keys.forEach((key) => {
+                const value = exerciseWorkoutCounts[key];
+                if (typeof value === "number" && value > best) best = value;
+            });
+            return best;
+        },
+        [exerciseWorkoutCounts],
+    );
 
     const [inputQuery, setInputQuery] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
@@ -403,6 +518,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                                             isSaved
                                             toggleSaved={toggleSavedExercise}
                                             style={styles.bookmarkedCard}
+                                            workoutCount={resolveWorkoutCount(ex.name)}
                                         />
                                     </View>
                                 ))}
@@ -436,6 +552,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
         toggleSavedExercise,
         hasBookmarks,
         hasFilteredBookmarks,
+        resolveWorkoutCount,
     ]);
 
     const filteredExercises = useMemo(() => {
@@ -638,6 +755,7 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                                 savedLookup={savedExercisesMap}
                                 bottomPadding={listBottomPadding}
                                 listHeaderComponent={listHeaderComponent}
+                                getWorkoutCount={resolveWorkoutCount}
                             />
                         </View>
 

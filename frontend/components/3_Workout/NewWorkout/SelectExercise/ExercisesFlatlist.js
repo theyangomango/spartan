@@ -23,6 +23,7 @@ const ExercisesFlatlist = React.memo(
         listHeaderComponent = null,
         hideInfoButton = false,
         onScroll = undefined,
+        getWorkoutCount = undefined,
     }) => {
         const rows = useMemo(() => {
             if (!Array.isArray(exercises)) return [];
@@ -53,6 +54,11 @@ const ExercisesFlatlist = React.memo(
                                 touchable={!!animatedPress}
                                 style={styles.card}
                                 hideInfoButton={hideInfoButton}
+                                workoutCount={
+                                    typeof getWorkoutCount === "function"
+                                        ? getWorkoutCount(exercise.name)
+                                        : 0
+                                }
                             />
                         </View>
                     ))}
@@ -70,6 +76,7 @@ const ExercisesFlatlist = React.memo(
                 savedLookup,
                 animatedPress,
                 hideInfoButton,
+                getWorkoutCount,
             ]
         );
 
@@ -103,7 +110,7 @@ const ExercisesFlatlist = React.memo(
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={contentPadding}
-                    extraData={{ selectedLookup, savedLookup, hideInfoButton }}
+                    extraData={{ selectedLookup, savedLookup, hideInfoButton, getWorkoutCount }}
                     scrollEnabled={scrollEnabled}
                     ListHeaderComponent={listHeaderComponent}
                 />

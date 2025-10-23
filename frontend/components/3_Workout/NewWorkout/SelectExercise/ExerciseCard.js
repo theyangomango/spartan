@@ -15,6 +15,8 @@ const COLORS = {
     text: "#F7F9FF",
     subtext: "#9BA8BF",
     accent: "#FF6B7A",
+    countBg: "rgba(255, 255, 255, 0.08)",
+    countText: "#F7F9FF",
 };
 
 const CARD_WIDTH = "100%";
@@ -34,6 +36,7 @@ const ExerciseCard = memo(
         touchable = false,
         style = null,
         hideInfoButton = false,
+        workoutCount = 0,
     }) => {
         const Wrapper = touchable ? TouchableOpacity : Pressable;
         const wrapperProps = touchable ? { activeOpacity: 0.78 } : {};
@@ -63,6 +66,9 @@ const ExerciseCard = memo(
         };
 
         const shouldShowInfo = !hideInfoButton && typeof showExerciseInfo === "function";
+        const rawCount = Number(workoutCount);
+        const safeCount = Number.isFinite(rawCount) && rawCount > 0 ? Math.floor(rawCount) : 0;
+        const displayWorkoutCount = safeCount > 999 ? "999+" : String(safeCount);
 
         return (
             <Wrapper
@@ -83,21 +89,31 @@ const ExerciseCard = memo(
                             color={isSaved ? COLORS.accent : COLORS.subtext}
                         />
                     </Pressable>
-                    {shouldShowInfo ? (
-                        <Pressable
-                            onPress={() => showExerciseInfo?.(name)}
-                            style={styles.infoButton}
-                            hitSlop={8}
-                        >
-                            <Ionicons
-                                name="help-circle-outline"
-                                size={scaledSize(19)}
-                                color={COLORS.subtext}
-                            />
-                        </Pressable>
-                    ) : (
-                        <View style={styles.infoButtonPlaceholder} />
-                    )}
+                    <View style={styles.topRight}>
+                        <View style={styles.workoutCountBadge}>
+                            <Text
+                                style={styles.workoutCountText}
+                                accessibilityLabel={`${displayWorkoutCount} recent workouts`}
+                            >
+                                {displayWorkoutCount}
+                            </Text>
+                        </View>
+                        {shouldShowInfo ? (
+                            <Pressable
+                                onPress={() => showExerciseInfo?.(name)}
+                                style={styles.infoButton}
+                                hitSlop={8}
+                            >
+                                <Ionicons
+                                    name="help-circle-outline"
+                                    size={scaledSize(19)}
+                                    color={COLORS.subtext}
+                                />
+                            </Pressable>
+                        ) : (
+                            <View style={styles.infoButtonPlaceholder} />
+                        )}
+                    </View>
                 </View>
 
                 <View style={styles.previewWrapper}>
@@ -144,12 +160,31 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
     },
+    topRight: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
     infoButton: {
         paddingVertical: scaledSize(4),
     },
     infoButtonPlaceholder: {
         width: scaledSize(24),
         height: scaledSize(24),
+    },
+    workoutCountBadge: {
+        minWidth: scaledSize(22),
+        paddingHorizontal: scaledSize(6),
+        height: scaledSize(22),
+        borderRadius: scaledSize(11),
+        backgroundColor: COLORS.countBg,
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: scaledSize(8),
+    },
+    workoutCountText: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(11),
+        color: COLORS.countText,
     },
     bookmarkButton: {
         paddingVertical: scaledSize(4),

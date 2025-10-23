@@ -1,9 +1,11 @@
 // screens/MacroTracking.js
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, UIManager, Platform, LayoutAnimation, StatusBar, useWindowDimensions, VirtualizedList } from 'react-native';
+import { View, UIManager, Platform, LayoutAnimation, StatusBar, useWindowDimensions, VirtualizedList, TouchableOpacity, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaView as SafeAreaInsetsView } from 'react-native-safe-area-context';
+import { SafeAreaView as SafeAreaInsetsView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import Footer from '../components/Footer';
+import WorkoutBarcodeScannerModal from '../components/3_Workout/sections/WorkoutBarcodeScannerModal';
 
 // search is handled inside FoodSearchOverlay to reduce re-renders
 import PlusIcon from '../assets/PlusIcon';
@@ -18,6 +20,7 @@ import FoodSearchOverlay from '../components/2_MacroTracking/FoodSearchOverlay';
 import { useFocusEffect } from '@react-navigation/native';
 import MacroGoalsSheet from '../components/2_MacroTracking/MacroGoalsSheet';
 import { strong as haptic } from '../utils/haptics';
+import scaleSize from '../helper/scaleSize';
 
 // No foodLogs hook for this screen — use global.userData.loggedFoods exclusively
 import { parseMacrosFromDescription } from '../utils/nutrition';
@@ -31,7 +34,7 @@ import { buildFromGlobal } from '../logic/macroLogsIndexer';
 import { doc, onSnapshot, updateDoc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { touchRecentFood } from '../utils/recentFoods';
 
-// scaleSize not needed at screen level (used in child components)
+// scaleSize primarily used for floating controls; child components handle their own scaling
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -69,6 +72,7 @@ const mealsMeta = [
 ];
 
 export default function MacroTracking({ navigation, route }) {
+    const insets = useSafeAreaInsets();
     const { width: screenWidth } = useWindowDimensions();
     // Fast caches for global.loggedFoods → day-index and built meals
     const lastCountRef = useRef(0);
@@ -197,6 +201,32 @@ export default function MacroTracking({ navigation, route }) {
     const [selectedMeal, setSelectedMeal] = useState(null);
 
     const [collapsedMeals, setCollapsedMeals] = useState({ Breakfast: false, Lunch: false, Dinner: false });
+    const [barcodeScannerVisible, setBarcodeScannerVisible] = useState(false);
+
+    const handleBarcodePress = useCallback(() => {
+        try { haptic(); } catch {}
+        setBarcodeScannerVisible(true);
+    }, []);
+
+    const closeBarcodeScanner = useCallback(() => {
+        setBarcodeScannerVisible(false);
+    }, []);
+
+    const handleBarcodeResult = useCallback((food) => {
+        if (!food) {
+            setBarcodeScannerVisible(false);
+            return;
+        }
+        setBarcodeScannerVisible(false);
+        setTimeout(() => {
+            navigation.navigate('FoodDetail', {
+                mode: 'add',
+                food,
+                mealName: selectedMeal || undefined,
+                dayKey: toDayKey(focusedDate),
+            });
+        }, 80);
+    }, [navigation, focusedDate, selectedMeal]);
 
     const toggleMealCollapse = useCallback((name) => {
         try { haptic(); } catch {}
@@ -577,6 +607,29 @@ export default function MacroTracking({ navigation, route }) {
                     }}
                 />
 
+                <TouchableOpacity
+                    style={[
+                        styles.barcodeButton,
+                        { bottom: (insets.bottom || 0) + scaleSize(110) },
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={handleBarcodePress}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open barcode scanner"
+                >
+                    <Ionicons
+                        name="barcode-outline"
+                        size={scaleSize(24)}
+                        color="#000"
+                    />
+                </TouchableOpacity>
+
+                <WorkoutBarcodeScannerModal
+                    visible={barcodeScannerVisible}
+                    onClose={closeBarcodeScanner}
+                    onResult={handleBarcodeResult}
+                />
+
                 {/* Modals */}
                 <FoodSearchOverlay
                     visible={isSearchVisible}
@@ -616,4 +669,21 @@ export default function MacroTracking({ navigation, route }) {
     );
 }
 
-// No screen-level styles; MacroDayPage contains its own styles
+const styles = StyleSheet.create({
+    barcodeButton: {
+        position: 'absolute',
+        right: scaleSize(24),
+        width: scaleSize(56),
+        height: scaleSize(56),
+        borderRadius: scaleSize(28),
+        backgroundColor: '#FFFFFF',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 3,
+        elevation: 3,
+        shadowColor: '#000',
+        shadowOpacity: 0.2,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 3 },
+    },
+});
