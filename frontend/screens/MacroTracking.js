@@ -222,7 +222,7 @@ export default function MacroTracking({ navigation, route }) {
             navigation.navigate('FoodDetail', {
                 mode: 'add',
                 food,
-                mealName: selectedMeal || undefined,
+                mealName: selectedMeal || 'Snacks',
                 dayKey: toDayKey(focusedDate),
             });
         }, 80);
