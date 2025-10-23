@@ -203,6 +203,8 @@ export default function MacroTracking({ navigation, route }) {
     const [collapsedMeals, setCollapsedMeals] = useState({ Breakfast: false, Lunch: false, Dinner: false });
     const [barcodeScannerVisible, setBarcodeScannerVisible] = useState(false);
 
+    const isGoalsSheetOpen = goalsSheetIndex >= 0;
+
     const handleBarcodePress = useCallback(() => {
         try { haptic(); } catch {}
         setBarcodeScannerVisible(true);
@@ -610,10 +612,16 @@ export default function MacroTracking({ navigation, route }) {
                 <TouchableOpacity
                     style={[
                         styles.barcodeButton,
-                        { bottom: (insets.bottom || 0) + scaleSize(110) },
+                        {
+                            bottom: (insets.bottom || 0) + scaleSize(110),
+                            opacity: isGoalsSheetOpen ? 0 : 1,
+                            zIndex: isGoalsSheetOpen ? 0 : 3,
+                            elevation: isGoalsSheetOpen ? 0 : 3,
+                        },
                     ]}
                     activeOpacity={0.85}
                     onPress={handleBarcodePress}
+                    disabled={isGoalsSheetOpen}
                     accessibilityRole="button"
                     accessibilityLabel="Open barcode scanner"
                 >
