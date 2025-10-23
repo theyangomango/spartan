@@ -204,8 +204,16 @@ const SimpleFeedPost = ({
     }, [highlightSignal, isHighlighted, highlightOpacity]);
 
     const workout = data?.workout || null;
+    const isLivePost = useMemo(() => (
+        Boolean(
+            data?.isLive ||
+            data?.liveWorkout ||
+            (typeof data?.pid === "string" && data.pid.startsWith("workout:live"))
+        )
+    ), [data?.isLive, data?.liveWorkout, data?.pid]);
     const title = resolveWorkoutTitle(workout, data?.caption);
-    const timestamp = formatTimestamp(data?.created);
+    const formattedTimestamp = formatTimestamp(data?.created);
+    const timestamp = isLivePost ? "Live now" : formattedTimestamp;
     const caption = (data?.caption || "").trim();
     const weightUnit = resolveWeightUnit();
 
@@ -763,7 +771,14 @@ const SimpleFeedPost = ({
 
     return (
         <View style={styles.wrapper}>
-            <View style={[styles.card, !contentReady && styles.cardHidden]}>
+            <View style={[
+                styles.card,
+                isLivePost && styles.cardLive,
+                !contentReady && styles.cardHidden,
+            ]}>
+                {isLivePost ? (
+                    <View pointerEvents="none" style={styles.liveBackdrop} />
+                ) : null}
                 <View style={styles.sectionTop}>
                     <View style={styles.headerRow}>
                         <Pressable style={styles.avatarWrap} onPress={() => onPressProfile?.(index, data)}>
@@ -785,19 +800,32 @@ const SimpleFeedPost = ({
                         </Pressable>
 
                         <View style={styles.headerTextCol}>
-                            <Pressable onPress={() => onPressProfile?.(index, data)}>
-                                <VerifiedHandle
-                                    handle={displayName}
-                                    isVerified={isPostVerified}
-                                    textStyle={styles.nameText}
-                                    iconSize={scaleSize(15)}
-                                    numberOfLines={1}
-                                    ellipsizeMode="tail"
-                                    containerStyle={styles.nameRow}
-                                />
-                            </Pressable>
+                            <View style={styles.nameRow}>
+                                <Pressable
+                                    onPress={() => onPressProfile?.(index, data)}
+                                    style={styles.namePressable}
+                                >
+                                    <VerifiedHandle
+                                        handle={displayName}
+                                        isVerified={isPostVerified}
+                                        textStyle={styles.nameText}
+                                        iconSize={scaleSize(15)}
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                        containerStyle={styles.nameHandle}
+                                    />
+                                </Pressable>
+                                {isLivePost ? (
+                                    <View style={styles.liveBadge}>
+                                        <Text style={styles.liveBadgeText}>Live</Text>
+                                    </View>
+                                ) : null}
+                            </View>
                             {!!timestamp && (
-                                <Text style={styles.timestampText} numberOfLines={1}>
+                                <Text
+                                    style={isLivePost ? styles.liveTimestampText : styles.timestampText}
+                                    numberOfLines={1}
+                                >
                                     {timestamp}
                                 </Text>
                             )}
@@ -927,76 +955,78 @@ const SimpleFeedPost = ({
                     </View>
                 )}
 
-                <View style={[
-                    styles.sectionBottom,
-                    mediaList.length === 0 ? styles.sectionBottomDivider : null,
-                ]}>
-                    <View style={styles.actionsRow}>
-                        <Pressable
-                            onPress={() => onPressLikes?.(index, data)}
-                            disabled={!onPressLikes}
-                            style={({ pressed }) => [
-                                styles.likesContainer,
-                                pressed ? styles.likesContainerPressed : null,
-                            ]}
-                        >
-                            {likeCount > 0 && (firstLikerAvatar || firstLikerInitials) ? (
-                                <View style={styles.likesAvatarWrap}>
-                                    {firstLikerAvatar ? (
-                                        <FastImage
-                                            source={{
-                                                uri: firstLikerAvatar,
-                                                priority: FastImage.priority.low,
-                                                cache: FastImage.cacheControl.immutable,
-                                            }}
-                                            style={styles.likesAvatar}
-                                            resizeMode={FastImage.resizeMode.cover}
-                                        />
-                                    ) : (
-                                        <View style={[styles.likesAvatar, styles.likesAvatarFallback]}>
-                                            <Text style={styles.likesAvatarInitials}>{firstLikerInitials}</Text>
-                                        </View>
-                                    )}
-                                </View>
-                            ) : null}
-                            <Text style={styles.likesText} numberOfLines={1}>
-                                {likeMessage}
-                            </Text>
-                        </Pressable>
-
-                        <View style={styles.buttonsContainer}>
-                            <AnimatedPressable
-                                ref={(node) => assignButtonRef?.("like", node)}
-                                style={styles.actionButton}
-                                onPress={handlePressLikeButton}
+                {!isLivePost && (
+                    <View style={[
+                        styles.sectionBottom,
+                        mediaList.length === 0 ? styles.sectionBottomDivider : null,
+                    ]}>
+                        <View style={styles.actionsRow}>
+                            <Pressable
+                                onPress={() => onPressLikes?.(index, data)}
+                                disabled={!onPressLikes}
+                                style={({ pressed }) => [
+                                    styles.likesContainer,
+                                    pressed ? styles.likesContainerPressed : null,
+                                ]}
                             >
-                                <Heart size={scaleSize(20)} color={likeColor} variant="Bold" />
-                                <Text style={styles.actionText}>{formatNumber(likeCount)}</Text>
-                            </AnimatedPressable>
+                                {likeCount > 0 && (firstLikerAvatar || firstLikerInitials) ? (
+                                    <View style={styles.likesAvatarWrap}>
+                                        {firstLikerAvatar ? (
+                                            <FastImage
+                                                source={{
+                                                    uri: firstLikerAvatar,
+                                                    priority: FastImage.priority.low,
+                                                    cache: FastImage.cacheControl.immutable,
+                                                }}
+                                                style={styles.likesAvatar}
+                                                resizeMode={FastImage.resizeMode.cover}
+                                            />
+                                        ) : (
+                                            <View style={[styles.likesAvatar, styles.likesAvatarFallback]}>
+                                                <Text style={styles.likesAvatarInitials}>{firstLikerInitials}</Text>
+                                            </View>
+                                        )}
+                                    </View>
+                                ) : null}
+                                <Text style={styles.likesText} numberOfLines={1}>
+                                    {likeMessage}
+                                </Text>
+                            </Pressable>
 
-                            <AnimatedPressable
-                                ref={(node) => assignButtonRef?.("comment", node)}
-                                style={[styles.actionButton, styles.actionButtonMiddle]}
-                                onPress={pressComment}
-                            >
-                                <Messages1 size={scaleSize(20)} color={theme.textPrimary} variant="Bold" />
-                                <Text style={styles.actionText}>{formatNumber(commentCount)}</Text>
-                            </AnimatedPressable>
+                            <View style={styles.buttonsContainer}>
+                                <AnimatedPressable
+                                    ref={(node) => assignButtonRef?.("like", node)}
+                                    style={styles.actionButton}
+                                    onPress={handlePressLikeButton}
+                                >
+                                    <Heart size={scaleSize(20)} color={likeColor} variant="Bold" />
+                                    <Text style={styles.actionText}>{formatNumber(likeCount)}</Text>
+                                </AnimatedPressable>
 
-                            {/* <AnimatedPressable
-                                ref={(node) => assignButtonRef?.("save", node)}
-                                style={styles.actionButton}
-                                onPress={handlePressSaveButton}
-                            >
-                                <MaterialCommunityIcons
-                                    name={isSaved ? "bookmark" : "bookmark-outline"}
-                                    size={scaleSize(20)}
-                                    color={theme.textPrimary}
-                                />
-                            </AnimatedPressable> */}
+                                <AnimatedPressable
+                                    ref={(node) => assignButtonRef?.("comment", node)}
+                                    style={[styles.actionButton, styles.actionButtonMiddle]}
+                                    onPress={pressComment}
+                                >
+                                    <Messages1 size={scaleSize(20)} color={theme.textPrimary} variant="Bold" />
+                                    <Text style={styles.actionText}>{formatNumber(commentCount)}</Text>
+                                </AnimatedPressable>
+
+                                {/* <AnimatedPressable
+                                    ref={(node) => assignButtonRef?.("save", node)}
+                                    style={styles.actionButton}
+                                    onPress={handlePressSaveButton}
+                                >
+                                    <MaterialCommunityIcons
+                                        name={isSaved ? "bookmark" : "bookmark-outline"}
+                                        size={scaleSize(20)}
+                                        color={theme.textPrimary}
+                                    />
+                                </AnimatedPressable> */}
+                            </View>
                         </View>
                     </View>
-                </View>
+                )}
             </View>
             <Animated.View
                 pointerEvents="none"
@@ -1094,9 +1124,13 @@ const styles = StyleSheet.create({
     },
     card: {
         backgroundColor: theme.surface,
+        position: 'relative',
     },
     cardHidden: {
         opacity: 0,
+    },
+    cardLive: {
+        backgroundColor: '#22141a',
     },
     sectionTop: {
         paddingHorizontal: scaleSize(18),
@@ -1141,6 +1175,19 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: 0,
     },
+    nameRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        flexShrink: 1,
+    },
+    namePressable: {
+        flexShrink: 1,
+    },
+    nameHandle: {
+        flexDirection: "row",
+        alignItems: "center",
+        flexShrink: 1,
+    },
     nameText: {
         color: theme.textPrimary,
         fontFamily: "Poppins_600SemiBold",
@@ -1151,6 +1198,34 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_400Regular",
         fontSize: scaleSize(11.5),
         marginTop: scaleSize(2),
+    },
+    liveTimestampText: {
+        color: '#FF8596',
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(11.5),
+        marginTop: scaleSize(2),
+    },
+    liveBadge: {
+        paddingHorizontal: scaleSize(8),
+        paddingVertical: scaleSize(2),
+        borderRadius: scaleSize(10),
+        backgroundColor: '#FF4D67',
+        marginLeft: scaleSize(8),
+    },
+    liveBadgeText: {
+        color: "#FFFFFF",
+        fontFamily: "Poppins_700Bold",
+        fontSize: scaleSize(10),
+        letterSpacing: 0.7,
+        textTransform: "uppercase",
+    },
+    liveBackdrop: {
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "rgba(255,77,103,0.06)",
     },
     moreButton: {
         paddingHorizontal: scaleSize(4),

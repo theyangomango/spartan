@@ -17,6 +17,7 @@ import {
     TouchableOpacity,
     Alert,
     Text,
+    ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -107,7 +108,12 @@ export default function Feed({ navigation, route }) {
 
     const followingList = global.userData ? global.userData?.following : [];
 
-    const posts = useFilteredFeed(followingList);
+    const {
+        posts,
+        loadMore: loadMorePosts,
+        hasMore: hasMorePosts,
+        loadingMore: loadingMorePosts,
+    } = useFilteredFeed(followingList);
 
     const {
         activeWorkout,
@@ -159,9 +165,30 @@ export default function Feed({ navigation, route }) {
 
     const listData = useMemo(() => {
         const basePosts = Array.isArray(posts) ? [...posts] : [];
-        basePosts.sort((a, b) => resolveTimestamp(b) - resolveTimestamp(a));
+        basePosts.sort((a, b) => {
+            const liveA = Boolean(a?.isLive || a?.liveWorkout);
+            const liveB = Boolean(b?.isLive || b?.liveWorkout);
+            if (liveA !== liveB) {
+                return liveA ? -1 : 1;
+            }
+            return resolveTimestamp(b) - resolveTimestamp(a);
+        });
         return basePosts;
     }, [posts, resolveTimestamp]);
+
+    const handleEndReached = useCallback(() => {
+        if (!hasMorePosts || loadingMorePosts) return;
+        loadMorePosts();
+    }, [hasMorePosts, loadingMorePosts, loadMorePosts]);
+
+    const listFooter = useMemo(() => {
+        if (!loadingMorePosts) return null;
+        return (
+            <View style={styles.listFooter}>
+                <ActivityIndicator size="small" color={theme.textSecondary} />
+            </View>
+        );
+    }, [loadingMorePosts]);
 
     const onRefresh = useCallback(async () => {
         try {
@@ -753,6 +780,7 @@ export default function Feed({ navigation, route }) {
                 renderItem={renderPost}
                 style={styles.list}
                 ListEmptyComponent={renderEmptyList}
+                ListFooterComponent={listFooter}
                 refreshControl={(
                     <RefreshControl
                         refreshing={refreshing}
@@ -767,6 +795,8 @@ export default function Feed({ navigation, route }) {
                     { paddingBottom: LIST_BOTTOM_INSET + Math.max(0, insets.bottom || 0) },
                 ]}
                 showsVerticalScrollIndicator={false}
+                onEndReached={handleEndReached}
+                onEndReachedThreshold={0.6}
             />
 
             <TouchableOpacity
@@ -838,6 +868,9 @@ const styles = StyleSheet.create({
     },
     listContent: {
         flexGrow: 1,
+    },
+    listFooter: {
+        paddingVertical: scaleSize(24),
     },
     createPostButton: {
         position: "absolute",
