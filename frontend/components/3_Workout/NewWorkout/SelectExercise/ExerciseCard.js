@@ -1,9 +1,10 @@
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import { Pressable, TouchableOpacity, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import scaleSize from "../../../../helper/scaleSize";
 import ExerciseImagePreview from "./ExerciseImagePreview";
 import { strong as haptic } from "../../../../utils/haptics";
+import countCompletedWorkoutsWithExercise from "../../../../helper/countCompletedWorkoutsWithExercise";
 import theme from '../../../../theme/mfpDark'
 
 const scaledSize = (size) => scaleSize(size);
@@ -27,14 +28,25 @@ const ExerciseCard = memo(
         slug,
         selectExercise,
         deselectExercise,
-        showExerciseInfo,
         isSelected = false,
         isSaved = false,
         toggleSaved,
         touchable = false,
         style = null,
-        hideInfoButton = false,
     }) => {
+        const completedWorkouts = (() => {
+            try {
+                return global?.userData?.completedWorkouts;
+            } catch {
+                return undefined;
+            }
+        })();
+
+        const usageCount = useMemo(
+            () => Math.max(0, countCompletedWorkoutsWithExercise(name, completedWorkouts)),
+            [name, completedWorkouts]
+        );
+
         const Wrapper = touchable ? TouchableOpacity : Pressable;
         const wrapperProps = touchable ? { activeOpacity: 0.78 } : {};
 
@@ -62,8 +74,6 @@ const ExerciseCard = memo(
             toggleSaved({ name, muscle: muscleGroup, slug });
         };
 
-        const shouldShowInfo = !hideInfoButton && typeof showExerciseInfo === "function";
-
         return (
             <Wrapper
                 {...wrapperProps}
@@ -83,21 +93,13 @@ const ExerciseCard = memo(
                             color={isSaved ? COLORS.accent : COLORS.subtext}
                         />
                     </Pressable>
-                    {shouldShowInfo ? (
-                        <Pressable
-                            onPress={() => showExerciseInfo?.(name)}
-                            style={styles.infoButton}
-                            hitSlop={8}
-                        >
-                            <Ionicons
-                                name="help-circle-outline"
-                                size={scaledSize(19)}
-                                color={COLORS.subtext}
-                            />
-                        </Pressable>
-                    ) : (
-                        <View style={styles.infoButtonPlaceholder} />
-                    )}
+                    <View style={styles.rightControls}>
+                        {usageCount > 0 ? (
+                            <View style={styles.usageBadge}>
+                                <Text style={styles.usageBadgeText}>{usageCount}</Text>
+                            </View>
+                        ) : null}
+                    </View>
                 </View>
 
                 <View style={styles.previewWrapper}>
@@ -144,12 +146,24 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
     },
-    infoButton: {
-        paddingVertical: scaledSize(4),
+    rightControls: {
+        flexDirection: "row",
+        alignItems: "center",
     },
-    infoButtonPlaceholder: {
-        width: scaledSize(24),
-        height: scaledSize(24),
+    usageBadge: {
+        minWidth: scaledSize(20),
+        paddingHorizontal: scaledSize(6),
+        paddingVertical: scaledSize(2),
+        borderRadius: scaledSize(10),
+        // backgroundColor: "rgba(87, 185, 255, 0.16)",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: 0,
+    },
+    usageBadgeText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(12),
+        color: COLORS.text,
     },
     bookmarkButton: {
         paddingVertical: scaledSize(4),

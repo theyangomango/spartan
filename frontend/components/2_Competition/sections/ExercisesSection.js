@@ -60,6 +60,18 @@ const MUSCLE_FILTERS = [
     { label: "Back", value: "back", segments: [] },
 ];
 
+const EMPTY_STATS = Object.freeze({});
+
+const getSetCount = (statsMap = {}, name) => {
+    const exerciseStats = statsMap?.[name];
+    if (!exerciseStats) return 0;
+    const sets = exerciseStats?.sets;
+    if (Array.isArray(sets)) return sets.length;
+    if (typeof sets === "number") return sets;
+    const fallback = exerciseStats?.setCount ?? exerciseStats?.totalSets;
+    return typeof fallback === "number" ? fallback : 0;
+};
+
 const normalizeEquipment = (raw) => {
     const value = String(raw || "").toLowerCase();
     if (value === "bodyweight" || value.includes("body weight")) return "Bodyweight";
@@ -132,6 +144,9 @@ export default function ExercisesSection() {
     const [bodyPartValue, setBodyPartValue] = useState(null);
     const [savedExercisesMap, setSavedExercisesMap] = useState(() =>
         normalizeSavedExercises(global?.userData?.savedExercises)
+    );
+    const [statsExercises, setStatsExercises] = useState(
+        () => global?.userData?.statsExercises || EMPTY_STATS
     );
     const [, startFilterTransition] = useTransition();
     const filterVisibility = useRef(new Animated.Value(1)).current;
@@ -317,6 +332,8 @@ export default function ExercisesSection() {
                 if (prevSig === nextSig) return prev;
                 return next;
             });
+            const nextStats = payload?.statsExercises || EMPTY_STATS;
+            setStatsExercises((prev) => (prev === nextStats ? prev : nextStats));
         });
         return unsubscribe;
     }, []);
@@ -333,13 +350,26 @@ export default function ExercisesSection() {
     }, [bodyPartValue, exercises, exercisesByFilter]);
 
     const filteredExercises = useMemo(() => {
-        if (!deferredSearch) return filteredByBody;
-        return filteredByBody.filter(
-            (exercise) =>
-                exercise.nameLc.includes(deferredSearch) ||
-                exercise.mgLc.includes(deferredSearch)
-        );
-    }, [filteredByBody, deferredSearch]);
+        const statsMap = statsExercises || {};
+        let matches;
+        if (!deferredSearch) {
+            matches = filteredByBody;
+        } else {
+            matches = filteredByBody.filter(
+                (exercise) =>
+                    exercise.nameLc.includes(deferredSearch) ||
+                    exercise.mgLc.includes(deferredSearch)
+            );
+        }
+        const list = Array.isArray(matches) ? [...matches] : [];
+        list.sort((a, b) => {
+            const setsA = getSetCount(statsMap, a.name);
+            const setsB = getSetCount(statsMap, b.name);
+            if (setsA !== setsB) return setsB - setsA;
+            return a.name.localeCompare(b.name);
+        });
+        return list;
+    }, [filteredByBody, deferredSearch, statsExercises]);
 
     const emptySelection = useMemo(() => ({}), []);
 
@@ -480,7 +510,6 @@ export default function ExercisesSection() {
                                             toggleSaved={toggleSavedExercise}
                                             touchable
                                             style={styles.bookmarkedCard}
-                                            hideInfoButton
                                         />
                                     </View>
                                 ))}
@@ -598,7 +627,6 @@ export default function ExercisesSection() {
                     animatedPress
                     bottomPadding={bottomInsetPadding + scaleSize(140)}
                     listHeaderComponent={listHeaderComponent}
-                    hideInfoButton
                     onScroll={handleExercisesScroll}
                 />
             </View>

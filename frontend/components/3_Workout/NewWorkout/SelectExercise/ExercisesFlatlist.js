@@ -21,7 +21,6 @@ const ExercisesFlatlist = React.memo(
         bottomPadding = 120,
         scrollEnabled = true,
         listHeaderComponent = null,
-        hideInfoButton = false,
         onScroll = undefined,
     }) => {
         const rows = useMemo(() => {
@@ -52,7 +51,6 @@ const ExercisesFlatlist = React.memo(
                                 toggleSaved={toggleSavedExercise}
                                 touchable={!!animatedPress}
                                 style={styles.card}
-                                hideInfoButton={hideInfoButton}
                             />
                         </View>
                     ))}
@@ -69,7 +67,6 @@ const ExercisesFlatlist = React.memo(
                 selectedLookup,
                 savedLookup,
                 animatedPress,
-                hideInfoButton,
             ]
         );
 
@@ -103,7 +100,7 @@ const ExercisesFlatlist = React.memo(
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={contentPadding}
-                    extraData={{ selectedLookup, savedLookup, hideInfoButton }}
+                    extraData={{ selectedLookup, savedLookup }}
                     scrollEnabled={scrollEnabled}
                     ListHeaderComponent={listHeaderComponent}
                 />
