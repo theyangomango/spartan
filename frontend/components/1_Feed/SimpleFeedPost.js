@@ -815,11 +815,6 @@ const SimpleFeedPost = ({
                                         containerStyle={styles.nameHandle}
                                     />
                                 </Pressable>
-                                {isLivePost ? (
-                                    <View style={styles.liveBadge}>
-                                        <Text style={styles.liveBadgeText}>Live</Text>
-                                    </View>
-                                ) : null}
                             </View>
                             {!!timestamp && (
                                 <Text
@@ -842,22 +837,22 @@ const SimpleFeedPost = ({
                         ) : null}
                     </View>
 
-                    {workout ? (
-                        <Pressable onPress={handlePressWorkout} style={styles.titleBlock} hitSlop={{ top: scaleSize(6), bottom: scaleSize(6) }}>
-                            <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
-                                {title}
-                            </Text>
+                {workout ? (
+                    <Pressable onPress={handlePressWorkout} style={styles.titleBlock} hitSlop={{ top: scaleSize(6), bottom: scaleSize(6) }}>
+                        <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
+                            {title}
+                        </Text>
                             {shouldShowSubtitle ? (
                                 <Text style={styles.captionText}>
                                     {caption}
                                 </Text>
                             ) : null}
                         </Pressable>
-                    ) : (
-                        <View style={styles.titleBlock}>
-                            <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
-                                {title}
-                            </Text>
+                ) : (
+                    <View style={styles.titleBlock}>
+                        <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
+                            {title}
+                        </Text>
                             {shouldShowSubtitle ? (
                                 <Text style={styles.captionText}>
                                     {caption}
@@ -874,18 +869,27 @@ const SimpleFeedPost = ({
                     >
                         <View style={styles.metricsLeft}>
                             <View style={styles.metricColumnLeft}>
-                                <Text style={styles.metricLabel}>Duration</Text>
+                                <View style={styles.metricLabelRow}>
+                                    {isLivePost ? <View style={styles.metricLiveDot} /> : null}
+                                    <Text style={styles.metricLabel}>Duration</Text>
+                                </View>
                                 <Text style={styles.metricValue}>{durationLabel}</Text>
                             </View>
 
                             <View style={[styles.metricColumnLeft, styles.metricCenter]}>
-                                <Text style={styles.metricLabel}>Volume</Text>
+                                <View style={styles.metricLabelRow}>
+                                    {isLivePost ? <View style={styles.metricLiveDot} /> : null}
+                                    <Text style={styles.metricLabel}>Volume</Text>
+                                </View>
                                 <Text style={styles.metricValue}>{volumeLabel} {weightUnit}</Text>
                             </View>
                         </View>
 
                         <View style={[styles.metricColumn, styles.metricRight]}>
-                            <Text style={styles.metricLabel}>Records</Text>
+                            <View style={styles.metricLabelRow}>
+                                {isLivePost ? <View style={styles.metricLiveDot} /> : null}
+                                <Text style={styles.metricLabel}>Records</Text>
+                            </View>
                             <View style={styles.recordsValueRow}>
                                 <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" />
                                 <Text style={[styles.metricValue, styles.recordsValueText]}>{recordsLabel}</Text>
@@ -1205,20 +1209,6 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(11.5),
         marginTop: scaleSize(2),
     },
-    liveBadge: {
-        paddingHorizontal: scaleSize(8),
-        paddingVertical: scaleSize(2),
-        borderRadius: scaleSize(10),
-        backgroundColor: '#FF4D67',
-        marginLeft: scaleSize(8),
-    },
-    liveBadgeText: {
-        color: "#FFFFFF",
-        fontFamily: "Poppins_700Bold",
-        fontSize: scaleSize(10),
-        letterSpacing: 0.7,
-        textTransform: "uppercase",
-    },
     liveBackdrop: {
         position: "absolute",
         top: 0,
@@ -1271,6 +1261,22 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(11),
         letterSpacing: 0.2,
         paddingBottom: scaleSize(1.5)
+    },
+    metricLabelRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingBottom: scaleSize(1.5),
+    },
+    metricLiveDot: {
+        width: scaleSize(6.5),
+        height: scaleSize(6.5),
+        borderRadius: scaleSize(3.25),
+        backgroundColor: "#FF4D67",
+        marginRight: scaleSize(6),
+        shadowColor: "#FF4D67",
+        shadowOpacity: 0.35,
+        shadowRadius: scaleSize(6),
+        shadowOffset: { width: 0, height: 0 },
     },
     metricValue: {
         color: theme.textPrimary,

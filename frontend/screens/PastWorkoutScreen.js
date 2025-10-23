@@ -157,6 +157,22 @@ const PastWorkoutScreen = () => {
     const routeWorkout = route.params?.workout ?? null;
     const [workout, setWorkout] = useState(routeWorkout);
     const owner = route.params?.owner ?? {};
+    const isLiveWorkout = useMemo(
+        () =>
+            Boolean(
+                route.params?.isLiveWorkout ||
+                workout?.isLive ||
+                workout?.live ||
+                (typeof route.params?.postMeta?.pid === "string" &&
+                    route.params.postMeta.pid.startsWith("workout:live"))
+            ),
+        [
+            route.params?.isLiveWorkout,
+            route.params?.postMeta?.pid,
+            workout?.isLive,
+            workout?.live,
+        ]
+    );
 
     useEffect(() => {
         setWorkout(routeWorkout);
@@ -191,6 +207,10 @@ const PastWorkoutScreen = () => {
     }, [workout]);
 
     const timestampLabel = useMemo(() => formatTimestamp(workoutTimestamp), [workoutTimestamp]);
+    const timestampDisplay = useMemo(
+        () => (isLiveWorkout ? "Live now" : timestampLabel),
+        [isLiveWorkout, timestampLabel]
+    );
 
     const workoutIdentifier = useMemo(() => ({
         wid: routeWorkout?.wid ?? routeWorkout?.id ?? routeWorkout?.workoutId ?? routeWorkout?.pid ?? null,
@@ -318,6 +338,7 @@ const PastWorkoutScreen = () => {
     })();
 
     const isOwner = Boolean(viewerUid && workoutOwnerUid && viewerUid === workoutOwnerUid);
+    const canEditWorkout = Boolean(isOwner && !isLiveWorkout);
     const [deletingWorkout, setDeletingWorkout] = useState(false);
     const [editingVisible, setEditingVisible] = useState(false);
 
@@ -422,7 +443,7 @@ const PastWorkoutScreen = () => {
     const handlePressWorkoutHeader = useCallback(() => {}, []);
 
     const performDeleteWorkout = useCallback(async () => {
-        if (!isOwner || deletingWorkout) return;
+        if (!canEditWorkout || deletingWorkout) return;
         const uid = viewerUid;
         if (!uid) return;
         const identifier = {
@@ -464,10 +485,10 @@ const PastWorkoutScreen = () => {
         } finally {
             setDeletingWorkout(false);
         }
-    }, [isOwner, deletingWorkout, viewerUid, workout, navigation]);
+    }, [canEditWorkout, deletingWorkout, viewerUid, workout, navigation]);
 
     const handleRequestDeleteWorkout = useCallback(() => {
-        if (!isOwner || deletingWorkout) return;
+        if (!canEditWorkout || deletingWorkout) return;
         Alert.alert("Delete workout?", "This will remove the workout from your history and stats.", [
             { text: "Cancel", style: "cancel" },
             {
@@ -476,10 +497,10 @@ const PastWorkoutScreen = () => {
                 onPress: performDeleteWorkout,
             },
         ]);
-    }, [isOwner, deletingWorkout, performDeleteWorkout]);
+    }, [canEditWorkout, deletingWorkout, performDeleteWorkout]);
 
     const handleSaveEditedWorkout = useCallback(async (updatedWorkout) => {
-        if (!isOwner || !updatedWorkout) return;
+        if (!canEditWorkout || !updatedWorkout) return;
         const uid = viewerUid;
         if (!uid) throw new Error("missing-uid");
 
@@ -547,10 +568,10 @@ const PastWorkoutScreen = () => {
             Alert.alert("Save failed", "Please try again.");
             throw error;
         }
-    }, [isOwner, viewerUid, workout, workoutIdentifier]);
+    }, [canEditWorkout, viewerUid, workout, workoutIdentifier]);
 
     const handlePressDetailMenu = useCallback(() => {
-        if (!isOwner) return;
+        if (!canEditWorkout) return;
         Alert.alert(
             "Workout options",
             undefined,
@@ -560,19 +581,19 @@ const PastWorkoutScreen = () => {
 
             ],
         );
-    }, [handleRequestDeleteWorkout, isOwner]);
+    }, [handleRequestDeleteWorkout, canEditWorkout]);
 
     return (
-        <SafeAreaView style={styles.safeArea}>
-            <View style={styles.header}>
+        <SafeAreaView style={[styles.safeArea, isLiveWorkout && styles.safeAreaLive]}>
+            <View style={[styles.header, isLiveWorkout && styles.headerLive]}>
                 <Pressable onPress={handleBack} hitSlop={8} style={styles.headerBackButton}>
                     <Ionicons name="chevron-back" size={HEADER_ICON_SIZE} color={theme.textPrimary} />
                 </Pressable>
                 <Text style={styles.headerTitle} numberOfLines={1}>
-                    Workout Details
+                    {isLiveWorkout ? "Workout in Progress" : "Workout Details"}
                 </Text>
                 <View style={styles.headerRight}>
-                    {isOwner ? (
+                    {canEditWorkout ? (
                         <Pressable
                             onPress={handleRequestDeleteWorkout}
                             hitSlop={8}
@@ -589,10 +610,10 @@ const PastWorkoutScreen = () => {
                 </View>
             </View>
 
-            <ScrollView contentContainerStyle={styles.content}>
+            <ScrollView contentContainerStyle={[styles.content, isLiveWorkout && styles.contentLive]}>
                 {workout ? (
-                    <View style={styles.detailSection}>
-                        <View style={styles.sectionHeader}>
+                    <View style={[styles.detailSection, isLiveWorkout && styles.detailSectionLive]}>
+                        <View style={[styles.sectionHeader, isLiveWorkout && styles.sectionHeaderLive]}>
                             <View style={styles.sectionTop}>
                                 <View style={styles.headerRow}>
                                     <Pressable
@@ -629,14 +650,17 @@ const PastWorkoutScreen = () => {
                                                 preserveTextAlignment
                                             />
                                         </Pressable>
-                                        {!!timestampLabel && (
-                                            <Text style={styles.timestampText} numberOfLines={1}>
-                                                {timestampLabel}
+                                        {!!timestampDisplay && (
+                                            <Text
+                                                style={isLiveWorkout ? styles.timestampLiveText : styles.timestampText}
+                                                numberOfLines={1}
+                                            >
+                                                {timestampDisplay}
                                             </Text>
                                         )}
                                     </View>
 
-                                    {isOwner ? (
+                                    {canEditWorkout ? (
                                         <Pressable
                                             style={styles.moreButton}
                                             onPress={handlePressDetailMenu}
@@ -688,12 +712,18 @@ const PastWorkoutScreen = () => {
                                 >
                                     <View style={styles.metricsLeft}>
                                         <View style={styles.metricColumnLeft}>
-                                            <Text style={styles.metricLabel}>Duration</Text>
+                                            <View style={styles.metricLabelRow}>
+                                                {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
+                                                <Text style={styles.metricLabel}>Duration</Text>
+                                            </View>
                                             <Text style={styles.metricValue}>{durationLabel}</Text>
                                         </View>
 
                                         <View style={[styles.metricColumnLeft, styles.metricCenter]}>
-                                            <Text style={styles.metricLabel}>Volume</Text>
+                                            <View style={styles.metricLabelRow}>
+                                                {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
+                                                <Text style={styles.metricLabel}>Volume</Text>
+                                            </View>
                                             <Text style={styles.metricValue}>
                                                 {volumeLabel} {weightUnit}
                                             </Text>
@@ -701,7 +731,10 @@ const PastWorkoutScreen = () => {
                                     </View>
 
                                     <View style={styles.metricRight}>
-                                        <Text style={styles.metricLabel}>Records</Text>
+                                        <View style={styles.metricLabelRow}>
+                                            {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
+                                            <Text style={styles.metricLabel}>Records</Text>
+                                        </View>
                                         <View style={styles.recordsValueRow}>
                                             <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" />
                                             <Text style={[styles.metricValue, styles.recordsValueText]}>{recordsLabel}</Text>
@@ -748,11 +781,17 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: theme.bg,
     },
+    safeAreaLive: {
+        backgroundColor: theme.bg,
+    },
     header: {
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: scaleSize(18),
         paddingVertical: scaleSize(12),
+    },
+    headerLive: {
+        backgroundColor: theme.bg,
     },
     headerBackButton: {
         padding: scaleSize(4),
@@ -774,8 +813,14 @@ const styles = StyleSheet.create({
     content: {
         paddingBottom: scaleSize(28),
     },
+    contentLive: {
+        backgroundColor: "transparent",
+    },
     detailSection: {
         paddingVertical: scaleSize(14),
+        backgroundColor: theme.surface,
+    },
+    detailSectionLive: {
         backgroundColor: theme.surface,
     },
     sectionHeader: {
@@ -783,6 +828,9 @@ const styles = StyleSheet.create({
         borderBottomColor: theme.hairline,
         paddingBottom: scaleSize(12),
         marginBottom: scaleSize(6),
+    },
+    sectionHeaderLive: {
+        borderBottomColor: theme.hairline,
     },
     sectionTop: {
         paddingHorizontal: scaleSize(18),
@@ -825,6 +873,12 @@ const styles = StyleSheet.create({
     timestampText: {
         color: theme.textSecondary,
         fontFamily: "Outfit_400Regular",
+        fontSize: scaleSize(11.5),
+        marginTop: scaleSize(2),
+    },
+    timestampLiveText: {
+        color: "#FF8596",
+        fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(11.5),
         marginTop: scaleSize(2),
     },
@@ -874,7 +928,22 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(11),
         letterSpacing: 0.2,
+    },
+    metricLabelRow: {
+        flexDirection: "row",
+        alignItems: "center",
         paddingBottom: scaleSize(1.5),
+    },
+    metricLiveDot: {
+        width: scaleSize(6.5),
+        height: scaleSize(6.5),
+        borderRadius: scaleSize(3.25),
+        backgroundColor: "#FF4D67",
+        marginRight: scaleSize(6),
+        shadowColor: "#FF4D67",
+        shadowOpacity: 0.35,
+        shadowRadius: scaleSize(6),
+        shadowOffset: { width: 0, height: 0 },
     },
     metricValue: {
         color: theme.textPrimary,

@@ -593,6 +593,12 @@ export default function Feed({ navigation, route }) {
         const tagsForRoute = Array.isArray(post?.tags) ? [...post.tags] : [];
         const taggedForRoute = Array.isArray(post?.tagged) ? [...post.tagged] : [];
 
+        const isLiveWorkoutPost = Boolean(
+            post?.isLive ||
+            post?.liveWorkout ||
+            (typeof post?.pid === "string" && post.pid.startsWith("workout:live"))
+        );
+
         navigation?.navigate?.("PastWorkout", {
             workout: sanitizedWorkout,
             owner: {
@@ -615,6 +621,7 @@ export default function Feed({ navigation, route }) {
                 tags: tagsForRoute,
                 tagged: taggedForRoute,
             },
+            isLiveWorkout: isLiveWorkoutPost,
         });
     }, [listData, navigation]);
 
