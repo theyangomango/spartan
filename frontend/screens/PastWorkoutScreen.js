@@ -11,6 +11,7 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
+import { doc, onSnapshot } from "firebase/firestore";
 
 import PastWorkoutExerciseLog from "../components/1_Feed/PastWorkoutExerciseLog";
 import EditingWorkoutModal from "../components/3_Workout/NewWorkout/EditingWorkoutModal";
@@ -24,6 +25,7 @@ import isThisUser from "../helper/isThisUser";
 import { strong as hapticStrong } from "../utils/haptics";
 import VerifiedHandle from "../components/common/VerifiedHandle";
 import useUserVerified from "../hooks/useUserVerified";
+import { db } from "../../firebase.config";
 
 const HEADER_ICON_SIZE = scaleSize(20);
 
@@ -157,26 +159,24 @@ const PastWorkoutScreen = () => {
     const routeWorkout = route.params?.workout ?? null;
     const [workout, setWorkout] = useState(routeWorkout);
     const owner = route.params?.owner ?? {};
-    const isLiveWorkout = useMemo(
-        () =>
-            Boolean(
-                route.params?.isLiveWorkout ||
-                workout?.isLive ||
-                workout?.live ||
-                (typeof route.params?.postMeta?.pid === "string" &&
-                    route.params.postMeta.pid.startsWith("workout:live"))
-            ),
-        [
-            route.params?.isLiveWorkout,
-            route.params?.postMeta?.pid,
-            workout?.isLive,
-            workout?.live,
-        ]
+    const deriveLiveStatus = useCallback(
+        (candidateWorkout, fallbackLive = false) => {
+            const fromRoute = Boolean(route.params?.isLiveWorkout);
+            const fromWorkout = Boolean(candidateWorkout?.isLive || candidateWorkout?.live);
+            const fromPid = typeof route.params?.postMeta?.pid === "string"
+                ? route.params.postMeta.pid.startsWith("workout:live")
+                : false;
+            return fromRoute || fromWorkout || fromPid || fallbackLive;
+        },
+        [route.params?.isLiveWorkout, route.params?.postMeta?.pid]
     );
+
+    const [isLiveWorkout, setIsLiveWorkout] = useState(() => deriveLiveStatus(routeWorkout));
 
     useEffect(() => {
         setWorkout(routeWorkout);
-    }, [routeWorkout]);
+        setIsLiveWorkout(deriveLiveStatus(routeWorkout));
+    }, [routeWorkout, deriveLiveStatus]);
 
     const exercises = useMemo(
         () =>
@@ -263,6 +263,11 @@ const PastWorkoutScreen = () => {
         return normalizedTitle.toLowerCase() === workoutName.toLowerCase();
     }, [title, workoutName]);
 
+    const shouldListenToLive = useMemo(
+        () => deriveLiveStatus(routeWorkout),
+        [routeWorkout, deriveLiveStatus]
+    );
+
     const durationLabel = useMemo(() => formatDuration(workout?.duration), [workout?.duration]);
     const volumeLabel = useMemo(() => formatNumber(workout?.volume), [workout?.volume]);
     const recordsLabel = useMemo(
@@ -310,6 +315,33 @@ const PastWorkoutScreen = () => {
         owner?.pfpVersion ?? workout?.pfpVersion ?? 0,
         owner?.pfp || owner?.pfpUrl || owner?.avatar || owner?.image || owner?.photoURL || ""
     );
+
+    useEffect(() => {
+        const ownerId = String(workoutOwnerUid || "").trim();
+        if (!shouldListenToLive || !ownerId) return undefined;
+        let isMounted = true;
+        const unsubscribe = onSnapshot(
+            doc(db, "users", ownerId),
+            (snapshot) => {
+                if (!isMounted) return;
+                const data = snapshot.data() || {};
+                const current = data.currentWorkout || null;
+                if (current) {
+                    setWorkout((prev) => ({ ...(prev || {}), ...current }));
+                    setIsLiveWorkout(true);
+                } else {
+                    setIsLiveWorkout(false);
+                }
+            },
+            (error) => {
+                console.warn("[PastWorkoutScreen] live workout listener error", error);
+            }
+        );
+        return () => {
+            isMounted = false;
+            try { unsubscribe(); } catch { }
+        };
+    }, [shouldListenToLive, workoutOwnerUid]);
 
     const fallbackVerified = useMemo(
         () => Boolean(
@@ -583,6 +615,13 @@ const PastWorkoutScreen = () => {
         );
     }, [handleRequestDeleteWorkout, canEditWorkout]);
 
+    const handleCheer = useCallback(() => {
+        try { hapticStrong(); } catch { }
+        try {
+            console.log("Cheer button pressed", workout?.wid ?? workout?.id ?? "");
+        } catch { }
+    }, [workout?.wid, workout?.id]);
+
     return (
         <SafeAreaView style={[styles.safeArea, isLiveWorkout && styles.safeAreaLive]}>
             <View style={[styles.header, isLiveWorkout && styles.headerLive]}>
@@ -660,20 +699,31 @@ const PastWorkoutScreen = () => {
                                         )}
                                     </View>
 
-                                    {canEditWorkout ? (
-                                        <Pressable
-                                            style={styles.moreButton}
-                                            onPress={handlePressDetailMenu}
-                                            hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
-                                            disabled={deletingWorkout}
-                                        >
-                                            <MaterialCommunityIcons
-                                                name="dots-vertical"
-                                                size={scaleSize(20)}
-                                                color={deletingWorkout ? theme.textSecondary : theme.textPrimary}
-                                            />
-                                        </Pressable>
-                                    ) : null}
+                                    <View style={styles.headerActions}>
+                                        {isLiveWorkout ? (
+                                            <Pressable
+                                                style={styles.cheerButton}
+                                                onPress={handleCheer}
+                                                hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                                            >
+                                                <Text style={styles.cheerButtonText}>Cheer</Text>
+                                            </Pressable>
+                                        ) : null}
+                                        {canEditWorkout ? (
+                                            <Pressable
+                                                style={styles.moreButton}
+                                                onPress={handlePressDetailMenu}
+                                                hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                                                disabled={deletingWorkout}
+                                            >
+                                                <MaterialCommunityIcons
+                                                    name="dots-vertical"
+                                                    size={scaleSize(20)}
+                                                    color={deletingWorkout ? theme.textSecondary : theme.textPrimary}
+                                                />
+                                            </Pressable>
+                                        ) : null}
+                                    </View>
                                 </View>
 
                                 {workout ? (
@@ -839,6 +889,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
+    headerActions: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginLeft: scaleSize(8),
+    },
     avatarWrap: {
         width: scaleSize(34),
         aspectRatio: 1,
@@ -885,6 +940,20 @@ const styles = StyleSheet.create({
     moreButton: {
         paddingHorizontal: scaleSize(4),
         paddingVertical: scaleSize(4),
+    },
+    cheerButton: {
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(4),
+        borderRadius: scaleSize(12),
+        backgroundColor: "rgba(255,77,103,0.18)",
+        marginRight: scaleSize(8),
+    },
+    cheerButtonText: {
+        color: "#FF8596",
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(10.5),
+        letterSpacing: 0.4,
+        textTransform: "uppercase",
     },
     titleBlock: {
         marginTop: scaleSize(12),

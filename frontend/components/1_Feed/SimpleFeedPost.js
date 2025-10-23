@@ -26,6 +26,7 @@ import deleteCompletedWorkout from "../../../backend/workouts/deleteCompletedWor
 import { emitHexagonUpdate } from "../../utils/hexagonEvents";
 import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
+import { strong as hapticStrong } from "../../utils/haptics";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -338,6 +339,13 @@ const SimpleFeedPost = ({
         const nextIndex = Math.round(offsetX / mediaSize);
         if (Number.isFinite(nextIndex)) setMediaIndex(nextIndex);
     }, [mediaSize]);
+
+    const handleCheer = useCallback(() => {
+        try { hapticStrong(); } catch { }
+        try {
+            console.log("Cheer button pressed", data?.pid ?? data?.id ?? "");
+        } catch { }
+    }, [data?.pid, data?.id]);
 
     const renderMediaItem = useCallback(({ item }) => {
         const containerStyle = [
@@ -826,15 +834,26 @@ const SimpleFeedPost = ({
                             )}
                         </View>
 
-                        {isViewerOwner ? (
-                            <Pressable
-                                style={styles.moreButton}
-                                onPress={openOptionsSheet}
-                                hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
-                            >
-                                <MaterialCommunityIcons name="dots-vertical" size={scaleSize(20)} color={theme.textPrimary} />
-                            </Pressable>
-                        ) : null}
+                        <View style={styles.headerActions}>
+                            {isLivePost ? (
+                                <Pressable
+                                    style={styles.cheerButton}
+                                    onPress={handleCheer}
+                                    hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                                >
+                                    <Text style={styles.cheerButtonText}>Cheer</Text>
+                                </Pressable>
+                            ) : null}
+                            {isViewerOwner ? (
+                                <Pressable
+                                    style={styles.moreButton}
+                                    onPress={openOptionsSheet}
+                                    hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                                >
+                                    <MaterialCommunityIcons name="dots-vertical" size={scaleSize(20)} color={theme.textPrimary} />
+                                </Pressable>
+                            ) : null}
+                        </View>
                     </View>
 
                 {workout ? (
@@ -1202,6 +1221,25 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_400Regular",
         fontSize: scaleSize(11.5),
         marginTop: scaleSize(2),
+    },
+    headerActions: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginLeft: scaleSize(8),
+    },
+    cheerButton: {
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(4),
+        borderRadius: scaleSize(12),
+        backgroundColor: "rgba(255,77,103,0.18)",
+        marginRight: scaleSize(8),
+    },
+    cheerButtonText: {
+        color: "#FF8596",
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(10.5),
+        letterSpacing: 0.4,
+        textTransform: "uppercase",
     },
     liveTimestampText: {
         color: '#FF8596',
