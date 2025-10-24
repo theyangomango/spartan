@@ -271,9 +271,22 @@ const SimpleFeedPost = ({
             if (!wid) return;
             const fromUid = String(global?.userData?.uid || "");
             if (!fromUid) return;
+            const fromHandle = String(global?.userData?.handle || "");
+            const fromName = String(global?.userData?.name || "");
+            const fromPfp = String(
+                global?.userData?.image ||
+                global?.userData?.pfp ||
+                global?.userData?.photoURL ||
+                ""
+            ).trim();
+            const fromPfpVersion = Number(global?.userData?.pfpVersion ?? 0);
             await addDoc(collection(db, "workouts", wid, "events"), {
                 type: "cheer",
                 fromUid,
+                fromHandle,
+                fromName,
+                fromPfp,
+                fromPfpVersion,
                 createdAt: serverTimestamp(),
                 source: "feed",
             });

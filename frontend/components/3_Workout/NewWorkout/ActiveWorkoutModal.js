@@ -31,6 +31,7 @@ import ExerciseLog from "./Tracking/ExerciseLog";
 import { StatKeyboardProvider } from "./Tracking/StatKeyboardContext";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import { usePfp } from "../../../helper/usePFPs";
+import FastImage from "react-native-fast-image";
 import sendNotification from "../../../../backend/sendNotification";
 import theme from "../../../theme/mfpDark";
 // Lazy-load confetti only when needed to keep bundle lean during editing
@@ -1031,9 +1032,23 @@ const ActiveWorkoutModal = ({
             const wid = String(cardWid || "");
             if (!wid) return;
             const fromUid = String(meUid || "");
+            if (!fromUid) return;
+            const fromHandle = String(global?.userData?.handle || "");
+            const fromName = String(global?.userData?.name || "");
+            const fromPfp = ensureUri(
+                global?.userData?.image ||
+                global?.userData?.pfp ||
+                global?.userData?.photoURL ||
+                ""
+            );
+            const fromPfpVersion = Number(global?.userData?.pfpVersion ?? 0);
             await addDoc(collection(db, "workouts", wid, "events"), {
                 type: "cheer",
                 fromUid,
+                fromHandle,
+                fromName,
+                fromPfp,
+                fromPfpVersion,
                 createdAt: serverTimestamp(),
             });
         } catch (e) {
@@ -1049,6 +1064,99 @@ const ActiveWorkoutModal = ({
         // Remote signal so the active participant(s) see it too
         sendCheerEvent();
     }, [fireConfetti, sendCheerEvent]);
+
+    const [cheerOverlay, setCheerOverlay] = useState(null);
+    const [cheerOverlayReady, setCheerOverlayReady] = useState(false);
+    const cheerOverlayAnim = useRef(new RNAnimated.Value(0)).current;
+    const cheerOverlayPfp = usePfp(
+        cheerOverlay?.uid || "",
+        Number.isFinite(cheerOverlay?.pfpVersion) ? cheerOverlay.pfpVersion : 0,
+        cheerOverlay?.image || undefined
+    );
+    const cheerOverlayAnimatedStyle = useMemo(() => ({
+        opacity: cheerOverlayAnim,
+        transform: [
+            {
+                translateY: cheerOverlayAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [scaleSize(-10), 0],
+                }),
+            },
+        ],
+    }), [cheerOverlayAnim]);
+    const beginCheerOverlayAnimation = useCallback(() => {
+        cheerOverlayAnim.stopAnimation();
+        cheerOverlayAnim.setValue(0);
+        RNAnimated.timing(cheerOverlayAnim, {
+            toValue: 1,
+            duration: 0,
+            useNativeDriver: true,
+        }).start(() => {
+            RNAnimated.sequence([
+                RNAnimated.delay(1200),
+                RNAnimated.timing(cheerOverlayAnim, {
+                    toValue: 0,
+                    duration: 260,
+                    easing: Easing.in(Easing.cubic),
+                    useNativeDriver: true,
+                }),
+            ]).start(({ finished }) => {
+                if (finished) {
+                    setCheerOverlay(null);
+                    setCheerOverlayReady(false);
+                }
+            });
+        });
+    }, [cheerOverlayAnim]);
+
+    const triggerCheerOverlay = useCallback((cheerData) => {
+        const uid = toUidString(cheerData?.fromUid || cheerData?.uid || "");
+        if (!uid || uid === meUid) return;
+
+        let image = ensureUri(
+            cheerData?.fromPfp ||
+            cheerData?.pfp ||
+            ""
+        );
+        let pfpVersion = Number(cheerData?.fromPfpVersion ?? cheerData?.pfpVersion ?? 0);
+        let label = cheerData?.fromHandle || cheerData?.fromName || "";
+
+        const participant = (participants || []).find((p) => toUidString(p?.uid) === uid);
+        if (participant) {
+            if (!image) image = ensureUri(participant.image);
+            if (!pfpVersion && participant.pfpVersion != null) pfpVersion = Number(participant.pfpVersion);
+            if (!label) label = participant.handle || participant.name || "";
+        }
+        if (!image && friendPfpCacheRef.current) {
+            const cached = friendPfpCacheRef.current.get(uid);
+            if (cached) image = ensureUri(cached);
+        }
+        const hasImage = !!image;
+        setCheerOverlay({
+            uid,
+            image: hasImage ? image : null,
+            pfpVersion,
+            label,
+        });
+        setCheerOverlayReady(!hasImage);
+        if (hasImage) {
+            try { FastImage.preload([{ uri: image }]); } catch { }
+        }
+    }, [meUid, participants]);
+
+    useEffect(() => {
+        if (!cheerOverlay) return;
+        if (!cheerOverlay.image || cheerOverlayReady) {
+            beginCheerOverlayAnimation();
+        }
+    }, [cheerOverlay, cheerOverlayReady, beginCheerOverlayAnimation]);
+
+    useEffect(() => {
+        return () => {
+            try { cheerOverlayAnim.stopAnimation(); } catch { }
+            setCheerOverlayReady(false);
+        };
+    }, [cheerOverlayAnim]);
 
     // Stable Cheer callback passed to GroupHeader
     const onCheerStable = useCallback(() => {
@@ -1123,6 +1231,7 @@ const ActiveWorkoutModal = ({
                         // Avoid double-firing for our own signal (we already fired local confetti)
                         if (from && from === my) return;
                         fireConfetti();
+                        triggerCheerOverlay(data);
                     }
                     lastSeenId = id;
                 });
@@ -1131,7 +1240,7 @@ const ActiveWorkoutModal = ({
         } catch (e) {
             console.log("cheer listener error", e?.message || e);
         }
-    }, [db, cardWid, meUid, streamLive, fireConfetti]);
+    }, [db, cardWid, meUid, streamLive, fireConfetti, triggerCheerOverlay]);
 
     // ===== Send invites from the picker =====
     const handleInviteSelected = useCallback(async (selectedUsers = []) => {
@@ -1457,6 +1566,25 @@ const ActiveWorkoutModal = ({
             {(friendOngoing || isActiveSelf) && (() => {
                 const ConfettiCannon = loadConfettiModule(); return ConfettiCannon ? (
                     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                        {cheerOverlay ? (
+                            <RNAnimated.View style={[styles.cheerOverlayContainer, cheerOverlayAnimatedStyle]}>
+                                {cheerOverlayPfp ? (
+                                    <FastImage
+                                        source={{ uri: cheerOverlayPfp }}
+                                        style={styles.cheerOverlayAvatar}
+                                        resizeMode={FastImage.resizeMode.cover}
+                                        onLoad={() => setCheerOverlayReady(true)}
+                                        onError={() => setCheerOverlayReady(true)}
+                                    />
+                                ) : (
+                                    <View style={styles.cheerOverlayFallback}>
+                                        <Text style={styles.cheerOverlayFallbackText}>
+                                            {"🎉"}
+                                        </Text>
+                                    </View>
+                                )}
+                            </RNAnimated.View>
+                        ) : null}
                         <ConfettiCannon
                             ref={confettiRef}
                             autoStart={false}
@@ -1711,6 +1839,37 @@ const styles = StyleSheet.create({
     },
     end_workout_option_text_cancel: {
         color: 'rgba(255,137,147,0.92)',
+    },
+    cheerOverlayContainer: {
+        position: 'absolute',
+        top: scaleSize(18),
+        right: scaleSize(20),
+        width: scaleSize(48),
+        height: scaleSize(48),
+        borderRadius: scaleSize(24),
+        backgroundColor: 'rgba(15, 20, 35, 0.82)',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.35)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        overflow: 'hidden',
+    },
+    cheerOverlayAvatar: {
+        width: '100%',
+        height: '100%',
+    },
+    cheerOverlayFallback: {
+        flex: 1,
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(255,255,255,0.16)',
+    },
+    cheerOverlayFallbackText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(16),
+        color: '#FFFFFF',
     },
 
 });
