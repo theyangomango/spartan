@@ -103,48 +103,38 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
         setEquipmentOpen(false);
     }, []);
 
-    const dismiss = useCallback(
-        (afterClose) => {
-            if (closingRef.current) return;
-            closingRef.current = true;
-            closeAllDropdowns();
-            Animated.parallel([
-                Animated.timing(backdropOpacity, {
-                    toValue: 0,
-                    duration: 220,
-                    easing: Easing.in(Easing.quad),
-                    useNativeDriver: true,
-                }),
-                Animated.timing(translateY, {
-                    toValue: SCREEN_HEIGHT,
-                    duration: 260,
-                    easing: Easing.in(Easing.cubic),
-                    useNativeDriver: true,
-                }),
-            ]).start(({ finished }) => {
-                if (finished) {
-                    try {
-                        closeModal?.();
-                    } finally {
-                        afterClose?.();
-                        closingRef.current = false;
-                    }
-                } else {
-                    closingRef.current = false;
-                    closeModal?.();
-                }
-            });
-        },
-        [backdropOpacity, closeAllDropdowns, closeModal, translateY],
-    );
+    const dismiss = useCallback(() => {
+        if (closingRef.current) return;
+        closingRef.current = true;
+        closeAllDropdowns();
+        Animated.parallel([
+            Animated.timing(backdropOpacity, {
+                toValue: 0,
+                duration: 180,
+                easing: Easing.in(Easing.quad),
+                useNativeDriver: true,
+            }),
+            Animated.timing(translateY, {
+                toValue: SCREEN_HEIGHT,
+                duration: 260,
+                easing: Easing.in(Easing.cubic),
+                useNativeDriver: true,
+            }),
+        ]).start(({ finished }) => {
+            closingRef.current = false;
+            if (finished) {
+                try { closeModal?.(); } catch { /* no-op */ }
+            } else {
+                closeModal?.();
+            }
+        });
+    }, [backdropOpacity, closeModal, closeAllDropdowns, translateY]);
 
     // Single-select: immediate pick on press
     const selectExercise = useCallback((ex) => {
         try { hapticStrong(); } catch {}
-        const name = ex?.name || '';
-        dismiss(() => {
-            try { setComparedExercise?.(name); } catch {}
-        });
+        try { setComparedExercise?.(ex?.name || ''); } catch {}
+        dismiss();
     }, [dismiss, setComparedExercise]);
 
     const deselectExercise = () => {
