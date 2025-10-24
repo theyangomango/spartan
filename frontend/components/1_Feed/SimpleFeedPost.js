@@ -710,6 +710,7 @@ const SimpleFeedPost = ({
 
     const handlePressWorkout = useCallback(() => {
         if (!workout) return;
+        try { hapticStrong(); } catch { }
         onPressWorkout?.(index, data);
     }, [workout, onPressWorkout, index, data]);
 
