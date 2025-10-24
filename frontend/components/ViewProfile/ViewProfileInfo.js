@@ -17,6 +17,8 @@ export default function ViewProfileInfo({ userData, onPressFollowers, onPressFol
     const followersCount = Array.isArray(userData?.followers) ? userData.followers.length : 0;
     const followingCount = Array.isArray(userData?.following) ? userData.following.length : 0;
     const overallLabel = `${formatHexStat(userData?.statsHexagon?.overall)} overall`;
+    const trimmedBio = userData?.bio?.trim?.() ?? '';
+    const bioText = trimmedBio.length > 0 ? trimmedBio : 'No bio yet...';
 
     return (
         <View style={styles.main_ctnr}>
@@ -48,7 +50,7 @@ export default function ViewProfileInfo({ userData, onPressFollowers, onPressFol
                     <Text style={styles.score_text}>{overallLabel}</Text>
                 </View>
                 <View style={styles.bio_ctnr}>
-                    <Text style={styles.bio_text}>{userData && (userData.bio ? userData.bio : 'No bio yet...')}</Text>
+                    <Text style={[styles.bio_text, trimmedBio.length === 0 && styles.bio_placeholder_text]}>{bioText}</Text>
                 </View>
             </View>
         </View>
@@ -136,5 +138,8 @@ const styles = StyleSheet.create({
         color: theme.textSecondary,
         lineHeight: scaleSize(17),
         letterSpacing: 0.1,
+    },
+    bio_placeholder_text: {
+        color: theme.textPrimary,
     },
 });

@@ -15,7 +15,8 @@ function wScale(size) {
 }
 
 const EditProfileModal = ({ setPFP }) => {
-    const [bio, setBio] = useState(global.userData.bio);
+    const initialBio = (global.userData?.bio ?? '').toString();
+    const [bio, setBio] = useState(initialBio);
 
     const handleBioBlur = () => {
         updateDoc('users', global.userData.uid, { bio: bio });
@@ -53,7 +54,8 @@ const EditProfileModal = ({ setPFP }) => {
                         value={bio}
                         onChangeText={setBio}
                         onBlur={handleBioBlur}
-                        placeholderTextColor={THEME.muted}
+                        placeholder="No bio yet..."
+                        placeholderTextColor={bio?.length ? THEME.muted : THEME.textPrimary}
                         selectionColor={THEME.primary}
                         multiline
                         returnKeyType="default"

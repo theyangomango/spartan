@@ -479,21 +479,30 @@ export const fatsecretLookupBarcode = onCall(
             throw new HttpsError("invalid-argument", "Invalid or missing barcode");
         }
 
-        // 1) Resolve barcode -> food_id
-        const idRes = await fatSecretRequest("food.find_id_for_barcode", { barcode: gtin }, "premier barcode");
-        // Response shape can be { food_id: { value: "123" } } or { food_id: "123" }
-        const rawId = idRes?.food_id;
-        const foodId = rawId && typeof rawId === "object" ? (rawId.value ?? rawId.food_id ?? rawId.id) : rawId;
-        const fid = String(foodId || "").trim();
-        if (!fid) {
+        // Resolve barcode -> food (FatSecret v2 returns full payload)
+        let foodRes;
+        try {
+            foodRes = await fatSecretRequest(
+                "food.find_id_for_barcode.v2",
+                { barcode: gtin, flag_default_serving: "true" },
+                "premier barcode"
+            );
+        } catch (err) {
+            if (err instanceof HttpsError) {
+                const msg = String(err.message || "").toLowerCase();
+                if (msg.includes("no food") || msg.includes("211")) {
+                    throw new HttpsError("not-found", "No food found for this barcode");
+                }
+            }
+            throw err;
+        }
+
+        const food = foodRes?.food || {};
+        if (!food || Object.keys(food).length === 0) {
             throw new HttpsError("not-found", "No food found for this barcode");
         }
 
-        // 2) Fetch full food details
-        const foodRes = await fatSecretRequest("food.get.v2", { food_id: fid }, "basic");
-        const food = foodRes?.food || {};
-
-        // 3) Ensure a FatSecret-like food_description exists (used by client to parse macros)
+        // Ensure a FatSecret-like food_description exists (used by client to parse macros)
         try {
             if (!food.food_description) {
                 const servings = food?.servings?.serving;

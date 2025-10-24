@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import FastImage from "react-native-fast-image";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Heart, MessageCircle, AtSign, UserPlus, Activity, Check } from "lucide-react-native";
+import { Heart, MessageCircle, AtSign, UserPlus, Activity, Check, Flame } from "lucide-react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { doc, onSnapshot } from "firebase/firestore";
 
@@ -45,6 +45,8 @@ function getDisplayMessage(item) {
             return "mentioned you";
         case "workout-invite":
             return "invited you to a workout";
+        case "friend-workout-started":
+            return "just started a workout";
         default:
             return "";
     }
@@ -375,11 +377,13 @@ export default function NotificationCard({
             "follow-request": UserPlus,
             "follow-accepted": Check,
             "workout-invite": Activity,
+            "friend-workout-started": Flame,
         };
 
         const IconCmp = iconByType[item?.type] || MessageCircle;
-        const accentHex = BRAND_ACCENT;
-        const accent2Hex = BRAND_ACCENT_LIGHT;
+        const workoutAccent = item?.type === "friend-workout-started";
+        const accentHex = workoutAccent ? "#FF6B54" : BRAND_ACCENT;
+        const accent2Hex = workoutAccent ? mixHex("#FF6B54", "#FFB499", 0.4) : BRAND_ACCENT_LIGHT;
         const badgeBg = withAlpha(accentHex, 0.14);
 
         const cardBg = theme.surface;
@@ -605,6 +609,11 @@ export default function NotificationCard({
                     <Text style={styles.message} numberOfLines={2}>
                         {getDisplayMessage(item)}
                     </Text>
+                    {item?.type === "friend-workout-started" && item?.workoutName ? (
+                        <Text style={[styles.detailText, { color: accent }]} numberOfLines={1}>
+                            {item.workoutName}
+                        </Text>
+                    ) : null}
                 </View>
 
                 {followAction}
@@ -691,6 +700,12 @@ const styles = StyleSheet.create({
         color: theme.textSecondary,
         fontFamily: "Outfit_400Regular",
         lineHeight: scaleSize(20),
+    },
+    detailText: {
+        fontSize: scaleSize(12),
+        color: theme.textPrimary,
+        fontFamily: "Outfit_600SemiBold",
+        marginTop: scaleSize(2),
     },
     trailingColumn: {
         alignItems: 'flex-end',
