@@ -920,7 +920,7 @@ const SimpleFeedPost = ({
                         </View>
 
                         <View style={styles.headerActions}>
-                            {isLivePost ? (
+                            {isLivePost && !isViewerOwner ? (
                                 <Pressable
                                     style={styles.cheerButton}
                                     onPress={handleCheer}

@@ -769,7 +769,7 @@ const PastWorkoutScreen = () => {
                                     </View>
 
                                     <View style={styles.headerActions}>
-                                        {isLiveWorkout ? (
+                                        {isLiveWorkout && !isOwner ? (
                                             <Pressable
                                                 style={styles.cheerButton}
                                                 onPress={handleCheer}
