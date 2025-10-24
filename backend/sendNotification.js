@@ -62,6 +62,10 @@ export default async function sendNotification(uid, event) {
                 title = 'Follow request'; body = `${h} requested to follow you`; break;
             case 'follow-accepted':
                 title = 'Follow request accepted'; body = `${h} accepted your follow request`; break;
+            case 'friend-workout-started':
+                title = `${h} started a workout`;
+                body = event?.workoutName ? `${event.workoutName}` : 'Cheer them on!';
+                break;
             default:
                 title = 'New notification'; body = `${h} interacted with you`; break;
         }

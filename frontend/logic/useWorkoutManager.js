@@ -19,6 +19,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
+import sendNotification from "../../backend/sendNotification";
 // removed per consolidation: incrementDocValue, arrayAppend
 import useWorkoutStore, { WORKOUT_SHEET_STATES } from "../state/workoutStore";
 import makeID from "../../backend/helper/makeID";
@@ -43,6 +44,28 @@ const normalizePrevPayload = (prev) => {
         weight: Number(prev?.weight) || 0,
         reps: Number(prev?.reps) || 0,
     };
+};
+const extractFollowerUids = () => {
+    try {
+        const followers = Array.isArray(global?.userData?.followers) ? global.userData.followers : [];
+        const deduped = new Set();
+        const uids = [];
+        followers.forEach((entry) => {
+            let uid = "";
+            if (typeof entry === "string" || typeof entry === "number") {
+                uid = String(entry).trim();
+            } else if (entry && typeof entry === "object") {
+                uid = String(entry.uid || entry.id || entry.userUid || entry.followerUid || "").trim();
+            }
+            if (!uid) return;
+            if (deduped.has(uid)) return;
+            deduped.add(uid);
+            uids.push(uid);
+        });
+        return uids;
+    } catch {
+        return [];
+    }
 };
 const sanitizeWorkout = (w) => {
     if (!w) return null;
@@ -667,6 +690,30 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     InteractionManager.runAfterInteractions(scheduleRemotePersist);
                 } else {
                     scheduleRemotePersist();
+                }
+
+                const followerUids = extractFollowerUids().filter((fUid) => fUid && fUid !== (creatorUidStr || uid));
+                if (followerUids.length) {
+                    const eventBase = {
+                        uid: creatorUidStr || uid,
+                        handle: creatorHandle,
+                        name: creatorDisplayName,
+                        pfp: creatorPfp,
+                        pfpVersion: creatorPfpVersion,
+                        type: "friend-workout-started",
+                        wid,
+                        workoutName: name,
+                        timestamp: Date.now(),
+                    };
+                    (async () => {
+                        try {
+                            await Promise.all(
+                                followerUids.map((targetUid) => sendNotification(targetUid, { ...eventBase }))
+                            );
+                        } catch (notifyErr) {
+                            console.log("notifyFollowers workout start error", notifyErr?.message || notifyErr);
+                        }
+                    })();
                 }
             } else {
                 if (!skipUI) {
