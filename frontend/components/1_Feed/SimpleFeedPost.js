@@ -27,6 +27,8 @@ import { emitHexagonUpdate } from "../../utils/hexagonEvents";
 import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
 import { strong as hapticStrong } from "../../utils/haptics";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../../../firebase.config";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -212,6 +214,73 @@ const SimpleFeedPost = ({
             (typeof data?.pid === "string" && data.pid.startsWith("workout:live"))
         )
     ), [data?.isLive, data?.liveWorkout, data?.pid]);
+    const workoutWid = useMemo(() => {
+        const candidates = [
+            workout?.wid,
+            workout?.workoutId,
+            workout?.id,
+            workout?.widRef,
+            data?.workoutWid,
+            data?.liveWorkout?.wid,
+            data?.liveWorkout?.workoutId,
+            data?.liveWorkout?.id,
+            data?.wid,
+            data?.workoutId,
+        ];
+        for (const candidate of candidates) {
+            if (candidate === undefined || candidate === null) continue;
+            const str = String(candidate).trim();
+            if (str) return str;
+        }
+        return "";
+    }, [
+        workout?.wid,
+        workout?.workoutId,
+        workout?.id,
+        workout?.widRef,
+        data?.workoutWid,
+        data?.liveWorkout?.wid,
+        data?.liveWorkout?.workoutId,
+        data?.liveWorkout?.id,
+        data?.wid,
+        data?.workoutId,
+    ]);
+    const [confettiTick, setConfettiTick] = useState(0);
+    const confettiRef = useRef(null);
+    const ConfettiModuleRef = useRef(null);
+    const loadConfettiModule = useCallback(() => {
+        if (!ConfettiModuleRef.current) {
+            try { ConfettiModuleRef.current = require("react-native-confetti-cannon").default; } catch { }
+        }
+        return ConfettiModuleRef.current;
+    }, []);
+    const fireConfetti = useCallback(() => {
+        loadConfettiModule();
+        try {
+            const api = confettiRef.current;
+            if (api && typeof api.start === "function") {
+                api.start();
+                return;
+            }
+        } catch { }
+        setConfettiTick((t) => t + 1);
+    }, [loadConfettiModule]);
+    const sendCheerEvent = useCallback(async () => {
+        try {
+            const wid = workoutWid;
+            if (!wid) return;
+            const fromUid = String(global?.userData?.uid || "");
+            if (!fromUid) return;
+            await addDoc(collection(db, "workouts", wid, "events"), {
+                type: "cheer",
+                fromUid,
+                createdAt: serverTimestamp(),
+                source: "feed",
+            });
+        } catch (e) {
+            console.log("SimpleFeedPost cheer error", e?.message || e);
+        }
+    }, [workoutWid]);
     const title = resolveWorkoutTitle(workout, data?.caption);
     const formattedTimestamp = formatTimestamp(data?.created);
     const timestamp = isLivePost ? "Live now" : formattedTimestamp;
@@ -342,10 +411,9 @@ const SimpleFeedPost = ({
 
     const handleCheer = useCallback(() => {
         try { hapticStrong(); } catch { }
-        try {
-            console.log("Cheer button pressed", data?.pid ?? data?.id ?? "");
-        } catch { }
-    }, [data?.pid, data?.id]);
+        fireConfetti();
+        sendCheerEvent();
+    }, [fireConfetti, sendCheerEvent]);
 
     const renderMediaItem = useCallback(({ item }) => {
         const containerStyle = [
@@ -1055,6 +1123,32 @@ const SimpleFeedPost = ({
                     </View>
                 )}
             </View>
+            {isLivePost ? (() => {
+                const ConfettiCannon = loadConfettiModule();
+                return ConfettiCannon ? (
+                    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                        <ConfettiCannon
+                            ref={confettiRef}
+                            autoStart={false}
+                            count={120}
+                            origin={{ x: SCREEN_WIDTH / 2, y: -scaleSize(60) }}
+                            fadeOut
+                            explosionSpeed={220}
+                            fallSpeed={1500}
+                        />
+                        {confettiTick > 0 && (
+                            <ConfettiCannon
+                                key={confettiTick}
+                                count={120}
+                                origin={{ x: SCREEN_WIDTH / 2, y: -scaleSize(60) }}
+                                fadeOut
+                                explosionSpeed={220}
+                                fallSpeed={1500}
+                            />
+                        )}
+                    </View>
+                ) : null;
+            })() : null}
             <Animated.View
                 pointerEvents="none"
                 style={[styles.highlightOverlay, { opacity: highlightOpacity }]}

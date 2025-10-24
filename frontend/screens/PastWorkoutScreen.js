@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState, useEffect } from "react";
+import React, { useMemo, useCallback, useState, useEffect, useRef } from "react";
 import {
     SafeAreaView,
     View,
@@ -7,11 +7,12 @@ import {
     Pressable,
     Text,
     Alert,
+    Dimensions,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 import PastWorkoutExerciseLog from "../components/1_Feed/PastWorkoutExerciseLog";
 import EditingWorkoutModal from "../components/3_Workout/NewWorkout/EditingWorkoutModal";
@@ -28,6 +29,7 @@ import useUserVerified from "../hooks/useUserVerified";
 import { db } from "../../firebase.config";
 
 const HEADER_ICON_SIZE = scaleSize(20);
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 const toMillis = (value) => {
     if (value === null || typeof value === "undefined") return null;
@@ -172,6 +174,61 @@ const PastWorkoutScreen = () => {
     );
 
     const [isLiveWorkout, setIsLiveWorkout] = useState(() => deriveLiveStatus(routeWorkout));
+    const workoutWid = useMemo(() => {
+        const candidates = [
+            workout?.wid,
+            workout?.workoutId,
+            workout?.id,
+            workout?.pid,
+            routeWorkout?.wid,
+            routeWorkout?.workoutId,
+            routeWorkout?.id,
+            routeWorkout?.pid,
+        ];
+        for (const candidate of candidates) {
+            if (candidate === undefined || candidate === null) continue;
+            const str = String(candidate).trim();
+            if (str) return str;
+        }
+        return "";
+    }, [workout, routeWorkout]);
+    const [confettiTick, setConfettiTick] = useState(0);
+    const confettiRef = useRef(null);
+    const ConfettiModuleRef = useRef(null);
+    const loadConfettiModule = useCallback(() => {
+        if (!ConfettiModuleRef.current) {
+            try { ConfettiModuleRef.current = require("react-native-confetti-cannon").default; } catch { }
+        }
+        return ConfettiModuleRef.current;
+    }, []);
+    const fireConfetti = useCallback(() => {
+        loadConfettiModule();
+        try {
+            const api = confettiRef.current;
+            if (api && typeof api.start === "function") {
+                api.start();
+                return;
+            }
+        } catch { }
+        setConfettiTick((t) => t + 1);
+    }, [loadConfettiModule]);
+    const sendCheerEvent = useCallback(async () => {
+        if (!isLiveWorkout) return;
+        try {
+            const wid = workoutWid;
+            if (!wid) return;
+            const fromUid = String(global?.userData?.uid || "");
+            if (!fromUid) return;
+            await addDoc(collection(db, "workouts", wid, "events"), {
+                type: "cheer",
+                fromUid,
+                createdAt: serverTimestamp(),
+                source: "workout_viewer",
+            });
+        } catch (e) {
+            console.log("PastWorkoutScreen cheer error", e?.message || e);
+        }
+    }, [isLiveWorkout, workoutWid]);
 
     useEffect(() => {
         setWorkout(routeWorkout);
@@ -617,10 +674,9 @@ const PastWorkoutScreen = () => {
 
     const handleCheer = useCallback(() => {
         try { hapticStrong(); } catch { }
-        try {
-            console.log("Cheer button pressed", workout?.wid ?? workout?.id ?? "");
-        } catch { }
-    }, [workout?.wid, workout?.id]);
+        fireConfetti();
+        sendCheerEvent();
+    }, [fireConfetti, sendCheerEvent]);
 
     return (
         <SafeAreaView style={[styles.safeArea, isLiveWorkout && styles.safeAreaLive]}>
@@ -822,6 +878,32 @@ const PastWorkoutScreen = () => {
                 onClose={() => setEditingVisible(false)}
                 onSave={handleSaveEditedWorkout}
             />
+            {isLiveWorkout ? (() => {
+                const ConfettiCannon = loadConfettiModule();
+                return ConfettiCannon ? (
+                    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                        <ConfettiCannon
+                            ref={confettiRef}
+                            autoStart={false}
+                            count={120}
+                            origin={{ x: SCREEN_WIDTH / 2, y: -scaleSize(60) }}
+                            fadeOut
+                            explosionSpeed={220}
+                            fallSpeed={1500}
+                        />
+                        {confettiTick > 0 && (
+                            <ConfettiCannon
+                                key={confettiTick}
+                                count={120}
+                                origin={{ x: SCREEN_WIDTH / 2, y: -scaleSize(60) }}
+                                fadeOut
+                                explosionSpeed={220}
+                                fallSpeed={1500}
+                            />
+                        )}
+                    </View>
+                ) : null;
+            })() : null}
         </SafeAreaView>
     );
 };
