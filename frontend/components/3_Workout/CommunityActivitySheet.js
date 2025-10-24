@@ -456,6 +456,29 @@ const coerceWeeklyGoal = (value) => {
     return Math.round(num);
 };
 
+const normalizeExerciseName = (value) => (typeof value === "string" ? value.trim() : "");
+
+const findStatsEntryForExercise = (statsMap, rawName) => {
+    if (!statsMap || typeof statsMap !== "object") return null;
+    const name = normalizeExerciseName(rawName);
+    if (!name) return null;
+    if (statsMap[name]) return statsMap[name];
+    const lowered = name.toLowerCase();
+    const matchKey = Object.keys(statsMap).find(
+        (key) => typeof key === "string" && key.trim().toLowerCase() === lowered
+    );
+    return matchKey ? statsMap[matchKey] : null;
+};
+
+const getPreviousOneRm = (statsMap, rawName) => {
+    const entry = findStatsEntryForExercise(statsMap, rawName);
+    if (!entry || typeof entry !== "object") return 0;
+    const direct = Number(entry?.["1RM"]);
+    if (Number.isFinite(direct) && direct > 0) return direct;
+    const fallback = Number(entry?.oneRM ?? entry?.oneRm ?? entry?.max ?? 0);
+    return Number.isFinite(fallback) && fallback > 0 ? fallback : 0;
+};
+
 const friendMetaFrom = (value) => {
     if (!value) return null;
     if (typeof value === "string" || typeof value === "number") {
@@ -896,8 +919,8 @@ const CommunityActivitySheet = ({ visible, openToggle, items = [], onClose, onVi
                             try {
                                 const exsArr = Array.isArray(cw?.exercises) ? cw.exercises : [];
                                 for (const ex of exsArr) {
-                                    const prevMax = Number(friendStats?.[ex?.name]?.["1RM"] || 0);
-                                    let hit = false;
+                                    const prevMax = getPreviousOneRm(friendStats, ex?.name);
+                                    let hit = prevMax <= 0;
                                     const sets = Array.isArray(ex?.sets) ? ex.sets : [];
                                     for (const s of sets) {
                                         if (hit) break;

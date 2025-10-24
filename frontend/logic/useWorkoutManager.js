@@ -87,6 +87,34 @@ const asUid = (x) => {
 const filterOutUid = (arr, uidStr) =>
     (Array.isArray(arr) ? arr : []).filter((v) => asUid(v) !== uidStr);
 
+const stripUndefined = (obj) =>
+    Object.fromEntries(
+        Object.entries(obj || {}).filter(([, value]) => value !== undefined)
+    );
+
+const normalizeExerciseName = (value) => (typeof value === "string" ? value.trim() : "");
+
+const findStatsEntryForExercise = (statsMap, rawName) => {
+    if (!statsMap || typeof statsMap !== "object") return null;
+    const name = normalizeExerciseName(rawName);
+    if (!name) return null;
+    if (statsMap[name]) return statsMap[name];
+    const lowered = name.toLowerCase();
+    const matchKey = Object.keys(statsMap).find(
+        (key) => typeof key === "string" && key.trim().toLowerCase() === lowered
+    );
+    return matchKey ? statsMap[matchKey] : null;
+};
+
+const getPreviousOneRm = (statsMap, rawName) => {
+    const entry = findStatsEntryForExercise(statsMap, rawName);
+    if (!entry || typeof entry !== "object") return 0;
+    const direct = Number(entry?.["1RM"]);
+    if (Number.isFinite(direct) && direct > 0) return direct;
+    const fallback = Number(entry?.oneRM ?? entry?.oneRm ?? entry?.max ?? 0);
+    return Number.isFinite(fallback) && fallback > 0 ? fallback : 0;
+};
+
 export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     const [completedWorkout, setCompletedWorkout] = useState(null);
     const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
@@ -233,7 +261,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     const wk = completed[i];
                     const exs = Array.isArray(wk?.exercises) ? wk.exercises : [];
                     for (const ex of exs) {
-                        const name = String(ex?.name || "").trim();
+                        const name = normalizeExerciseName(ex?.name);
                         if (!name || nextMap.has(name)) continue;
                         const sets = Array.isArray(ex?.sets) ? ex.sets : [];
                         if (!sets.length) continue;
@@ -251,6 +279,62 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         prevSetsCacheRef.current = { timestamp: now, map: nextMap };
         return nextMap;
     }, []);
+    const upsertWorkoutDoc = useCallback(
+        async (workoutLike, { active = true, sanitized = false, markCompleted = false } = {}) => {
+            if (!workoutLike) return;
+            const normalized = sanitized ? workoutLike : sanitizeWorkout(workoutLike);
+            const wid = String(normalized?.wid || "");
+            if (!wid) return;
+
+            const docRef = doc(db, "workouts", wid);
+            const trimmedName = typeof normalized?.name === "string" ? normalized.name.trim() : "";
+            const basePayload = {
+                wid,
+                active: !!active,
+                updatedAt: serverTimestamp(),
+                volume: Number(normalized?.volume || 0),
+                reps: Number(normalized?.reps || 0),
+                PBs: Number(normalized?.PBs ?? normalized?.pbs ?? 0),
+                privacyMode: normalized?.privacyMode,
+                exercises: Array.isArray(normalized?.exercises) ? normalized.exercises : [],
+            };
+
+            if (trimmedName) basePayload.name = trimmedName;
+            if (normalized?.creatorUid) basePayload.creatorUid = normalized.creatorUid;
+            if (normalized?.creatorUID) basePayload.creatorUID = normalized.creatorUID;
+            if (normalized?.templateName) basePayload.templateName = normalized.templateName;
+
+            const durationVal = Number(normalized?.duration);
+            if (Number.isFinite(durationVal) && durationVal > 0) basePayload.duration = durationVal;
+
+            if (normalized?.startedAt) basePayload.startedAt = normalized.startedAt;
+            if (normalized?.finishedAt) basePayload.finishedAt = normalized.finishedAt;
+
+            if (markCompleted) {
+                basePayload.active = false;
+                basePayload.completedAt = serverTimestamp();
+                if (basePayload.finishedAt === undefined) {
+                    basePayload.finishedAt = serverTimestamp();
+                }
+            }
+
+            const cleanedPayload = stripUndefined(basePayload);
+            if (!Object.prototype.hasOwnProperty.call(cleanedPayload, "exercises")) {
+                cleanedPayload.exercises = Array.isArray(basePayload.exercises) ? basePayload.exercises : [];
+            }
+
+            try {
+                await fsUpdateDoc(docRef, cleanedPayload);
+            } catch (err) {
+                try {
+                    await setDoc(docRef, cleanedPayload, { merge: true });
+                } catch (err2) {
+                    console.log("upsertWorkoutDoc error", err2?.message || err2);
+                }
+            }
+        },
+        [db]
+    );
     const performPersist = useCallback((latest) => {
         if (!uid || !latest) return;
 
@@ -281,11 +365,16 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                             console.log("setDoc users.currentWorkout error", e);
                             try { await updateDoc("users", uid, { currentWorkout: payload }); } catch { }
                         }
+                        try {
+                            await upsertWorkoutDoc(payload, { active: true, sanitized: true });
+                        } catch (e) {
+                            console.log("upsert workout doc (persist) error", e?.message || e);
+                        }
                     })();
                 } catch { }
             } catch { /* best effort */ }
         });
-    }, [uid, ensurePrevSetsCache]);
+    }, [uid, ensurePrevSetsCache, upsertWorkoutDoc]);
     const persistCurrentWorkout = useCallback(
         (value, options = {}) => {
             if (!uid) return;
@@ -636,7 +725,15 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             const currW = useWorkoutStore.getState().workout;
             if (currW) {
                 const cleanedExercises = (Array.isArray(currW.exercises) ? currW.exercises : [])
-                    .map((ex) => ({ ...ex, sets: (Array.isArray(ex.sets) ? ex.sets : []).filter((s) => Number(s?.weight) > 0 && Number(s?.reps) > 0) }))
+                    .map((ex) => ({
+                        ...ex,
+                        sets: (Array.isArray(ex.sets) ? ex.sets : []).filter((s) => {
+                            const reps = Number(s?.reps) || 0;
+                            const weight = Number(s?.weight) || 0;
+                            const isDone = !!s?.isDone;
+                            return isDone && reps > 0 && weight > 0;
+                        }),
+                    }))
                     .filter((ex) => ex.sets && ex.sets.length > 0);
 
                 const duration = Math.max(0, Date.now() - (currW.created || Date.now()));
@@ -648,8 +745,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 try {
                     const stats = (global?.userData?.statsExercises || {});
                     for (const ex of cleanedExercises) {
-                        let hitPB = false;
-                        const prevMax = Number(stats?.[ex?.name]?.["1RM"] || 0);
+                        const prevMax = getPreviousOneRm(stats, ex?.name);
+                        let hitPB = prevMax <= 0;
                         for (const s of (ex?.sets || [])) {
                             const r = Number(s?.reps) || 0;
                             const w = Number(s?.weight) || 0;
@@ -727,6 +824,12 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         arr.push(completed);
                         if (global?.userData) global.userData.currentWorkouts = arr;
                     } catch { }
+
+                    try {
+                        await upsertWorkoutDoc(completed, { active: false, markCompleted: true });
+                    } catch (e) {
+                        console.log("upsert workout doc (finish) error", e?.message || e);
+                    }
                 }
 
                 // Defer statsExercises patch + hexagon recompute after interactions to avoid blocking UI
@@ -740,7 +843,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                             const localPatch = {};
 
                             for (const ex of (cleanedExercises || [])) {
-                                const name = String(ex?.name || '').trim();
+                                const name = normalizeExerciseName(ex?.name);
                                 if (!name) continue;
                                 namesTouched.add(name);
                                 const prev = prevStats?.[name] || {};
@@ -848,7 +951,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                             const today2 = (() => { const d = new Date(); d.setHours(0,0,0,0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
                             const nextStats = { ...prevStats2 };
                             for (const ex of (cleanedExercises || [])) {
-                                const name = String(ex?.name || '').trim(); if (!name) continue;
+                                const name = normalizeExerciseName(ex?.name); if (!name) continue;
                                 const entryPrev = nextStats?.[name] || {};
                                 const entry = { ...entryPrev };
                                 entry.sets = Array.isArray(entry.sets) ? entry.sets.slice() : [];
@@ -871,7 +974,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                             const today2 = (() => { const d = new Date(); d.setHours(0,0,0,0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
                             const updateFields = {};
                             for (const ex of (cleanedExercises || [])) {
-                                const name = String(ex?.name || '').trim(); if (!name) continue;
+                                const name = normalizeExerciseName(ex?.name); if (!name) continue;
                                 const payloadSets = [];
                                 const setPrivacy = coercePrivacyMode(completed?.privacyMode ?? currW?.privacyMode);
                                 for (const s of (Array.isArray(ex?.sets) ? ex.sets : [])) {
@@ -899,7 +1002,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         } catch (e) {
             console.log("finishWorkout error", e);
         }
-    }, [uid, clearCurrentWorkoutLocally, leaveWorkoutGroup, defaultWorkoutName]);
+    }, [uid, clearCurrentWorkoutLocally, leaveWorkoutGroup, defaultWorkoutName, upsertWorkoutDoc]);
 
     const postWorkout = useCallback(async () => {
         setIsSummaryModalVisible(false);

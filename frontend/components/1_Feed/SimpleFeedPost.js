@@ -491,9 +491,13 @@ const SimpleFeedPost = ({
     const recordsLabel = formatNumber(workout?.PBs ?? workout?.pbs ?? 0);
 
     const displayName = useMemo(() => {
-        const handle = (data?.handle || "user").trim();
-        return `${handle}`;
-    }, [data?.handle]);
+        const rawHandle = (data?.handle || "user").trim();
+        if (!rawHandle) return "user";
+        if (isLivePost) {
+            return rawHandle.replace(/^@+/, "");
+        }
+        return rawHandle;
+    }, [data?.handle, isLivePost]);
 
     const likeColor = isLiked ? "#FE5555" : theme.textPrimary;
     const keyExtractor = useCallback((item, idx) => `${item?.uri || 'media'}-${idx}`, []);

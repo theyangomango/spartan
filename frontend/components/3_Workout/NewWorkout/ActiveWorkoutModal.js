@@ -50,6 +50,7 @@ import useRestTimer from "./hooks/useRestTimer";
 import useWorkoutEditing from "./hooks/useWorkoutEditing";
 
 import scaleSize from "../../../helper/scaleSize";
+import calculate1RM from "../../../helper/calculate1RM";
 import { formatWorkoutTimestamp } from "../../../utils/date";
 import ConfirmWorkoutModal from "./components/ConfirmWorkoutModal";
 import WorkoutReminderModal from "./components/WorkoutReminderModal";
@@ -112,6 +113,119 @@ const extractSetsFromCompletedWorkout = (exercise) => {
         .map((row) => normalizePrevSetRow(row))
         .filter(Boolean);
     return normalized;
+};
+
+const getUserExerciseStats = () => {
+    try {
+        const source = global?.userData?.statsExercises;
+        return (source && typeof source === "object") ? source : {};
+    } catch {
+        return {};
+    }
+};
+
+const findStatsEntryForExercise = (statsMap, rawName) => {
+    if (!statsMap || typeof statsMap !== "object") return null;
+    const name = typeof rawName === "string" ? rawName.trim() : "";
+    if (!name) return null;
+    if (statsMap[name]) return statsMap[name];
+    const lowered = name.toLowerCase();
+    const matchKey = Object.keys(statsMap).find(
+        (key) => typeof key === "string" && key.trim().toLowerCase() === lowered
+    );
+    return matchKey ? statsMap[matchKey] : null;
+};
+
+const getPreviousOneRm = (statsMap, rawName) => {
+    const entry = findStatsEntryForExercise(statsMap, rawName);
+    if (!entry || typeof entry !== "object") return 0;
+    const direct = Number(entry?.["1RM"]);
+    if (Number.isFinite(direct) && direct > 0) return direct;
+    const fallback = Number(entry?.oneRM ?? entry?.oneRm ?? entry?.max ?? 0);
+    return Number.isFinite(fallback) && fallback > 0 ? fallback : 0;
+};
+
+const deriveWorkoutMetrics = (workout) => {
+    if (!workout || typeof workout !== "object") {
+        return { volume: 0, reps: 0, PBs: 0 };
+    }
+
+    const statsMap = getUserExerciseStats();
+    const exercises = Array.isArray(workout?.exercises) ? workout.exercises : [];
+
+    let totalVolume = 0;
+    let totalReps = 0;
+    let totalPBs = 0;
+
+    exercises.forEach((exercise) => {
+        const name = typeof exercise?.name === "string" ? exercise.name : "";
+        const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
+        if (!sets.length) return;
+
+        const validSets = sets.filter((set) => {
+            const reps = Number(set?.reps) || 0;
+            const weight = Number(set?.weight) || 0;
+            const isDone = !!set?.isDone;
+            return isDone && reps > 0 && weight > 0;
+        });
+
+        if (!validSets.length) return;
+
+        const previousMax = getPreviousOneRm(statsMap, name);
+
+        let hitPB = previousMax <= 0;
+
+        validSets.forEach((set) => {
+            const reps = Number(set?.reps) || 0;
+            const weight = Number(set?.weight) || 0;
+            totalVolume += weight * reps;
+            totalReps += reps;
+            if (!hitPB) {
+                const estimate = calculate1RM(weight, reps);
+                if (estimate > previousMax) {
+                    hitPB = true;
+                }
+            }
+        });
+
+        if (hitPB) totalPBs += 1;
+    });
+
+    return {
+        volume: Number.isFinite(totalVolume) ? totalVolume : 0,
+        reps: Number.isFinite(totalReps) ? totalReps : 0,
+        PBs: Number.isFinite(totalPBs) ? totalPBs : 0,
+    };
+};
+
+const ensureWorkoutMetrics = (workout) => {
+    if (!workout || typeof workout !== "object") return workout;
+
+    const { volume, reps, PBs } = deriveWorkoutMetrics(workout);
+    const hasVolumeProp = Object.prototype.hasOwnProperty.call(workout, "volume");
+    const hasRepsProp = Object.prototype.hasOwnProperty.call(workout, "reps");
+    const hasPBsProp = Object.prototype.hasOwnProperty.call(workout, "PBs");
+    const prevVolume = Number(workout?.volume) || 0;
+    const prevReps = Number(workout?.reps) || 0;
+    const prevPBs = Number(workout?.PBs ?? workout?.pbs) || 0;
+    const needsUpdate =
+        !hasVolumeProp ||
+        !hasRepsProp ||
+        !hasPBsProp ||
+        typeof workout.volume !== "number" ||
+        typeof workout.reps !== "number" ||
+        typeof workout.PBs !== "number" ||
+        prevVolume !== volume ||
+        prevReps !== reps ||
+        prevPBs !== PBs;
+
+    if (!needsUpdate) return workout;
+
+    const nextWorkout = { ...workout, volume, reps, PBs };
+    if (Object.prototype.hasOwnProperty.call(nextWorkout, "pbs")) {
+        delete nextWorkout.pbs;
+    }
+    return nextWorkout;
 };
 
 // FlashList sizing helpers to keep footer actions from overlapping while template data hydrates
@@ -289,6 +403,25 @@ const ActiveWorkoutModal = ({
         setLiveEnabled((prev) => (prev ? prev : true));
     }, [viewingSelfEffective, streamLive]);
 
+    const updateWorkoutWithMetrics = useCallback((nextValue) => {
+        if (!viewingSelfEffective) return;
+        if (typeof updateWorkout !== "function") return;
+
+        let candidate = nextValue;
+        if (typeof candidate === "function") {
+            candidate = candidate(workout);
+        }
+
+        if (candidate == null) {
+            updateWorkout(candidate);
+            return;
+        }
+
+        const normalized = ensureWorkoutMetrics(candidate);
+        if (candidate === workout && normalized === workout) return;
+        updateWorkout(normalized);
+    }, [viewingSelfEffective, updateWorkout, workout]);
+
     const {
         replaceIndex,
         setReplaceIndex,
@@ -297,7 +430,7 @@ const ActiveWorkoutModal = ({
         deleteExercise,
         normalizeSet,
         makeBlankSetsLike,
-    } = useWorkoutEditing({ workout, updateWorkout, viewingSelf: viewingSelfEffective });
+    } = useWorkoutEditing({ workout, updateWorkout: updateWorkoutWithMetrics, viewingSelf: viewingSelfEffective });
 
     // keep caller informed (if they care)
     useEffect(() => { onViewingChange?.(!!viewingSelfEffective); }, [viewingSelfEffective, onViewingChange]);
@@ -337,9 +470,8 @@ const ActiveWorkoutModal = ({
     const baseWorkoutName = String(baseWorkout?.name ?? '');
 
     const handleChangeWorkoutTitle = useCallback((text) => {
-        if (!viewingSelfEffective) return;
-        updateWorkout({ ...(workout || {}), name: text });
-    }, [viewingSelfEffective, updateWorkout, workout]);
+        updateWorkoutWithMetrics({ ...(workout || {}), name: text });
+    }, [updateWorkoutWithMetrics, workout]);
 
     useEffect(() => {
         if (!viewingSelfEffective) return;
@@ -367,7 +499,7 @@ const ActiveWorkoutModal = ({
             if (shouldClearFocusFlag) {
                 requestAnimationFrame(() => {
                     if (cancelled) return;
-                    try { updateWorkout?.({ ...(workout || {}), __focusTitle: false }); } catch { }
+                    try { updateWorkoutWithMetrics({ ...(workout || {}), __focusTitle: false }); } catch { }
                 });
             }
         };
@@ -399,7 +531,7 @@ const ActiveWorkoutModal = ({
         }
 
         return () => { cancelled = true; };
-    }, [viewingSelfEffective, workout?.__focusTitle, workout?.__justStarted, workout?.wid, workoutNameValue, updateWorkout, workout]);
+    }, [viewingSelfEffective, workout?.__focusTitle, workout?.__justStarted, workout?.wid, workoutNameValue, updateWorkoutWithMetrics, workout]);
 
     const handleTitleInputRef = useCallback((node) => {
         titleInputRef.current = node;
@@ -460,7 +592,7 @@ const ActiveWorkoutModal = ({
                 i === replaceIndex ? { name: choice.name, muscle: choice.muscle, sets: newSets } : ex
             );
             try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch { }
-            updateWorkout({ ...workout, exercises: nextExercises });
+            updateWorkoutWithMetrics({ ...workout, exercises: nextExercises });
             setIsDoneState((prev) => { const next = prev.map((row) => row.slice()); next[replaceIndex] = newSets.map((s) => !!s.isDone); return next; });
             setReplaceIndex(null);
             setSelectExerciseModalVisible(false);
@@ -471,7 +603,7 @@ const ActiveWorkoutModal = ({
         appendExercises(Array.isArray(picked) ? picked : [picked]);
         setSelectExerciseModalVisible(false);
         haptic();
-    }, [appendExercises, replaceIndex, viewingSelfEffective, workout, updateWorkout]);
+    }, [appendExercises, replaceIndex, viewingSelfEffective, workout, updateWorkoutWithMetrics]);
 
     // deleteExercise and updateSets provided by hook
 
@@ -1087,11 +1219,11 @@ const ActiveWorkoutModal = ({
                 // Clear triggers so it doesn't reshow on any subsequent small state updates
                 try { if (shouldFromFlag) global.__showWorkoutReminderForWid = null; } catch { }
                 if (shouldFromLocal) {
-                    try { updateWorkout?.({ ...(workout || {}), __justStarted: false }); } catch { }
+                    try { updateWorkoutWithMetrics({ ...(workout || {}), __justStarted: false }); } catch { }
                 }
             }
         } catch { }
-    }, [viewingSelfEffective, workout?.wid, workout?.__justStarted, updateWorkout]);
+    }, [viewingSelfEffective, workout?.wid, workout?.__justStarted, updateWorkoutWithMetrics, workout]);
 
     // Focus handler from child set inputs: gently scroll the exercise into view
     const handleStatFocus = useCallback((exerciseIndex /*, setIndex */) => {
