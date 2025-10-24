@@ -878,9 +878,7 @@ export default function ExerciseDetail() {
                     <Text style={styles.headerTitle} numberOfLines={1}>
                         {displayTitle}
                     </Text>
-                    <Pressable style={styles.moreButton} hitSlop={12} accessibilityRole="button">
-                        <Ionicons name="ellipsis-horizontal" size={scaleSize(20)} color={theme.textPrimary} />
-                    </Pressable>
+                    <View style={styles.headerSideSpacer} />
                 </View>
 
                 <View style={styles.tabBar}>
@@ -953,11 +951,9 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginHorizontal: scaleSize(10),
     },
-    moreButton: {
-        width: scaleSize(32),
+    headerSideSpacer: {
+        width: scaleSize(44),
         height: scaleSize(36),
-        alignItems: 'flex-end',
-        justifyContent: 'center',
     },
     tabBar: {
         flexDirection: 'row',

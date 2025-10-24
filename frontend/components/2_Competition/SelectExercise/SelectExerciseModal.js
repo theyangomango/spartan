@@ -1,5 +1,5 @@
-import React, { useState, useRef, memo, useMemo } from "react";
-import { View, Text, Pressable, TextInput } from "react-native";
+import React, { useState, useRef, memo, useMemo, useEffect, useCallback } from "react";
+import { View, Text, Pressable, TextInput, Animated, Easing, Dimensions } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import { withStrongPress, strong as hapticStrong } from "../../../utils/haptics";
 import { Ionicons } from '@expo/vector-icons';
@@ -7,8 +7,9 @@ import { Ionicons } from '@expo/vector-icons';
 import ExercisesFlatlist from "../../3_Workout/NewWorkout/SelectExercise/ExercisesFlatlist";
 import { exercises } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
 import styles, { ICON_COLOR, TEXT_SECONDARY } from "../../SelectExerciseModal/styles";
-import RNBounceable from "@freakycoder/react-native-bounceable";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 const scaledSize = (size) => scaleSize(size);
+const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 // Body-part options and an order map to "sort accordingly"
 const BODY_PART_OPTIONS = [
@@ -71,13 +72,81 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
     const [bodyPartValue, setBodyPartValue] = useState(null);       // null = Any Body Part
     const [equipmentValue, setEquipmentValue] = useState(null);     // null = All Equipment
 
+    const insets = useSafeAreaInsets();
+    const translateY = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+    const backdropOpacity = useRef(new Animated.Value(0)).current;
+    const closingRef = useRef(false);
+
+    const animateIn = useCallback(() => {
+        Animated.parallel([
+            Animated.timing(backdropOpacity, {
+                toValue: 1,
+                duration: 200,
+                easing: Easing.out(Easing.quad),
+                useNativeDriver: true,
+            }),
+            Animated.timing(translateY, {
+                toValue: 0,
+                duration: 320,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, [backdropOpacity, translateY]);
+
+    useEffect(() => {
+        animateIn();
+    }, [animateIn]);
+
+    const closeAllDropdowns = useCallback(() => {
+        setBodyPartOpen(false);
+        setEquipmentOpen(false);
+    }, []);
+
+    const dismiss = useCallback(
+        (afterClose) => {
+            if (closingRef.current) return;
+            closingRef.current = true;
+            closeAllDropdowns();
+            Animated.parallel([
+                Animated.timing(backdropOpacity, {
+                    toValue: 0,
+                    duration: 220,
+                    easing: Easing.in(Easing.quad),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(translateY, {
+                    toValue: SCREEN_HEIGHT,
+                    duration: 260,
+                    easing: Easing.in(Easing.cubic),
+                    useNativeDriver: true,
+                }),
+            ]).start(({ finished }) => {
+                if (finished) {
+                    try {
+                        closeModal?.();
+                    } finally {
+                        afterClose?.();
+                        closingRef.current = false;
+                    }
+                } else {
+                    closingRef.current = false;
+                    closeModal?.();
+                }
+            });
+        },
+        [backdropOpacity, closeAllDropdowns, closeModal, translateY],
+    );
+
     // Single-select: immediate pick on press
-    function selectExercise(ex) {
+    const selectExercise = useCallback((ex) => {
         try { hapticStrong(); } catch {}
-        try { setComparedExercise?.(ex?.name || ''); } catch {}
-        try { closeAllDropdowns(); } catch {}
-        try { closeModal?.(); } catch {}
-    }
+        const name = ex?.name || '';
+        dismiss(() => {
+            try { setComparedExercise?.(name); } catch {}
+        });
+    }, [dismiss, setComparedExercise]);
+
     const deselectExercise = () => {
         try { hapticStrong(); } catch {}
     };
@@ -129,22 +198,30 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
     const bodyPartButtonLabel = BODY_PART_OPTIONS.find(o => o.value === bodyPartValue)?.label ?? "Any Body Part";
     const equipmentButtonLabel = EQUIPMENT_OPTIONS.find(o => o.value === equipmentValue)?.label ?? "All Equipment";
 
-    const closeAllDropdowns = () => {
-        setBodyPartOpen(false);
-        setEquipmentOpen(false);
-    };
-
     return (
         <View style={styles.modal_outside}>
-            <Pressable onPress={withStrongPress(() => closeModal?.())} style={styles.outside_pressable} />
-            <View style={styles.main_ctnr}>
+            <Animated.View style={[styles.backdrop, { opacity: backdropOpacity }]} />
+            <Pressable onPress={withStrongPress(dismiss)} style={styles.outside_pressable} />
+            <Animated.View
+                style={[
+                    styles.main_ctnr,
+                    {
+                        paddingTop: insets.top + scaledSize(12),
+                        paddingBottom: insets.bottom + scaledSize(12),
+                        transform: [{ translateY }],
+                    },
+                ]}
+            >
                 <View style={styles.header}>
-                    <RNBounceable
+                    <Pressable
                         style={styles.closeButton}
-                        onPress={withStrongPress(() => closeModal?.())}
+                        onPress={withStrongPress(dismiss)}
+                        hitSlop={10}
                     >
-                        <Text style={styles.closeButtonText}>Close</Text>
-                    </RNBounceable>
+                        <Ionicons name="close" size={scaledSize(20)} color={ICON_COLOR} />
+                    </Pressable>
+                    <Text style={styles.headerTitle}>Select exercise</Text>
+                    <View style={styles.headerSpacer} />
                 </View>
 
                 {/* Search */}
@@ -253,8 +330,7 @@ const SelectExerciseModal = memo(({ closeModal, setComparedExercise }) => {
                     deselectExercise={deselectExercise}
                     animatedPress
                 />
-            </View>
-            <Pressable onPress={withStrongPress(() => closeModal?.())} style={styles.outside_pressable} />
+            </Animated.View>
         </View>
     );
 });

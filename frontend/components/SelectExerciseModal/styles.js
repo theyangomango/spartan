@@ -2,70 +2,84 @@ import { StyleSheet } from 'react-native';
 import scaleSize from '../../helper/scaleSize';
 import theme from '../../theme/mfpDark';
 
-const OVERLAY_BG = 'rgba(87, 92, 108, 0.42)';
-const MODAL_BG = '#272c35ff';
-const LIGHT_SURFACE = '#1F2A42';
-const LIGHT_FIELD = '#59606aff';
-const FIELD_BORDER = 'rgba(120, 198, 255, 0.24)';
-const ICON_COLOR = '#D2DCF0';
+const OVERLAY_BG = 'rgba(4, 6, 12, 0.72)';
+const MODAL_BG = theme.bg;
+const LIGHT_SURFACE = theme.surface;
+const LIGHT_FIELD = theme.field;
+const FIELD_BORDER = 'rgba(90, 176, 255, 0.25)';
+const ICON_COLOR = '#D5E0F6';
 const TEXT_PRIMARY = '#F6F8FF';
-const TEXT_SECONDARY = '#aab8cdff';
+const TEXT_SECONDARY = '#9CA9C2';
 const ACCENT = theme.primary;
-const ACCENT_SOFT = 'rgba(102, 202, 255, 0.24)';
-const CLOSE_BG = '#FF4B4B';
-const CLOSE_TEXT = '#FFFFFF';
-const DROPDOWN_BACKDROP_BG = 'rgba(23, 27, 41, 0.72)';
+const ACCENT_SOFT = 'rgba(87, 185, 255, 0.18)';
+const DROPDOWN_BACKDROP_BG = 'rgba(14, 20, 32, 0.72)';
 
 const scaledSize = (size) => scaleSize(size);
 
 const selectExerciseModalStyles = StyleSheet.create({
     modal_outside: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+        backgroundColor: 'transparent',
+    },
+    backdrop: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         backgroundColor: OVERLAY_BG,
+        zIndex: 0,
     },
     outside_pressable: {
-        flex: 1,
-        width: '100%',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1,
     },
     main_ctnr: {
-        width: '94%',
-        height: '80%',
-
+        flex: 1,
         backgroundColor: MODAL_BG,
-        borderRadius: scaledSize(30),
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: scaledSize(6) },
-        shadowOpacity: 0.06,
-        shadowRadius: scaledSize(12),
-        paddingTop: scaledSize(10),
+        borderTopLeftRadius: scaledSize(28),
+        borderTopRightRadius: scaledSize(28),
         overflow: 'hidden',
+        zIndex: 2,
     },
     header: {
         flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: scaledSize(20),
-        paddingTop: scaledSize(10),
-        paddingBottom: scaledSize(10),
+        paddingHorizontal: scaledSize(18),
+        paddingTop: scaledSize(8),
+        paddingBottom: scaledSize(12),
     },
     closeButton: {
-        backgroundColor: CLOSE_BG,
-        paddingHorizontal: scaledSize(20),
-        paddingVertical: scaledSize(6),
-        borderRadius: scaledSize(8),
+        width: scaledSize(34),
+        height: scaledSize(34),
+        borderRadius: scaledSize(17),
+        backgroundColor: LIGHT_FIELD,
         justifyContent: 'center',
         alignItems: 'center',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: FIELD_BORDER,
     },
-    closeButtonText: {
-        color: CLOSE_TEXT,
+    headerTitle: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(12.5),
+        fontSize: scaleSize(15.5),
+        color: TEXT_PRIMARY,
+        flex: 1,
+        textAlign: 'center',
+        letterSpacing: 0.2,
+    },
+    headerSpacer: {
+        width: scaledSize(34),
+        height: scaledSize(34),
     },
     searchContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: LIGHT_FIELD,
+        backgroundColor: LIGHT_SURFACE,
         borderRadius: scaledSize(8),
         marginHorizontal: scaledSize(20),
         paddingHorizontal: scaledSize(8),
@@ -82,7 +96,7 @@ const selectExerciseModalStyles = StyleSheet.create({
         padding: scaledSize(8),
         fontSize: scaleSize(12.5),
         color: TEXT_PRIMARY,
-        fontFamily: 'Outfit_700Bold',
+        fontFamily: 'Outfit_600SemiBold',
     },
     filterRow: {
         flexDirection: 'row',

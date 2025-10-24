@@ -1242,7 +1242,7 @@ export default function LeaderboardsSection({ navigation }) {
             />
 
             <Modal
-                animationType="fade"
+                animationType="none"
                 transparent
                 statusBarTranslucent
                 visible={selectExerciseModalVisible}

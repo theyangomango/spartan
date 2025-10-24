@@ -325,7 +325,8 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                 <Modal
                     visible={exercisePickerOpen}
                     transparent
-                    animationType="fade"
+                    animationType="none"
+                    presentationStyle="overFullScreen"
                     statusBarTranslucent
                     onRequestClose={() => setExercisePickerOpen(false)}
                 >
@@ -333,7 +334,6 @@ export default function TribeComparisonModal({ visible, onClose, initialList = [
                         closeModal={() => setExercisePickerOpen(false)}
                         setComparedExercise={(ex) => {
                             updateDraft({ exercise: ex });
-                            setExercisePickerOpen(false);
                         }}
                     />
                 </Modal>
