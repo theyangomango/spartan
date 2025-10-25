@@ -1,0 +1,376 @@
+Incident Identifier: 767961B1-1172-4B1C-AD2A-DA7035D8A5A9
+Distributor ID:      com.apple.TestFlight
+Hardware Model:      iPhone14,7
+Process:             Spartan [39290]
+Path:                /private/var/containers/Bundle/Application/B61EFC5C-AC9C-4B46-8FF9-A758A54B0223/Spartan.app/Spartan
+Identifier:          com.yangbai.spartan
+Version:             1.0.0 (16)
+AppStoreTools:       17A323
+AppVariant:          1:iPhone14,7:18
+Beta:                YES
+Code Type:           ARM-64 (Native)
+Role:                Foreground
+Parent Process:      launchd [1]
+Coalition:           com.yangbai.spartan [3852]
+
+Date/Time:           2025-10-24 19:28:45.2529 -0500
+Launch Time:         2025-10-24 19:28:43.6136 -0500
+OS Version:          iPhone OS 18.6.2 (22G100)
+Release Type:        User
+Baseband Version:    3.70.02
+Report Version:      104
+
+Exception Type:  EXC_CRASH (SIGABRT)
+Exception Codes: 0x0000000000000000, 0x0000000000000000
+Termination Reason: SIGNAL 6 Abort trap: 6
+Terminating Process: Spartan [39290]
+
+Triggered by Thread:  8
+
+Last Exception Backtrace:
+0   CoreFoundation                	0x19ab5c0c0 __exceptionPreprocess + 164 (NSException.m:249)
+1   libobjc.A.dylib               	0x197ff5abc objc_exception_throw + 88 (objc-exception.mm:356)
+2   Spartan                       	0x1022c77dc RCTFatal + 568 (RCTAssert.m:147)
+3   Spartan                       	0x102337740 -[RCTExceptionsManager reportFatal:stack:exceptionId:extraDataAsJSON:] + 484 (RCTExceptionsManager.mm:82)
+4   Spartan                       	0x102337f44 -[RCTExceptionsManager reportException:] + 1284 (RCTExceptionsManager.mm:154)
+5   CoreFoundation                	0x19aa71934 __invoking___ + 148 (:-1)
+6   CoreFoundation                	0x19aa70fac -[NSInvocation invoke] + 424 (NSForwarding.m:3411)
+7   CoreFoundation                	0x19aae39cc -[NSInvocation invokeWithTarget:] + 64 (NSForwarding.m:3508)
+8   Spartan                       	0x1022f7ee0 -[RCTModuleMethod invokeWithBridge:module:arguments:] + 376 (RCTModuleMethod.mm:584)
+9   Spartan                       	0x1022f9fe0 facebook::react::invokeInner(RCTBridge*, RCTModuleData*, unsigned int, folly::dynamic const&, int, (anonymous namespace)::SchedulingContext) + 452 (RCTNativeModule.mm:196)
+10  Spartan                       	0x1022f9c3c facebook::react::RCTNativeModule::invoke(unsigned int, folly::dynamic&&, int)::$_0::operator()() const + 56 (RCTNativeModule.mm:113)
+11  Spartan                       	0x1022f9c3c invocation function for block in facebook::react::RCTNativeModule::invoke(unsigned int, folly::dynamic&&, int) + 108 (RCTNativeModule.mm:104)
+12  libdispatch.dylib             	0x1a29deaac _dispatch_call_block_and_release + 32 (init.c:1575)
+13  libdispatch.dylib             	0x1a29f8584 _dispatch_client_callout + 16 (client_callout.mm:85)
+14  libdispatch.dylib             	0x1a29e72d0 _dispatch_lane_serial_drain + 740 (queue.c:3939)
+15  libdispatch.dylib             	0x1a29e7dac _dispatch_lane_invoke + 388 (queue.c:4030)
+16  libdispatch.dylib             	0x1a29f21dc _dispatch_root_queue_drain_deferred_wlh + 292 (queue.c:7198)
+17  libdispatch.dylib             	0x1a29f1a60 _dispatch_workloop_worker_thread + 540 (queue.c:6792)
+18  libsystem_pthread.dylib       	0x224ef4a0c _pthread_wqthread + 292 (pthread.c:2696)
+19  libsystem_pthread.dylib       	0x224ef4aac start_wqthread + 8 (:-1)
+
+Thread 0 name:
+Thread 0:
+0   libobjc.A.dylib               	0x0000000197fc5f08 objc_msgSendSuper2 + 72
+1   UIFoundation                  	0x00000001a65111c4 -[NSConcreteTextStorage dealloc] + 112 (NSTextStorage.m:1009)
+2   Spartan                       	0x000000010246b120 -[RCTTextView .cxx_destruct] + 36 (RCTTextView.mm:19)
+3   libobjc.A.dylib               	0x0000000197fd1c14 object_cxxDestructFromClass(objc_object*, objc_class*) + 116 (objc-class.mm:459)
+4   libobjc.A.dylib               	0x0000000197fc9f0c objc_destructInstance_nonnull_realized(objc_object*) + 76 (objc-runtime-new.mm:9497)
+5   libobjc.A.dylib               	0x0000000197fcfcec _objc_rootDealloc + 72 (NSObject.mm:2135)
+6   UIKitCore                     	0x000000019d36a3c4 -[UIResponder dealloc] + 124 (UIResponder.m:204)
+7   UIKitCore                     	0x000000019d36a18c -[UIView dealloc] + 1056 (UIView.m:5122)
+8   CoreFoundation                	0x000000019aa580f0 __RELEASE_OBJECTS_IN_THE_ARRAY__ + 116 (NSArrayM.m:116)
+9   CoreFoundation                	0x000000019aa581fc -[__NSArrayM dealloc] + 148 (NSArrayM.m:480)
+10  libobjc.A.dylib               	0x0000000197fd18b4 _object_remove_associations + 936 (objc-references.mm:266)
+11  libobjc.A.dylib               	0x0000000197fc9f1c objc_destructInstance_nonnull_realized(objc_object*) + 92 (objc-runtime-new.mm:9498)
+12  libobjc.A.dylib               	0x0000000197fcfcec _objc_rootDealloc + 72 (NSObject.mm:2135)
+13  UIKitCore                     	0x000000019d36a3c4 -[UIResponder dealloc] + 124 (UIResponder.m:204)
+14  UIKitCore                     	0x000000019d36a18c -[UIView dealloc] + 1056 (UIView.m:5122)
+15  CoreFoundation                	0x000000019aa580f0 __RELEASE_OBJECTS_IN_THE_ARRAY__ + 116 (NSArrayM.m:116)
+16  CoreFoundation                	0x000000019aa581fc -[__NSArrayM dealloc] + 148 (NSArrayM.m:480)
+17  libobjc.A.dylib               	0x0000000197fd18b4 _object_remove_associations + 936 (objc-references.mm:266)
+18  libobjc.A.dylib               	0x0000000197fc9f1c objc_destructInstance_nonnull_realized(objc_object*) + 92 (objc-runtime-new.mm:9498)
+19  libobjc.A.dylib               	0x0000000197fcfcec _objc_rootDealloc + 72 (NSObject.mm:2135)
+20  UIKitCore                     	0x000000019d36a3c4 -[UIResponder dealloc] + 124 (UIResponder.m:204)
+21  UIKitCore                     	0x000000019d36a18c -[UIView dealloc] + 1056 (UIView.m:5122)
+22  CoreFoundation                	0x000000019aa580f0 __RELEASE_OBJECTS_IN_THE_ARRAY__ + 116 (NSArrayM.m:116)
+23  CoreFoundation                	0x000000019aa581fc -[__NSArrayM dealloc] + 148 (NSArrayM.m:480)
+24  libobjc.A.dylib               	0x0000000197fd18b4 _object_remove_associations + 936 (objc-references.mm:266)
+25  libobjc.A.dylib               	0x0000000197fc9f1c objc_destructInstance_nonnull_realized(objc_object*) + 92 (objc-runtime-new.mm:9498)
+26  libobjc.A.dylib               	0x0000000197fcfcec _objc_rootDealloc + 72 (NSObject.mm:2135)
+27  UIKitCore                     	0x000000019d36a3c4 -[UIResponder dealloc] + 124 (UIResponder.m:204)
+28  UIKitCore                     	0x000000019d36a18c -[UIView dealloc] + 1056 (UIView.m:5122)
+29  CoreFoundation                	0x000000019aa580f0 __RELEASE_OBJECTS_IN_THE_ARRAY__ + 116 (NSArrayM.m:116)
+30  CoreFoundation                	0x000000019aa581fc -[__NSArrayM dealloc] + 148 (NSArrayM.m:480)
+31  libobjc.A.dylib               	0x0000000197fd18b4 _object_remove_associations + 936 (objc-references.mm:266)
+32  libobjc.A.dylib               	0x0000000197fc9f1c objc_destructInstance_nonnull_realized(objc_object*) + 92 (objc-runtime-new.mm:9498)
+33  libobjc.A.dylib               	0x0000000197fcfcec _objc_rootDealloc + 72 (NSObject.mm:2135)
+34  UIKitCore                     	0x000000019d36a3c4 -[UIResponder dealloc] + 124 (UIResponder.m:204)
+35  UIKitCore                     	0x000000019d36a18c -[UIView dealloc] + 1056 (UIView.m:5122)
+36  CoreFoundation                	0x000000019aa580f0 __RELEASE_OBJECTS_IN_THE_ARRAY__ + 116 (NSArrayM.m:116)
+37  CoreFoundation                	0x000000019aa581fc -[__NSArrayM dealloc] + 148 (NSArrayM.m:480)
+38  libobjc.A.dylib               	0x0000000197fd18b4 _object_remove_associations + 936 (objc-references.mm:266)
+39  libobjc.A.dylib               	0x0000000197fc9f1c objc_destructInstance_nonnull_realized(objc_object*) + 92 (objc-runtime-new.mm:9498)
+40  libobjc.A.dylib               	0x0000000197fcfcec _objc_rootDealloc + 72 (NSObject.mm:2135)
+41  UIKitCore                     	0x000000019d36a3c4 -[UIResponder dealloc] + 124 (UIResponder.m:204)
+42  UIKitCore                     	0x000000019d36a18c -[UIView dealloc] + 1056 (UIView.m:5122)
+43  CoreFoundation                	0x000000019aa580f0 __RELEASE_OBJECTS_IN_THE_ARRAY__ + 116 (NSArrayM.m:116)
+44  CoreFoundation                	0x000000019aa581fc -[__NSArrayM dealloc] + 148 (NSArrayM.m:480)
+45  libobjc.A.dylib               	0x0000000197fd18b4 _object_remove_associations + 936 (objc-references.mm:266)
+46  libobjc.A.dylib               	0x0000000197fc9f1c objc_destructInstance_nonnull_realized(objc_object*) + 92 (objc-runtime-new.mm:9498)
+47  libobjc.A.dylib               	0x0000000197fcfcec _objc_rootDealloc + 72 (NSObject.mm:2135)
+48  UIKitCore                     	0x000000019d36a3c4 -[UIResponder dealloc] + 124 (UIResponder.m:204)
+49  UIKitCore                     	0x000000019d36a18c -[UIView dealloc] + 1056 (UIView.m:5122)
+50  CoreFoundation                	0x000000019aa580f0 __RELEASE_OBJECTS_IN_THE_ARRAY__ + 116 (NSArrayM.m:116)
+51  CoreFoundation                	0x000000019aa581fc -[__NSArrayM dealloc] + 148 (NSArrayM.m:480)
+52  libobjc.A.dylib               	0x0000000197fd18b4 _object_remove_associations + 936 (objc-references.mm:266)
+53  libobjc.A.dylib               	0x0000000197fc9f1c objc_destructInstance_nonnull_realized(objc_object*) + 92 (objc-runtime-new.mm:9498)
+54  libobjc.A.dylib               	0x0000000197fcfcec _objc_rootDealloc + 72 (NSObject.mm:2135)
+55  UIKitCore                     	0x000000019d36a3c4 -[UIResponder dealloc] + 124 (UIResponder.m:204)
+56  UIKitCore                     	0x000000019d36a18c -[UIView dealloc] + 1056 (UIView.m:5122)
+57  CoreFoundation                	0x000000019aa580f0 __RELEASE_OBJECTS_IN_THE_ARRAY__ + 116 (NSArrayM.m:116)
+58  CoreFoundation                	0x000000019aa581fc -[__NSArrayM dealloc] + 148 (NSArrayM.m:480)
+59  libobjc.A.dylib               	0x0000000197fd18b4 _object_remove_associations + 936 (objc-references.mm:266)
+60  libobjc.A.dylib               	0x0000000197fc9f1c objc_destructInstance_nonnull_realized(objc_object*) + 92 (objc-runtime-new.mm:9498)
+61  libobjc.A.dylib               	0x0000000197fcfcec _objc_rootDealloc + 72 (NSObject.mm:2135)
+62  UIKitCore                     	0x000000019d36a3c4 -[UIResponder dealloc] + 124 (UIResponder.m:204)
+63  UIKitCore                     	0x000000019d36a18c -[UIView dealloc] + 1056 (UIView.m:5122)
+64  CoreFoundation                	0x000000019aa580f0 __RELEASE_OBJECTS_IN_THE_ARRAY__ + 116 (NSArrayM.m:116)
+65  CoreFoundation                	0x000000019aa581fc -[__NSArrayM dealloc] + 148 (NSArrayM.m:480)
+66  libobjc.A.dylib               	0x0000000197fd18b4 _object_remove_associations + 936 (objc-references.mm:266)
+67  libobjc.A.dylib               	0x0000000197fc9f1c objc_destructInstance_nonnull_realized(objc_object*) + 92 (objc-runtime-new.mm:9498)
+68  libobjc.A.dylib               	0x0000000197fcfcec _objc_rootDealloc + 72 (NSObject.mm:2135)
+69  UIKitCore                     	0x000000019d36a3c4 -[UIResponder dealloc] + 124 (UIResponder.m:204)
+70  UIKitCore                     	0x000000019d36a18c -[UIView dealloc] + 1056 (UIView.m:5122)
+71  CoreFoundation                	0x000000019aa580f0 __RELEASE_OBJECTS_IN_THE_ARRAY__ + 116 (NSArrayM.m:116)
+72  CoreFoundation                	0x000000019aa581fc -[__NSArrayM dealloc] + 148 (NSArrayM.m:480)
+73  libobjc.A.dylib               	0x0000000197fd18b4 _object_remove_associations + 936 (objc-references.mm:266)
+74  libobjc.A.dylib               	0x0000000197fc9f1c objc_destructInstance_nonnull_realized(objc_object*) + 92 (objc-runtime-new.mm:9498)
+75  libobjc.A.dylib               	0x0000000197fcfcec _objc_rootDealloc + 72 (NSObject.mm:2135)
+76  UIKitCore                     	0x000000019d36a3c4 -[UIResponder dealloc] + 124 (UIResponder.m:204)
+77  UIKitCore                     	0x000000019d36a18c -[UIView dealloc] + 1056 (UIView.m:5122)
+78  CoreFoundation                	0x000000019aa580f0 __RELEASE_OBJECTS_IN_THE_ARRAY__ + 116 (NSArrayM.m:116)
+79  CoreFoundation                	0x000000019aa581fc -[__NSArrayM dealloc] + 148 (NSArrayM.m:480)
+80  libobjc.A.dylib               	0x0000000197fd18b4 _object_remove_associations + 936 (objc-references.mm:266)
+81  libobjc.A.dylib               	0x0000000197fc9f1c objc_destructInstance_nonnull_realized(objc_object*) + 92 (objc-runtime-new.mm:9498)
+82  libobjc.A.dylib               	0x0000000197fcfcec _objc_rootDealloc + 72 (NSObject.mm:2135)
+83  UIKitCore                     	0x000000019d36a3c4 -[UIResponder dealloc] + 124 (UIResponder.m:204)
+84  UIKitCore                     	0x000000019d36a18c -[UIView dealloc] + 1056 (UIView.m:5122)
+85  libobjc.A.dylib               	0x0000000197fced08 AutoreleasePoolPage::releaseUntil(objc_object**) + 204 (NSObject.mm:925)
+86  libobjc.A.dylib               	0x0000000197fceb94 objc_autoreleasePoolPop + 244 (NSObject.mm:2183)
+87  CoreFoundation                	0x000000019aa50258 _CFAutoreleasePoolPop + 32 (NSObject.m:853)
+88  CoreFoundation                	0x000000019aa54494 __CFRunLoopPerCalloutARPEnd + 48 (CFRunLoop.c:761)
+89  CoreFoundation                	0x000000019aa523b4 __CFRunLoopRun + 2012 (CFRunLoop.c:3165)
+90  CoreFoundation                	0x000000019aa53adc CFRunLoopRunSpecific + 572 (CFRunLoop.c:3434)
+91  GraphicsServices              	0x00000001e7879454 GSEventRunModal + 168 (GSEvent.c:2196)
+92  UIKitCore                     	0x000000019d475274 -[UIApplication _run] + 816 (UIApplication.m:3845)
+93  UIKitCore                     	0x000000019d440a28 UIApplicationMain + 336 (UIApplication.m:5540)
+94  Spartan                       	0x000000010211c40c main + 80 (main.m:7)
+95  dyld                          	0x00000001c14e5f08 start + 6040 (dyldMain.cpp:1450)
+
+Thread 1:
+0   libsystem_pthread.dylib       	0x0000000224ef4aa4 start_wqthread + 0 (:-1)
+
+Thread 2:
+0   libsystem_pthread.dylib       	0x0000000224ef4aa4 start_wqthread + 0 (:-1)
+
+Thread 3:
+0   libsystem_pthread.dylib       	0x0000000224ef4aa4 start_wqthread + 0 (:-1)
+
+Thread 4 name:
+Thread 4:
+0   vImage                        	0x00000001a0afdb98 vLookupTable_Planar8toPlanar16 + 200 (Transform_neon.c:1551)
+1   vImage                        	0x00000001a0afd9bc vImageLookupTable_Planar8toPlanar16 + 420 (Transform.c:2084)
+2   vImage                        	0x00000001a0afdab0 LookupTable_Planar8toPlanar16 + 216 (ConvertAnyToAny.c:10385)
+3   vImage                        	0x00000001a0ae563c AnyToAnyBlockInternal + 1708 (ConvertAnyToAny.c:25368)
+4   vImage                        	0x00000001a0ae12a8 vImageConvert_AnyToAny + 2508 (ConvertAnyToAny.c:25157)
+5   CoreGraphics                  	0x000000019cbc1938 vImageConverter_convert_internal + 28 (CGvImageConverter.c:331)
+6   CoreGraphics                  	0x000000019cbc17dc vImageConverterConvert + 228 (CGvImageConverter.c:385)
+7   CoreGraphics                  	0x000000019cbc0f74 convert_using_vImageConverter + 300 (CGCMSConverter.c:806)
+8   CoreGraphics                  	0x000000019cbc65e4 convert_icc + 248 (CGCMSConverter.c:3851)
+9   CoreGraphics                  	0x000000019cc15b58 CGColorTransformConvertUsingCMSConverter + 328 (CGColorTransform.c:950)
+10  CoreGraphics                  	0x000000019cbab3d8 provider_for_destination_get_bytes_at_position_inner + 3952 (CGDataProviderForDestination.c:593)
+11  CoreGraphics                  	0x000000019cbba5c4 CGDataProviderDirectGetBytesAtPositionInternal + 308 (CGDataProvider.c:726)
+12  CoreGraphics                  	0x000000019cbba830 get_chunks_direct + 220 (CGAccessSession.c:196)
+13  CoreGraphics                  	0x000000019cc03f6c img_raw_read + 1096 (CGSImage.c:627)
+14  CoreGraphics                  	0x000000019cb970b8 img_data_lock + 8088 (CGSImage.c:5560)
+15  CoreGraphics                  	0x000000019cb93624 CGSImageDataLock + 1168 (CGSImage.c:5859)
+16  CoreGraphics                  	0x000000019cb90d84 ripc_AcquireRIPImageData + 868 (RIPImage.c:361)
+17  CoreGraphics                  	0x000000019cb929fc ripc_DrawImage + 756 (RIPContext.c:1415)
+18  CoreGraphics                  	0x000000019cb925c0 CGContextDrawImageWithOptions + 1108 (CGContextImage.c:305)
+19  CoreGraphics                  	0x000000019cb9200c CGContextDrawImage + 784 (CGContextImage.c:444)
+20  Spartan                       	0x00000001024a1040 +[SDImageCoderHelper CGImageCreateDecoded:orientation:] + 684 (SDImageCoderHelper.m:272)
+21  Spartan                       	0x00000001024a1374 +[SDImageCoderHelper decodedImageWithImage:] + 76 (SDImageCoderHelper.m:334)
+22  Spartan                       	0x000000010249dff4 SDImageCacheDecodeImageData + 940 (SDImageCacheDefine.m:80)
+23  Spartan                       	0x000000010249bed0 -[SDImageCache diskImageForKey:data:options:context:] + 112 (SDImageCache.m:428)
+24  Spartan                       	0x000000010249c5ac __73-[SDImageCache queryCacheOperationForKey:options:context:cacheType:done:]_block_invoke + 480 (SDImageCache.m:554)
+25  libdispatch.dylib             	0x00000001a29deaac _dispatch_call_block_and_release + 32 (init.c:1575)
+26  libdispatch.dylib             	0x00000001a29f8584 _dispatch_client_callout + 16 (client_callout.mm:85)
+27  libdispatch.dylib             	0x00000001a29e72d0 _dispatch_lane_serial_drain + 740 (queue.c:3939)
+28  libdispatch.dylib             	0x00000001a29e7dac _dispatch_lane_invoke + 388 (queue.c:4030)
+29  libdispatch.dylib             	0x00000001a29f21dc _dispatch_root_queue_drain_deferred_wlh + 292 (queue.c:7198)
+30  libdispatch.dylib             	0x00000001a29f1a60 _dispatch_workloop_worker_thread + 540 (queue.c:6792)
+31  libsystem_pthread.dylib       	0x0000000224ef4a0c _pthread_wqthread + 292 (pthread.c:2696)
+32  libsystem_pthread.dylib       	0x0000000224ef4aac start_wqthread + 8 (:-1)
+
+Thread 5:
+0   libsystem_pthread.dylib       	0x0000000224ef4aa4 start_wqthread + 0 (:-1)
+
+Thread 6 name:
+Thread 6:
+0   libsystem_kernel.dylib        	0x00000001eb8adce4 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001eb8b139c mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001eb8b12b8 mach_msg_overwrite + 428 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001eb8b1100 mach_msg + 24 (mach_msg.c:323)
+4   CoreFoundation                	0x000000019aa537a0 __CFRunLoopServiceMachPort + 160 (CFRunLoop.c:2637)
+5   CoreFoundation                	0x000000019aa52090 __CFRunLoopRun + 1208 (CFRunLoop.c:3021)
+6   CoreFoundation                	0x000000019aa53adc CFRunLoopRunSpecific + 572 (CFRunLoop.c:3434)
+7   Foundation                    	0x00000001996ca79c -[NSRunLoop(NSRunLoop) runMode:beforeDate:] + 212 (NSRunLoop.m:375)
+8   Foundation                    	0x00000001996d0020 -[NSRunLoop(NSRunLoop) runUntilDate:] + 64 (NSRunLoop.m:422)
+9   UIKitCore                     	0x000000019d45f56c -[UIEventFetcher threadMain] + 424 (UIEventFetcher.m:1351)
+10  Foundation                    	0x0000000199730804 __NSThread__start__ + 732 (NSThread.m:991)
+11  libsystem_pthread.dylib       	0x0000000224ef7344 _pthread_start + 136 (pthread.c:931)
+12  libsystem_pthread.dylib       	0x0000000224ef4ab8 thread_start + 8 (:-1)
+
+Thread 7:
+0   libsystem_pthread.dylib       	0x0000000224ef4aa4 start_wqthread + 0 (:-1)
+
+Thread 8 name:
+Thread 8 Crashed:
+0   libsystem_kernel.dylib        	0x00000001eb8b81dc __pthread_kill + 8 (:-1)
+1   libsystem_pthread.dylib       	0x0000000224efbc60 pthread_kill + 268 (pthread.c:1721)
+2   libsystem_c.dylib             	0x00000001a2a9a0ac abort + 124 (abort.c:122)
+3   libc++abi.dylib               	0x0000000224e255a0 abort_message + 132 (abort_message.cpp:78)
+4   libc++abi.dylib               	0x0000000224e13f10 demangling_terminate_handler() + 344 (cxa_default_handlers.cpp:77)
+5   libobjc.A.dylib               	0x0000000197ff7bf8 _objc_terminate() + 156 (objc-exception.mm:496)
+6   libc++abi.dylib               	0x0000000224e248b4 std::__terminate(void (*)()) + 16 (cxa_handlers.cpp:59)
+7   libc++abi.dylib               	0x0000000224e280d0 __cxa_rethrow + 188 (cxa_exception.cpp:658)
+8   libobjc.A.dylib               	0x0000000197ff5568 objc_exception_rethrow + 44 (objc-exception.mm:399)
+9   Spartan                       	0x00000001022fa230 facebook::react::invokeInner(RCTBridge*, RCTModuleData*, unsigned int, folly::dynamic const&, int, (anonymous namespace)::SchedulingContext) + 1044 (RCTNativeModule.mm:232)
+10  Spartan                       	0x00000001022f9c3c facebook::react::RCTNativeModule::invoke(unsigned int, folly::dynamic&&, int)::$_0::operator()() const + 56 (RCTNativeModule.mm:113)
+11  Spartan                       	0x00000001022f9c3c invocation function for block in facebook::react::RCTNativeModule::invoke(unsigned int, folly::dynamic&&, int) + 108 (RCTNativeModule.mm:104)
+12  libdispatch.dylib             	0x00000001a29deaac _dispatch_call_block_and_release + 32 (init.c:1575)
+13  libdispatch.dylib             	0x00000001a29f8584 _dispatch_client_callout + 16 (client_callout.mm:85)
+14  libdispatch.dylib             	0x00000001a29e72d0 _dispatch_lane_serial_drain + 740 (queue.c:3939)
+15  libdispatch.dylib             	0x00000001a29e7dac _dispatch_lane_invoke + 388 (queue.c:4030)
+16  libdispatch.dylib             	0x00000001a29f21dc _dispatch_root_queue_drain_deferred_wlh + 292 (queue.c:7198)
+17  libdispatch.dylib             	0x00000001a29f1a60 _dispatch_workloop_worker_thread + 540 (queue.c:6792)
+18  libsystem_pthread.dylib       	0x0000000224ef4a0c _pthread_wqthread + 292 (pthread.c:2696)
+19  libsystem_pthread.dylib       	0x0000000224ef4aac start_wqthread + 8 (:-1)
+
+Thread 9:
+0   libsystem_pthread.dylib       	0x0000000224ef4aa4 start_wqthread + 0 (:-1)
+
+Thread 10 name:
+Thread 10:
+0   hermes                        	0x0000000102dc41c8 void hermes::vm::JSObject::setNamedSlotValueUnsafe<(hermes::vm::ArrayStorageBase<hermes::vm::HermesValue32>::Inline)1>(hermes::vm::JSObject*, hermes::vm::Runtime&, unsigned int, hermes::vm::HermesV... + 28 (JSObject.h:0)
+1   hermes                        	0x0000000102dc41c8 hermes::vm::CallResult<hermes::vm::HermesValue, (hermes::vm::detail::CallResultSpecialize)2> hermes::vm::Interpreter::interpretFunction<false, false>(hermes::vm::Runtime&, hermes::vm::InterpreterSt... + 9708 (Interpreter.cpp:2407)
+2   hermes                        	0x0000000102dc1bb4 hermes::vm::Runtime::interpretFunctionImpl(hermes::vm::CodeBlock*) + 52 (Interpreter.cpp:825)
+3   hermes                        	0x0000000102db414c hermes::vm::JSFunction::_callImpl(hermes::vm::Handle<hermes::vm::Callable>, hermes::vm::Runtime&) + 40 (Callable.cpp:1127)
+4   hermes                        	0x0000000102d9eb24 hermes::vm::Callable::call(hermes::vm::Handle<hermes::vm::Callable>, hermes::vm::Runtime&) + 44 (Callable.h:253)
+5   hermes                        	0x0000000102d9eb24 facebook::hermes::HermesRuntimeImpl::call(facebook::jsi::Function const&, facebook::jsi::Value const&, facebook::jsi::Value const*, unsigned long) + 284 (hermes.cpp:2108)
+6   Spartan                       	0x0000000102480238 facebook::jsi::RuntimeDecorator<facebook::jsi::Runtime, facebook::jsi::Runtime>::call(facebook::jsi::Function const&, facebook::jsi::Value const&, facebook::jsi::Value const*, unsigned long) + 36 (decorator.h:340)
+7   Spartan                       	0x0000000102480238 facebook::jsi::WithRuntimeDecorator<facebook::react::(anonymous namespace)::ReentrancyCheck, facebook::jsi::Runtime, facebook::jsi::Runtime>::call(facebook::jsi::Function const&, facebook::jsi::Val... + 96 (decorator.h:753)
+8   Spartan                       	0x000000010248c3fc facebook::jsi::Function::call(facebook::jsi::Runtime&, facebook::jsi::Value const*, unsigned long) const + 20 (jsi-inl.h:259)
+9   Spartan                       	0x000000010248c3fc facebook::jsi::Function::call(facebook::jsi::Runtime&, std::initializer_list<facebook::jsi::Value>) const + 20 (jsi-inl.h:264)
+10  Spartan                       	0x000000010248c3fc facebook::react::Task::execute(facebook::jsi::Runtime&, bool) + 128 (Task.cpp:42)
+11  Spartan                       	0x0000000102489054 facebook::react::RuntimeScheduler::executeTask(facebook::jsi::Runtime&, std::__1::shared_ptr<facebook::react::Task>, bool) const + 56 (RuntimeScheduler.cpp:179)
+12  Spartan                       	0x0000000102489760 facebook::react::RuntimeScheduler::startWorkLoop(facebook::jsi::Runtime&) const + 200 (RuntimeScheduler.cpp:157)
+13  Spartan                       	0x000000010242d874 std::__1::__function::__value_func<void (facebook::jsi::Runtime&)>::operator()[abi:ne200100](facebook::jsi::Runtime&) const + 20 (function.h:436)
+14  Spartan                       	0x000000010242d874 std::__1::function<void (facebook::jsi::Runtime&)>::operator()(facebook::jsi::Runtime&) const + 20 (function.h:995)
+15  Spartan                       	0x000000010242d874 RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::'lambda'()::operator()() const + 56 (RCTSurfacePresenterBridgeAdapter.mm:75)
+16  Spartan                       	0x000000010242d874 decltype(std::declval<RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::'lambda'()&>()()) std::__1::__invoke[abi:ne200100]<RCTRu... + 56 (invoke.h:179)
+17  Spartan                       	0x000000010242d874 void std::__1::__invoke_void_return_wrapper<void, true>::__call[abi:ne200100]<RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::... + 56 (invoke.h:251)
+18  Spartan                       	0x000000010242d874 void std::__1::__invoke_r[abi:ne200100]<void, RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::'lambda'()&>(RCTRuntimeExecutorF... + 56 (invoke.h:273)
+19  Spartan                       	0x000000010242d874 std::__1::__function::__alloc_func<RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::'lambda'(), std::__1::allocator<RCTRuntimeE... + 56 (function.h:167)
+20  Spartan                       	0x000000010242d874 std::__1::__function::__func<RCTRuntimeExecutorFromBridge(RCTBridge*)::$_0::operator()(std::__1::function<void (facebook::jsi::Runtime&)>&&) const::'lambda'(), std::__1::allocator<RCTRuntimeExecuto... + 76 (function.h:319)
+21  Spartan                       	0x0000000102472a74 std::__1::__function::__value_func<void ()>::operator()[abi:ne200100]() const + 12 (function.h:436)
+22  Spartan                       	0x0000000102472a74 std::__1::function<void ()>::operator()() const + 12 (function.h:995)
+23  Spartan                       	0x0000000102472a74 facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void ()>&&)::$_0::operator()(facebook::react::JSExecutor*) const + 12 (Instance.cpp:296)
+24  Spartan                       	0x0000000102472a74 decltype(std::declval<facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void ()>&&)::$_0&>()(std::declval<facebook::react::JSExecutor*>())) std::__1::__invoke[abi:ne200100]... + 24 (invoke.h:179)
+25  Spartan                       	0x0000000102472a74 void std::__1::__invoke_void_return_wrapper<void, true>::__call[abi:ne200100]<facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void ()>&&)::$_0&, facebook::react::JSExecut... + 24 (invoke.h:251)
+26  Spartan                       	0x0000000102472a74 void std::__1::__invoke_r[abi:ne200100]<void, facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void ()>&&)::$_0&, facebook::react::JSExecutor*>(facebook::react::Instance::... + 24 (invoke.h:273)
+27  Spartan                       	0x0000000102472a74 std::__1::__function::__alloc_func<facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void ()>&&)::$_0, std::__1::allocator<facebook::react::Instance::JSCallInvoker::schedul... + 24 (function.h:167)
+28  Spartan                       	0x0000000102472a74 std::__1::__function::__func<facebook::react::Instance::JSCallInvoker::scheduleAsync(std::__1::function<void ()>&&)::$_0, std::__1::allocator<facebook::react::Instance::JSCallInvoker::scheduleAsync... + 36 (function.h:319)
+29  Spartan                       	0x000000010247a324 std::__1::__function::__value_func<void (facebook::react::JSExecutor*)>::operator()[abi:ne200100](facebook::react::JSExecutor*&&) const + 24 (function.h:436)
+30  Spartan                       	0x000000010247a324 std::__1::function<void (facebook::react::JSExecutor*)>::operator()(facebook::react::JSExecutor*) const + 24 (function.h:995)
+31  Spartan                       	0x000000010247a324 facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>)::$_0::operator()() const + 48 (NativeToJsBridge.cpp:308)
+32  Spartan                       	0x000000010247a324 decltype(std::declval<facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>)::$_0&>()()) std::__1::__invoke[abi:ne200100]<facebook::react::Na... + 48 (invoke.h:179)
+33  Spartan                       	0x000000010247a324 void std::__1::__invoke_void_return_wrapper<void, true>::__call[abi:ne200100]<facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>)::$_0&>(f... + 48 (invoke.h:251)
+34  Spartan                       	0x000000010247a324 void std::__1::__invoke_r[abi:ne200100]<void, facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>)::$_0&>(facebook::react::NativeToJsBridge... + 48 (invoke.h:273)
+35  Spartan                       	0x000000010247a324 std::__1::__function::__alloc_func<facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>)::$_0, std::__1::allocator<facebook::react::NativeTo... + 48 (function.h:167)
+36  Spartan                       	0x000000010247a324 std::__1::__function::__func<facebook::react::NativeToJsBridge::runOnExecutorQueue(std::__1::function<void (facebook::react::JSExecutor*)>)::$_0, std::__1::allocator<facebook::react::NativeToJsBrid... + 60 (function.h:319)
+37  Spartan                       	0x00000001022e505c std::__1::__function::__value_func<void ()>::operator()[abi:ne200100]() const + 20 (function.h:436)
+38  Spartan                       	0x00000001022e505c std::__1::function<void ()>::operator()() const + 20 (function.h:995)
+39  Spartan                       	0x00000001022e505c facebook::react::tryAndReturnError(std::__1::function<void ()> const&) + 32 (RCTCxxUtils.mm:73)
+40  Spartan                       	0x00000001022f0c20 facebook::react::RCTMessageThread::tryFunc(std::__1::function<void ()> const&) + 24 (RCTMessageThread.mm:68)
+41  Spartan                       	0x00000001022f09f0 std::__1::__function::__value_func<void ()>::operator()[abi:ne200100]() const + 20 (function.h:436)
+42  Spartan                       	0x00000001022f09f0 std::__1::function<void ()>::operator()() const + 20 (function.h:995)
+43  Spartan                       	0x00000001022f09f0 invocation function for block in facebook::react::RCTMessageThread::runAsync(std::__1::function<void ()>) + 44 (RCTMessageThread.mm:44)
+44  CoreFoundation                	0x000000019aaae850 __CFRUNLOOP_IS_CALLING_OUT_TO_A_BLOCK__ + 28 (CFRunLoop.c:1818)
+45  CoreFoundation                	0x000000019aa51028 __CFRunLoopDoBlocks + 352 (CFRunLoop.c:1860)
+46  CoreFoundation                	0x000000019aa52528 __CFRunLoopRun + 2384 (CFRunLoop.c:3217)
+47  CoreFoundation                	0x000000019aa53adc CFRunLoopRunSpecific + 572 (CFRunLoop.c:3434)
+48  Spartan                       	0x00000001022db344 +[RCTCxxBridge runRunLoop] + 212 (RCTCxxBridge.mm:332)
+49  Foundation                    	0x0000000199730804 __NSThread__start__ + 732 (NSThread.m:991)
+50  libsystem_pthread.dylib       	0x0000000224ef7344 _pthread_start + 136 (pthread.c:931)
+51  libsystem_pthread.dylib       	0x0000000224ef4ab8 thread_start + 8 (:-1)
+
+Thread 11 name:
+Thread 11:
+0   libsystem_kernel.dylib        	0x00000001eb8b3438 __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x0000000224ef5e50 _pthread_cond_wait + 984 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001ab3ca294 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 32 (condition_variable.cpp:30)
+3   hermes                        	0x0000000102e60108 void std::__1::condition_variable::wait<hermes::vm::HadesGC::Executor::worker()::'lambda'()>(std::__1::unique_lock<std::__1::mutex>&, hermes::vm::HadesGC::Executor::worker()::'lambda'()) + 12 (__mutex_base:398)
+4   hermes                        	0x0000000102e60108 hermes::vm::HadesGC::Executor::worker() + 316 (HadesGC.cpp:1084)
+5   hermes                        	0x0000000102e5ffa8 hermes::vm::HadesGC::Executor::Executor()::'lambda'()::operator()() const + 4 (HadesGC.cpp:1051)
+6   hermes                        	0x0000000102e5ffa8 decltype(std::declval<hermes::vm::HadesGC::Executor::Executor()::'lambda'()>()()) std::__1::__invoke[abi:v15006]<hermes::vm::HadesGC::Executor::Executor()::'lambda'()>(hermes::vm::HadesGC::Executor... + 4 (invoke.h:394)
+7   hermes                        	0x0000000102e5ffa8 void std::__1::__thread_execute[abi:v15006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, hermes::vm::HadesGC::Executor::Executor()::'lambda'... + 4 (thread:290)
+8   hermes                        	0x0000000102e5ffa8 void* std::__1::__thread_proxy[abi:v15006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, hermes::vm::HadesGC::Executor::Execu... + 44 (thread:301)
+9   libsystem_pthread.dylib       	0x0000000224ef7344 _pthread_start + 136 (pthread.c:931)
+10  libsystem_pthread.dylib       	0x0000000224ef4ab8 thread_start + 8 (:-1)
+
+Thread 12 name:
+Thread 12:
+0   libsystem_kernel.dylib        	0x00000001eb8b3438 __psynch_cvwait + 8 (:-1)
+1   libsystem_pthread.dylib       	0x0000000224ef5e50 _pthread_cond_wait + 984 (pthread_cond.c:862)
+2   libc++.1.dylib                	0x00000001ab3ca294 std::__1::condition_variable::wait(std::__1::unique_lock<std::__1::mutex>&) + 32 (condition_variable.cpp:30)
+3   hermes                        	0x0000000102e60108 void std::__1::condition_variable::wait<hermes::vm::HadesGC::Executor::worker()::'lambda'()>(std::__1::unique_lock<std::__1::mutex>&, hermes::vm::HadesGC::Executor::worker()::'lambda'()) + 12 (__mutex_base:398)
+4   hermes                        	0x0000000102e60108 hermes::vm::HadesGC::Executor::worker() + 316 (HadesGC.cpp:1084)
+5   hermes                        	0x0000000102e5ffa8 hermes::vm::HadesGC::Executor::Executor()::'lambda'()::operator()() const + 4 (HadesGC.cpp:1051)
+6   hermes                        	0x0000000102e5ffa8 decltype(std::declval<hermes::vm::HadesGC::Executor::Executor()::'lambda'()>()()) std::__1::__invoke[abi:v15006]<hermes::vm::HadesGC::Executor::Executor()::'lambda'()>(hermes::vm::HadesGC::Executor... + 4 (invoke.h:394)
+7   hermes                        	0x0000000102e5ffa8 void std::__1::__thread_execute[abi:v15006]<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, hermes::vm::HadesGC::Executor::Executor()::'lambda'... + 4 (thread:290)
+8   hermes                        	0x0000000102e5ffa8 void* std::__1::__thread_proxy[abi:v15006]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, hermes::vm::HadesGC::Executor::Execu... + 44 (thread:301)
+9   libsystem_pthread.dylib       	0x0000000224ef7344 _pthread_start + 136 (pthread.c:931)
+10  libsystem_pthread.dylib       	0x0000000224ef4ab8 thread_start + 8 (:-1)
+
+Thread 13 name:
+Thread 13:
+0   libsystem_kernel.dylib        	0x00000001eb8adce4 mach_msg2_trap + 8 (:-1)
+1   libsystem_kernel.dylib        	0x00000001eb8b139c mach_msg2_internal + 76 (mach_msg.c:201)
+2   libsystem_kernel.dylib        	0x00000001eb8b12b8 mach_msg_overwrite + 428 (mach_msg.c:0)
+3   libsystem_kernel.dylib        	0x00000001eb8b1100 mach_msg + 24 (mach_msg.c:323)
+4   CoreFoundation                	0x000000019aa537a0 __CFRunLoopServiceMachPort + 160 (CFRunLoop.c:2637)
+5   CoreFoundation                	0x000000019aa52090 __CFRunLoopRun + 1208 (CFRunLoop.c:3021)
+6   CoreFoundation                	0x000000019aa53adc CFRunLoopRunSpecific + 572 (CFRunLoop.c:3434)
+7   CFNetwork                     	0x000000019c081db8 +[__CFN_CoreSchedulingSetRunnable _run:] + 416 (CoreSchedulingSet.mm:1473)
+8   Foundation                    	0x0000000199730804 __NSThread__start__ + 732 (NSThread.m:991)
+9   libsystem_pthread.dylib       	0x0000000224ef7344 _pthread_start + 136 (pthread.c:931)
+10  libsystem_pthread.dylib       	0x0000000224ef4ab8 thread_start + 8 (:-1)
+
+
+Thread 8 crashed with ARM Thread State (64-bit):
+    x0: 0x0000000000000000   x1: 0x0000000000000000   x2: 0x0000000000000000   x3: 0x0000000000000000
+    x4: 0x0000000224e29fdb   x5: 0x000000016e1426d0   x6: 0x000000000000006e   x7: 0x09ab16f07604de3a
+    x8: 0x1045700e84c00a92   x9: 0x1045700fead43a92  x10: 0x0000000000000051  x11: 0x000000000000000b
+   x12: 0x000000000000000b  x13: 0x000000019aefd494  x14: 0x0000000000000001  x15: 0xffffffffb00007ff
+   x16: 0x0000000000000148  x17: 0x000000016e143000  x18: 0x0000000000000000  x19: 0x0000000000000006
+   x20: 0x0000000000004f03  x21: 0x000000016e1430e0  x22: 0x434c4e47432b2b00  x23: 0x0000000120a94690
+   x24: 0x0000000000000001  x25: 0x0000000120a94db0  x26: 0x000000010916ab31  x27: 0x000000012098aec0
+   x28: 0x000000011461bf41   fp: 0x000000016e142640   lr: 0x0000000224efbc60
+    sp: 0x000000016e142620   pc: 0x00000001eb8b81dc cpsr: 0x40001000
+   esr: 0x56000080  Address size fault
+
+
+Binary Images:
+        0x102118000 -         0x10273ffff Spartan arm64  <172f14e01bef354b90228f37e6067ff4> /var/containers/Bundle/Application/B61EFC5C-AC9C-4B46-8FF9-A758A54B0223/Spartan.app/Spartan
+        0x102b34000 -         0x102b3ffff libobjc-trampolines.dylib arm64e  <def9fca06da1332796903b879ffc755c> /private/preboot/Cryptexes/OS/usr/lib/libobjc-trampolines.dylib
+        0x102d94000 -         0x102f63fff hermes arm64  <35fecc83959934c1813ef020b2d0d382> /private/var/containers/Bundle/Application/B61EFC5C-AC9C-4B46-8FF9-A758A54B0223/Spartan.app/Frameworks/hermes.framework/hermes
+        0x197fc4000 -         0x198015bb3 libobjc.A.dylib arm64e  <e8825548d1483ee2807639ea9cb11129> /usr/lib/libobjc.A.dylib
+        0x1996bb000 -         0x19a32f05f Foundation arm64e  <c031896b2ef13d89966a0b52d54bceee> /System/Library/Frameworks/Foundation.framework/Foundation
+        0x19aa42000 -         0x19afbefff CoreFoundation arm64e  <ae3c93380166397a9643356b14f6ee58> /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation
+        0x19bfe2000 -         0x19c3a735f CFNetwork arm64e  <271cab2fd622384c8a7f2b5857119e0d> /System/Library/Frameworks/CFNetwork.framework/CFNetwork
+        0x19cb7b000 -         0x19d281e5f CoreGraphics arm64e  <fb10b1178497383aa37ff4a4cc275ae3> /System/Library/Frameworks/CoreGraphics.framework/CoreGraphics
+        0x19d340000 -         0x19f28255f UIKitCore arm64e  <5e794caa41623ff6861e45f29f6b8ac0> /System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore
+        0x1a0adc000 -         0x1a0e1a3cf vImage arm64e  <bf3c5537d43039c1adce3a39f1dbb81a> /System/Library/Frameworks/Accelerate.framework/Frameworks/vImage.framework/vImage
+        0x1a29dd000 -         0x1a2a22b3f libdispatch.dylib arm64e  <b62778f758273a7ba96da24f7be95416> /usr/lib/system/libdispatch.dylib
+        0x1a2a23000 -         0x1a2aa26c3 libsystem_c.dylib arm64e  <335cd87d234b3fc182db943350d31a88> /usr/lib/system/libsystem_c.dylib
+        0x1a64c0000 -         0x1a662277f UIFoundation arm64e  <07dc72b48cd7374d86c6934b01ba4017> /System/Library/PrivateFrameworks/UIFoundation.framework/UIFoundation
+        0x1ab3a9000 -         0x1ab438ff7 libc++.1.dylib arm64e  <2fbf38d8e5a53ffe9f8736a797ea4cdb> /usr/lib/libc++.1.dylib
+        0x1c14a7000 -         0x1c154187b dyld arm64e  <cd2e758de1a23b92aae775d38f66ec54> /usr/lib/dyld
+        0x1e7878000 -         0x1e7880c7f GraphicsServices arm64e  <d372e13f75053addae13062656f0b1f6> /System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices
+        0x1eb8ad000 -         0x1eb8e6ebf libsystem_kernel.dylib arm64e  <a9a7ecbd24dd37e6bb23ecbfd9a87e33> /usr/lib/system/libsystem_kernel.dylib
+        0x224e0f000 -         0x224e2cfff libc++abi.dylib arm64e  <b5a6eccef205302a8874755a0e3ad747> /usr/lib/libc++abi.dylib
+        0x224ef4000 -         0x224f003f3 libsystem_pthread.dylib arm64e  <1ee1922008593cbcbdebdf37ca2e8e4f> /usr/lib/system/libsystem_pthread.dylib
+
+EOF

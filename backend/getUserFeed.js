@@ -50,8 +50,16 @@ export async function getUserMessages(userData) {
     if (arr.length > 0) {
         // Fetch chats serially but latest in parallel per chat to avoid stampedes
         for (const msg of arr) {
-            const messageData = await readDoc('messages', msg.mid);
-            const content = await fetchLatest(msg.mid);
+            const mid = msg?.mid;
+            if (!mid) continue;
+
+            const messageData = await readDoc('messages', mid).catch(() => null);
+            if (!messageData || typeof messageData !== "object") {
+                console.warn?.("[getUserMessages] missing chat doc", mid);
+                continue;
+            }
+
+            const content = await fetchLatest(mid);
             db_messages.push({ ...messageData, content });
         }
     } else if (userData?.uid) {
