@@ -48,6 +48,8 @@ function SetTypePanel({ visible, onClose, position, current, onSelect }) {
           <ITEM color="#FB923C" letter="W" label="Warm up" onPress={() => { onSelect?.("warmup"); onClose?.(); }} />
           <ITEM color="#A855F7" letter="D" label="Drop set" onPress={() => { onSelect?.("dropset"); onClose?.(); }} />
           <ITEM color="#F43F5E" letter="F" label="Failure" onPress={() => { onSelect?.("failure"); onClose?.(); }} />
+          <ITEM color="#0EA5E9" letter="L" label="Left" onPress={() => { onSelect?.("left"); onClose?.(); }} />
+          <ITEM color="#34D399" letter="R" label="Right" onPress={() => { onSelect?.("right"); onClose?.(); }} />
         </Animated.View>
       </TouchableOpacity>
     </Modal>

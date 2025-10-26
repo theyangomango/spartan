@@ -11,9 +11,11 @@ import { strong as haptic, withStrongPress } from "../../../utils/haptics";
 import { Copy } from "iconsax-react-native";
 import KeyboardDismissAccessory, { useKeyboardAccessoryId } from "../../common/KeyboardDismissAccessory";
 
+const ALLOWED_SET_TYPES = new Set(["warmup", "dropset", "failure", "left", "right"]);
+
 const normalizeSetType = (value) => {
     const raw = typeof value === "string" ? value.toLowerCase() : "";
-    return raw === "warmup" || raw === "dropset" || raw === "failure" ? raw : null;
+    return ALLOWED_SET_TYPES.has(raw) ? raw : null;
 };
 
 const normalizeTemplateSet = (set = {}) => ({

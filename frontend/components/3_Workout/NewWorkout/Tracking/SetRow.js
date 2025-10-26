@@ -9,6 +9,7 @@ import SwipeableItem, { useSwipeableItemParams } from "react-native-swipeable-it
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import theme from "../../../../theme/mfpDark";
 import workoutTypography from "../../shared/workoutTypography";
+import { formatSetLabel, normalizeSetType } from "../../shared/setTypeUtils";
 
 const { height: screenHeight } = Dimensions.get("window");
 const ENABLE_LAYOUT_ANIM = false;
@@ -32,6 +33,7 @@ function SetRow({
     readOnly = false,
     itemKey,
     onFocusInput, // optional: notify parent when an input is focused
+    displayNumber,
 }) {
     const rawWeight = set?.weight ?? "";
     const rawReps = set?.reps ?? "";
@@ -72,6 +74,10 @@ function SetRow({
         else updateSet(index, { ...set, type: nextType });
     };
 
+    const normalizedType = normalizeSetType(set?.type);
+    const hasType = !!normalizedType;
+    const label = formatSetLabel(displayNumber ?? (index + 1), normalizedType);
+
     return (
         <View style={styles.container}>
             <SwipeableItem
@@ -86,12 +92,15 @@ function SetRow({
                 onSwipeableLeftOpen={readOnly ? undefined : handleDeleteSwipe}
             >
                 <View style={[styles.stat_row, doneLocal && styles.done]}>
-                    <Pressable onPress={openTypePanel} style={[
-                        styles.set_ctnr,
-                        set?.type && [styles.set_ctnr_typed, typePillBg(set?.type)],
-                    ]}>
-                        <Text style={[workoutTypography.setNumber, set?.type && [workoutTypography.setLetter, typePillText(set?.type)]]}>
-                            {set?.type ? typeLetter(set?.type) : (index + 1)}
+                    <Pressable
+                        onPress={openTypePanel}
+                        style={[
+                            styles.set_ctnr,
+                            hasType && [styles.set_ctnr_typed, typePillBg(normalizedType)],
+                        ]}
+                    >
+                        <Text style={[workoutTypography.setNumber, hasType && [workoutTypography.setLetter, typePillText(normalizedType)]]}>
+                            {label}
                         </Text>
                     </Pressable>
 
@@ -158,6 +167,7 @@ function SetRow({
 const rowEqual = (prev, next) => {
     if (prev.sid !== next.sid) return false;
     if (prev.index !== next.index) return false;
+    if ((prev.displayNumber ?? null) !== (next.displayNumber ?? null)) return false;
     const ps = prev.set || {}; const ns = next.set || {};
     if (ps.weight !== ns.weight) return false;
     if (ps.reps !== ns.reps) return false;
@@ -253,31 +263,31 @@ const styles = StyleSheet.create({
 });
 
 function typePillBg(type) {
-    switch (type) {
+    switch (normalizeSetType(type)) {
         case "warmup":
             return { backgroundColor: "rgba(251,146,60,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(251,146,60,0.7)" };
         case "dropset":
             return { backgroundColor: "rgba(168,85,247,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(168,85,247,0.7)" };
         case "failure":
             return { backgroundColor: "rgba(244,63,94,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(244,63,94,0.7)" };
+        case "left":
+            return { backgroundColor: "rgba(14,165,233,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(14,165,233,0.7)" };
+        case "right":
+            return { backgroundColor: "rgba(52,211,153,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(52,211,153,0.7)" };
         default:
             return { backgroundColor: theme.field };
     }
 }
-function typeLetter(type) {
-    switch (type) {
-        case "warmup": return "W";
-        case "dropset": return "D";
-        case "failure": return "F";
-        default: return "";
-    }
-}
 
 function typePillText(type) {
-    switch (type) {
-        case "warmup": return { color: "#FFFFFF" };
-        case "dropset": return { color: "#FFFFFF" };
-        case "failure": return { color: "#FFFFFF" };
-        default: return { color: theme.textPrimary };
+    switch (normalizeSetType(type)) {
+        case "warmup":
+        case "dropset":
+        case "failure":
+        case "left":
+        case "right":
+            return { color: "#FFFFFF" };
+        default:
+            return { color: theme.textPrimary };
     }
 }

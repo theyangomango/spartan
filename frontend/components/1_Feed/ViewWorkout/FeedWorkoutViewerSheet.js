@@ -166,7 +166,7 @@ const FeedWorkoutViewerSheet = ({
           reps: Number(s?.reps) || 0,
           type: (() => {
             const raw = typeof s?.type === 'string' ? s.type.toLowerCase() : '';
-            return raw === 'warmup' || raw === 'dropset' || raw === 'failure' ? raw : null;
+            return ['warmup', 'dropset', 'failure', 'left', 'right'].includes(raw) ? raw : null;
           })(),
         })),
       }));

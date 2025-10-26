@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import { View, StyleSheet, Text, Pressable, Image, Animated } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import { Entypo } from '@expo/vector-icons';
@@ -9,6 +9,7 @@ import theme from "../../../theme/mfpDark";
 import { withStrongPress } from "../../../utils/haptics";
 import workoutTypography from "../shared/workoutTypography";
 import ExerciseAvatar from "../../common/ExerciseAvatar";
+import { computeDisplayNumbers } from "../shared/setTypeUtils";
 
 
 export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, readOnly = false }) {
@@ -76,6 +77,8 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
         updateSets(exerciseIndex, newSets);
     }
 
+    const displayNumbers = useMemo(() => computeDisplayNumbers(sets), [sets]);
+
     return (
         <View style={styles.main_ctnr}>
             {!readOnly && (
@@ -135,6 +138,7 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
                             updateSet={updateSet}
                             handleDelete={() => deleteSet(index)}
                             readOnly={readOnly}
+                            displayNumber={displayNumbers[index]}
                         />
                     );
                 })}

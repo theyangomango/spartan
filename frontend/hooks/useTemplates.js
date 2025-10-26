@@ -3,9 +3,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import makeID from "../../backend/helper/makeID";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 
+const ALLOWED_SET_TYPES = new Set(["warmup", "dropset", "failure", "left", "right"]);
+
 const normalizeSetType = (value) => {
     const raw = typeof value === "string" ? value.toLowerCase() : "";
-    return raw === "warmup" || raw === "dropset" || raw === "failure" ? raw : null;
+    return ALLOWED_SET_TYPES.has(raw) ? raw : null;
 };
 
 const normalizeSet = (s = {}) => ({

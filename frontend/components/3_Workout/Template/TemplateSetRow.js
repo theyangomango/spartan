@@ -9,8 +9,9 @@ import theme from "../../../theme/mfpDark";
 import SetTypePanel from "../NewWorkout/Tracking/SetTypePanel";
 import { withStrongPress } from "../../../utils/haptics";
 import workoutTypography from "../shared/workoutTypography";
+import { formatSetLabel, normalizeSetType } from "../shared/setTypeUtils";
 
-export default function TemplateSetRow({ set, updateSet, index, handleDelete, readOnly = false }) {
+export default function TemplateSetRow({ set, updateSet, index, handleDelete, readOnly = false, displayNumber }) {
     const weight = Number(set?.weight ?? 0);
     const reps = Number(set?.reps ?? 0);
 
@@ -38,16 +39,20 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete, re
         />
     );
 
+    const normalizedType = normalizeSetType(set?.type);
+    const hasType = !!normalizedType;
+    const label = formatSetLabel(displayNumber ?? (index + 1), normalizedType);
+
     return (
         <View style={styles.container}>
             {readOnly ? (
                 <View style={styles.stat_row}>
                     <Pressable
                         disabled
-                        style={[styles.set_ctnr, set?.type && [styles.set_ctnr_typed, typePillBg(set?.type)]]}
+                        style={[styles.set_ctnr, hasType && [styles.set_ctnr_typed, typePillBg(normalizedType)]]}
                     >
-                        <Text style={[workoutTypography.setNumber, set?.type && [workoutTypography.setLetter, typePillText(set?.type)]]}>
-                            {set?.type ? typeLetter(set?.type) : (index + 1)}
+                        <Text style={[workoutTypography.setNumber, hasType && [workoutTypography.setLetter, typePillText(normalizedType)]]}>
+                            {label}
                         </Text>
                     </Pressable>
 
@@ -91,10 +96,10 @@ export default function TemplateSetRow({ set, updateSet, index, handleDelete, re
                     <View style={styles.stat_row}>
                         <Pressable
                             onPress={withStrongPress(openTypePanel)}
-                            style={[styles.set_ctnr, set?.type && [styles.set_ctnr_typed, typePillBg(set?.type)]]}
+                            style={[styles.set_ctnr, hasType && [styles.set_ctnr_typed, typePillBg(normalizedType)]]}
                         >
-                            <Text style={[workoutTypography.setNumber, set?.type && [workoutTypography.setLetter, typePillText(set?.type)]]}>
-                                {set?.type ? typeLetter(set?.type) : (index + 1)}
+                            <Text style={[workoutTypography.setNumber, hasType && [workoutTypography.setLetter, typePillText(normalizedType)]]}>
+                                {label}
                             </Text>
                         </Pressable>
 
@@ -210,38 +215,30 @@ const styles = StyleSheet.create({
     },
 });
 
-function normalizeType(value) {
-    const raw = typeof value === 'string' ? value.toLowerCase() : '';
-    return raw === 'warmup' || raw === 'dropset' || raw === 'failure' ? raw : null;
-}
-
 function typePillBg(type) {
-    switch (normalizeType(type)) {
+    switch (normalizeSetType(type)) {
         case 'warmup':
             return { backgroundColor: 'rgba(251,146,60,0.45)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(251,146,60,0.7)' };
         case 'dropset':
             return { backgroundColor: 'rgba(168,85,247,0.45)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(168,85,247,0.7)' };
         case 'failure':
             return { backgroundColor: 'rgba(244,63,94,0.45)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(244,63,94,0.7)' };
+        case 'left':
+            return { backgroundColor: 'rgba(14,165,233,0.45)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(14,165,233,0.7)' };
+        case 'right':
+            return { backgroundColor: 'rgba(52,211,153,0.45)', borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(52,211,153,0.7)' };
         default:
             return { backgroundColor: theme.field };
     }
 }
 
-function typeLetter(type) {
-    switch (normalizeType(type)) {
-        case 'warmup': return 'W';
-        case 'dropset': return 'D';
-        case 'failure': return 'F';
-        default: return '';
-    }
-}
-
 function typePillText(type) {
-    switch (normalizeType(type)) {
+    switch (normalizeSetType(type)) {
         case 'warmup':
         case 'dropset':
         case 'failure':
+        case 'left':
+        case 'right':
             return { color: '#FFFFFF' };
         default:
             return { color: theme.textPrimary };

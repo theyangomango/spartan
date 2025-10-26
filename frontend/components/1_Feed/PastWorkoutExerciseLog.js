@@ -5,6 +5,7 @@ import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
 import workoutTypography from "../3_Workout/shared/workoutTypography";
 import ExerciseAvatar from "../common/ExerciseAvatar";
+import { computeDisplayNumbers, formatSetLabel, normalizeSetType } from "../3_Workout/shared/setTypeUtils";
 
 const formatNumber = (value, fallback = "0") => {
   const num = Number(value);
@@ -64,6 +65,8 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0 }) => {
     return [];
   }, [exercise?.previousSets, exercise?.previous]);
 
+  const displayNumbers = useMemo(() => computeDisplayNumbers(sets), [sets]);
+
   return (
     <View style={styles.mainContainer}>
       <View style={styles.header}>
@@ -85,15 +88,16 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0 }) => {
         sets.map((set, idx) => {
           const previous = previousSets[idx];
           const done = !!(set?.isDone || set?.done || set?.completed);
-          const type = set?.type || null;
-          const letter = type ? typeLetter(type) : String(idx + 1);
-          const pillStyle = type ? [styles.setPill, typePillBg(type)] : styles.setPill;
-          const letterStyle = type ? [workoutTypography.setNumber, workoutTypography.setLetter, typePillText(type)] : workoutTypography.setNumber;
+          const displayNumber = displayNumbers[idx] ?? (idx + 1);
+          const normalizedType = normalizeSetType(set?.type);
+          const label = formatSetLabel(displayNumber, normalizedType);
+          const pillStyle = normalizedType ? [styles.setPill, typePillBg(normalizedType)] : styles.setPill;
+          const letterStyle = normalizedType ? [workoutTypography.setNumber, workoutTypography.setLetter, typePillText(normalizedType)] : workoutTypography.setNumber;
           const previousStyle = done ? [workoutTypography.previousStat, styles.previousValueTextDone] : workoutTypography.previousStat;
           return (
             <View style={[styles.statRow, done && styles.doneRow]} key={`${name}-set-${idx}`}>
               <View style={pillStyle}>
-                <Text style={letterStyle}>{letter}</Text>
+                <Text style={letterStyle}>{label}</Text>
               </View>
 
               <View style={styles.previousValueContainer}>
@@ -261,36 +265,28 @@ const styles = StyleSheet.create({
 });
 
 function typePillBg(type) {
-  switch (type) {
+  switch (normalizeSetType(type)) {
     case "warmup":
       return { backgroundColor: "rgba(251,146,60,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(251,146,60,0.7)" };
     case "dropset":
       return { backgroundColor: "rgba(168,85,247,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(168,85,247,0.7)" };
     case "failure":
       return { backgroundColor: "rgba(244,63,94,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(244,63,94,0.7)" };
+    case "left":
+      return { backgroundColor: "rgba(14,165,233,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(14,165,233,0.7)" };
+    case "right":
+      return { backgroundColor: "rgba(52,211,153,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(52,211,153,0.7)" };
     default:
       return { backgroundColor: theme.field, borderWidth: scaleSize(1), borderColor: "rgba(255,255,255,0.30)" };
   }
 }
-
-function typeLetter(type) {
-  switch (type) {
-    case "warmup":
-      return "W";
-    case "dropset":
-      return "D";
-    case "failure":
-      return "F";
-    default:
-      return "";
-  }
-}
-
 function typePillText(type) {
-  switch (type) {
+  switch (normalizeSetType(type)) {
     case "warmup":
     case "dropset":
     case "failure":
+    case "left":
+    case "right":
       return { color: "#FFFFFF" };
     default:
       return { color: theme.textPrimary };

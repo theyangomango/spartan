@@ -28,9 +28,11 @@ const TEMPLATE_SUBTITLE_COLOR = "#D2E6FF";
 const CARD_RADIUS = scaleSize(22);
 const CARD_MIN_HEIGHT = scaleSize(86);
 
+const ALLOWED_SET_TYPES = new Set(["warmup", "dropset", "failure", "left", "right"]);
+
 const normalizeSetType = (value) => {
     const raw = typeof value === "string" ? value.toLowerCase() : "";
-    return raw === "warmup" || raw === "dropset" || raw === "failure" ? raw : null;
+    return ALLOWED_SET_TYPES.has(raw) ? raw : null;
 };
 
 const normalizeTemplateShape = (tpl = {}) => {

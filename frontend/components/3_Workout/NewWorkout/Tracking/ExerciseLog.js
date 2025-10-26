@@ -10,6 +10,7 @@ import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
 import scaleSize from "../../../../helper/scaleSize";
 import workoutTypography from "../../shared/workoutTypography";
 import ExerciseAvatar from "../../../common/ExerciseAvatar";
+import { computeDisplayNumbers } from "../../shared/setTypeUtils";
 const ENABLE_LAYOUT_ANIM = false;
 const SYNC_DEBOUNCE_MS = 80;
 const RAF_FALLBACK_MS = 24;
@@ -272,6 +273,8 @@ function ExerciseLog({
         if (toggledDone) { try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light); } catch {} }
     }, [flushNextFrame]);
 
+    const displayNumbers = useMemo(() => computeDisplayNumbers(draft), [draft]);
+
     return (
         <View style={styles.main_ctnr}>
             {!readOnly && (
@@ -320,6 +323,7 @@ function ExerciseLog({
                             isDone={!!item?.isDone}
                             readOnly={readOnly}
                             onFocusInput={() => { try { onStatFocus?.(exerciseIndex, index); } catch {} }}
+                            displayNumber={displayNumbers[index]}
                         />
                     );
                 })}
