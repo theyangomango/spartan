@@ -25,7 +25,8 @@ import calculate1RM from '../helper/calculate1RM';
 const TABS = [
     { key: 'about', label: 'About' },
     { key: 'history', label: 'History' },
-    { key: 'progress', label: 'Progress' },
+    // Temporarily hiding progress until designs are finalized.
+    // { key: 'progress', label: 'Progress' },
 ];
 
 const STEP_SOURCE_KEYS = ['howToSteps', 'instructions', 'steps', 'howTo'];
@@ -847,18 +848,18 @@ export default function ExerciseDetail() {
         );
     };
 
-    const renderProgress = () => (
-        <View style={styles.placeholder}>
-            <Text style={styles.placeholderTitle}>Progress coming soon</Text>
-            <Text style={styles.placeholderBody}>
-                Keep tracking sets for {displayTitle}. We will visualize trends and PRs here shortly.
-            </Text>
-        </View>
-    );
+    // const renderProgress = () => (
+    //     <View style={styles.placeholder}>
+    //         <Text style={styles.placeholderTitle}>Progress coming soon</Text>
+    //         <Text style={styles.placeholderBody}>
+    //             Keep tracking sets for {displayTitle}. We will visualize trends and PRs here shortly.
+    //         </Text>
+    //     </View>
+    // );
 
     let tabContent = null;
     if (activeTab === 'history') tabContent = renderHistory();
-    else if (activeTab === 'progress') tabContent = renderProgress();
+    // else if (activeTab === 'progress') tabContent = renderProgress();
     else tabContent = renderAbout();
 
     return (
