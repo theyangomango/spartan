@@ -6,7 +6,6 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { computeHexagonFromStats } from "../shared/computeHexagon.js";
 
 setGlobalOptions({
     region: "us-central1",
@@ -24,6 +23,42 @@ const FATSECRET_SECRET = defineSecret("FATSECRET_SECRET");
 
 // Simple in-memory cache per scope per function instance
 const tokenCacheByScope = new Map(); // scope -> { accessToken, expiresAt }
+
+export const computeHexagonStats = onCall({ region: "us-central1" }, async (request) => {
+    try {
+        if (!request.auth?.uid) {
+            throw new HttpsError("unauthenticated", "Authentication required");
+        }
+        const zeroHex = {
+            shoulders: 0,
+            chest: 0,
+            arms: 0,
+            legs: 0,
+            back: 0,
+            abs: 0,
+            overall: 0,
+        };
+        const zeroLast = {
+            shoulders: 0,
+            chest: 0,
+            arms: 0,
+            legs: 0,
+            back: 0,
+            abs: 0,
+        };
+
+        return {
+            statsHexagon: zeroHex,
+            lastTrained: zeroLast,
+            statsExercises: {},
+            debug: {},
+        };
+    } catch (error) {
+        if (error instanceof HttpsError) throw error;
+        logger.error("computeHexagonStats failure", error);
+        throw new HttpsError("invalid-argument", "Unable to compute hexagon stats");
+    }
+});
 
 async function getAccessToken(scope = "basic") {
     const now = Date.now();
@@ -1372,15 +1407,16 @@ export const appendWorkoutSets = onCall({ region: "us-central1" }, async (reques
     try {
         const snap = await ref.get();
         if (snap.exists) {
-            const data = snap.data() || {};
-            const prevHex = data?.statsHexagon || {};
-            const trained = Object.keys(updatePayload).map((k) => k.split(".")[1]).filter(Boolean);
-            const { statsHexagon } = computeHexagonFromStats({
-                statsExercises: data?.statsExercises || {},
-                prevStatsHexagon: prevHex,
-                trainedExerciseNames: trained,
-            });
-            await ref.set({ statsHexagon }, { merge: true });
+            const zeroHex = {
+                shoulders: 0,
+                chest: 0,
+                arms: 0,
+                legs: 0,
+                back: 0,
+                abs: 0,
+                overall: 0,
+            };
+            await ref.set({ statsHexagon: zeroHex }, { merge: true });
         }
     } catch (e) {
         logger.warn("appendWorkoutSets: hexagon recompute skipped", e?.message || e);

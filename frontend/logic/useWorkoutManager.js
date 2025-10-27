@@ -951,11 +951,11 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                             }
                             try { if (global?.userData) global.userData.statsExercises = { ...(global?.userData?.statsExercises || {}), ...localPatch }; } catch {}
 
-                            // Compute hexagon locally and write directly (Cloud Functions disabled)
+                            // Compute hexagon stats via Cloud Function (with local fallback) and persist the result
                             try {
                                 const trainedArr = Array.from(namesTouched.values());
                                 const prevHex = (global?.userData?.statsHexagon || {});
-                                const { statsHexagon: nextHex, lastTrained } = computeHexagonStats({
+                                const { statsHexagon: nextHex, lastTrained } = await computeHexagonStats({
                                     statsExercises: (global?.userData?.statsExercises || {}),
                                     prevStatsHexagon: prevHex,
                                     trainedExerciseNames: trainedArr,
@@ -968,31 +968,44 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                                     fsUpdateDoc(doc(db, 'users', uid), payload).catch(() => updateDoc('users', uid, payload));
                                 }
                                 if (global?.userData) { global.userData.statsHexagon = nextHex; try { global.__hexChangeTo = nextHex; } catch {} ; emitHexagonUpdate(); }
-                            } catch {}
+                            } catch (err) {
+                                console.warn("finishWorkout: hexagon compute failed", err?.message || err);
+                            }
                         } catch (e) {
                             console.log('finishWorkout heavy updates error', e?.message || e);
                         }
                     };
 
-                    // Snapshot current hex so UI can animate change after summary closes
-                    try { global.__hexChangeFrom = (global?.userData?.statsHexagon || {}); } catch {}
-                    // Precompute the "to" hex locally immediately so the sheet can animate without waiting on writes
-                    try {
-                        const trainedArr = Array.from(namesTouched.values());
-                        const prevHex = (global?.userData?.statsHexagon || {});
-                        const tempStats = { ...(global?.userData?.statsExercises || {}), ...localPatch };
-                        const { statsHexagon: preToHex } = computeHexagonStats({
-                            statsExercises: tempStats,
-                            prevStatsHexagon: prevHex,
-                            trainedExerciseNames: trainedArr,
-                        });
-                        try { global.__hexChangeTo = preToHex; } catch {}
-                    } catch { }
-                    // Defer heavy stats delta + hexagon until after the summary closes to avoid jank
-                    pendingHeavyRef.current = () => { try { scheduleHeavy(); } catch {} };
+                            // Snapshot current hex so UI can animate change after summary closes
+                            try { global.__hexChangeFrom = (global?.userData?.statsHexagon || {}); } catch {}
+                            try { global.__hexChangeTo = null; } catch {}
 
-                    // Locally reflect raw set history immediately for UI; persist via CF after
-                    const applyLocalSetsHistory = () => {
+                            // Precompute the preview hexagon immediately so the summary sheet shows fresh numbers
+                            try {
+                                const trainedArr = Array.from(namesTouched.values());
+                                const prevHexPreview = (global?.userData?.statsHexagon || {});
+                                const tempStatsPreview = { ...(global?.userData?.statsExercises || {}), ...localPatch };
+                                (async () => {
+                                    try {
+                                        const { statsHexagon: previewHex } = await computeHexagonStats({
+                                            statsExercises: tempStatsPreview,
+                                            prevStatsHexagon: prevHexPreview,
+                                            trainedExerciseNames: trainedArr,
+                                        });
+                                        try { global.__hexChangeTo = previewHex; emitHexagonUpdate(); } catch {}
+                                    } catch (err) {
+                                        console.warn("hexagon preview compute failed", err?.message || err);
+                                    }
+                                })();
+                            } catch {
+                                // ignore preview errors; final write still happens via heavy schedule
+                            }
+
+                            // Defer heavy stats delta + hexagon until after the summary closes to avoid jank
+                            pendingHeavyRef.current = () => { try { scheduleHeavy(); } catch {} };
+
+                            // Locally reflect raw set history immediately for UI; persist via CF after
+                            const applyLocalSetsHistory = () => {
                         try {
                             const prevStats2 = (global?.userData?.statsExercises || {});
                             const today2 = (() => { const d = new Date(); d.setHours(0,0,0,0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
