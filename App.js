@@ -95,7 +95,7 @@ enableFreeze(true);
 // (no screens optimization toggles — use defaults)
 
 // Keep native splash screen visible while we preload fonts and hydrate auth
-try { SplashScreen.preventAutoHideAsync(); } catch { }
+SplashScreen.preventAutoHideAsync().catch(() => { });
 
 // Prefer dark keyboard appearance globally on iOS
 try {

@@ -49,6 +49,50 @@ const sanitizeValue = (raw) => {
 
 const genInputId = () => `stat-${Math.random().toString(36).slice(2, 8)}-${Date.now().toString(36)}`;
 
+const getDecimalPlaces = (value) => {
+    if (!Number.isFinite(value)) return 0;
+    const string = `${value}`;
+    if (!string.includes(".")) return 0;
+    return string.split(".")[1]?.length || 0;
+};
+
+const computeStepMeta = (rawStep) => {
+    const fallback = {
+        step: 1,
+        factor: 10,
+        stepInt: 10,
+        displayDecimals: 0,
+        maxInt: 9990,
+    };
+    const numeric = Number(rawStep);
+    if (!Number.isFinite(numeric) || numeric <= 0) return fallback;
+
+    const sanitizedPrecision = 1; // inputs only allow a single decimal place
+    const stepDecimals = getDecimalPlaces(numeric);
+    const factorDecimals = Math.max(stepDecimals, sanitizedPrecision);
+    const factor = 10 ** factorDecimals;
+    const stepInt = Math.max(1, Math.round(numeric * factor));
+    const maxInt = Math.round(999 * factor);
+    const displayDecimals = Math.min(stepDecimals, sanitizedPrecision);
+
+    return {
+        step: numeric,
+        factor,
+        stepInt,
+        displayDecimals,
+        maxInt,
+    };
+};
+
+const formatValueFromInt = (intValue, factor, displayDecimals) => {
+    const numeric = intValue / factor;
+    if (!Number.isFinite(numeric) || numeric <= 0) return "";
+    if (displayDecimals <= 0 || intValue % factor === 0) {
+        return `${Math.round(numeric)}`;
+    }
+    return numeric.toFixed(displayDecimals);
+};
+
 export default function EditableStat({
     placeholder = "",
     isFinished,
@@ -56,6 +100,7 @@ export default function EditableStat({
     setValue,
     onFocus,
     previousValue = null,
+    step = 1,
 }) {
     const keyboard = useStatKeyboard();
     const hasCustomKeyboard = !!keyboard;
@@ -74,6 +119,8 @@ export default function EditableStat({
     const setValueRef = useRef(setValue);
     useEffect(() => { setValueRef.current = setValue; }, [setValue]);
 
+    const stepMeta = useMemo(() => computeStepMeta(step), [step]);
+
     const commitValue = useCallback((nextValue) => {
         const sanitized = sanitizeValue(nextValue);
         valueRef.current = sanitized;
@@ -81,6 +128,55 @@ export default function EditableStat({
             setValueRef.current?.(sanitized);
         } catch { }
     }, []);
+
+    const adjustByStep = useCallback((direction) => {
+        const { stepInt, factor, displayDecimals, maxInt } = stepMeta;
+        if (!stepInt || stepInt <= 0) return;
+
+        const current = valueRef.current || "";
+        const numeric = parseFloat(current || "0");
+        const safeBase = Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+        const baseInt = Math.round(safeBase * factor);
+        const hasValue = baseInt > 0;
+        const isExactMultiple = hasValue && stepInt > 0 && baseInt % stepInt === 0;
+
+        let targetInt;
+        if (direction === "increment") {
+            if (!hasValue) {
+                targetInt = stepInt;
+            } else if (isExactMultiple) {
+                targetInt = baseInt + stepInt;
+            } else {
+                targetInt = Math.ceil(baseInt / stepInt) * stepInt;
+            }
+        } else {
+            if (!hasValue) {
+                commitValue("");
+                return;
+            }
+            if (isExactMultiple) {
+                targetInt = baseInt - stepInt;
+            } else {
+                targetInt = Math.floor(baseInt / stepInt) * stepInt;
+            }
+        }
+
+        if (!targetInt || targetInt <= 0) {
+            commitValue("");
+            return;
+        }
+
+        if (targetInt > maxInt) {
+            targetInt = maxInt;
+        }
+
+        const formatted = formatValueFromInt(targetInt, factor, displayDecimals);
+        if (!formatted) {
+            commitValue("");
+        } else {
+            commitValue(formatted);
+        }
+    }, [commitValue, stepMeta]);
 
     useEffect(() => {
         valueRef.current = displayValue;
@@ -109,28 +205,8 @@ export default function EditableStat({
                 if (!current.length) return;
                 commitValue(current.slice(0, -1));
             },
-            increment: () => {
-                const current = valueRef.current || "";
-                const numeric = parseFloat(current || "0");
-                const base = Number.isFinite(numeric) ? numeric : 0;
-                const next = Math.min(999, base + 1);
-                if (next <= 0) {
-                    commitValue("");
-                } else {
-                    commitValue(next % 1 === 0 ? `${Math.round(next)}` : next.toFixed(1));
-                }
-            },
-            decrement: () => {
-                const current = valueRef.current || "";
-                const numeric = parseFloat(current || "0");
-                const base = Number.isFinite(numeric) ? numeric : 0;
-                const next = Math.max(0, base - 1);
-                if (next <= 0) {
-                    commitValue("");
-                } else {
-                    commitValue(next % 1 === 0 ? `${Math.round(next)}` : next.toFixed(1));
-                }
-            },
+            increment: () => adjustByStep("increment"),
+            decrement: () => adjustByStep("decrement"),
             hasPrevious: () => sanitizedPrevious !== null && sanitizedPrevious !== undefined && sanitizedPrevious !== "",
             copyPrevious: () => {
                 if (sanitizedPrevious === null || typeof sanitizedPrevious === "undefined" || sanitizedPrevious === "") {
@@ -147,7 +223,7 @@ export default function EditableStat({
             enableCustomKeyboard: () => {},
         });
         return unregister;
-    }, [keyboard, inputId, sanitizedPrevious, hasCustomKeyboard, commitValue]);
+    }, [keyboard, inputId, sanitizedPrevious, hasCustomKeyboard, commitValue, adjustByStep]);
 
     const handleChangeText = useCallback((text) => {
         commitValue(text);

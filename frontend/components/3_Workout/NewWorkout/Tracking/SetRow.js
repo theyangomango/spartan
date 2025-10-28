@@ -118,6 +118,7 @@ function SetRow({
                             setValue={(value) => (onUpdateSetById ? onUpdateSetById(sid, { ...set, weight: value }) : updateSet(index, { ...set, weight: value }))}
                             onFocus={() => { try { onFocusInput?.(index); } catch {} }}
                             previousValue={previousSet ? previousSet.weight : null}
+                            step={2.5}
                         />
                     </View>
 
@@ -128,6 +129,7 @@ function SetRow({
                             setValue={(value) => (onUpdateSetById ? onUpdateSetById(sid, { ...set, reps: value }) : updateSet(index, { ...set, reps: value }))}
                             onFocus={() => { try { onFocusInput?.(index); } catch {} }}
                             previousValue={previousSet ? previousSet.reps : null}
+                            step={1}
                         />
                     </View>
 
