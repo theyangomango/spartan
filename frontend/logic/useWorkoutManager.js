@@ -117,6 +117,101 @@ const stripUndefined = (obj) =>
 
 const normalizeExerciseName = (value) => (typeof value === "string" ? value.trim() : "");
 
+const cloneHexagon = (hex = {}) => ({
+    shoulders: Number(hex.shoulders || 0),
+    chest: Number(hex.chest || 0),
+    arms: Number(hex.arms || 0),
+    legs: Number(hex.legs || 0),
+    back: Number(hex.back || 0),
+    abs: Number(hex.abs || 0),
+    overall: Number(hex.overall || 0),
+});
+
+const getTodayKey = () => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const buildExerciseStatDeltas = ({ exercises, prevStats, todayKey }) => {
+    const namesTouched = new Set();
+    const atomicUpdates = {};
+    const localPatch = {};
+
+    (Array.isArray(exercises) ? exercises : []).forEach((exercise) => {
+        const name = normalizeExerciseName(exercise?.name);
+        if (!name) return;
+        namesTouched.add(name);
+
+        const prev = prevStats?.[name] || {};
+        const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
+        const repsInc = sets.reduce((acc, s) => acc + (Number(s?.reps) || 0), 0);
+        const volInc = sets.reduce((acc, s) => acc + (Number(s?.reps) || 0) * (Number(s?.weight) || 0), 0);
+        const nextReps = (Number(prev["Reps"]) || 0) + repsInc;
+        const nextVol = (Number(prev["Volume"]) || 0) + volInc;
+
+        let best1RM = Number(prev["1RM"] || 0);
+        let bestSet = prev?.bestSet || null;
+        sets.forEach((set) => {
+            const reps = Number(set?.reps) || 0;
+            const weight = Number(set?.weight) || 0;
+            if (reps > 0 && weight > 0) {
+                const est = calculate1RM(weight, reps);
+                if (est > best1RM) {
+                    best1RM = est;
+                    bestSet = { weight, reps };
+                }
+            }
+        });
+
+        const progress = Array.isArray(prev?.progress1RM) ? prev.progress1RM.slice() : [];
+        const lastEntry = progress.length ? progress[progress.length - 1] : null;
+        if (lastEntry && lastEntry.date === todayKey) {
+            lastEntry["1RM"] = Math.max(Number(lastEntry["1RM"] || 0), best1RM);
+            lastEntry["volume"] = (Number(lastEntry["volume"] || 0) + volInc);
+            progress[progress.length - 1] = lastEntry;
+        } else {
+            progress.push({ date: todayKey, "1RM": best1RM || (Number(prev["1RM"]) || 0), volume: volInc });
+        }
+
+        atomicUpdates[`statsExercises.${name}.Reps`] = nextReps;
+        atomicUpdates[`statsExercises.${name}.Volume`] = nextVol;
+        if (best1RM > Number(prev["1RM"] || 0)) {
+            atomicUpdates[`statsExercises.${name}.1RM`] = best1RM;
+            if (bestSet) atomicUpdates[`statsExercises.${name}.bestSet`] = bestSet;
+        }
+        atomicUpdates[`statsExercises.${name}.progress1RM`] = progress;
+
+        const updatedEntry = { ...(prev || {}), Reps: nextReps, Volume: nextVol, progress1RM: progress };
+        if (best1RM > Number(prev["1RM"] || 0)) {
+            updatedEntry["1RM"] = best1RM;
+            if (bestSet) updatedEntry.bestSet = bestSet;
+        }
+        localPatch[name] = updatedEntry;
+    });
+
+    return { namesTouched, atomicUpdates, localPatch };
+};
+
+const runHexagonCompute = async ({ namesTouched, statsExercises, prevHexagon }) => {
+    if (!namesTouched || namesTouched.size === 0) return null;
+    return computeHexagonStats({
+        statsExercises,
+        prevStatsHexagon: prevHexagon,
+        trainedExerciseNames: Array.from(namesTouched),
+    });
+};
+
+const captureHexSnapshot = (fromHex, toHex = null) => {
+    try {
+        const fromClone = cloneHexagon(fromHex || {});
+        const toClone = toHex == null ? null : cloneHexagon(toHex);
+        global.__hexChangeFrom = fromClone;
+        global.__hexChangeTo = toClone;
+        global.__hexSnapshot = { from: fromClone, to: toClone };
+    } catch { }
+};
+
 const findStatsEntryForExercise = (statsMap, rawName) => {
     if (!statsMap || typeof statsMap !== "object") return null;
     const name = normalizeExerciseName(rawName);
@@ -771,6 +866,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         try {
             const currW = useWorkoutStore.getState().workout;
             if (currW) {
+                captureHexSnapshot(global?.userData?.statsHexagon || {}, null);
                 const cleanedExercises = (Array.isArray(currW.exercises) ? currW.exercises : [])
                     .map((ex) => ({
                         ...ex,
@@ -881,63 +977,21 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
                 // Defer statsExercises patch + hexagon recompute after interactions to avoid blocking UI
                 try {
+                    const prevStats = (global?.userData?.statsExercises || {});
+                    const todayKey = getTodayKey();
+                    const { namesTouched, atomicUpdates, localPatch } = buildExerciseStatDeltas({
+                        exercises: cleanedExercises,
+                        prevStats,
+                        todayKey,
+                    });
+
                     const scheduleHeavy = async () => {
                         try {
-                            const prevStats = (global?.userData?.statsExercises || {});
-                            const today = (() => { const d = new Date(); d.setHours(0,0,0,0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
-                            const namesTouched = new Set();
-                            const atomic = {}; // per-field updates (avoid touching large arrays)
-                            const localPatch = {};
-
-                            for (const ex of (cleanedExercises || [])) {
-                                const name = normalizeExerciseName(ex?.name);
-                                if (!name) continue;
-                                namesTouched.add(name);
-                                const prev = prevStats?.[name] || {};
-
-                                const repsInc = (ex?.sets || []).reduce((acc, s) => acc + (Number(s?.reps) || 0), 0);
-                                const volInc = (ex?.sets || []).reduce((acc, s) => acc + (Number(s?.reps) || 0) * (Number(s?.weight) || 0), 0);
-                                const nextReps = (Number(prev['Reps']) || 0) + repsInc;
-                                const nextVol = (Number(prev['Volume']) || 0) + volInc;
-
-                                let best1RM = Number(prev['1RM'] || 0);
-                                let bestSet = prev?.bestSet || null;
-                                for (const s of (ex?.sets || [])) {
-                                    const r = Number(s?.reps) || 0; const w = Number(s?.weight) || 0;
-                                    if (r > 0 && w > 0) {
-                                        const est = calculate1RM(w, r);
-                                        if (est > best1RM) { best1RM = est; bestSet = { weight: w, reps: r }; }
-                                    }
-                                }
-
-                                const progress = Array.isArray(prev?.progress1RM) ? prev.progress1RM.slice() : [];
-                                const last = progress.length ? progress[progress.length - 1] : null;
-                                if (last && last.date === today) {
-                                    last['1RM'] = Math.max(Number(last['1RM'] || 0), best1RM);
-                                    last['volume'] = (Number(last['volume'] || 0) + volInc);
-                                    progress[progress.length - 1] = last;
-                                } else {
-                                    progress.push({ date: today, '1RM': best1RM || (Number(prev['1RM']) || 0), volume: volInc });
-                                }
-
-                                // atomic field paths
-                                atomic[`statsExercises.${name}.Reps`] = nextReps;
-                                atomic[`statsExercises.${name}.Volume`] = nextVol;
-                                if (best1RM > Number(prev['1RM'] || 0)) {
-                                    atomic[`statsExercises.${name}.1RM`] = best1RM;
-                                    if (bestSet) atomic[`statsExercises.${name}.bestSet`] = bestSet;
-                                }
-                                atomic[`statsExercises.${name}.progress1RM`] = progress;
-
-                                localPatch[name] = { ...(prev || {}), Reps: nextReps, Volume: nextVol, progress1RM: progress };
-                                if (best1RM > Number(prev['1RM'] || 0)) { localPatch[name]['1RM'] = best1RM; if (bestSet) localPatch[name].bestSet = bestSet; }
-                            }
-
                             // Persist minimal stats deltas (currentWorkout already cleared in base update)
                             if (uid && namesTouched.size > 0) {
                                 const uref = doc(db, 'users', uid);
                                 const combined = {
-                                    ...atomic,
+                                    ...atomicUpdates,
                                     currentWorkout: null,
                                 };
                                 try {
@@ -953,21 +1007,25 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
                             // Compute hexagon stats via Cloud Function (with local fallback) and persist the result
                             try {
-                                const trainedArr = Array.from(namesTouched.values());
-                                const prevHex = (global?.userData?.statsHexagon || {});
-                                const { statsHexagon: nextHex, lastTrained } = await computeHexagonStats({
+                                const prevHex = global?.__hexChangeFrom || (global?.userData?.statsHexagon || {});
+                                const result = await runHexagonCompute({
+                                    namesTouched,
                                     statsExercises: (global?.userData?.statsExercises || {}),
-                                    prevStatsHexagon: prevHex,
-                                    trainedExerciseNames: trainedArr,
+                                    prevHexagon: prevHex,
                                 });
-                                if (uid) {
-                                    const payload = {
-                                        statsHexagon: nextHex,
-                                        statsHexagonMeta: { lastTrainedByGroup: lastTrained, updatedAt: serverTimestamp() },
-                                    };
-                                    fsUpdateDoc(doc(db, 'users', uid), payload).catch(() => updateDoc('users', uid, payload));
+                                if (result) {
+                                    const { statsHexagon: nextHex, lastTrained } = result;
+                                    if (uid) {
+                                        const payload = {
+                                            statsHexagon: nextHex,
+                                            statsHexagonMeta: { lastTrainedByGroup: lastTrained, updatedAt: serverTimestamp() },
+                                        };
+                                        fsUpdateDoc(doc(db, 'users', uid), payload).catch(() => updateDoc('users', uid, payload));
+                                    }
+                                    captureHexSnapshot(prevHex, nextHex);
+                                    if (global?.userData) { global.userData.statsHexagon = cloneHexagon(nextHex); }
+                                    emitHexagonUpdate();
                                 }
-                                if (global?.userData) { global.userData.statsHexagon = nextHex; try { global.__hexChangeTo = nextHex; } catch {} ; emitHexagonUpdate(); }
                             } catch (err) {
                                 console.warn("finishWorkout: hexagon compute failed", err?.message || err);
                             }
@@ -976,39 +1034,41 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         }
                     };
 
-                            // Snapshot current hex so UI can animate change after summary closes
-                            try { global.__hexChangeFrom = (global?.userData?.statsHexagon || {}); } catch {}
-                            try { global.__hexChangeTo = null; } catch {}
-
-                            // Precompute the preview hexagon immediately so the summary sheet shows fresh numbers
-                            try {
-                                const trainedArr = Array.from(namesTouched.values());
-                                const prevHexPreview = (global?.userData?.statsHexagon || {});
-                                const tempStatsPreview = { ...(global?.userData?.statsExercises || {}), ...localPatch };
-                                (async () => {
-                                    try {
-                                        const { statsHexagon: previewHex } = await computeHexagonStats({
-                                            statsExercises: tempStatsPreview,
-                                            prevStatsHexagon: prevHexPreview,
-                                            trainedExerciseNames: trainedArr,
-                                        });
-                                        try { global.__hexChangeTo = previewHex; emitHexagonUpdate(); } catch {}
-                                    } catch (err) {
-                                        console.warn("hexagon preview compute failed", err?.message || err);
+                    // Precompute the preview hexagon immediately so the summary sheet shows fresh numbers
+                    if (namesTouched.size > 0) {
+                        try {
+                            const prevHexPreview = global?.__hexChangeFrom || (global?.userData?.statsHexagon || {});
+                            const tempStatsPreview = { ...(global?.userData?.statsExercises || {}), ...localPatch };
+                            (async () => {
+                                try {
+                                    const result = await runHexagonCompute({
+                                        namesTouched,
+                                        statsExercises: tempStatsPreview,
+                                        prevHexagon: prevHexPreview,
+                                    });
+                                    if (result) {
+                                        const { statsHexagon: previewHex } = result;
+                                        captureHexSnapshot(prevHexPreview, previewHex);
+                                        try { if (global?.userData) global.userData.statsHexagon = cloneHexagon(previewHex); } catch {}
+                                        emitHexagonUpdate();
                                     }
-                                })();
-                            } catch {
-                                // ignore preview errors; final write still happens via heavy schedule
-                            }
+                                } catch (err) {
+                                    console.warn("hexagon preview compute failed", err?.message || err);
+                                }
+                            })();
+                        } catch {
+                            // ignore preview errors; final write still happens via heavy schedule
+                        }
+                    }
 
-                            // Defer heavy stats delta + hexagon until after the summary closes to avoid jank
-                            pendingHeavyRef.current = () => { try { scheduleHeavy(); } catch {} };
+                    // Defer heavy stats delta + hexagon until after the summary closes to avoid jank
+                    pendingHeavyRef.current = () => { try { scheduleHeavy(); } catch {} };
 
-                            // Locally reflect raw set history immediately for UI; persist via CF after
-                            const applyLocalSetsHistory = () => {
+                    // Locally reflect raw set history immediately for UI; persist via CF after
+                    const applyLocalSetsHistory = () => {
                         try {
                             const prevStats2 = (global?.userData?.statsExercises || {});
-                            const today2 = (() => { const d = new Date(); d.setHours(0,0,0,0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+                            const todayKey2 = getTodayKey();
                             const nextStats = { ...prevStats2 };
                             for (const ex of (cleanedExercises || [])) {
                                 const name = normalizeExerciseName(ex?.name); if (!name) continue;
@@ -1017,8 +1077,17 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                                 entry.sets = Array.isArray(entry.sets) ? entry.sets.slice() : [];
                                 const setPrivacy = coercePrivacyMode(completed?.privacyMode ?? currW?.privacyMode);
                                 for (const s of (ex?.sets || [])) {
-                                    const r = Number(s?.reps)||0; const w = Number(s?.weight)||0;
-                                    if (r>0 && w>0) entry.sets.push({ weight:w, reps:r, date: today2, wid: completed?.wid || currW?.wid, privacyMode: setPrivacy });
+                                    const r = Number(s?.reps) || 0;
+                                    const w = Number(s?.weight) || 0;
+                                    if (r > 0 && w > 0) {
+                                        entry.sets.push({
+                                            weight: w,
+                                            reps: r,
+                                            date: todayKey2,
+                                            wid: completed?.wid || currW?.wid,
+                                            privacyMode: setPrivacy,
+                                        });
+                                    }
                                 }
                                 nextStats[name] = entry;
                             }
@@ -1031,15 +1100,24 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         try {
                             if (!uid) return;
                             const uref = doc(db, 'users', uid);
-                            const today2 = (() => { const d = new Date(); d.setHours(0,0,0,0); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+                            const todayKey2 = getTodayKey();
                             const updateFields = {};
                             for (const ex of (cleanedExercises || [])) {
                                 const name = normalizeExerciseName(ex?.name); if (!name) continue;
                                 const payloadSets = [];
                                 const setPrivacy = coercePrivacyMode(completed?.privacyMode ?? currW?.privacyMode);
                                 for (const s of (Array.isArray(ex?.sets) ? ex.sets : [])) {
-                                    const r = Number(s?.reps)||0; const w = Number(s?.weight)||0;
-                                    if (r>0 && w>0) payloadSets.push({ weight:w, reps:r, date: today2, wid: completed?.wid || currW?.wid, privacyMode: setPrivacy });
+                                    const r = Number(s?.reps) || 0;
+                                    const w = Number(s?.weight) || 0;
+                                    if (r > 0 && w > 0) {
+                                        payloadSets.push({
+                                            weight: w,
+                                            reps: r,
+                                            date: todayKey2,
+                                            wid: completed?.wid || currW?.wid,
+                                            privacyMode: setPrivacy,
+                                        });
+                                    }
                                 }
                                 if (payloadSets.length) updateFields[`statsExercises.${name}.sets`] = arrayUnion(...payloadSets);
                             }

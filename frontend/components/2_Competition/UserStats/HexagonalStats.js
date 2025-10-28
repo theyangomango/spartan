@@ -1,7 +1,7 @@
 import React from "react";
 import { StyleSheet, View, Dimensions } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
-import { Svg, Polygon, Text as SvgText, Defs, LinearGradient, Stop, Circle, TSpan } from "react-native-svg";
+import { Svg, Polygon, Text as SvgText, Defs, LinearGradient, Stop, Circle, TSpan, Line } from "react-native-svg";
 import formatHexStat from "../../../utils/formatHexStat";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
@@ -25,7 +25,46 @@ const HexagonalStats = ({
     valueFontBigPx,
     diffHighlightColor = '#F2B84B',
     prevColor = '#94A3B8',
+    polygonColor = '#2D9EFF',
+    polygonFillColor = '#68B6FF',
+    polygonFillOpacityStart = 0.28,
+    polygonFillOpacityEnd = 0.18,
+    dotColor,
 }) => {
+    const approxTextWidth = (text, fontSize) => {
+        if (text === null || text === undefined) return 0;
+        const str = String(text);
+        if (!str) return 0;
+        return str.length * fontSize * 0.58;
+    };
+
+    const renderStrikeLine = ({ x, y, fontSize, textAnchor, text, color }) => {
+        const width = approxTextWidth(text, fontSize);
+        if (!width) return null;
+        let x1 = x;
+        let x2 = x;
+        if (textAnchor === "middle") {
+            x1 = x - width / 2;
+            x2 = x + width / 2;
+        } else if (textAnchor === "end") {
+            x1 = x - width;
+            x2 = x;
+        } else {
+            x1 = x;
+            x2 = x + width;
+        }
+        return (
+            <Line
+                x1={x1}
+                y1={y}
+                x2={x2}
+                y2={y}
+                stroke={color}
+                strokeWidth={Math.max(2, fontSize * 0.16)}
+                strokeLinecap="round"
+            />
+        );
+    };
     const toRoundedStat = (value) => {
         const num = Number(value);
         if (!Number.isFinite(num)) return 0;
@@ -122,8 +161,8 @@ const HexagonalStats = ({
             <Svg width={svgW} height={svgH} style={styles.svg}>
                 <Defs>
                     <LinearGradient id="radarFill" x1="0" y1="0" x2="1" y2="1">
-                        <Stop offset="0" stopColor="#2D9EFF" stopOpacity="0.28" />
-                        <Stop offset="1" stopColor="#68B6FF" stopOpacity="0.18" />
+                        <Stop offset="0" stopColor={polygonColor} stopOpacity={polygonFillOpacityStart} />
+                        <Stop offset="1" stopColor={polygonFillColor || polygonColor} stopOpacity={polygonFillOpacityEnd} />
                     </LinearGradient>
                 </Defs>
 
@@ -151,7 +190,7 @@ const HexagonalStats = ({
                 <Polygon
                     points={polygonPoints}
                     fill="url(#radarFill)"
-                    stroke="#2D9EFF"
+                    stroke={polygonColor}
                     strokeWidth={outlineStroke}
                     strokeLinejoin="round"
                     strokeLinecap="round"
@@ -164,7 +203,7 @@ const HexagonalStats = ({
                         cx={p.roundedX ?? p.x}
                         cy={p.roundedY ?? p.y}
                         r={dotRadius}
-                        fill="#2D9EFF"
+                        fill={dotColor || polygonColor}
                     />
                 ))}
 
@@ -181,7 +220,7 @@ const HexagonalStats = ({
                     // we anchor to the left so text flows rightwards. Top/bottom remain centered.
                     const isRightSide = (i === 1 || i === 2);
                     const sideAnchor = isRightSide ? 'end' : 'start';
-                    const lineGap = scaledSize(14);
+                    const lineGap = scaledSize(16);
                     return (
                         <React.Fragment key={`lbl-${i}`}>
                             <SvgText
@@ -197,56 +236,109 @@ const HexagonalStats = ({
                                 {categories[i]}
                             </SvgText>
 
-                            {!changed || !isSide ? (
-                                <SvgText
-                                    x={x}
-                                    y={y + valueOffset}
-                                    textAnchor="middle"
-                                    alignmentBaseline="middle"
-                                    fill="#2D9EFF"
-                                    fontFamily="Outfit_700Bold"
-                                    fontSize={valueFont}
-                                >
-                                    {changed ? (
-                                        // inline prev → new for non-side positions
+                            {(() => {
+                                const baselineY = y + valueOffset;
+                                if (!changed) {
+                                    return (
+                                        <SvgText
+                                            x={x}
+                                            y={baselineY}
+                                            textAnchor="middle"
+                                            alignmentBaseline="middle"
+                                            fill="#2D9EFF"
+                                            fontFamily="Outfit_700Bold"
+                                            fontSize={valueFont}
+                                        >
+                                            {formattedCurr}
+                                        </SvgText>
+                                    );
+                                }
+
+                                if (!isSide) {
+                                    const gap = scaledSize(10);
+                                    const prevWidth = approxTextWidth(formattedPrev, valueFont);
+                                    const currWidth = approxTextWidth(formattedCurr, valueFontBig);
+                                    const totalWidth = prevWidth + gap + currWidth;
+                                    const prevStartX = x - totalWidth / 2;
+                                    const prevEndX = prevStartX + prevWidth;
+                                    const currX = prevEndX + gap;
+                                    const strikeY = baselineY - valueFont * 0.12;
+
+                                    return (
                                         <>
-                                            <TSpan fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{formattedPrev}</TSpan>
-                                            {/* extra padding before arrow for clarity */}
-                                            <TSpan dx={scaledSize(8)} fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{'→'}</TSpan>
-                                            {/* extra padding before the golden value */}
-                                            <TSpan dx={scaledSize(8)} fill={diffHighlightColor} fontFamily="Outfit_800ExtraBold" fontSize={valueFontBig}>{formattedCurr}</TSpan>
+                                            <SvgText
+                                                x={prevStartX}
+                                                y={baselineY}
+                                                textAnchor="start"
+                                                alignmentBaseline="middle"
+                                                fill={prevColor}
+                                                fontFamily="Outfit_700Bold"
+                                                fontSize={valueFont}
+                                            >
+                                                {formattedPrev}
+                                            </SvgText>
+                                            <Line
+                                                x1={prevStartX}
+                                                y1={strikeY}
+                                                x2={prevEndX}
+                                                y2={strikeY}
+                                                stroke={prevColor}
+                                                strokeWidth={Math.max(2, valueFont * 0.16)}
+                                                strokeLinecap="round"
+                                            />
+                                            <SvgText
+                                                x={currX}
+                                                y={baselineY}
+                                                textAnchor="start"
+                                                alignmentBaseline="middle"
+                                                fill={diffHighlightColor}
+                                                fontFamily="Outfit_800ExtraBold"
+                                                fontSize={valueFontBig}
+                                            >
+                                                {formattedCurr}
+                                            </SvgText>
                                         </>
-                                    ) : (
-                                        formattedCurr
-                                    )}
-                                </SvgText>
-                            ) : (
-                                // For side labels, stack arrow/new on a second line so it doesn't clip off-screen
-                                <>
-                                    {/* Top line (same y as the original blue value): previous value */}
-                                    <SvgText
-                                        x={x}
-                                        y={y + valueOffset}
-                                        textAnchor={sideAnchor}
-                                        alignmentBaseline="middle"
-                                        fill={prevColor}
-                                        fontFamily="Outfit_700Bold"
-                                        fontSize={valueFont}
-                                    >
-                                        {formattedPrev}
-                                    </SvgText>
-                                    {/* Bottom line: arrow + new highlighted value */}
-                                    <SvgText
-                                        x={x}
-                                        y={y + valueOffset + lineGap}
-                                        textAnchor={sideAnchor}
-                                        alignmentBaseline="middle"
-                                    >
-                                        <TSpan fill={prevColor} fontFamily="Outfit_700Bold" fontSize={valueFont}>{'→  '}</TSpan>
-                                        <TSpan fill={diffHighlightColor} fontFamily="Outfit_800ExtraBold" fontSize={valueFontBig}>{formattedCurr}</TSpan>
-                                    </SvgText>
-                                </>
-                            )}
+                                    );
+                                }
+
+                                return (
+                                    <>
+                                        <SvgText
+                                            x={x}
+                                            y={baselineY}
+                                            textAnchor={sideAnchor}
+                                            alignmentBaseline="middle"
+                                            fill={prevColor}
+                                            fontFamily="Outfit_700Bold"
+                                            fontSize={valueFont}
+                                        >
+                                            {formattedPrev}
+                                        </SvgText>
+                                        {renderStrikeLine({
+                                            x,
+                                            y: baselineY - valueFont * 0.12,
+                                            fontSize: valueFont,
+                                            textAnchor: sideAnchor,
+                                            text: formattedPrev,
+                                            color: prevColor,
+                                        })}
+                                        <SvgText
+                                            x={x}
+                                            y={baselineY + lineGap}
+                                            textAnchor={sideAnchor}
+                                            alignmentBaseline="middle"
+                                        >
+                                            <TSpan
+                                                fill={diffHighlightColor}
+                                                fontFamily="Outfit_800ExtraBold"
+                                                fontSize={valueFontBig}
+                                            >
+                                                {formattedCurr}
+                                            </TSpan>
+                                        </SvgText>
+                                    </>
+                                );
+                            })()}
                         </React.Fragment>
                     );
                 })}

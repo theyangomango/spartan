@@ -13,7 +13,7 @@ export { PODIUM_HEIGHT };
 const PFP_SIZE_LEFT = scaleSize(54);
 const PFP_SIZE_CENTER = scaleSize(58);
 const PFP_SIZE_RIGHT = scaleSize(50);
- 
+
 const BAR_HEIGHT_LEFT = scaleSize(105);
 const BAR_HEIGHT_CENTER = scaleSize(133);
 const BAR_HEIGHT_RIGHT = scaleSize(83);

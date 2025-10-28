@@ -5,6 +5,7 @@ import useWorkoutManager from "../../logic/useWorkoutManager";
 import useWorkoutStore, { WORKOUT_SHEET_STATES } from "../../state/workoutStore";
 import millisToHoursMinutesSeconds from "../../helper/millisToHoursMinutesSeconds";
 import { navigationRef, jumpToTab } from "../../../navigationRef";
+import { onHexagonUpdate } from "../../utils/hexagonEvents";
 
 const noop = () => {};
 
@@ -208,8 +209,9 @@ export default function WorkoutExperiencePortal({ uid, enabled }) {
 
         const captureHex = () => {
             try {
-                const fromHex = global?.__hexChangeFrom || null;
-                const toHex = global?.__hexChangeTo || null;
+                const snapshot = global?.__hexSnapshot || null;
+                const fromHex = snapshot?.from || global?.__hexChangeFrom || null;
+                const toHex = snapshot?.to || global?.__hexChangeTo || global?.userData?.statsHexagon || null;
                 setHexSnapshot({ from: fromHex, to: toHex });
             } catch {
                 setHexSnapshot({ from: null, to: null });
@@ -236,6 +238,11 @@ export default function WorkoutExperiencePortal({ uid, enabled }) {
         } catch {
             // ignore best-effort scroll errors
         }
+
+        const unsubscribe = onHexagonUpdate(captureHex);
+        return () => {
+            try { unsubscribe?.(); } catch { }
+        };
     }, [enabled, isSummaryModalVisible, navigation]);
 
     if (!enabled) {

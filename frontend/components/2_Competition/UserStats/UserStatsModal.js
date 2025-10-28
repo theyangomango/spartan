@@ -400,8 +400,10 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                         <Text style={styles.scorePillLabel}>OVR</Text>
                         {ovrChanged ? (
                             <View style={styles.ovrRow}>
-                                <Text style={styles.scorePillPrev}>{prevOverall}</Text>
-                                <Text style={styles.scorePillArrow}>{'  →  '}</Text>
+                                <View style={styles.scorePillPrevWrap}>
+                                    <Text style={styles.scorePillPrev}>{prevOverall}</Text>
+                                    <View pointerEvents="none" style={styles.scorePillPrevLine} />
+                                </View>
                                 <Text style={styles.scorePillNew}>{overall}</Text>
                             </View>
                         ) : (

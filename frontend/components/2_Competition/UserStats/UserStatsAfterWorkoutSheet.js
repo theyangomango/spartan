@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { View, Platform, UIManager, Animated, Easing } from 'react-native';
 import * as Haptics from 'expo-haptics';
@@ -90,27 +90,6 @@ export default function UserStatsAfterWorkoutSheet({
         return { ...(user || {}), statsHexagon: toNow };
     }, [user, toHexagon]);
 
-    const renderHexOverlay = useCallback(() => {
-        if (!fromHexagon) return null;
-        const toNow = toHexagon || (global?.__hexChangeTo || null) || (user?.statsHexagon || {});
-        const eq = (a = {}, b = {}) => (
-            Math.round(a.shoulders || 0) === Math.round(b.shoulders || 0) &&
-            Math.round(a.chest || 0) === Math.round(b.chest || 0) &&
-            Math.round(a.arms || 0) === Math.round(b.arms || 0) &&
-            Math.round(a.legs || 0) === Math.round(b.legs || 0) &&
-            Math.round(a.back || 0) === Math.round(b.back || 0) &&
-            Math.round(a.abs || 0) === Math.round(b.abs || 0)
-        );
-        if (eq(fromHexagon, toNow)) return null;
-        const fromOpacity = anim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] });
-        return (
-            <Animated.View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center', justifyContent: 'center', opacity: fromOpacity }}>
-                {/* Overlay without labels so new labels (with →) are visible immediately */}
-                <HexagonalStats statsHexagon={fromHexagon} showLabels={false} />
-            </Animated.View>
-        );
-    }, [anim, fromHexagon, toHexagon, user]);
-
     return (
         <BottomSheet
             ref={sheetRef}
@@ -131,7 +110,6 @@ export default function UserStatsAfterWorkoutSheet({
                 <UserStatsModal
                     user={animUser}
                     toViewProfile={() => { }}
-                    hexOverlay={renderHexOverlay}
                     hexProps={{
                         // Only show prev values when there is an actual change; otherwise null prevents lingering arrows
                         prevStatsHexagon: (() => {

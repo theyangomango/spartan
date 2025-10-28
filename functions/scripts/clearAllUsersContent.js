@@ -132,6 +132,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("resetUserContent failed:", error);
+  console.error("clearAllUsersContent failed:", error);
   process.exit(1);
 });

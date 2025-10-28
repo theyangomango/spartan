@@ -30,7 +30,6 @@ import {
 
 import useStableSafeAreaInsets from "../../../hooks/useStableSafeAreaInsets";
 import rankUsers from "../../../helper/rankUsers";
-import getAllUsers from "../../../helper/getAllUsers";
 import { db } from "../../../../firebase.config";
 import theme from "../../../theme/mfpDark";
 import { subscribeUserData, emitUserDataUpdate } from "../../../utils/userDataEvents";
@@ -228,6 +227,8 @@ export default function LeaderboardsSection({ navigation }) {
     );
 
     const usersRef = useRef([]);
+    const usersSubscriptionRef = useRef(null);
+    const recomputeRef = useRef(() => {});
     const appliedLastViewRef = useRef(false);
 
     const persisted = getPersisted();
@@ -440,15 +441,29 @@ export default function LeaderboardsSection({ navigation }) {
         []
     );
 
-    const initUsers = useCallback(async () => {
-        const allUsers = await getAllUsers();
-        usersRef.current = allUsers;
-        setUsersLoaded(true);
+    const initUsers = useCallback(() => {
+        if (usersSubscriptionRef.current) {
+            try { usersSubscriptionRef.current(); } catch {}
+            usersSubscriptionRef.current = null;
+        }
+
+        usersSubscriptionRef.current = onSnapshot(collection(db, "users"), (snapshot) => {
+            const all = snapshot.docs.map((docSnap) => docSnap.data());
+            usersRef.current = all;
+            setUsersLoaded(true);
+            try { recomputeRef.current?.(); } catch {}
+        });
     }, []);
 
     useEffect(() => {
         initUsers();
     }, [initUsers]);
+    useEffect(() => () => {
+        if (usersSubscriptionRef.current) {
+            try { usersSubscriptionRef.current(); } catch {}
+            usersSubscriptionRef.current = null;
+        }
+    }, []);
 
     useEffect(() => {
         const hydrateFromLastView = (lastView) => {
@@ -643,6 +658,10 @@ export default function LeaderboardsSection({ navigation }) {
         scope,
         selectedTribeId,
     ]);
+
+    useEffect(() => {
+        recomputeRef.current = recompute;
+    }, [recompute]);
 
     useEffect(() => {
         if (!usersLoaded) return;

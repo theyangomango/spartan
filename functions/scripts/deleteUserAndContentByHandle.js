@@ -24,11 +24,11 @@ function normaliseHandle(rawHandle) {
   if (!trimmed) return "";
   const withoutAt = trimmed.startsWith("@") ? trimmed.slice(1) : trimmed;
   return withoutAt.trim();
-} 
+}
 
 function toStringSafe(value) {
   if (value === null || value === undefined) return "";
-  return String(value); 
+  return String(value);
 }
 
 function getUidFromEntry(entry) {
@@ -591,7 +591,7 @@ async function deleteAuthUser(uid) {
 async function main() {
   const [, , handleArg] = process.argv;
   if (!handleArg) {
-    console.error("Usage: node functions/scripts/resetUserContentByHandle.js <handle>");
+    console.error("Usage: node functions/scripts/deleteUserAndContentByHandle.js <handle>");
     process.exit(1);
   }
 
@@ -636,6 +636,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("resetUserContentByHandle failed:", error);
+  console.error("deleteUserAndContentByHandle failed:", error);
   process.exit(1);
 });

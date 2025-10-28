@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
         shadowRadius: scaledSize(10),
         shadowOffset: { width: 0, height: 0 },
     },
-    ovrRow: { flexDirection: 'row', alignItems: 'baseline' },
+    ovrRow: { flexDirection: 'row', alignItems: 'flex-end' },
     scorePillLabel: {
         fontSize: scaleSize(11.5),
         fontFamily: "Outfit_600SemiBold",
@@ -122,23 +122,33 @@ const styles = StyleSheet.create({
         color: COLORS.accent,
         letterSpacing: 0.2,
     },
+    scorePillPrevWrap: {
+        position: 'relative',
+        justifyContent: 'center',
+        marginRight: scaledSize(8),
+    },
     scorePillPrev: {
         fontSize: scaleSize(16),
         fontFamily: 'Outfit_700Bold',
         color: '#94A3B8',
         letterSpacing: 0.2,
     },
-    scorePillArrow: {
-        fontSize: scaleSize(16),
-        fontFamily: 'Outfit_700Bold',
-        color: '#94A3B8',
-        letterSpacing: 0.2,
+    scorePillPrevLine: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: '50%',
+        height: scaleSize(2.4),
+        backgroundColor: '#94A3B8',
+        marginTop: -scaleSize(1.2),
+        borderRadius: scaleSize(1.2),
     },
     scorePillNew: {
         fontSize: scaleSize(17.5),
         fontFamily: 'Outfit_800ExtraBold',
         color: '#F2B84B',
         letterSpacing: 0.2,
+        marginLeft: scaledSize(4),
     },
 
     scrollview: { flex: 1 },
