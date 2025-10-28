@@ -67,6 +67,12 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
 
     const quickSet = (v) => setPortion(v);
     const close = () => { Keyboard.dismiss(); onClose?.(); };
+    const renderLabel = (label, required) => (
+        <View style={styles.labelRow}>
+            <Text style={styles.inputLabel}>{label}</Text>
+            {required ? <Text style={styles.requiredStar}>*</Text> : null}
+        </View>
+    );
 
     return (
         <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
@@ -74,7 +80,7 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                 <Pressable style={styles.modalCard}>
                     <Text style={styles.modalTitle}>Quick Add</Text>
 
-                    <Text style={styles.inputLabel}>Name</Text>
+                    {renderLabel('Name', true)}
                     <DismissableTextInput
                         value={name}
                         onChangeText={setName}
@@ -84,7 +90,7 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                         returnKeyType="done"
                     />
 
-                    <Text style={styles.inputLabel}>Brand (optional)</Text>
+                    {renderLabel('Brand (optional)', false)}
                     <DismissableTextInput
                         value={brand}
                         onChangeText={setBrand}
@@ -96,7 +102,7 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
 
                     <View style={styles.row2}>
                         <View style={styles.col}>
-                            <Text style={styles.inputLabel}>Calories</Text>
+                            {renderLabel('Calories', true)}
                             <DismissableTextInput
                                 value={calories}
                                 onChangeText={setCalories}
@@ -108,7 +114,7 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                             />
                         </View>
                         <View style={styles.col}>
-                            <Text style={styles.inputLabel}>Protein</Text>
+                            {renderLabel('Protein', false)}
                             <DismissableTextInput
                                 value={protein}
                                 onChangeText={setProtein}
@@ -123,7 +129,7 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
 
                     <View style={styles.row2}>
                         <View style={styles.col}>
-                            <Text style={styles.inputLabel}>Carbs</Text>
+                            {renderLabel('Carbs', false)}
                             <DismissableTextInput
                                 value={carbs}
                                 onChangeText={setCarbs}
@@ -135,7 +141,7 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                             />
                         </View>
                         <View style={styles.col}>
-                            <Text style={styles.inputLabel}>Fat</Text>
+                            {renderLabel('Fat', false)}
                             <DismissableTextInput
                                 value={fat}
                                 onChangeText={setFat}
@@ -148,7 +154,9 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                         </View>
                     </View>
 
-                    <Text style={[styles.inputLabel, { marginTop: scaleSize(6) }]}>Portion</Text>
+                    <View style={{ marginTop: scaleSize(6) }}>
+                        {renderLabel('Portion', false)}
+                    </View>
                     <View style={styles.quickRow}>
                         {['1/4', '1/3', '1/2', '2/3', '3/4', '1'].map((v) => (
                             <RNBounceable key={v} style={[styles.chip, portion === v && styles.chipActive]} onPress={() => { try { haptic(); } catch {} quickSet(v); }}>
@@ -203,7 +211,9 @@ const makeStyles = (COLORS) =>
             elevation: 8,
         },
         modalTitle: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(16), color: COLORS?.text || '#E5E7EB', marginBottom: scaleSize(12) },
-        inputLabel: { fontFamily: 'Outfit_600SemiBold', color: COLORS?.subtext || '#A1A7B3', marginBottom: scaleSize(6), marginTop: scaleSize(4), fontSize: scaleSize(12.5) },
+        inputLabel: { fontFamily: 'Outfit_600SemiBold', color: COLORS?.subtext || '#A1A7B3', fontSize: scaleSize(12.5) },
+        labelRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: scaleSize(6), marginTop: scaleSize(4) },
+        requiredStar: { color: '#FF5F5F', fontSize: scaleSize(24), top: scaleSize(7.5), fontFamily: 'System', marginLeft: scaleSize(4), marginBottom: scaleSize(-4) },
         inputField: { backgroundColor: require('../../theme/mfpDark').MFP_DARK.fieldDeep, borderRadius: scaleSize(10), paddingHorizontal: scaleSize(12), paddingVertical: scaleSize(10), fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', marginBottom: scaleSize(10), fontSize: scaleSize(15) },
         row2: { flexDirection: 'row', gap: scaleSize(10) },
         col: { flex: 1 },
