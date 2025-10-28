@@ -32,6 +32,8 @@ export default function FeedHeaderOverlay({
   setBackHeaderH,
   // state
   isSomePostFocused,
+  feedScope = "following",
+  onChangeFeedScope,
 }) {
   return (
     <>
@@ -79,6 +81,8 @@ export default function FeedHeaderOverlay({
             centerVariant="text"
             centerTitle="Feed"
             centerTextPreset="feed"
+            feedScope={feedScope}
+            onChangeFeedScope={onChangeFeedScope}
           />
         </Reanimated.View>
       </Reanimated.View>

@@ -33,6 +33,11 @@ const dynamicStyles = getFeedHeaderStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
 const scale = SCREEN_WIDTH / 375;
 const s = (n) => Math.round(n * scale);
 
+const FEED_SCOPE_OPTIONS = [
+    { key: "following", label: "Following" },
+    { key: "personal", label: "Personal" },
+];
+
 // Unified sizing metrics (reduces magic numbers)
 const METRICS = (() => {
     const paddingH = dynamicStyles.paddingHorizontal;
@@ -143,6 +148,88 @@ const ProfileCard = React.memo(({ user, query, onPress }) => {
             </View>
             <Ionicons name="chevron-forward" size={s(18)} color="#9AA1A9" />
         </RNBounceable>
+    );
+});
+
+/* ------------------------- Feed Scope Dropdown ------------------------- */
+const FeedScopeSelector = memo(({ value = "following", onSelect, onScrollToTop }) => {
+    const [visible, setVisible] = useState(false);
+    const selectedOption = useMemo(
+        () => FEED_SCOPE_OPTIONS.find((opt) => opt.key === value) || FEED_SCOPE_OPTIONS[0],
+        [value]
+    );
+
+    const longPressHandler = useMemo(
+        () => (onScrollToTop ? withStrongPress(onScrollToTop) : undefined),
+        [onScrollToTop]
+    );
+
+    const toggleVisible = useCallback(() => {
+        try { hapticStrong(); } catch { }
+        setVisible((prev) => !prev);
+    }, []);
+
+    const closeVisible = useCallback(() => setVisible(false), []);
+
+    const handleSelect = useCallback((key) => {
+        closeVisible();
+        if (key === value) {
+            if (onScrollToTop) onScrollToTop();
+            return;
+        }
+        try { hapticStrong(); } catch { }
+        if (onSelect) onSelect(key);
+        if (onScrollToTop) onScrollToTop();
+    }, [value, onSelect, onScrollToTop, closeVisible]);
+
+    return (
+        <>
+            <RNBounceable
+                onPress={toggleVisible}
+                onLongPress={longPressHandler}
+                style={styles.scopeSelector}
+                accessibilityRole="button"
+                accessibilityLabel="Select feed scope"
+            >
+                <Text style={styles.scopeSelectorLabel}>{selectedOption?.label || "Following"}</Text>
+                <Ionicons
+                    name={visible ? "chevron-up" : "chevron-down"}
+                    size={scaleSize(16)}
+                    color={theme.textPrimary}
+                    style={{ marginLeft: scaleSize(8), fontWeight: "600" }}
+                />
+            </RNBounceable>
+            <Modal
+                transparent
+                animationType="fade"
+                visible={visible}
+                onRequestClose={closeVisible}
+            >
+                <TouchableWithoutFeedback onPress={closeVisible}>
+                    <View style={styles.scopeModalBackdrop}>
+                        <TouchableWithoutFeedback>
+                            <View style={styles.scopeModalCard}>
+                                {FEED_SCOPE_OPTIONS.map((option) => {
+                                    const active = option.key === value;
+                                    return (
+                                        <TouchableOpacity
+                                            key={option.key}
+                                            style={[styles.scopeOption, active ? styles.scopeOptionActive : null]}
+                                            onPress={() => handleSelect(option.key)}
+                                        >
+                                            <Text style={[styles.scopeOptionLabel, active ? styles.scopeOptionLabelActive : null]}>
+                                                {option.label}
+                                            </Text>
+                                            {active && <Ionicons name="checkmark" size={scaleSize(16)} color={theme.primary} />}
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
+                        </TouchableWithoutFeedback>
+                    </View>
+                </TouchableWithoutFeedback>
+            </Modal>
+        </>
     );
 });
 
@@ -441,6 +528,8 @@ const FeedHeader = ({
     centerVariant = "logo",
     centerTitle = "Feed",
     centerTextPreset = "feed",
+    feedScope = "following",
+    onChangeFeedScope,
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [unreadMessages, setUnreadMessages] = useState(0);
@@ -486,25 +575,30 @@ const FeedHeader = ({
             {/* Center: fixed-height slot */}
             <View style={styles.centerArea}>
                 <View style={styles.centerSlot}>
-                    <RNBounceable
-                        onPress={withStrongPress(scrollToTop)}
-                        style={centerVariant === "logo" ? styles.logoWrap : styles.titleWrap}
-                    >
-                        {centerVariant === "logo" ? (
-                            <>
-                                <View style={styles.logo_image_ctnr}>
-                                    <FastImage
-                                        source={require("../../../frontend/assets/logo_feed_black.png")}
-                                        style={styles.logo_image}
-                                        resizeMode={FastImage.resizeMode.contain}
-                                    />
-                                </View>
-                                <Text style={styles.logo_text}>SPARTAN</Text>
-                            </>
-                        ) : (
+                    {centerVariant === "logo" ? (
+                        <RNBounceable
+                            onPress={withStrongPress(scrollToTop)}
+                            style={styles.logoWrap}
+                        >
+                            <View style={styles.logo_image_ctnr}>
+                                <FastImage
+                                    source={require("../../../frontend/assets/logo_feed_black.png")}
+                                    style={styles.logo_image}
+                                    resizeMode={FastImage.resizeMode.contain}
+                                />
+                            </View>
+                            <Text style={styles.logo_text}>SPARTAN</Text>
+                        </RNBounceable>
+                    ) : onChangeFeedScope ? (
+                        <FeedScopeSelector value={feedScope} onSelect={onChangeFeedScope} onScrollToTop={scrollToTop} />
+                    ) : (
+                        <RNBounceable
+                            onPress={withStrongPress(scrollToTop)}
+                            style={styles.titleWrap}
+                        >
                             <Text style={centerTextStyle}>{computedCenterTitle}</Text>
-                        )}
-                    </RNBounceable>
+                        </RNBounceable>
+                    )}
                 </View>
             </View>
             {/* Right: notifications + messages */}
@@ -643,6 +737,55 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(17),
         color: theme.textPrimary,
         includeFontPadding: false,
+    },
+    scopeSelector: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        paddingHorizontal: scaleSize(s(8)),
+        paddingVertical: scaleSize(s(4)),
+    },
+    scopeSelectorLabel: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(16),
+        color: theme.textPrimary,
+        includeFontPadding: false,
+    },
+    scopeModalBackdrop: {
+        flex: 1,
+        backgroundColor: "rgba(0,0,0,0.36)",
+        justifyContent: "flex-start",
+        alignItems: "center",
+        paddingTop: scaleSize(s(84)),
+        paddingHorizontal: scaleSize(18),
+    },
+    scopeModalCard: {
+        width: "100%",
+        maxWidth: scaleSize(280),
+        borderRadius: scaleSize(s(18)),
+        backgroundColor: theme.bg,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline,
+        overflow: "hidden",
+    },
+    scopeOption: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: scaleSize(s(18)),
+        paddingVertical: scaleSize(s(12)),
+    },
+    scopeOptionActive: {
+        backgroundColor: theme.field,
+    },
+    scopeOptionLabel: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(15.5),
+        color: theme.textPrimary,
+    },
+    scopeOptionLabelActive: {
+        fontFamily: "Outfit_700Bold",
+        color: theme.primary,
     },
 
     right_icons: {

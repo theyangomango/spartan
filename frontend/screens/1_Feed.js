@@ -107,13 +107,18 @@ export default function Feed({ navigation, route }) {
     const UID = "userData" in global ? global.userData.uid : route?.params?.uid;
 
     const followingList = global.userData ? global.userData?.following : [];
+    const [feedScope, setFeedScope] = useState("following");
+    const effectiveFollowingList = useMemo(
+        () => (feedScope === "following" ? followingList : []),
+        [feedScope, followingList]
+    );
 
     const {
         posts,
         loadMore: loadMorePosts,
         hasMore: hasMorePosts,
         loadingMore: loadingMorePosts,
-    } = useFilteredFeed(followingList);
+    } = useFilteredFeed(effectiveFollowingList);
 
     const {
         activeWorkout,
@@ -743,8 +748,10 @@ export default function Feed({ navigation, route }) {
             centerVariant="text"
             centerTitle="Feed"
             centerTextPreset="feed"
+            feedScope={feedScope}
+            onChangeFeedScope={setFeedScope}
         />
-    ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef]);
+    ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef, feedScope]);
 
     const renderEmptyList = () => (
         <View style={styles.emptyState}>
