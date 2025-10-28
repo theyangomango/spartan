@@ -13,6 +13,7 @@ import {
     InteractionManager,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Swipeable } from 'react-native-gesture-handler';
 import { Camera } from 'expo-camera';
 import { CameraView } from 'expo-camera/next';
 import SearchResultCard from './SearchResultCard';
@@ -20,7 +21,7 @@ import PortionPickerModal from './PortionPickerModal';
 import QuickAddModal from './QuickAddModal';
 import { searchFood, lookupBarcode } from '../../screens/fatsecretClient';
 import { useNavigation } from '@react-navigation/native';
-import { fetchRecentFoods } from '../../utils/recentFoods';
+import { fetchRecentFoods, deleteRecentFood } from '../../utils/recentFoods';
 
 // 🔥 FIREBASE (adjust path if your firebase.config is elsewhere)
 // Recent foods now backed by Firestore subcollection users/{uid}/recentFoods
@@ -251,22 +252,32 @@ export default function FoodSearchOverlay({
         />
     ), [openPortion, goToDetails, COLORS]);
 
-    const renderHistoryItem = useCallback(({ item }) => {
-        const mapped = {
-            food_id: item.foodId || item.id,
-            food_name: item.name || '',
-            brand_name: item.brand || '',
-            food_description: item.description || '',
-        };
-        return (
-            <SearchResultCard
-                item={mapped}
-                onPressPlus={() => openPortion(mapped)}
-                onPressCard={() => goToDetails(mapped)}
-                COLORS={COLORS}
-            />
+    const handleDeleteRecent = useCallback(async (item, closeSwipe) => {
+        closeSwipe?.();
+        const key = String(item?.id ?? item?.foodId ?? item?.name ?? '').trim();
+        if (!key) return;
+        setRecentFoods((prev) =>
+            prev.filter((rf) => String(rf?.id ?? rf?.foodId ?? rf?.name ?? '').trim() !== key)
         );
-    }, [openPortion, goToDetails, COLORS]);
+        const uid = global?.userData?.uid || global?.userData?.id;
+        if (!uid) return;
+        try {
+            await deleteRecentFood(uid, key);
+        } catch {
+            loadRecentFoods();
+        }
+    }, [loadRecentFoods]);
+
+    const renderHistoryItem = useCallback(({ item }) => (
+        <RecentHistoryItem
+            item={item}
+            COLORS={COLORS}
+            styles={styles}
+            openPortion={openPortion}
+            goToDetails={goToDetails}
+            onDelete={handleDeleteRecent}
+        />
+    ), [COLORS, styles, openPortion, goToDetails, handleDeleteRecent]);
 
     const HistoryFooter = () => {
         if (!visible) return null;
@@ -481,6 +492,53 @@ export default function FoodSearchOverlay({
     );
 }
 
+const RecentHistoryItem = ({ item, COLORS, styles, openPortion, goToDetails, onDelete }) => {
+    const swipeRef = useRef(null);
+
+    const mapped = useMemo(
+        () => ({
+            food_id: item?.foodId || item?.id,
+            food_name: item?.name || '',
+            brand_name: item?.brand || '',
+            food_description: item?.description || '',
+        }),
+        [item]
+    );
+
+    const handleDeletePress = useCallback(() => {
+        try { haptic(); } catch {}
+        onDelete?.(item, () => swipeRef.current?.close?.());
+    }, [item, onDelete]);
+
+    return (
+        <Swipeable
+            ref={swipeRef}
+            overshootRight={false}
+            friction={2}
+            rightThreshold={40}
+            renderRightActions={() => (
+                <View style={styles.historyDeleteContainer}>
+                    <Pressable
+                        style={styles.historyDeleteBtn}
+                        onPress={handleDeletePress}
+                        hitSlop={8}
+                    >
+                        <Ionicons name="trash-outline" size={18} color="#F27171" />
+                        <Text style={styles.historyDeleteText}>Delete</Text>
+                    </Pressable>
+                </View>
+            )}
+        >
+            <SearchResultCard
+                item={mapped}
+                onPressPlus={() => openPortion(mapped)}
+                onPressCard={() => goToDetails(mapped)}
+                COLORS={COLORS}
+            />
+        </Swipeable>
+    );
+};
+
 const makeStyles = (COLORS) =>
     StyleSheet.create({
         overlayContainer: { flex: 1, backgroundColor: COLORS.bg || COLORS.background || '#131521' },
@@ -556,6 +614,24 @@ const makeStyles = (COLORS) =>
             color: COLORS.subtext || COLORS.textSecondary || '#A1A7B3',
             fontFamily: 'Outfit_600SemiBold',
         },
+        historyDeleteContainer: {
+            justifyContent: 'center',
+            alignItems: 'flex-end',
+            height: '100%',
+            width: scaleSize(112),
+        },
+        historyDeleteBtn: {
+            width: '100%',
+            height: '100%',
+            minHeight: scaleSize(36),
+            paddingHorizontal: scaleSize(14),
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: scaleSize(6),
+            backgroundColor: 'rgba(242,113,113,0.16)',
+        },
+        historyDeleteText: { color: '#F27171', fontFamily: 'Outfit_700Bold', fontSize: scaleSize(12.5) },
 
         // Modal-related styles moved to extracted components
         scannerHeader: {

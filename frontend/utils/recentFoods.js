@@ -1,6 +1,6 @@
 // utils/recentFoods.js
 import { db } from '../../firebase.config';
-import { collection, doc, getDocs, limit, orderBy, query, serverTimestamp, setDoc, increment } from 'firebase/firestore';
+import { collection, doc, getDocs, limit, orderBy, query, serverTimestamp, setDoc, increment, deleteDoc } from 'firebase/firestore';
 
 // Read most-recently used foods for a user
 export async function fetchRecentFoods(uid, max = 20) {
@@ -40,3 +40,15 @@ export async function touchRecentFood(uid, { foodId, name, brand, description } 
   }
 }
 
+// Remove a recent food entry entirely
+export async function deleteRecentFood(uid, foodKey) {
+  if (!uid) return;
+  const idKey = String(foodKey || '').trim();
+  if (!idKey) return;
+  try {
+    const recentRef = doc(db, 'users', uid, 'recentFoods', idKey);
+    await deleteDoc(recentRef);
+  } catch {
+    // best-effort
+  }
+}
