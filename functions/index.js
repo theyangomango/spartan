@@ -23,6 +23,8 @@ const FATSECRET_SECRET = defineSecret("FATSECRET_SECRET");
 
 // Simple in-memory cache per scope per function instance
 const tokenCacheByScope = new Map(); // scope -> { accessToken, expiresAt }
+const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000;
+const fatsecretSearchCache = new Map(); // normalizedQuery|max|page -> { value, expiresAt }
 
 export const computeHexagonStats = onCall({ region: "us-central1" }, async (request) => {
     try {
@@ -191,11 +193,8 @@ export const fatsecretSearchFood = onCall(
         const safeMax = Math.min(Math.max(Number(max_results) || 10, 1), 50);
         const safePage = Math.max(Number(page_number) || 0, 0);
 
-        // A more lenient search strategy:
-        // - generate multiple query variants (normalized, token-sorted, per-token)
-        // - call foods.search with these variants (limited pages/calls)
-        // - merge + de-duplicate results by food_id
-        // - score via token overlap + 3-gram Jaccard and return best matches
+        const overallStartedAt = Date.now();
+        const qRaw = String(query || "");
 
         // -------------- helpers -------------- //
         const normalize = (s) =>
@@ -309,11 +308,7 @@ export const fatsecretSearchFood = onCall(
                 const charA = cappedFrom.charCodeAt(i - 1);
                 for (let j = 1; j <= n; j++) {
                     const cost = charA === cappedTo.charCodeAt(j - 1) ? 0 : 1;
-                    curr[j] = Math.min(
-                        prev[j] + 1,
-                        curr[j - 1] + 1,
-                        prev[j - 1] + cost
-                    );
+                    curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
                 }
                 [prev, curr] = [curr, prev];
             }
@@ -348,9 +343,20 @@ export const fatsecretSearchFood = onCall(
             return brand ? `${name} ${brand}` : name;
         };
 
-        // -------------- query generation -------------- //
-        const qRaw = String(query || "");
         const qNorm = normalize(qRaw);
+        const cacheKey = `${qNorm}|${safeMax}|${safePage}`;
+        const cachedEntry = fatsecretSearchCache.get(cacheKey);
+        if (cachedEntry && cachedEntry.expiresAt > overallStartedAt) {
+            logger.info("fatsecretSearchFood stats", {
+                query: qNorm,
+                safeMax,
+                safePage,
+                cache: "hit",
+                durationMs: Date.now() - overallStartedAt,
+            });
+            return cachedEntry.value;
+        }
+
         const qTokens = toTokens(qRaw);
         const candidates = new Set();
 
@@ -368,7 +374,6 @@ export const fatsecretSearchFood = onCall(
             const norm = normalize(raw);
             if (norm && norm !== raw) variants.add(norm);
 
-            // crude singular/plural handling
             if (norm.endsWith("ies")) {
                 const singular = norm.replace(/ies$/, "y");
                 variants.add(singular);
@@ -409,10 +414,8 @@ export const fatsecretSearchFood = onCall(
                 }
             }
         }
-        // add individual tokens (length >= 3) to broaden recall
         const STOP = new Set([
             "the", "and", "for", "with", "without", "of", "to", "in", "on", "a", "an", "per",
-            // very generic units (avoid exploding results)
             "cup", "cups", "tbsp", "tsp", "tablespoon", "tablespoons", "teaspoon", "teaspoons",
             "oz", "ml", "l", "g", "kg", "gram", "grams", "milliliter", "milliliters", "liter", "liters",
         ]);
@@ -420,69 +423,120 @@ export const fatsecretSearchFood = onCall(
             const t = t0.toLowerCase();
             if (STOP.has(t)) continue;
             if (t.length >= 3) addCandidate(t);
-            // add prefixes to help with misspellings (e.g., 'chikn' -> 'chi')
             if (t.length >= 4) addCandidate(t.slice(0, 3));
             if (t.length >= 5) addCandidate(t.slice(0, 4));
             addTokenVariants(t);
         }
 
-        // -------------- fetch + merge -------------- //
-        const MAX_PAGES_PER_EXPR = 2;
+        const variantList = Array.from(candidates);
         const RESULTS_PER_PAGE = Math.min(50, Math.max(safeMax, 20));
         const MAX_TOTAL_CALLS = 8;
+        const MAX_CONCURRENT_VARIANTS = 3;
+        const SCORE_EARLY_EXIT_THRESHOLD = 0.6;
 
-        const byId = new Map(); // id -> { item, bestScore }
+        const byId = new Map();
+        const successfulVariants = new Set();
+        let highScoreCount = 0;
         let calls = 0;
+        let scheduled = 0;
+        let stopEarly = false;
+        let totalCallDurationMs = 0;
 
-        for (const expr of candidates) {
-            if (calls >= MAX_TOTAL_CALLS) break;
+        const handleResultList = (expr, list) => {
+            let anyAdded = false;
+            for (const item of list) {
+                const fid = String(item?.food_id || "");
+                if (!fid) continue;
+                const display = buildDisplayName(item);
+                const score = similarityScore(qRaw, display);
+                const prev = byId.get(fid);
+                if (prev && score <= prev.bestScore) continue;
+                const prevAbove = prev?.bestScore >= SCORE_EARLY_EXIT_THRESHOLD;
+                const newAbove = score >= SCORE_EARLY_EXIT_THRESHOLD;
+                byId.set(fid, { item, bestScore: score });
+                if (newAbove && !prevAbove) {
+                    highScoreCount++;
+                }
+                anyAdded = true;
+            }
+            if (anyAdded) {
+                successfulVariants.add(expr);
+                if (highScoreCount >= safeMax) {
+                    stopEarly = true;
+                }
+            }
+        };
 
-            for (let page = 0; page < MAX_PAGES_PER_EXPR; page++) {
-                if (calls >= MAX_TOTAL_CALLS) break;
-                calls++;
-                try {
-                    const res = await fatSecretRequest("foods.search", {
+        const executeTask = async ({ expr, page }) => {
+            const requestStart = Date.now();
+            try {
+                const res = await fatSecretRequest(
+                    "foods.search",
+                    {
                         search_expression: expr,
                         max_results: RESULTS_PER_PAGE,
                         page_number: page,
-                    }, "basic");
-                    const foods = res?.foods?.food;
-                    if (!foods) break;
-                    const list = Array.isArray(foods) ? foods : [foods];
-                    if (!list.length) break;
-
-                    for (const item of list) {
-                        const fid = String(item?.food_id || "");
-                        if (!fid) continue;
-                        const display = buildDisplayName(item);
-                        const score = similarityScore(qRaw, display);
-                        const prev = byId.get(fid);
-                        if (!prev || score > prev.bestScore) {
-                            byId.set(fid, { item, bestScore: score });
-                        }
-                    }
-
-                    // If we already have a healthy pool, we can stop early for this expr
-                    if (byId.size >= safeMax * 3) break;
-                } catch (e) {
-                    // continue with next expr/page
-                    logger.warn("fatsecretSearchFood: variant search failed", { expr, page, message: e?.message || e });
-                    break;
-                }
+                    },
+                    "basic"
+                );
+                const foods = res?.foods?.food;
+                if (!foods) return;
+                const list = Array.isArray(foods) ? foods : [foods];
+                if (!list.length) return;
+                handleResultList(expr, list);
+            } catch (e) {
+                logger.warn("fatsecretSearchFood: variant search failed", {
+                    expr,
+                    page,
+                    message: e?.message || e,
+                });
+            } finally {
+                calls++;
+                scheduled = Math.max(0, scheduled - 1);
+                totalCallDurationMs += Date.now() - requestStart;
             }
+        };
 
-            // If we already collected enough, stop iterating variants
-            if (byId.size >= safeMax * 3) break;
+        const processQueue = async (queue) => {
+            let index = 0;
+            while (index < queue.length && !stopEarly) {
+                const available = MAX_TOTAL_CALLS - (calls + scheduled);
+                if (available <= 0) break;
+                const batchSize = Math.min(MAX_CONCURRENT_VARIANTS, available, queue.length - index);
+                if (batchSize <= 0) break;
+                const batch = [];
+                for (let i = 0; i < batchSize; i++) {
+                    const task = queue[index++];
+                    scheduled++;
+                    batch.push(executeTask(task));
+                }
+                await Promise.all(batch);
+            }
+        };
+
+        if (variantList.length) {
+            const firstPass = variantList.map((expr) => ({ expr, page: 0 }));
+            await processQueue(firstPass);
         }
 
-        // Score-sort and take top N
+        if (!stopEarly && byId.size < safeMax && calls < MAX_TOTAL_CALLS) {
+            const remainingBudget = MAX_TOTAL_CALLS - calls;
+            if (remainingBudget > 0 && successfulVariants.size > 0) {
+                const secondPass = Array.from(successfulVariants)
+                    .slice(0, remainingBudget)
+                    .map((expr) => ({ expr, page: 1 }));
+                if (secondPass.length) {
+                    await processQueue(secondPass);
+                }
+            }
+        }
+
         const ranked = Array.from(byId.values())
             .sort((a, b) => b.bestScore - a.bestScore)
             .slice(0, safeMax)
             .map((x) => x.item);
 
-        // Return in FatSecret-like shape; keep minimal fields used by clients
-        return {
+        const response = {
             foods: {
                 food: ranked,
                 max_results: String(safeMax),
@@ -490,6 +544,34 @@ export const fatsecretSearchFood = onCall(
                 total_results: String(byId.size),
             },
         };
+
+        const now = Date.now();
+        fatsecretSearchCache.set(cacheKey, { value: response, expiresAt: now + SEARCH_CACHE_TTL_MS });
+        if (fatsecretSearchCache.size > 64) {
+            for (const [key, entry] of fatsecretSearchCache) {
+                if (entry.expiresAt <= now || fatsecretSearchCache.size > 64) {
+                    fatsecretSearchCache.delete(key);
+                }
+                if (fatsecretSearchCache.size <= 64) break;
+            }
+        }
+
+        logger.info("fatsecretSearchFood stats", {
+            query: qNorm,
+            safeMax,
+            safePage,
+            cache: "miss",
+            variantsConsidered: variantList.length,
+            variantsWithHits: successfulVariants.size,
+            totalCandidates: byId.size,
+            calls,
+            durationMs: Date.now() - overallStartedAt,
+            totalCallDurationMs,
+            stopEarly,
+            highScoreCountAboveThreshold: highScoreCount,
+        });
+
+        return response;
     }
 );
 
