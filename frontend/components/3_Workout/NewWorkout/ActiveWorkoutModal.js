@@ -55,6 +55,7 @@ import calculate1RM from "../../../helper/calculate1RM";
 import { formatWorkoutTimestamp } from "../../../utils/date";
 import ConfirmWorkoutModal from "./components/ConfirmWorkoutModal";
 import WorkoutReminderModal from "./components/WorkoutReminderModal";
+import KeyboardDismissAccessory, { useKeyboardAccessoryId } from "../../common/KeyboardDismissAccessory";
 
 const HANDLE_HORIZONTAL_PADDING = scaleSize(0);
 const HEADER_COLLAPSED_TRANSLATE = scaleSize(0);
@@ -294,6 +295,7 @@ const ActiveWorkoutModal = ({
     const scrollY = useRef(new RNAnimated.Value(0)).current;
     const listRef = useRef(null);
     const titleInputRef = useRef(null);
+    const titleAccessoryId = useKeyboardAccessoryId();
     const hasFocusedTitleRef = useRef("");
     const ensuredSelfViewRef = useRef(new Set());
     const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -556,6 +558,7 @@ const ActiveWorkoutModal = ({
                         scrollEnabled={false}
                         autoCorrect
                         autoCapitalize="words"
+                        inputAccessoryViewID={Platform.OS === "ios" ? (titleAccessoryId || undefined) : undefined}
                     />
                     {workoutCreatedDisplay ? (
                         <Text style={styles.titleDisplaySubText}>{workoutCreatedDisplay}</Text>
@@ -575,7 +578,7 @@ const ActiveWorkoutModal = ({
                 ) : null}
             </View>
         );
-    }, [viewingSelfEffective, workoutNameValue, baseWorkoutName, handleChangeWorkoutTitle, workoutCreatedDisplay]);
+    }, [viewingSelfEffective, workoutNameValue, baseWorkoutName, handleChangeWorkoutTitle, workoutCreatedDisplay, titleAccessoryId]);
 
     const showSelectExerciseModal = useCallback(() => { if (viewingSelfEffective) setSelectExerciseModalVisible(true); }, [viewingSelfEffective]);
     const closeSelectExerciseModal = useCallback(() => { setSelectExerciseModalVisible(false); setReplaceIndex(null); }, [setReplaceIndex]);
@@ -1609,6 +1612,9 @@ const ActiveWorkoutModal = ({
                 ) : null;
             })()}
             </Animated.View>
+            {Platform.OS === "ios" && viewingSelfEffective && titleAccessoryId ? (
+                <KeyboardDismissAccessory accessoryID={titleAccessoryId} />
+            ) : null}
         </StatKeyboardProvider>
     );
 };
