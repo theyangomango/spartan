@@ -246,6 +246,7 @@ const SimpleFeedPost = ({
         data?.workoutId,
     ]);
     const [confettiTick, setConfettiTick] = useState(0);
+    const [confettiVisible, setConfettiVisible] = useState(false);
     const confettiRef = useRef(null);
     const ConfettiModuleRef = useRef(null);
     const loadConfettiModule = useCallback(() => {
@@ -256,14 +257,17 @@ const SimpleFeedPost = ({
     }, []);
     const fireConfetti = useCallback(() => {
         loadConfettiModule();
-        try {
-            const api = confettiRef.current;
-            if (api && typeof api.start === "function") {
-                api.start();
-                return;
-            }
-        } catch { }
-        setConfettiTick((t) => t + 1);
+        setConfettiVisible(true);
+        requestAnimationFrame(() => {
+            try {
+                const api = confettiRef.current;
+                if (api && typeof api.start === "function") {
+                    api.start();
+                    return;
+                }
+            } catch { }
+            setConfettiTick((t) => t + 1);
+        });
     }, [loadConfettiModule]);
     const sendCheerEvent = useCallback(async () => {
         try {
@@ -1137,7 +1141,7 @@ const SimpleFeedPost = ({
                     </View>
                 )}
             </View>
-            {isLivePost ? (() => {
+            {isLivePost && (confettiVisible || confettiTick > 0) ? (() => {
                 const ConfettiCannon = loadConfettiModule();
                 return ConfettiCannon ? (
                     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
