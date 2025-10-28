@@ -108,17 +108,14 @@ export default function Feed({ navigation, route }) {
 
     const followingList = global.userData ? global.userData?.following : [];
     const [feedScope, setFeedScope] = useState("following");
-    const effectiveFollowingList = useMemo(
-        () => (feedScope === "following" ? followingList : []),
-        [feedScope, followingList]
-    );
+    const myUid = global?.userData?.uid ? String(global.userData.uid) : null;
 
     const {
         posts,
         loadMore: loadMorePosts,
         hasMore: hasMorePosts,
         loadingMore: loadingMorePosts,
-    } = useFilteredFeed(effectiveFollowingList);
+    } = useFilteredFeed(followingList);
 
     const {
         activeWorkout,
@@ -168,7 +165,7 @@ export default function Feed({ navigation, route }) {
         return 0;
     }, []);
 
-    const listData = useMemo(() => {
+    const sortedPosts = useMemo(() => {
         const basePosts = Array.isArray(posts) ? [...posts] : [];
         basePosts.sort((a, b) => {
             const liveA = Boolean(a?.isLive || a?.liveWorkout);
@@ -180,6 +177,13 @@ export default function Feed({ navigation, route }) {
         });
         return basePosts;
     }, [posts, resolveTimestamp]);
+
+    const listData = useMemo(() => {
+        if (feedScope === "personal" && myUid) {
+            return sortedPosts.filter((post) => String(post?.uid || "") === myUid);
+        }
+        return sortedPosts;
+    }, [sortedPosts, feedScope, myUid]);
 
     const handleEndReached = useCallback(() => {
         if (!hasMorePosts || loadingMorePosts) return;
