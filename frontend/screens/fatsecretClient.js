@@ -9,7 +9,7 @@ const callGeneric = httpsCallable(functions, "fatsecretMethod");
 const callBarcode = httpsCallable(functions, "fatsecretLookupBarcode");
 const callGetFood = httpsCallable(functions, "fatsecretGetFood");
 
-export async function searchFood(query, { maxResults = 10, page = 0 } = {}) {
+export async function searchFood(query, { maxResults = 50, page = 0 } = {}) {
     const res = await callSearch({
         query,
         max_results: maxResults,

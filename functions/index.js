@@ -428,7 +428,8 @@ export const fatsecretSearchFood = onCall(
             addTokenVariants(t);
         }
 
-        const variantList = Array.from(candidates);
+        const variantListAll = Array.from(candidates);
+        const [primaryVariant, ...variantList] = variantListAll;
         const RESULTS_PER_PAGE = Math.min(50, Math.max(safeMax, 20));
         const MAX_TOTAL_CALLS = 8;
         const MAX_CONCURRENT_VARIANTS = 3;
@@ -514,7 +515,12 @@ export const fatsecretSearchFood = onCall(
             }
         };
 
-        if (variantList.length) {
+        if (primaryVariant) {
+            scheduled++;
+            await executeTask({ expr: primaryVariant, page: 0 });
+        }
+
+        if (!stopEarly && variantList.length) {
             const firstPass = variantList.map((expr) => ({ expr, page: 0 }));
             await processQueue(firstPass);
         }
@@ -561,7 +567,7 @@ export const fatsecretSearchFood = onCall(
             safeMax,
             safePage,
             cache: "miss",
-            variantsConsidered: variantList.length,
+            variantsConsidered: variantListAll.length,
             variantsWithHits: successfulVariants.size,
             totalCandidates: byId.size,
             calls,
