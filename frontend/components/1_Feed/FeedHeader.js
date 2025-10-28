@@ -209,18 +209,22 @@ const FeedScopeSelector = memo(({ value = "following", onSelect, onScrollToTop }
                     <View style={styles.scopeModalBackdrop}>
                         <TouchableWithoutFeedback>
                             <View style={styles.scopeModalCard}>
-                                {FEED_SCOPE_OPTIONS.map((option) => {
+                                {FEED_SCOPE_OPTIONS.map((option, idx) => {
                                     const active = option.key === value;
                                     return (
                                         <TouchableOpacity
                                             key={option.key}
-                                            style={[styles.scopeOption, active ? styles.scopeOptionActive : null]}
+                                            style={[
+                                                styles.scopeOption,
+                                                active ? styles.scopeOptionActive : null,
+                                                idx === FEED_SCOPE_OPTIONS.length - 1 ? styles.scopeOptionLast : null,
+                                            ]}
                                             onPress={() => handleSelect(option.key)}
                                         >
                                             <Text style={[styles.scopeOptionLabel, active ? styles.scopeOptionLabelActive : null]}>
                                                 {option.label}
                                             </Text>
-                                            {active && <Ionicons name="checkmark" size={scaleSize(16)} color={theme.primary} />}
+                                            {active && <Ionicons name="checkmark" size={scaleSize(14)} color={theme.primary} />}
                                         </TouchableOpacity>
                                     );
                                 })}
@@ -741,8 +745,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: scaleSize(s(8)),
-        paddingVertical: scaleSize(s(4)),
+        paddingHorizontal: scaleSize(s(6)),
+        paddingVertical: scaleSize(s(3)),
+        borderRadius: scaleSize(s(14)),
     },
     scopeSelectorIcon: {
         marginRight: scaleSize(s(4)),
@@ -757,7 +762,7 @@ const styles = StyleSheet.create({
     },
     scopeModalBackdrop: {
         flex: 1,
-        backgroundColor: "rgba(0,0,0,0.36)",
+        backgroundColor: "rgba(0,0,0,0.4)",
         justifyContent: "flex-start",
         alignItems: "center",
         paddingTop: scaleSize(s(84)),
@@ -765,19 +770,27 @@ const styles = StyleSheet.create({
     },
     scopeModalCard: {
         width: "100%",
-        maxWidth: scaleSize(280),
+        maxWidth: scaleSize(240),
         borderRadius: scaleSize(s(18)),
-        backgroundColor: theme.bg,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
-        overflow: "hidden",
+        backgroundColor: theme.surface,
+        padding: scaleSize(s(8)),
+        shadowColor: "#000",
+        shadowOpacity: 0.18,
+        shadowRadius: scaleSize(s(12)),
+        shadowOffset: { width: 0, height: scaleSize(6) },
+        elevation: 6,
     },
     scopeOption: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: scaleSize(s(18)),
-        paddingVertical: scaleSize(s(12)),
+        paddingHorizontal: scaleSize(s(14)),
+        paddingVertical: scaleSize(s(10)),
+        borderRadius: scaleSize(s(12)),
+        marginBottom: scaleSize(s(4)),
+    },
+    scopeOptionLast: {
+        marginBottom: 0,
     },
     scopeOptionActive: {
         backgroundColor: theme.field,
