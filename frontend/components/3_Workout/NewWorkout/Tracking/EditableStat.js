@@ -110,6 +110,7 @@ export default function EditableStat({
 
     const [isSelected, setIsSelected] = useState(false);
     const forcingBlurRef = useRef(false);
+    const replaceOnNextInputRef = useRef(false);
 
     const displayValue = value == null ? "" : String(value);
     const valueRef = useRef(displayValue);
@@ -124,6 +125,7 @@ export default function EditableStat({
     const commitValue = useCallback((nextValue) => {
         const sanitized = sanitizeValue(nextValue);
         valueRef.current = sanitized;
+        replaceOnNextInputRef.current = false;
         try {
             setValueRef.current?.(sanitized);
         } catch { }
@@ -189,18 +191,26 @@ export default function EditableStat({
             appendChar: (char) => {
                 if (!char || typeof char !== "string") return;
                 if (char === ".") {
-                    if ((valueRef.current || "").includes(".")) return;
-                    commitValue((valueRef.current || "") ? `${valueRef.current}.` : "0.");
+                    const base = replaceOnNextInputRef.current ? "" : (valueRef.current || "");
+                    if (base.includes(".")) return;
+                    const next = base ? `${base}.` : "0.";
+                    commitValue(next);
                     return;
                 }
                 if (!/^[0-9]$/.test(char)) return;
-                commitValue(`${valueRef.current || ""}${char}`);
+                const base = replaceOnNextInputRef.current ? "" : (valueRef.current || "");
+                commitValue(`${base}${char}`);
             },
             addDecimal: () => {
-                if ((valueRef.current || "").includes(".")) return;
-                commitValue((valueRef.current || "") ? `${valueRef.current}.` : "0.");
+                const base = replaceOnNextInputRef.current ? "" : (valueRef.current || "");
+                if (base.includes(".")) return;
+                commitValue(base ? `${base}.` : "0.");
             },
             backspace: () => {
+                if (replaceOnNextInputRef.current) {
+                    commitValue("");
+                    return;
+                }
                 const current = valueRef.current || "";
                 if (!current.length) return;
                 commitValue(current.slice(0, -1));
@@ -230,6 +240,7 @@ export default function EditableStat({
     }, [commitValue]);
 
     const handlePress = useCallback(() => {
+        replaceOnNextInputRef.current = !!(valueRef.current && valueRef.current.length);
         if (hasCustomKeyboard) {
             keyboard?.setActiveInput?.(inputId);
         }
@@ -240,6 +251,7 @@ export default function EditableStat({
     const handleFocus = useCallback(() => {
         console.log("[EditableStat] onFocus", inputId);
         setIsSelected(true);
+        replaceOnNextInputRef.current = !!(valueRef.current && valueRef.current.length);
         if (hasCustomKeyboard) {
             keyboard?.setActiveInput?.(inputId);
         }
