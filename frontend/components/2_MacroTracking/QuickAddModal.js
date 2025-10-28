@@ -113,6 +113,9 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                                 returnKeyType="done"
                             />
                         </View>
+                    </View>
+
+                    <View style={styles.row2}>
                         <View style={styles.col}>
                             {renderLabel('Protein', false)}
                             <DismissableTextInput
@@ -125,9 +128,6 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                                 returnKeyType="done"
                             />
                         </View>
-                    </View>
-
-                    <View style={styles.row2}>
                         <View style={styles.col}>
                             {renderLabel('Carbs', false)}
                             <DismissableTextInput
