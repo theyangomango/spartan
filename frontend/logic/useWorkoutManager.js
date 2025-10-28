@@ -115,6 +115,15 @@ const stripUndefined = (obj) =>
         Object.entries(obj || {}).filter(([, value]) => value !== undefined)
     );
 
+const perfNow = () => {
+    const { performance: perfGlobal } = typeof global !== "undefined" ? global : {};
+    const perf = perfGlobal || (typeof performance !== "undefined" ? performance : null);
+    if (perf && typeof perf.now === "function") {
+        return perf.now();
+    }
+    return Date.now();
+};
+
 const normalizeExerciseName = (value) => (typeof value === "string" ? value.trim() : "");
 
 const cloneHexagon = (hex = {}) => ({
@@ -342,6 +351,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         }
     }, []);
     const ensurePrevSetsCache = useCallback(() => {
+        const t0 = perfNow();
         const now = Date.now();
         const cache = prevSetsCacheRef.current;
         if (cache && cache.map instanceof Map && (now - (cache.timestamp || 0) < PREV_CACHE_TTL_MS)) {
@@ -395,6 +405,14 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         } catch { }
 
         prevSetsCacheRef.current = { timestamp: now, map: nextMap };
+        if (__DEV__) {
+            const duration = perfNow() - t0;
+            try {
+                console.log(
+                    `[perf] ensurePrevSetsCache took ${duration.toFixed(1)} ms (mapSize=${nextMap.size})`
+                );
+            } catch { }
+        }
         return nextMap;
     }, []);
     const upsertWorkoutDoc = useCallback(
@@ -683,6 +701,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
             if (!uid) { Alert.alert("Sign in required", "Please log in to start a workout."); return; }
 
+            const t0 = __DEV__ ? perfNow() : 0;
             try {
             const recentlyCancelled = (Date.now() - (lastCancelAtRef.current || 0)) < 2000;
             const existing = useWorkoutStore.getState().workout;
@@ -819,6 +838,13 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             } catch (e) {
                 console.log("startWorkout error", e);
                 Alert.alert("Couldn't start workout", e?.message || "Please try again.");
+            } finally {
+                if (__DEV__) {
+                    const dt = perfNow() - t0;
+                    try {
+                        console.log(`[perf] startNewWorkoutFromTemplate sync took ${dt.toFixed(1)} ms`);
+                    } catch { }
+                }
             }
         },
         [uid, startTimer, clearPersistDebounce, createWorkoutDoc, defaultWorkoutName, setSheetState, setWorkoutInStore, setIsNewWorkoutVisible]

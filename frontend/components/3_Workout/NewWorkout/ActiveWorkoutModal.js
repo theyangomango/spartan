@@ -126,6 +126,15 @@ const getUserExerciseStats = () => {
     }
 };
 
+const perfNow = () => {
+    const { performance: perfGlobal } = typeof global !== "undefined" ? global : {};
+    const perf = perfGlobal || (typeof performance !== "undefined" ? performance : null);
+    if (perf && typeof perf.now === "function") {
+        return perf.now();
+    }
+    return Date.now();
+};
+
 const findStatsEntryForExercise = (statsMap, rawName) => {
     if (!statsMap || typeof statsMap !== "object") return null;
     const name = typeof rawName === "string" ? rawName.trim() : "";
@@ -260,6 +269,8 @@ const ActiveWorkoutModal = ({
     animatedIndex,
     onExpandSheet,
 }) => {
+
+    const renderStart = __DEV__ ? perfNow() : null;
 
     // Enable LayoutAnimation on Android
     if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -792,6 +803,7 @@ const ActiveWorkoutModal = ({
     // List data + emptiness flag (avoid inline recompute and allow conditional header/footer)
     const exercisesData = useMemo(() => (Array.isArray(baseWorkout?.exercises) ? baseWorkout.exercises : []), [baseWorkout?.exercises]);
     const fallbackPreviousSetsByName = useMemo(() => {
+        const t0 = perfNow();
         const result = Object.create(null);
         const statsSource = viewingSelfEffective ? userWorkoutStats : activeStats;
         if (statsSource && typeof statsSource === "object") {
@@ -817,6 +829,14 @@ const ActiveWorkoutModal = ({
                         if (prevSets.length) result[name] = prevSets;
                     }
                 }
+            } catch { }
+        }
+        if (__DEV__) {
+            const duration = perfNow() - t0;
+            try {
+                console.log(
+                    `[perf] fallbackPreviousSetsByName took ${duration.toFixed(1)} ms (entries=${Object.keys(result).length})`
+                );
             } catch { }
         }
         return result;
@@ -1350,6 +1370,13 @@ const ActiveWorkoutModal = ({
             });
         } catch { }
     }, []);
+
+    if (__DEV__ && renderStart != null) {
+        const duration = perfNow() - renderStart;
+        try {
+            console.log(`[perf] ActiveWorkoutModal render took ${duration.toFixed(1)} ms`);
+        } catch { }
+    }
 
     return (
         <StatKeyboardProvider>

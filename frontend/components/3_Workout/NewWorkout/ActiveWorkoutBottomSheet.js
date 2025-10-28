@@ -33,7 +33,17 @@ const COLLAPSE_COLOR_THRESHOLD = 0.15;
 const SCREEN_HEIGHT = Dimensions.get("window").height || 0;
 const FOCUS_HIDE_DISTANCE = SCREEN_HEIGHT > 0 ? SCREEN_HEIGHT : (COLLAPSED_PEEK + scaleSize(320));
 
+const perfNow = () => {
+    const { performance: perfGlobal } = typeof global !== "undefined" ? global : {};
+    const perf = perfGlobal || (typeof performance !== "undefined" ? performance : null);
+    if (perf && typeof perf.now === "function") {
+        return perf.now();
+    }
+    return Date.now();
+};
+
 const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, visibilityProgressSV, isActive = true, collapseProgressSV = null }) => {
+    const renderStart = __DEV__ ? perfNow() : null;
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => [COLLAPSED_SNAP, "94%"], []);
     const [contentKey, setContentKey] = useState(0);
@@ -215,12 +225,23 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, vis
     const userWorkoutStats = getUserWorkoutStats() || {};
 
     if (!hasWorkout) {
+        if (__DEV__ && renderStart != null) {
+            const duration = perfNow() - renderStart;
+            try { console.log(`[perf] ActiveWorkoutBottomSheet (no workout) render took ${duration.toFixed(1)} ms`); } catch { }
+        }
         return null;
     }
 
     const sheetStyle = isExpanded ? styles.sheetExpanded : styles.sheetCollapsed;
     const pointerEvents = (hideForFocus || !isActive) ? 'none' : 'box-none';
     const gesturesEnabled = isActive && !hideForFocus;
+
+    if (__DEV__ && renderStart != null) {
+        const duration = perfNow() - renderStart;
+        try {
+            console.log(`[perf] ActiveWorkoutBottomSheet render took ${duration.toFixed(1)} ms`);
+        } catch { }
+    }
 
     return (
         <Animated.View style={[styles.sheetWrapper, containerAnimatedStyle, focusAnimatedStyle]} pointerEvents={pointerEvents}>
