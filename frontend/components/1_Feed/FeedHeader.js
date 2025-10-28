@@ -191,13 +191,13 @@ const FeedScopeSelector = memo(({ value = "following", onSelect, onScrollToTop }
                 accessibilityRole="button"
                 accessibilityLabel="Select feed scope"
             >
-                <Text style={styles.scopeSelectorLabel}>{selectedOption?.label || "Following"}</Text>
                 <Ionicons
                     name={visible ? "chevron-up" : "chevron-down"}
-                    size={scaleSize(16)}
+                    size={scaleSize(18)}
                     color={theme.textPrimary}
-                    style={{ marginLeft: scaleSize(8), fontWeight: "600" }}
+                    style={styles.scopeSelectorIcon}
                 />
+                <Text style={styles.scopeSelectorLabel}>{selectedOption?.label || "Following"}</Text>
             </RNBounceable>
             <Modal
                 transparent
@@ -603,21 +603,20 @@ const FeedHeader = ({
             </View>
             {/* Right: notifications + messages */}
             <View style={styles.right_icons}>
-                <RNBounceable onPress={withStrongPress(onOpenNotifications)} style={styles.heart_button}>
+                <RNBounceable onPress={withStrongPress(onOpenNotifications)} style={styles.notification_button}>
                     <Svg
                         xmlns="http://www.w3.org/2000/svg"
-                        width={dynamicStyles.iconSize}
-                        height={dynamicStyles.iconSize}
+                        width={dynamicStyles.iconSize - 1}
+                        height={dynamicStyles.iconSize - 1}
                         viewBox="0 0 24 24"
                         fill="none"
+                        stroke="#cbd5e1"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
                     >
-                        <Path
-                            d="M12.62 20.81c-.34.12-.9.12-1.24 0C8.48 19.82 2 15.69 2 8.69 2 5.6 4.49 3.1 7.56 3.1c1.82 0 3.43.88 4.44 2.24a5.53 5.53 0 0 1 4.44-2.24C19.51 3.1 22 5.6 22 8.69c0 7-6.48 11.13-9.38 12.12Z"
-                            stroke="#cbd5e1"
-                            strokeWidth="2.1"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
+                        <Path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                        <Path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
                     </Svg>
                     {unreadCount > 0 && (
                         <View style={styles.notificationBadge}>
@@ -745,9 +744,14 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(s(8)),
         paddingVertical: scaleSize(s(4)),
     },
+    scopeSelectorIcon: {
+        marginRight: scaleSize(s(4)),
+        marginTop: scaleSize(2),
+        fontWeight: "700",
+    },
     scopeSelectorLabel: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(16),
+        fontSize: scaleSize(17.5),
         color: theme.textPrimary,
         includeFontPadding: false,
     },
@@ -800,7 +804,7 @@ const styles = StyleSheet.create({
     notificationBadge: { position: "absolute", right: scaleSize(-7.5), top: scaleSize(-5), backgroundColor: "#ef4444", borderRadius: scaleSize(8), width: scaleSize(16), height: scaleSize(16), justifyContent: "center", alignItems: "center" },
     notificationText: { color: "#fff", fontSize: scaleSize(8), fontFamily: "Outfit_600SemiBold" },
     message_button: { padding: scaleSize(1) },
-    heart_button: { marginRight: scaleSize(19), padding: scaleSize(1), position: "relative" },
+    notification_button: { marginRight: scaleSize(19), padding: scaleSize(1), position: "relative" },
 
     left_placeholder: { width: scaleSize(dynamicStyles.iconSize + 6), height: scaleSize(dynamicStyles.iconSize + 6) },
 
