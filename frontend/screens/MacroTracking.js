@@ -118,6 +118,7 @@ export default function MacroTracking({ navigation, route }) {
         weight: '',
         heightFt: '',
         heightIn: '',
+        age: '',
         activity: 'moderate',
         goal: 'maintain',
         calories: String(macroGoals.calories),
@@ -169,6 +170,7 @@ export default function MacroTracking({ navigation, route }) {
                         weight: s.weight === '' && (pi.weight != null) ? String(pi.weight) : s.weight,
                         heightFt: s.heightFt === '' && (pi.heightFt != null) ? String(pi.heightFt) : s.heightFt,
                         heightIn: s.heightIn === '' && (pi.heightIn != null) ? String(pi.heightIn) : s.heightIn,
+                        age: s.age === '' && (pi.age != null) ? String(pi.age) : s.age,
                     }));
                     try { global.userData = { ...(global.userData || {}), personalInfo: pi }; } catch { }
                 }
@@ -467,6 +469,13 @@ export default function MacroTracking({ navigation, route }) {
             return Math.max(min, Math.min(max, n));
         };
 
+        const clampOptional = (value, min, max) => {
+            if (value == null || value === '') return null;
+            const n = parseInt(String(value), 10);
+            if (Number.isNaN(n)) return null;
+            return Math.max(min, Math.min(max, n));
+        };
+
         const info = {
             gender: String(goalForm.gender || 'male'),
             activity: String(goalForm.activity || 'moderate'),
@@ -474,6 +483,7 @@ export default function MacroTracking({ navigation, route }) {
             weight: clamp(goalForm.weight, 0, 2000),
             heightFt: clamp(goalForm.heightFt, 0, 8),
             heightIn: clamp(goalForm.heightIn, 0, 11),
+            age: clampOptional(goalForm.age, 13, 100),
         };
 
         try {

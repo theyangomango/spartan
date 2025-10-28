@@ -24,6 +24,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
 
     const gender = goalForm?.gender ?? 'male';
     const weight = goalForm?.weight ?? '';
+    const age = goalForm?.age ?? '';
     const heightFt = goalForm?.heightFt ?? '';
     const heightIn = goalForm?.heightIn ?? '';
     const activity = goalForm?.activity ?? 'moderate';
@@ -96,6 +97,30 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                                     placeholderTextColor={styles.placeholder.color}
                                 />
                                 <Text style={styles.inputSuffix}>lb</Text>
+                            </View>
+                        </View>
+                        <View style={{ width: scaleSize(12) }} />
+                        <View style={{ flex: 1 }} />
+                    </View>
+                </View>
+
+                {/* Age */}
+                <View style={{ marginBottom: scaleSize(12) }}>
+                    <Text style={styles.inputLabel}>Age</Text>
+                    <View style={styles.row}>
+                        <View style={{ flex: 1 }}>
+                            <View style={styles.inputBox}>
+                                <DismissableTextInput
+                                    keyboardType="number-pad"
+                                    returnKeyType="done"
+                                    value={String(age)}
+                                    onChangeText={(t) => setGoalForm((s) => ({ ...s, age: onlyDigits(t).slice(0, 3) }))}
+                                    style={styles.input}
+                                    placeholder="25"
+                                    placeholderTextColor={styles.placeholder.color}
+                                    maxLength={3}
+                                />
+                                <Text style={styles.inputSuffix}>yrs</Text>
                             </View>
                         </View>
                         <View style={{ width: scaleSize(12) }} />
