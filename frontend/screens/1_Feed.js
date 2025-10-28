@@ -178,14 +178,12 @@ export default function Feed({ navigation, route }) {
         return basePosts;
     }, [posts, resolveTimestamp]);
 
-    const personalPosts = useMemo(() => {
-        if (!myUid) return [];
-        return sortedPosts.filter((post) => String(post?.uid || "") === myUid);
-    }, [sortedPosts, myUid]);
-
-    const listData = useMemo(() => (
-        feedScope === "personal" ? personalPosts : sortedPosts
-    ), [feedScope, personalPosts, sortedPosts]);
+    const listData = useMemo(() => {
+        if (feedScope === "personal" && myUid) {
+            return sortedPosts.filter((post) => String(post?.uid || "") === myUid);
+        }
+        return sortedPosts;
+    }, [sortedPosts, feedScope, myUid]);
 
     const handleEndReached = useCallback(() => {
         if (!hasMorePosts || loadingMorePosts) return;
