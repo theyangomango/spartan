@@ -11,6 +11,7 @@ import {
     FlatList,
     Keyboard,
     InteractionManager,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
@@ -29,6 +30,38 @@ import { fetchRecentFoods, deleteRecentFood } from '../../utils/recentFoods';
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
 import DismissableTextInput from '../common/DismissableTextInput';
+
+const foodKey = (item) => {
+    if (!item) return '';
+    const id = String(item.food_id ?? item.id ?? '').trim();
+    if (id) return id;
+    const name = String(item.food_name ?? item.name ?? '').trim().toLowerCase();
+    const brand = String(item.brand_name ?? item.brand ?? '').trim().toLowerCase();
+    if (!name && !brand) return '';
+    return `${name}|${brand}`;
+};
+
+const mergeUniqueFoods = (prev = [], next = []) => {
+    const merged = Array.isArray(prev) ? [...prev] : [];
+    const seen = new Set();
+    for (const item of merged) {
+        const key = foodKey(item);
+        if (key) seen.add(key);
+    }
+    if (!Array.isArray(next)) return merged;
+    for (const item of next) {
+        if (!item) continue;
+        const key = foodKey(item);
+        if (!key) {
+            merged.push(item);
+            continue;
+        }
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(item);
+    }
+    return merged;
+};
 
 const SCAN_RETRY_DELAY_MS = 500;
 
@@ -50,7 +83,12 @@ export default function FoodSearchOverlay({
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(false);
+    const [page, setPage] = useState(0);
     const inputRef = useRef(null);
+    const searchTokenRef = useRef(0);
+    const latestQueryRef = useRef('');
 
     // ---- Barcode scanner state
     const [scannerVisible, setScannerVisible] = useState(false);
@@ -182,14 +220,77 @@ export default function FoodSearchOverlay({
         } catch { setRecentFoods([]); }
     }, []);
 
-    useEffect(() => {
+    const performSearch = useCallback(async (searchTerm, nextPage, { append = false } = {}) => {
+        const term = String(searchTerm || '').trim();
+        if (!term) return;
+        if (!append) {
+            searchTokenRef.current += 1;
+            setLoading(true);
+            setLoadingMore(false);
+            setHasMore(false);
+        } else {
+            setLoadingMore(true);
+        }
+        const token = searchTokenRef.current;
+        latestQueryRef.current = term;
+        try {
+            const res = await searchFood(term, { page: nextPage });
+            if (searchTokenRef.current !== token) return;
+            const rawFoods = res?.foods?.food;
+            const list = Array.isArray(rawFoods) ? rawFoods : (rawFoods ? [rawFoods] : []);
+            const declaredMax = Number(res?.foods?.max_results) || 0;
+            const remoteHasMore = res?.foods?.has_more;
+            const computedHasMore =
+                typeof remoteHasMore === 'boolean'
+                    ? remoteHasMore
+                    : (declaredMax > 0 ? list.length >= declaredMax : list.length > 0);
+            setHasMore(computedHasMore);
+            setPage(nextPage);
+            setResults((prev) => (append ? mergeUniqueFoods(prev, list) : list));
+        } catch {
+            if (searchTokenRef.current !== token) return;
+            if (!append) {
+                setResults([]);
+            }
+            setHasMore(false);
+        } finally {
+            if (searchTokenRef.current !== token) return;
+            if (append) {
+                setLoadingMore(false);
+            } else {
+                setLoading(false);
+            }
+        }
+    }, []);
+
+    const handleLoadMore = useCallback(() => {
         if (!visible) return;
+        if (!hasMore || loading || loadingMore) return;
+        const term = latestQueryRef.current;
+        if (!term) return;
+        void performSearch(term, page + 1, { append: true });
+    }, [hasMore, loading, loadingMore, page, performSearch, visible]);
+
+    useEffect(() => {
+        if (!visible) {
+            searchTokenRef.current += 1;
+            latestQueryRef.current = '';
+            setLoading(false);
+            setLoadingMore(false);
+            setHasMore(false);
+            setResults([]);
+            setPage(0);
+            return undefined;
+        }
         const task = InteractionManager.runAfterInteractions(() => {
             loadRecentFoods();
             // Reset state for a fresh session and focus the input after animation completes
             setQuery('');
             setResults([]);
             setLoading(false);
+            setLoadingMore(false);
+            setHasMore(false);
+            setPage(0);
             // slight timeout to allow Modal to attach before focusing
             setTimeout(() => inputRef.current?.focus?.(), 40);
         });
@@ -200,23 +301,23 @@ export default function FoodSearchOverlay({
     useEffect(() => {
         if (!visible) return;
         const q = (query || '').trim();
-        if (q.length === 0) { setResults([]); setLoading(false); return; }
+        if (q.length === 0) {
+            searchTokenRef.current += 1;
+            latestQueryRef.current = '';
+            setResults([]);
+            setLoading(false);
+            setLoadingMore(false);
+            setHasMore(false);
+            setPage(0);
+            return;
+        }
         let cancelled = false;
         const handle = setTimeout(async () => {
-            try {
-                setLoading(true);
-                const res = await searchFood(q);
-                if (cancelled) return;
-                if (res?.foods && 'food' in res.foods) setResults(res.foods.food);
-                else setResults([]);
-            } catch {
-                if (!cancelled) setResults([]);
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
+            if (cancelled) return;
+            await performSearch(q, 0, { append: false });
         }, 250);
         return () => { cancelled = true; clearTimeout(handle); };
-    }, [query, visible]);
+    }, [query, visible, performSearch]);
 
     /* ---------------- Portion picker (for search results) ---------------- */
     const [portionVisible, setPortionVisible] = useState(false);
@@ -360,7 +461,7 @@ export default function FoodSearchOverlay({
                     <FlatList
                         contentContainerStyle={{ paddingBottom: scaleSize(24) }}
                         data={results}
-                        keyExtractor={(item) => String(item.food_id)}
+                        keyExtractor={(item, index) => foodKey(item) || `food-${index}`}
                         keyboardShouldPersistTaps="handled"
                         renderItem={renderSearchItem}
                         removeClippedSubviews
@@ -369,12 +470,25 @@ export default function FoodSearchOverlay({
                         maxToRenderPerBatch={8}
                         updateCellsBatchingPeriod={32}
                         keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'interactive'}
+                        onEndReachedThreshold={0.6}
+                        onEndReached={handleLoadMore}
                         ListEmptyComponent={
                             <Text style={styles.emptyText}>
                                 {query ? (loading ? 'Searching…' : 'No results') : 'Start typing to search foods'}
                             </Text>
                         }
-                        ListFooterComponent={<HistoryFooter />}
+                        ListFooterComponent={
+                            <View>
+                                {loadingMore ? (
+                                    <View style={styles.loadingMore}>
+                                        <ActivityIndicator size="small" color={COLORS.accent || '#2D92FF'} />
+                                    </View>
+                                ) : (results.length > 0 && !hasMore && !loading ? (
+                                    <Text style={styles.noMoreText}>No more results</Text>
+                                ) : null)}
+                                <HistoryFooter />
+                            </View>
+                        }
                     />
                 </KeyboardAvoidingView>
 
@@ -605,6 +719,19 @@ const makeStyles = (COLORS) =>
             color: COLORS.subtext || COLORS.textSecondary || '#A1A7B3',
             fontFamily: 'Outfit_400Regular',
             fontSize: scaleSize(13),
+        },
+        loadingMore: {
+            paddingVertical: scaleSize(14),
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        noMoreText: {
+            textAlign: 'center',
+            marginTop: scaleSize(6),
+            marginBottom: scaleSize(4),
+            color: COLORS.subtext || COLORS.textSecondary || '#A1A7B3',
+            fontFamily: 'Outfit_400Regular',
+            fontSize: scaleSize(12),
         },
         historyHeader: {
             marginTop: scaleSize(8),

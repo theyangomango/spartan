@@ -429,19 +429,21 @@ export const fatsecretSearchFood = onCall(
         }
 
         const variantListAll = Array.from(candidates);
-        const [primaryVariant, ...variantList] = variantListAll;
-        const RESULTS_PER_PAGE = Math.min(50, Math.max(safeMax, 20));
+        const pageSize = safeMax;
+        const startIndex = safePage * pageSize;
+        const desiredUniqueCount = startIndex + pageSize;
+        const RESULTS_PER_PAGE = Math.min(50, Math.max(pageSize, 20));
         const MAX_TOTAL_CALLS = 8;
         const MAX_CONCURRENT_VARIANTS = 3;
-        const SCORE_EARLY_EXIT_THRESHOLD = 0.6;
+        const MAX_ADDITIONAL_PAGES = 3;
 
         const byId = new Map();
         const successfulVariants = new Set();
-        let highScoreCount = 0;
         let calls = 0;
         let scheduled = 0;
         let stopEarly = false;
         let totalCallDurationMs = 0;
+        const attemptedTasks = new Set();
 
         const handleResultList = (expr, list) => {
             let anyAdded = false;
@@ -452,17 +454,12 @@ export const fatsecretSearchFood = onCall(
                 const score = similarityScore(qRaw, display);
                 const prev = byId.get(fid);
                 if (prev && score <= prev.bestScore) continue;
-                const prevAbove = prev?.bestScore >= SCORE_EARLY_EXIT_THRESHOLD;
-                const newAbove = score >= SCORE_EARLY_EXIT_THRESHOLD;
                 byId.set(fid, { item, bestScore: score });
-                if (newAbove && !prevAbove) {
-                    highScoreCount++;
-                }
                 anyAdded = true;
             }
             if (anyAdded) {
                 successfulVariants.add(expr);
-                if (highScoreCount >= safeMax) {
+                if (byId.size >= desiredUniqueCount) {
                     stopEarly = true;
                 }
             }
@@ -515,39 +512,53 @@ export const fatsecretSearchFood = onCall(
             }
         };
 
-        if (primaryVariant) {
-            scheduled++;
-            await executeTask({ expr: primaryVariant, page: 0 });
-        }
-
-        if (!stopEarly && variantList.length) {
-            const firstPass = variantList.map((expr) => ({ expr, page: 0 }));
-            await processQueue(firstPass);
-        }
-
-        if (!stopEarly && byId.size < safeMax && calls < MAX_TOTAL_CALLS) {
-            const remainingBudget = MAX_TOTAL_CALLS - calls;
-            if (remainingBudget > 0 && successfulVariants.size > 0) {
-                const secondPass = Array.from(successfulVariants)
-                    .slice(0, remainingBudget)
-                    .map((expr) => ({ expr, page: 1 }));
-                if (secondPass.length) {
-                    await processQueue(secondPass);
-                }
+        const runPageForVariants = async (page, variants) => {
+            const queue = [];
+            for (const expr of variants) {
+                const cleaned = String(expr || "").trim();
+                if (!cleaned) continue;
+                const key = `${cleaned}|${page}`;
+                if (attemptedTasks.has(key)) continue;
+                attemptedTasks.add(key);
+                queue.push({ expr: cleaned, page });
             }
+            if (queue.length === 0) return;
+            await processQueue(queue);
+        };
+
+        if (variantListAll.length) {
+            await runPageForVariants(safePage, variantListAll);
         }
 
-        const ranked = Array.from(byId.values())
+        let pageOffset = 1;
+        while (!stopEarly && byId.size < desiredUniqueCount && calls < MAX_TOTAL_CALLS && pageOffset <= MAX_ADDITIONAL_PAGES) {
+            const nextPage = safePage + pageOffset;
+            const followVariants = successfulVariants.size ? Array.from(successfulVariants) : variantListAll;
+            if (!followVariants.length) break;
+            await runPageForVariants(nextPage, followVariants);
+            pageOffset++;
+        }
+
+        const rankedAll = Array.from(byId.values())
             .sort((a, b) => b.bestScore - a.bestScore)
-            .slice(0, safeMax)
             .map((x) => x.item);
+
+        const endIndex = startIndex + pageSize;
+        const pageItems = rankedAll.slice(startIndex, endIndex);
+        const hasMore = (!stopEarly && calls < MAX_TOTAL_CALLS) || rankedAll.length > endIndex;
 
         const response = {
             foods: {
-                food: ranked,
-                max_results: String(safeMax),
+                food: pageItems,
+                max_results: String(pageSize),
                 page_number: String(safePage),
-                total_results: String(byId.size),
+                total_results: String(rankedAll.length),
+                has_more: hasMore,
+            },
+            debug: {
+                fetchedPages: Array.from(attemptedTasks).map((key) => key.split("|")[1]).filter((v, i, arr) => arr.indexOf(v) === i),
+                uniqueFoodsConsidered: byId.size,
+                calls,
             },
         };
 
@@ -574,7 +585,7 @@ export const fatsecretSearchFood = onCall(
             durationMs: Date.now() - overallStartedAt,
             totalCallDurationMs,
             stopEarly,
-            highScoreCountAboveThreshold: highScoreCount,
+            hasMore,
         });
 
         return response;
