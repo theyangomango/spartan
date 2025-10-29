@@ -770,21 +770,28 @@ export default function Feed({ navigation, route }) {
         />
     ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef, feedScope]);
 
-    const renderEmptyList = () => (
-        <View style={styles.emptyState}>
-            <View style={styles.emptyIcon}>
-                <Feather
-                    name="users"
-                    size={scaleSize(28)}
-                    color={theme.primary}
-                />
+    const renderEmptyList = () => {
+        const isPersonalScope = feedScope === "personal";
+        return (
+            <View style={styles.emptyState}>
+                <View style={styles.emptyIcon}>
+                    <Feather
+                        name={isPersonalScope ? "user" : "users"}
+                        size={scaleSize(28)}
+                        color={theme.primary}
+                    />
+                </View>
+                <Text style={styles.emptyTitle}>
+                    {isPersonalScope ? "No personal posts yet" : "Your feed is quiet"}
+                </Text>
+                <Text style={styles.emptySubtitle}>
+                    {isPersonalScope
+                        ? "Share a workout or update to see it appear in your personal feed."
+                        : "Follow friends or share your progress to see posts here."}
+                </Text>
             </View>
-            <Text style={styles.emptyTitle}>Your feed is quiet</Text>
-            <Text style={styles.emptySubtitle}>
-                Follow friends or share your progress to see posts here.
-            </Text>
-        </View>
-    );
+        );
+    };
 
     const handleCreatePost = useCallback(() => {
         try {

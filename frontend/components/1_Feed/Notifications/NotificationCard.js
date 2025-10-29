@@ -609,11 +609,6 @@ export default function NotificationCard({
                     <Text style={styles.message} numberOfLines={2}>
                         {getDisplayMessage(item)}
                     </Text>
-                    {item?.type === "friend-workout-started" && item?.workoutName ? (
-                        <Text style={[styles.detailText, { color: accent }]} numberOfLines={1}>
-                            {item.workoutName}
-                        </Text>
-                    ) : null}
                 </View>
 
                 {followAction}
@@ -700,12 +695,6 @@ const styles = StyleSheet.create({
         color: theme.textSecondary,
         fontFamily: "Outfit_400Regular",
         lineHeight: scaleSize(20),
-    },
-    detailText: {
-        fontSize: scaleSize(12),
-        color: theme.textPrimary,
-        fontFamily: "Outfit_600SemiBold",
-        marginTop: scaleSize(2),
     },
     trailingColumn: {
         alignItems: 'flex-end',
