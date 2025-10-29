@@ -18,6 +18,7 @@ import theme from "../theme/mfpDark";
 import { subscribeUserData } from "../utils/userDataEvents";
 import { countLoggedFoods } from "../utils/loggedFoods";
 import { clearFooterSuppression } from "../state/footerSuppressionStore";
+import pickAndUploadProfilePhoto from "../utils/pickAndUploadProfilePhoto";
 
 export default function Profile({ navigation }) {
     const [, setRerender] = useState(0);
@@ -35,6 +36,7 @@ export default function Profile({ navigation }) {
     const [followListMode, setFollowListMode] = useState('followers'); // or 'following'
 
     const [pfp, setPFP] = useState(() => (global?.userData?.image || ""));
+    const isPickingPfpRef = useRef(false);
     const [loggedFoodsCount, setLoggedFoodsCount] = useState(() => countLoggedFoods(userData?.loggedFoods || {}));
 
     // Workout viewer state (reuses Feed viewer)
@@ -97,6 +99,24 @@ export default function Profile({ navigation }) {
         setIsEditProfileBottomSheetVisible(true);
     }
 
+    const handleDirectPfpEdit = useCallback(async () => {
+        if (isPickingPfpRef.current) return;
+        isPickingPfpRef.current = true;
+        try {
+            const result = await pickAndUploadProfilePhoto({
+                onPreview: (uri) => setPFP(uri),
+                onUploaded: (firebaseUri) => {
+                    if (firebaseUri) setPFP(firebaseUri);
+                },
+            });
+            if (!result?.firebaseUri && result?.localUri) {
+                setPFP(result.localUri);
+            }
+        } finally {
+            isPickingPfpRef.current = false;
+        }
+    }, []);
+
     function handleOpenViewStats() {
         // ✅ Open the workout stats bottom sheet (same one used on Competition)
         setIsViewStatsBottomSheetVisible(true);
@@ -126,6 +146,7 @@ export default function Profile({ navigation }) {
                         pfp={pfp}
                         onPressFollowers={() => { setFollowListMode('followers'); setIsFollowListVisible(true); }}
                         onPressFollowing={() => { setFollowListMode('following'); setIsFollowListVisible(true); }}
+                        onPressEditPfp={handleDirectPfpEdit}
                     />
                     <ProfileRowButtons
                         handleOpenEditProfile={handleOpenEditProfile}

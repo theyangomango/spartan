@@ -1,66 +1,28 @@
 import React, { useState } from "react";
-import { View, Image, StyleSheet, TouchableOpacity, Alert } from "react-native";
+import { View, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { Entypo } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import getPFP from "../../../../backend/storage/getPFP";
-import updateDoc from "../../../../backend/helper/firebase/updateDoc";
-import { deleteObject, ref, uploadBytes } from "firebase/storage";
-import { storage } from "../../../../firebase.config";
-import * as ImageManipulator from 'expo-image-manipulator';
 import THEME from "../../../theme/mfpDark";
 import { withStrongPress } from "../../../utils/haptics";
-
-
 import scaleSize from "../../../helper/scaleSize";
+import { pickAndUploadProfilePhoto } from "../../../utils/pickAndUploadProfilePhoto";
 
 
 const ProfilePicture = ({ imageUri, setPFP }) => {
     const [profileImage, setProfileImage] = useState(imageUri);
 
-    async function compressImage(uri) {
-        const compressedImage = await ImageManipulator.manipulateAsync(
-            uri,
-            [],
-            { compress: 0.01, format: ImageManipulator.SaveFormat.JPEG }
-        );
-        return compressedImage.uri;
-    }
-
     const pickImage = async () => {
-        // Ask for permission to access media library
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert('Permission Denied', 'Sorry, we need media library permissions to make this work!');
-            return;
-        }
-
-        // Launch image picker
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
-            quality: 1,
+        const result = await pickAndUploadProfilePhoto({
+            onPreview: (uri) => {
+                setProfileImage(uri);
+                setPFP(uri);
+            },
+            onUploaded: (firebaseUri) => {
+                if (firebaseUri) {
+                    setPFP(firebaseUri);
+                }
+            },
         });
-
-        if (!result.canceled) {
-            const pfpURI = result.assets[0].uri;
-            setProfileImage(pfpURI);
-            const pfpRef = ref(storage, `pfps/${global.userData.uid}.png`);
-            try {
-                await deleteObject(pfpRef);
-            } catch {
-                // nothing
-            }
-            const compressedURI = await compressImage(pfpURI);
-            const res = await fetch(compressedURI);
-            const bytes = await res.blob();
-            setPFP(compressedURI);
-            await uploadBytes(pfpRef, bytes);
-            const firebaseURI = await getPFP(global.userData.uid);
-            await updateDoc('users', global.userData.uid, { image: firebaseURI });
-            
-            console.log('done');
-        }
+        return result;
     };
 
     return (

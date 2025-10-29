@@ -10,14 +10,31 @@ import formatHexStat from "../../../utils/formatHexStat";
 const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
 
-export default function ProfileInfo({ userData, pfp, onPressFollowers, onPressFollowing }) {
-    const pfpUri = usePfp(String(userData?.uid || ''), userData?.pfpVersion || 0) || pfp || '';
+export default function ProfileInfo({ userData, pfp, onPressFollowers, onPressFollowing, onPressEditPfp }) {
+    const cachedPfp = usePfp(String(userData?.uid || ''), userData?.pfpVersion || 0);
+    const pfpUri = pfp || cachedPfp || '';
     // Derive counts from array lengths for accuracy
     const followersCount = Array.isArray(userData?.followers) ? userData.followers.length : 0;
     const followingCount = Array.isArray(userData?.following) ? userData.following.length : 0;
     const overallLabel = `${formatHexStat(userData?.statsHexagon?.overall)} overall`;
     const trimmedBio = userData?.bio?.trim?.() ?? '';
     const bioText = trimmedBio.length > 0 ? trimmedBio : 'No bio yet...';
+    const isEditable = typeof onPressEditPfp === 'function';
+
+    const renderPfpImage = () => (
+        <View style={styles.pfp_ring}>
+            {pfpUri ? (
+                <FastImage
+                    source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
+                    style={styles.pfp}
+                    resizeMode={FastImage.resizeMode.cover}
+                />
+            ) : (
+                <View style={[styles.pfp, { backgroundColor: '#e5e7eb' }]} />
+            )}
+        </View>
+    );
+
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.top_row}>
@@ -26,14 +43,19 @@ export default function ProfileInfo({ userData, pfp, onPressFollowers, onPressFo
                     <Text style={styles.user_stat_text}>Followers</Text>
                 </Pressable>
                 <View style={styles.pfp_ctnr}>
-                    {pfpUri ? (
-                        <FastImage
-                            source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
-                            style={styles.pfp}
-                            resizeMode={FastImage.resizeMode.cover}
-                        />
+                    {isEditable ? (
+                        <Pressable
+                            style={[styles.pfp_pressable]}
+                            onPress={withStrongPress(onPressEditPfp)}
+                            hitSlop={{ top: scaledSize(6), bottom: scaledSize(6), left: scaledSize(6), right: scaledSize(6) }}
+                        >
+                            {renderPfpImage()}
+                            <View style={styles.edit_badge}>
+                                <Text style={styles.edit_badge_text}>Edit</Text>
+                            </View>
+                        </Pressable>
                     ) : (
-                        <View style={[styles.pfp, { backgroundColor: '#e5e7eb' }]} />
+                        renderPfpImage()
                     )}
                 </View>
                 <Pressable style={styles.following_stat_ctnr} onPress={withStrongPress(onPressFollowing)} hitSlop={8}>
@@ -68,11 +90,19 @@ const styles = StyleSheet.create({
     pfp_ctnr: {
         marginHorizontal: scaledSize(12),
         alignItems: 'center',
+        justifyContent: 'center',
         position: 'relative',
+        paddingBottom: scaledSize(12),
+    },
+    pfp_pressable: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    pfp_ring: {
         borderWidth: scaledSize(3),
         borderRadius: scaledSize(26.5),
         padding: scaledSize(2.25),
-        borderColor: require('../../../theme/mfpDark').default.hairline,
+        borderColor: theme.hairline,
     },
     pfp: {
         width: scaledSize(54),
@@ -139,5 +169,25 @@ const styles = StyleSheet.create({
     },
     bio_placeholder_text: {
         color: '#FFFFFF',
+    },
+    edit_badge: {
+        position: 'absolute',
+        bottom: 0,
+        paddingHorizontal: scaledSize(12),
+        paddingVertical: scaledSize(4),
+        borderRadius: scaledSize(12),
+        backgroundColor: 'rgba(30, 55, 93, 1)', // richer blue
+        shadowColor: '#000',
+        shadowOpacity: 0.25,
+        shadowRadius: scaledSize(4),
+        shadowOffset: { width: 0, height: scaledSize(2) },
+        elevation: 4,
+        transform: [{ translateY: scaledSize(10) }],
+    },
+    edit_badge_text: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(12),
+        color: '#FFFFFF',
+        letterSpacing: 0.3,
     },
 });
