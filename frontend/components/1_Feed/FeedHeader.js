@@ -34,7 +34,7 @@ const scale = SCREEN_WIDTH / 375;
 const s = (n) => Math.round(n * scale);
 
 const FEED_SCOPE_OPTIONS = [
-    { key: "following", label: "Following" },
+    { key: "following", label: "Feed" },
     { key: "personal", label: "Personal" },
 ];
 
@@ -197,7 +197,7 @@ const FeedScopeSelector = memo(({ value = "following", onSelect, onScrollToTop }
                     color={theme.textPrimary}
                     style={styles.scopeSelectorIcon}
                 />
-                <Text style={styles.scopeSelectorLabel}>{selectedOption?.label || "Following"}</Text>
+                <Text style={styles.scopeSelectorLabel}>{selectedOption?.label || "Feed"}</Text>
             </RNBounceable>
             <Modal
                 transparent
@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
     },
     scopeSelectorLabel: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(17),
+        fontSize: ts(16.5),
         color: theme.textPrimary,
         includeFontPadding: false,
     },
@@ -797,7 +797,7 @@ const styles = StyleSheet.create({
     },
     scopeOptionLabel: {
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(15.5),
+        fontSize: scaleSize(14),
         color: theme.textPrimary,
     },
     scopeOptionLabelActive: {

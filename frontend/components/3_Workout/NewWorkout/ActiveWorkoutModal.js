@@ -316,6 +316,43 @@ const ActiveWorkoutModal = ({
         setSheetReadyForFocus((prev) => (prev === ready ? prev : ready));
     }, []);
 
+    const [liveFeaturesEnabled, setLiveFeaturesEnabled] = useState(false);
+    useEffect(() => {
+        if (!streamLive) {
+            setLiveFeaturesEnabled(false);
+            return;
+        }
+        if (lockFriend) {
+            setLiveFeaturesEnabled(true);
+            return;
+        }
+        if (!sheetReadyForFocus) {
+            setLiveFeaturesEnabled(false);
+            return;
+        }
+        let cancelled = false;
+        let rafId = null;
+        const enable = () => {
+            if (!cancelled) setLiveFeaturesEnabled(true);
+        };
+        const task = InteractionManager?.runAfterInteractions
+            ? InteractionManager.runAfterInteractions(enable)
+            : null;
+        if (!task && (!InteractionManager || !InteractionManager.runAfterInteractions)) {
+            rafId = requestAnimationFrame(enable);
+        }
+        return () => {
+            cancelled = true;
+            if (task && typeof task.cancel === "function") {
+                try { task.cancel(); } catch { }
+            }
+            if (rafId != null) {
+                try { cancelAnimationFrame(rafId); } catch { }
+            }
+            setLiveFeaturesEnabled(false);
+        };
+    }, [streamLive, sheetReadyForFocus, lockFriend]);
+
     useAnimatedReaction(
         () => (animatedIndex?.value ?? 0),
         (value) => {
@@ -359,7 +396,7 @@ const ActiveWorkoutModal = ({
     }, [cardWid]);
 
     // Only auto-join when NOT locked to friend-view and wid matches my active wid
-    const shouldAutoJoin = streamLive && !lockFriend && !!(myActiveWid && cardWid && myActiveWid === cardWid);
+    const shouldAutoJoin = liveFeaturesEnabled && !lockFriend && !!(myActiveWid && cardWid && myActiveWid === cardWid);
 
     // Decide initial target for the viewer hook
     const initialViewingUid = lockFriend
@@ -403,7 +440,7 @@ const ActiveWorkoutModal = ({
         setViewing,
         members,
     } = useGroupViewing({
-        wid: streamLive ? cardWid : null,
+        wid: liveFeaturesEnabled ? cardWid : null,
         meUid,
         userImage: global?.userData?.image,
         userHandle: global?.userData?.handle,
@@ -413,7 +450,7 @@ const ActiveWorkoutModal = ({
         suppressSelfStream: true,
         // Enable when: explicitly toggled OR locked to friend. We avoid referencing viewingSelfEffective here
         // to prevent TDZ issues and keep logic simple; spectating flows call setLiveEnabled(true) via menu open.
-        enabled: !!streamLive && (!!liveEnabled || lockFriend),
+        enabled: liveFeaturesEnabled && (!!liveEnabled || lockFriend),
     });
 
     useEffect(() => {
@@ -430,10 +467,10 @@ const ActiveWorkoutModal = ({
     const viewingSelfEffective = lockFriend ? false : viewingSelf;
 
     useEffect(() => {
-        if (!streamLive) return;
+        if (!liveFeaturesEnabled) return;
         if (!viewingSelfEffective) return;
         setLiveEnabled((prev) => (prev ? prev : true));
-    }, [viewingSelfEffective, streamLive]);
+    }, [viewingSelfEffective, liveFeaturesEnabled]);
 
     const updateWorkoutWithMetrics = useCallback((nextValue) => {
         if (!viewingSelfEffective) return;
@@ -817,7 +854,7 @@ const ActiveWorkoutModal = ({
         } catch { }
     }, [targetOpacity, contentDimAnim]);
 
-    const friendWaiting = streamLive && !viewingSelfEffective && waitingFriend && !(baseWorkout?.exercises?.length);
+    const friendWaiting = liveFeaturesEnabled && !viewingSelfEffective && waitingFriend && !(baseWorkout?.exercises?.length);
 
     // List data + emptiness flag (avoid inline recompute and allow conditional header/footer)
     const exercisesData = useMemo(() => (Array.isArray(baseWorkout?.exercises) ? baseWorkout.exercises : []), [baseWorkout?.exercises]);
@@ -1034,18 +1071,18 @@ const ActiveWorkoutModal = ({
     const friendOngoing = useMemo(
         () => (
             !viewingSelfEffective && (
-                streamLive || String(activeWorkout?.wid || "") === cardWid
+                liveFeaturesEnabled || String(activeWorkout?.wid || "") === cardWid
             )
         ),
-        [viewingSelfEffective, activeWorkout?.wid, cardWid, streamLive]
+        [viewingSelfEffective, activeWorkout?.wid, cardWid, liveFeaturesEnabled]
     );
 
     // Am I an active participant in this workout?
     const meIsMember = useMemo(() => {
-        if (!streamLive) return false;
+        if (!liveFeaturesEnabled) return false;
         const my = String(meUid || "");
         return Array.isArray(members) && members.some((m) => String(m) === my);
-    }, [members, meUid, streamLive]);
+    }, [members, meUid, liveFeaturesEnabled]);
 
     // ===== Confetti + Cheer Events =====
     const [confettiTick, setConfettiTick] = useState(0);
@@ -1242,7 +1279,7 @@ const ActiveWorkoutModal = ({
 
     // Listen for cheer events for this workout to trigger confetti when others cheer
     useEffect(() => {
-        if (!streamLive) return;
+        if (!liveFeaturesEnabled) return;
         const wid = String(cardWid || "");
         if (!wid) return;
         const my = String(meUid || "");
@@ -1282,7 +1319,7 @@ const ActiveWorkoutModal = ({
         } catch (e) {
             console.log("cheer listener error", e?.message || e);
         }
-    }, [db, cardWid, meUid, streamLive, fireConfetti, triggerCheerOverlay]);
+    }, [db, cardWid, meUid, liveFeaturesEnabled, fireConfetti, triggerCheerOverlay]);
 
     // ===== Send invites from the picker =====
     const handleInviteSelected = useCallback(async (selectedUsers = []) => {
