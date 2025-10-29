@@ -63,8 +63,8 @@ reports/
 
 ### Server-side code
 # Note: The app imports helpers from `backend/` (e.g., firebase updateDoc),
-# so we must include it in the upload. Keep `functions/` ignored unless needed.
-functions/
+# so we must include it in the upload. Keep the rest of `functions/` ignored.
+functions/**
 !functions/shared/
 !functions/shared/**
 
