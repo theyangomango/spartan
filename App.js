@@ -26,7 +26,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
 import { customFonts } from './fonts';
 import { db } from './firebase.config';
-import { doc, onSnapshot, collection, query, where } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, getDoc, getDocFromCache } from 'firebase/firestore';
 import { initCommunityStats, refreshCommunityStats } from './frontend/logic/communityStats';
 import { Asset } from 'expo-asset';
 
@@ -141,6 +141,8 @@ export default function App() {
     const [isOffline, setIsOffline] = useState(false);
     const [networkType, setNetworkType] = useState(null);
     const [lastNetworkCheck, setLastNetworkCheck] = useState(0);
+    const [pendingChatGate, setPendingChatGate] = useState({ cid: null, ready: true });
+    const [hasShownAppOnce, setHasShownAppOnce] = useState(false);
     const authBackgroundReadyRef = useRef(false);
     const feedOverlayProgressSV = useSharedValue(1);
     const footerVisibilitySV = useSharedValue(0);
@@ -274,7 +276,7 @@ export default function App() {
             authBackgroundReadyRef.current = false;
             setAuthBackgroundReady(false);
         }
-    }, [isAuthenticated]);
+    }, [hasShownAppOnce, isAuthenticated]);
 
     useEffect(() => {
         if (isAuthenticated) {
@@ -291,7 +293,7 @@ export default function App() {
         return () => {
             try { delete global.__markAuthBackgroundReady; } catch { }
         };
-    }, [isAuthenticated]);
+    }, [hasShownAppOnce, isAuthenticated]);
 
     useEffect(() => {
         const setter = (id, suppressed) => {
@@ -413,6 +415,7 @@ export default function App() {
     const lastHandledNotifIdRef = useRef(null);
     const pendingChatCidRef = useRef(null);
     const pendingNavTimerRef = useRef(null);
+    const pendingChatDataRef = useRef(Object.create(null));
     useEffect(() => {
         let mounted = true;
         try {
@@ -438,6 +441,61 @@ export default function App() {
         return () => { mounted = false; };
     }, []);
 
+    const prefetchChatData = useCallback((cid) => {
+        const chatId = typeof cid === 'string' ? cid : (cid ? String(cid) : '');
+        if (!chatId) return;
+        const store = pendingChatDataRef.current || Object.create(null);
+        if (!pendingChatDataRef.current) pendingChatDataRef.current = store;
+        const existing = store[chatId];
+        if (existing && existing.status === 'loading') {
+            return;
+        }
+        if (existing && existing.status === 'ready') {
+            setPendingChatGate((gate) => {
+                if (gate.cid === chatId && !gate.ready) {
+                    return { cid: chatId, ready: true };
+                }
+                return gate;
+            });
+            return;
+        }
+        store[chatId] = { status: 'loading', data: { cid: chatId } };
+        if (!hasShownAppOnce) {
+            setPendingChatGate({ cid: chatId, ready: false });
+        }
+        (async () => {
+            let payload = { cid: chatId };
+            try {
+                const ref = doc(db, 'messages', chatId);
+                let resolved = false;
+                try {
+                    const cached = await getDocFromCache(ref);
+                    if (cached?.exists()) {
+                        payload = { cid: chatId, ...(cached.data() || {}) };
+                        resolved = true;
+                    }
+                } catch {
+                    // cache miss is expected; fall back to network
+                }
+                if (!resolved) {
+                    const snap = await getDoc(ref);
+                    if (snap.exists()) {
+                        payload = { cid: chatId, ...(snap.data() || {}) };
+                    }
+                }
+            } catch {
+                // leave payload as minimal fallback
+            }
+            store[chatId] = { status: 'ready', data: payload };
+            setPendingChatGate((gate) => {
+                if (gate.cid === chatId) {
+                    return { cid: null, ready: true };
+                }
+                return gate;
+            });
+        })();
+    }, [hasShownAppOnce]);
+
     // Navigate to Chat when a push notification response is tapped.
     const tryNavigateToPendingChat = React.useCallback(() => {
         const cid = pendingChatCidRef.current;
@@ -458,18 +516,43 @@ export default function App() {
                 }
             } catch { }
 
-            const ok = navigateRoot && navigateRoot('Chat', { data: { cid }, usersExcludingSelf: [] });
+            const store = pendingChatDataRef.current;
+            const entry = store ? store[cid] : null;
+            if (entry && entry.status === 'loading' && !hasShownAppOnce) {
+                return false;
+            }
+            const chatData = entry?.data || { cid };
+            const currentUid = uidRef.current || global?.userData?.uid || null;
+            const participants = Array.isArray(chatData?.users)
+                ? chatData.users.filter((user) => {
+                    try {
+                        const uid = user?.uid != null ? String(user.uid) : '';
+                        return uid && (!currentUid || uid !== String(currentUid));
+                    } catch {
+                        return false;
+                    }
+                })
+                : [];
+            const params = {
+                cid,
+                data: chatData,
+                usersExcludingSelf: participants,
+            };
+            const ok = navigateRoot && navigateRoot('Chat', params);
             if (ok) {
                 pendingChatCidRef.current = null;
+                setPendingChatGate({ cid: null, ready: true });
                 return true;
             }
         } catch { }
         return false;
-    }, [isAuthenticated]);
+    }, [hasShownAppOnce, isAuthenticated]);
 
     useEffect(() => {
         // If a pending deep link exists and auth just became ready, attempt navigation
         if (pendingChatCidRef.current) {
+            const cid = pendingChatCidRef.current;
+            prefetchChatData(cid);
             // clear any previous timer
             if (pendingNavTimerRef.current) { try { clearTimeout(pendingNavTimerRef.current); } catch { } pendingNavTimerRef.current = null; }
             // try immediately; if not ready, retry shortly
@@ -482,7 +565,7 @@ export default function App() {
         return () => {
             if (pendingNavTimerRef.current) { try { clearTimeout(pendingNavTimerRef.current); } catch { } pendingNavTimerRef.current = null; }
         };
-    }, [isAuthenticated, tryNavigateToPendingChat]);
+    }, [isAuthenticated, prefetchChatData, tryNavigateToPendingChat]);
 
     // Attach response listener and handle cold-start notification response
     useEffect(() => {
@@ -496,7 +579,9 @@ export default function App() {
                 const data = resp?.notification?.request?.content?.data || {};
                 const type = data?.type;
                 if (type === 'chat' && data?.cid) {
-                    pendingChatCidRef.current = String(data.cid);
+                    const cid = String(data.cid);
+                    pendingChatCidRef.current = cid;
+                    prefetchChatData(cid);
                     // Try now or queue until ready
                     if (!tryNavigateToPendingChat()) {
                         // Navigation not ready yet; a separate effect will retry
@@ -521,7 +606,7 @@ export default function App() {
             } catch { }
             notifResponseSubRef.current = null;
         };
-    }, [notificationsRef.current, tryNavigateToPendingChat]);
+    }, [notificationsRef.current, prefetchChatData, tryNavigateToPendingChat]);
 
     // Request push permissions and register token on login
     useEffect(() => {
@@ -666,6 +751,9 @@ export default function App() {
     useEffect(() => {
         logoutCleanupRef.current = () => {
             try { pendingChatCidRef.current = null; } catch { }
+            pendingChatDataRef.current = Object.create(null);
+            setPendingChatGate({ cid: null, ready: true });
+            setHasShownAppOnce(false);
             if (pendingNavTimerRef.current) {
                 try { clearTimeout(pendingNavTimerRef.current); } catch { }
                 pendingNavTimerRef.current = null;
@@ -868,9 +956,20 @@ export default function App() {
     const hasUserData = authChecked && (!isAuthenticated || userReady);
     const shouldWaitForHubRow = isAuthenticated;
     const shouldWaitForAuthBackground = !isAuthenticated;
-    const appReady = fontsReady
+    const baseAppReady = fontsReady
         && (hasUserData || appForceReady)
         && (communityStatsReady || appForceReady);
+    const shouldBlockPendingChat = !hasShownAppOnce
+        && !appForceReady
+        && !!(pendingChatGate?.cid)
+        && !pendingChatGate.ready;
+    const appReady = baseAppReady && !shouldBlockPendingChat;
+
+    useEffect(() => {
+        if (appReady && !hasShownAppOnce) {
+            setHasShownAppOnce(true);
+        }
+    }, [appReady, hasShownAppOnce]);
 
     // Hide splash only after the first layout to avoid white flash
     const [hasLaidOut, setHasLaidOut] = useState(false);
@@ -911,6 +1010,7 @@ export default function App() {
                 authBackgroundReadyRef.current = true;
                 setAuthBackgroundReady(true);
             }
+            setPendingChatGate({ cid: null, ready: true });
             SplashScreen.hideAsync().catch(() => { });
         }
     }, [appForceReady]);

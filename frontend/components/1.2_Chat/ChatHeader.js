@@ -35,22 +35,20 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
     const handles = sanitizedHandles.filter(Boolean).join(", ");
     // Show only first names (split by space)
     const names = "";
-    const u0 = usersExcludingSelf[0];
-    const u1 = usersExcludingSelf[1];
-    const p0 = u0
-        ? usePfp(
-            u0.uid,
-            u0.pfpVersion ?? 0,
-            u0?.pfp || u0?.pfpUrl || u0?.image || u0?.photoURL || u0?.avatar || ""
-        )
-        : null;
-    const p1 = u1
-        ? usePfp(
-            u1.uid,
-            u1.pfpVersion ?? 0,
-            u1?.pfp || u1?.pfpUrl || u1?.image || u1?.photoURL || u1?.avatar || ""
-        )
-        : null;
+    const u0 = usersExcludingSelf[0] || null;
+    const u1 = usersExcludingSelf[1] || null;
+    const fallback0 = u0?.pfp || u0?.pfpUrl || u0?.image || u0?.photoURL || u0?.avatar || "";
+    const fallback1 = u1?.pfp || u1?.pfpUrl || u1?.image || u1?.photoURL || u1?.avatar || "";
+    const p0 = usePfp(
+        u0?.uid || null,
+        u0?.pfpVersion ?? 0,
+        fallback0
+    );
+    const p1 = usePfp(
+        u1?.uid || null,
+        u1?.pfpVersion ?? 0,
+        fallback1
+    );
 
     const onBack = () => {
         if (typeof toMessages === "function") toMessages();

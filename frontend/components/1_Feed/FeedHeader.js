@@ -23,7 +23,7 @@ import { db } from "../../../firebase.config";
 import { collection, query, where, onSnapshot, getDocs, orderBy, limit, doc } from "firebase/firestore";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import theme from "../../theme/mfpDark";
-import scaleSize from "../../helper/scaleSize";
+import scaleSize, { ts } from "../../helper/scaleSize";
 import { withStrongPress, strong as hapticStrong } from "../../utils/haptics";
 import DismissableTextInput from "../common/DismissableTextInput";
 // Single root navigator; no need for StackActions/nested refs here
@@ -756,7 +756,7 @@ const styles = StyleSheet.create({
     },
     scopeSelectorLabel: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(17.5),
+        fontSize: ts(17),
         color: theme.textPrimary,
         includeFontPadding: false,
     },

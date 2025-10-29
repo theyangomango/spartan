@@ -104,7 +104,7 @@ export default function Feed({ navigation, route }) {
     const insets = useStableSafeAreaInsets();
     const isScreenFocused = useIsFocused();
 
-    const UID = "userData" in global ? global.userData.uid : route?.params?.uid;
+    const UID = route?.params?.uid ?? global?.userData?.uid ?? null;
 
     const followingList = global.userData ? global.userData?.following : [];
     const [feedScope, setFeedScope] = useState("following");

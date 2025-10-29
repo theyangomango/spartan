@@ -47,9 +47,23 @@ const COLORS = { surface: theme.surface, primary: theme.primary, hairline: theme
 
 export default function Chat({ navigation, route }) {
     const insets = useSafeAreaInsets();
-    const { usersExcludingSelf, data: initialData, index } = route.params;
-
-    const [data, setData] = useState(initialData);
+    const params = route?.params || {};
+    const initialUsers = Array.isArray(params.usersExcludingSelf) ? params.usersExcludingSelf : [];
+    const seededCid = (() => {
+        const fromParam = typeof params.cid === 'string' && params.cid ? params.cid : null;
+        const fromData = typeof params?.data?.cid === 'string' && params.data.cid ? params.data.cid : null;
+        return fromParam || fromData || '';
+    })();
+    const seededData = (() => {
+        if (params && typeof params.data === 'object' && params.data) {
+            return { cid: seededCid, ...params.data };
+        }
+        if (seededCid) return { cid: seededCid };
+        return { cid: '' };
+    })();
+    const [data, setData] = useState(seededData);
+    const usersExcludingSelf = initialUsers;
+    const chatCid = typeof data?.cid === 'string' ? data.cid : seededCid;
     const [text, setText] = useState("");
     const [isFocused, setFocused] = useState(false);
     const [isUploading, setUploading] = useState(false);
@@ -59,7 +73,7 @@ export default function Chat({ navigation, route }) {
     const [sheet, setSheet] = useState({ visible: false, anchor: null, msg: null });
 
     const flatRef = useRef(null);
-    const messagesRaw = useChatMessages(data.cid);
+    const messagesRaw = useChatMessages(chatCid);
     const currentUid = global?.userData?.uid || null;
 
     // Derive header participants when opened via push (route usersExcludingSelf may be empty)
@@ -73,6 +87,11 @@ export default function Chat({ navigation, route }) {
                 handle: typeof u.handle === 'string' ? u.handle : (typeof u.username === 'string' ? u.username : ''),
                 name: typeof u.name === 'string' ? u.name : (typeof u.handle === 'string' ? u.handle : ''),
                 pfpVersion: Number(u.pfpVersion || 0),
+                pfp: u?.pfp || u?.pfpUrl || u?.image || u?.photoURL || u?.avatar || '',
+                pfpUrl: u?.pfpUrl || '',
+                image: u?.image || '',
+                photoURL: u?.photoURL || '',
+                avatar: u?.avatar || '',
             }));
         return out;
     }, [usersExcludingSelf, data?.users, currentUid]);
@@ -84,11 +103,12 @@ export default function Chat({ navigation, route }) {
 
     // keep outer chat doc up-to-date
     useEffect(() => {
-        const unsub = onSnapshot(doc(db, "messages", data.cid), (snap) => {
-            if (snap.exists()) setData({ ...snap.data(), cid: data.cid });
+        if (!chatCid) return () => {};
+        const unsub = onSnapshot(doc(db, "messages", chatCid), (snap) => {
+            if (snap.exists()) setData({ ...snap.data(), cid: chatCid });
         });
         return () => unsub();
-    }, [data.cid]);
+    }, [chatCid]);
 
     const scrollToLatest = () => {
         try {
@@ -100,13 +120,14 @@ export default function Chat({ navigation, route }) {
     const sendText = async () => {
         const t = (text || "").trim();
         if (!t) return;
+        if (!chatCid) return;
         // Clear input immediately and prep UI
         setText("");
         setReplyDraft(null);
         scrollToLatest();
 
         await sendMessageV2({
-            cid: data.cid,
+            cid: chatCid,
             sender: {
                 uid: currentUid,
                 handle: global.userData.handle,
@@ -130,6 +151,7 @@ export default function Chat({ navigation, route }) {
     };
 
     const openPicker = async () => {
+        if (!chatCid) return;
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== "granted") return;
         const res = await ImagePicker.launchImageLibraryAsync({
@@ -143,12 +165,12 @@ export default function Chat({ navigation, route }) {
         try {
             setUploading(true);
             const uploaded = await uploadMediaAssets({
-                cid: data.cid,
+                cid: chatCid,
                 uid: currentUid,
                 assets: res.assets || [],
             });
             await sendMessageV2({
-                cid: data.cid,
+                cid: chatCid,
                 sender: {
                     uid: currentUid,
                     handle: global.userData.handle,
@@ -170,9 +192,9 @@ export default function Chat({ navigation, route }) {
     const closeActions = () => setSheet((s) => ({ ...s, visible: false }));
 
     const handleReaction = async (key) => {
-        if (!sheet.msg) return;
+        if (!sheet.msg || !chatCid) return;
         await toggleReactionV2({
-            cid: data.cid,
+            cid: chatCid,
             messageId: sheet.msg.id || sheet.msg.mid,
             emoji: key,
             uid: currentUid,
