@@ -4,7 +4,6 @@ import ProfileHeader from "../components/5_Profile/ProfileTop/ProfileHeader";
 import ProfileInfo from "../components/5_Profile/ProfileTop/ProfileInfo";
 import ProfileRowButtons from "../components/5_Profile/ProfileTop/ProfileRowButtons";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
-import EditProfileBottomSheet from "../components/5_Profile/EditProfile/EditProfileBottomSheet";
 // ⬇️ swap OUT the old ViewStatsBottomSheet
 // import ViewStatsBottomSheet from "../components/5_Profile/ViewStats/ViewStatsBottomSheet";
 // ⬇️ and swap IN the Competition screen’s bottom sheet
@@ -19,6 +18,7 @@ import { subscribeUserData } from "../utils/userDataEvents";
 import { countLoggedFoods } from "../utils/loggedFoods";
 import { clearFooterSuppression } from "../state/footerSuppressionStore";
 import pickAndUploadProfilePhoto from "../utils/pickAndUploadProfilePhoto";
+import updateDoc from "../../backend/helper/firebase/updateDoc";
 
 export default function Profile({ navigation }) {
     const [, setRerender] = useState(0);
@@ -28,7 +28,6 @@ export default function Profile({ navigation }) {
         return () => off && off();
     }, []);
     const userData = global.userData || {};
-    const [isEditProfileBottomSheetVisible, setIsEditProfileBottomSheetVisible] = useState(false);
 
     // Reuse this flag to show the Competition-style UserStatsBottomSheet
     const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
@@ -38,6 +37,10 @@ export default function Profile({ navigation }) {
     const [pfp, setPFP] = useState(() => (global?.userData?.image || ""));
     const isPickingPfpRef = useRef(false);
     const [loggedFoodsCount, setLoggedFoodsCount] = useState(() => countLoggedFoods(userData?.loggedFoods || {}));
+    const [bioDraft, setBioDraft] = useState(() => (userData?.bio ?? "").toString());
+    const [isEditingBio, setIsEditingBio] = useState(false);
+    const [bioFocusSignal, setBioFocusSignal] = useState(0);
+    const [isSavingBio, setIsSavingBio] = useState(false);
 
     // Workout viewer state (reuses Feed viewer)
     const [profileSelectedWorkout, setProfileSelectedWorkout] = useState(null);
@@ -88,6 +91,44 @@ export default function Profile({ navigation }) {
         return unsubscribe;
     }, []);
 
+    useEffect(() => {
+        if (isEditingBio || isSavingBio) return;
+        setBioDraft((global.userData?.bio ?? "").toString());
+    }, [userData?.bio, isEditingBio, isSavingBio]);
+
+    const commitBioChanges = useCallback(async () => {
+        if (!isEditingBio) return;
+        const trimmed = bioDraft.trim();
+        const current = (global.userData?.bio ?? "").toString();
+        if (!userData?.uid) {
+            setIsEditingBio(false);
+            setBioDraft(current);
+            return;
+        }
+
+        const nextValue = trimmed;
+        const previousValue = current;
+
+        setBioDraft(nextValue);
+        global.userData.bio = nextValue;
+        setIsEditingBio(false);
+
+        if (nextValue === previousValue) {
+            return;
+        }
+
+        setIsSavingBio(true);
+        try {
+            await updateDoc("users", userData.uid, { bio: nextValue });
+        } catch (error) {
+            console.warn("Failed to update bio", error);
+            setBioDraft(previousValue);
+            global.userData.bio = previousValue;
+        } finally {
+            setIsSavingBio(false);
+        }
+    }, [bioDraft, isEditingBio, userData?.uid]);
+
     function uploadPost() {
         navigation.navigate('PostOptions', {
             images: [],
@@ -95,9 +136,15 @@ export default function Profile({ navigation }) {
         });
     }
 
-    function handleOpenEditProfile() {
-        setIsEditProfileBottomSheetVisible(true);
-    }
+    const handleEditBio = useCallback(() => {
+        if (isEditingBio) {
+            void commitBioChanges();
+            return;
+        }
+        setBioDraft((global.userData?.bio ?? "").toString());
+        setIsEditingBio(true);
+        setBioFocusSignal((signal) => signal + 1);
+    }, [commitBioChanges, isEditingBio]);
 
     const handleDirectPfpEdit = useCallback(async () => {
         if (isPickingPfpRef.current) return;
@@ -147,9 +194,15 @@ export default function Profile({ navigation }) {
                         onPressFollowers={() => { setFollowListMode('followers'); setIsFollowListVisible(true); }}
                         onPressFollowing={() => { setFollowListMode('following'); setIsFollowListVisible(true); }}
                         onPressEditPfp={handleDirectPfpEdit}
+                        isEditingBio={isEditingBio}
+                        isSavingBio={isSavingBio}
+                        bioValue={bioDraft}
+                        onBioChange={(value) => setBioDraft(value)}
+                        onBioSubmit={commitBioChanges}
+                        focusBioSignal={bioFocusSignal}
                     />
                     <ProfileRowButtons
-                        handleOpenEditProfile={handleOpenEditProfile}
+                        handleEditBio={handleEditBio}
                         handleOpenViewStats={handleOpenViewStats}
                     />
                     <WorkoutStats userData={userData} />
@@ -177,12 +230,6 @@ export default function Profile({ navigation }) {
                     />
                 </View>
             </ScrollView>
-
-            <EditProfileBottomSheet
-                isVisible={isEditProfileBottomSheetVisible}
-                setIsVisible={setIsEditProfileBottomSheetVisible}
-                setPFP={setPFP}
-            />
 
             {/* ⬇️ Use the same modal as Competition screen */}
             <UserStatsBottomSheet

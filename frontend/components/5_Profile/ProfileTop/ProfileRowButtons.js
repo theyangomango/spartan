@@ -8,12 +8,12 @@ import { withStrongPress } from "../../../utils/haptics";
 const { height: screenHeight } = Dimensions.get("window");
 const scaledSize = (size) => scaleSize(size);
 
-export default function ProfileRowButtons({ handleOpenEditProfile, handleOpenViewStats }) {
+export default function ProfileRowButtons({ handleEditBio, handleOpenViewStats }) {
     return (
         <View style={styles.row}>
-            <RNBounceable style={styles.flex} onPress={withStrongPress(handleOpenEditProfile)}>
+            <RNBounceable style={styles.flex} onPress={withStrongPress(handleEditBio)}>
                 <View style={[styles.button, styles.flex]}>
-                    <Text style={styles.edit_profile_text}>Edit Profile</Text>
+                    <Text style={styles.edit_profile_text}>Edit Bio</Text>
                 </View>
             </RNBounceable>
 

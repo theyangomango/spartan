@@ -1,24 +1,48 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { StyleSheet, View, Text, Dimensions, Pressable } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../../helper/usePFPs";
 import theme from '../../../theme/mfpDark';
 import { withStrongPress } from "../../../utils/haptics";
+import DismissableTextInput from "../../common/DismissableTextInput";
 import formatHexStat from "../../../utils/formatHexStat";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
 
-export default function ProfileInfo({ userData, pfp, onPressFollowers, onPressFollowing, onPressEditPfp }) {
+export default function ProfileInfo({
+    userData,
+    pfp,
+    onPressFollowers,
+    onPressFollowing,
+    onPressEditPfp,
+    isEditingBio = false,
+    isSavingBio = false,
+    bioValue = "",
+    onBioChange,
+    onBioSubmit,
+    focusBioSignal = 0,
+}) {
     const cachedPfp = usePfp(String(userData?.uid || ''), userData?.pfpVersion || 0);
     const pfpUri = pfp || cachedPfp || '';
     // Derive counts from array lengths for accuracy
     const followersCount = Array.isArray(userData?.followers) ? userData.followers.length : 0;
     const followingCount = Array.isArray(userData?.following) ? userData.following.length : 0;
     const overallLabel = `${formatHexStat(userData?.statsHexagon?.overall)} overall`;
-    const trimmedBio = userData?.bio?.trim?.() ?? '';
+    const bioDraft = typeof bioValue === "string" ? bioValue : String(bioValue ?? "");
+    const trimmedBio = bioDraft.trim();
     const bioText = trimmedBio.length > 0 ? trimmedBio : 'No bio yet...';
+    const bioInputRef = useRef(null);
+
+    useEffect(() => {
+        if (!isEditingBio) return undefined;
+        const timer = setTimeout(() => {
+            try { bioInputRef.current?.focus?.(); } catch {}
+        }, 120);
+        return () => clearTimeout(timer);
+    }, [isEditingBio, focusBioSignal]);
+
     const isEditable = typeof onPressEditPfp === 'function';
 
     const renderPfpImage = () => (
@@ -70,7 +94,29 @@ export default function ProfileInfo({ userData, pfp, onPressFollowers, onPressFo
                     <Text style={styles.score_text}>{overallLabel}</Text>
                 </View>
                 <View style={styles.bio_ctnr}>
-                    <Text style={[styles.bio_text, trimmedBio.length === 0 && styles.bio_placeholder_text]}>{bioText}</Text>
+                    {isEditingBio ? (
+                        <DismissableTextInput
+                            ref={bioInputRef}
+                            style={[
+                                styles.bio_text,
+                                styles.bio_input,
+                                isSavingBio && styles.bio_input_disabled,
+                                trimmedBio.length === 0 && styles.bio_placeholder_text,
+                            ]}
+                            value={bioDraft}
+                            onChangeText={onBioChange}
+                            editable={!isSavingBio}
+                            multiline
+                            placeholder="No bio yet..."
+                            placeholderTextColor={theme.textSecondary}
+                            onSubmitEditing={onBioSubmit}
+                            onBlur={onBioSubmit}
+                            returnKeyType="done"
+                            blurOnSubmit
+                        />
+                    ) : (
+                        <Text style={[styles.bio_text, trimmedBio.length === 0 && styles.bio_placeholder_text]}>{bioText}</Text>
+                    )}
                 </View>
             </View>
         </View>
@@ -166,6 +212,18 @@ const styles = StyleSheet.create({
         color: theme.textSecondary,
         lineHeight: scaledSize(17),
         letterSpacing: 0.1,
+        textAlign: 'center',
+        paddingHorizontal: scaledSize(8),
+    },
+    bio_input: {
+        backgroundColor: 'transparent',
+        paddingHorizontal: 0,
+        paddingVertical: 0,
+        minWidth: scaleSize(200),
+        textAlignVertical: 'top',
+    },
+    bio_input_disabled: {
+        opacity: 0.6,
     },
     bio_placeholder_text: {
         color: '#FFFFFF',
