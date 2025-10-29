@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { StyleSheet, View, Text, Dimensions, Pressable } from "react-native";
+import React, { useEffect, useRef, useMemo } from "react";
+import { StyleSheet, View, Text, Dimensions, Pressable, Animated } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../../helper/usePFPs";
@@ -34,6 +34,10 @@ export default function ProfileInfo({
     const trimmedBio = bioDraft.trim();
     const bioText = trimmedBio.length > 0 ? trimmedBio : 'No bio yet...';
     const bioInputRef = useRef(null);
+    const editBadgeScale = useRef(new Animated.Value(1)).current;
+    const pfpScale = useRef(new Animated.Value(1)).current;
+
+    const handleEditPfpPress = useMemo(() => withStrongPress(onPressEditPfp), [onPressEditPfp]);
 
     useEffect(() => {
         if (!isEditingBio) return undefined;
@@ -42,6 +46,27 @@ export default function ProfileInfo({
         }, 120);
         return () => clearTimeout(timer);
     }, [isEditingBio, focusBioSignal]);
+
+    const triggerBounceAnimations = () => {
+        pfpScale.setValue(0.94);
+        editBadgeScale.setValue(0.92);
+        Animated.parallel([
+            Animated.spring(pfpScale, {
+                toValue: 1,
+                stiffness: 240,
+                damping: 16,
+                mass: 0.7,
+                useNativeDriver: true,
+            }),
+            Animated.spring(editBadgeScale, {
+                toValue: 1,
+                stiffness: 220,
+                damping: 14,
+                mass: 0.7,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    };
 
     const isEditable = typeof onPressEditPfp === 'function';
 
@@ -70,13 +95,28 @@ export default function ProfileInfo({
                     {isEditable ? (
                         <Pressable
                             style={[styles.pfp_pressable]}
-                            onPress={withStrongPress(onPressEditPfp)}
+                            onPress={() => {
+                                triggerBounceAnimations();
+                                handleEditPfpPress?.();
+                            }}
                             hitSlop={{ top: scaledSize(6), bottom: scaledSize(6), left: scaledSize(6), right: scaledSize(6) }}
                         >
-                            {renderPfpImage()}
-                            <View style={styles.edit_badge}>
+                            <Animated.View style={{ transform: [{ scale: pfpScale }] }}>
+                                {renderPfpImage()}
+                            </Animated.View>
+                            <Animated.View
+                                style={[
+                                    styles.edit_badge,
+                                    {
+                                        transform: [
+                                            { translateY: scaledSize(10) },
+                                            { scale: editBadgeScale },
+                                        ],
+                                    },
+                                ]}
+                            >
                                 <Text style={styles.edit_badge_text}>Edit</Text>
-                            </View>
+                            </Animated.View>
                         </Pressable>
                     ) : (
                         renderPfpImage()
@@ -240,7 +280,6 @@ const styles = StyleSheet.create({
         shadowRadius: scaledSize(4),
         shadowOffset: { width: 0, height: scaledSize(2) },
         elevation: 4,
-        transform: [{ translateY: scaledSize(10) }],
     },
     edit_badge_text: {
         fontFamily: 'Outfit_600SemiBold',

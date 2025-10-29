@@ -18,6 +18,7 @@ import { subscribeUserData } from "../utils/userDataEvents";
 import { countLoggedFoods } from "../utils/loggedFoods";
 import { clearFooterSuppression } from "../state/footerSuppressionStore";
 import pickAndUploadProfilePhoto from "../utils/pickAndUploadProfilePhoto";
+import * as ImagePicker from "expo-image-picker";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 
 export default function Profile({ navigation }) {
@@ -89,6 +90,23 @@ export default function Profile({ navigation }) {
             setLoggedFoodsCount(countLoggedFoods(nextUser?.loggedFoods || {}));
         });
         return unsubscribe;
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            try {
+                const current = await ImagePicker.getMediaLibraryPermissionsAsync();
+                if (!cancelled && !current?.granted) {
+                    await ImagePicker.requestMediaLibraryPermissionsAsync();
+                }
+            } catch {
+                // ignore prefetch errors
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     useEffect(() => {
