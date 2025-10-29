@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
         color: theme.textSecondary,
         opacity: 0.92,
         fontSize: CONTENT_FONT,
-        paddingTop: scaleSize(3)
+        paddingTop: scaleSize(1)
     },
 
     timeCol: { paddingLeft: scaleSize(8), alignItems: "flex-end", justifyContent: "center" },

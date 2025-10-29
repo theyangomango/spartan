@@ -310,6 +310,24 @@ const ActiveWorkoutModal = ({
     const hasFocusedTitleRef = useRef("");
     const ensuredSelfViewRef = useRef(new Set());
     const [keyboardHeight, setKeyboardHeight] = useState(0);
+    const [sheetReadyForFocus, setSheetReadyForFocus] = useState(false);
+    const sheetReadyRef = useRef(false);
+    const updateSheetReadyForFocus = useCallback((ready) => {
+        setSheetReadyForFocus((prev) => (prev === ready ? prev : ready));
+    }, []);
+
+    useAnimatedReaction(
+        () => (animatedIndex?.value ?? 0),
+        (value) => {
+            'worklet';
+            const ready = value >= 0.85;
+            if (ready !== sheetReadyRef.current) {
+                sheetReadyRef.current = ready;
+                runOnJS(updateSheetReadyForFocus)(ready);
+            }
+        },
+        [animatedIndex]
+    );
 
     // Track keyboard height and add bottom padding so content can scroll above it
     useEffect(() => {
@@ -489,6 +507,7 @@ const ActiveWorkoutModal = ({
 
     useEffect(() => {
         if (!viewingSelfEffective) return;
+        if (!sheetReadyForFocus) return;
         const wid = String(workout?.wid || "");
         if (!wid) return;
         const shouldFocus = !!workout?.__focusTitle || (!!workout?.__justStarted && hasFocusedTitleRef.current !== wid);
@@ -545,7 +564,7 @@ const ActiveWorkoutModal = ({
         }
 
         return () => { cancelled = true; };
-    }, [viewingSelfEffective, workout?.__focusTitle, workout?.__justStarted, workout?.wid, workoutNameValue, updateWorkoutWithMetrics, workout]);
+    }, [viewingSelfEffective, workout?.__focusTitle, workout?.__justStarted, workout?.wid, workoutNameValue, updateWorkoutWithMetrics, workout, sheetReadyForFocus]);
 
     const handleTitleInputRef = useCallback((node) => {
         titleInputRef.current = node;
