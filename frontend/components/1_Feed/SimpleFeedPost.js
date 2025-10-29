@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import FastImage from "react-native-fast-image";
 import { Heart, Messages1 } from "iconsax-react-native";
+import Svg, { Path } from "react-native-svg";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Video from "react-native-video";
 
@@ -164,6 +165,38 @@ const initialsFrom = (name = "") => {
     return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
 };
 
+const OptionsWeightIcon = ({ size, color, style }) => (
+    <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        style={style}
+    >
+        <Path
+            d="M17.18 18c2.4 0 3-1.35 3-3V9c0-1.65-.6-3-3-3s-3 1.35-3 3v6c0 1.65.6 3 3 3Z"
+            stroke={color}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+        <Path
+            d="M6.82 18c-2.4 0-3-1.35-3-3V9c0-1.65.6-3 3-3s3 1.35 3 3v6c0 1.65-.6 3-3 3Z"
+            stroke={color}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+        <Path
+            d="M9.82 12h4.36M22.5 14.5v-5M1.5 14.5v-5"
+            stroke={color}
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </Svg>
+);
+
 const SimpleFeedPost = ({
     data,
     index,
@@ -176,6 +209,7 @@ const SimpleFeedPost = ({
     onPressLikes,
     onPressEditPost,
     onPressDeletePost,
+    onPressEditWorkout,
 }) => {
     const highlightOpacity = useRef(new Animated.Value(0)).current;
     const isHighlighted = useMemo(() => {
@@ -681,6 +715,10 @@ const SimpleFeedPost = ({
     }, [workout]);
 
     const canAutoDeleteWorkout = useMemo(() => Boolean(isViewerOwner && workoutDeleteIdentifier), [isViewerOwner, workoutDeleteIdentifier]);
+    const canEditWorkoutOption = useMemo(
+        () => Boolean(isViewerOwner && workout && typeof onPressEditWorkout === "function"),
+        [isViewerOwner, workout, onPressEditWorkout]
+    );
     const deleteOptionLabel = canAutoDeleteWorkout ? "Delete Post & Workout" : "Delete Post";
     const deleteConfirmTitle = canAutoDeleteWorkout ? "Delete post & workout?" : "Delete post?";
     const deleteConfirmMessage = canAutoDeleteWorkout
@@ -842,6 +880,11 @@ const SimpleFeedPost = ({
     const handlePressEditPost = useCallback(() => {
         closeOptionsSheet(() => onPressEditPost?.(index, data));
     }, [closeOptionsSheet, onPressEditPost, index, data]);
+
+    const handlePressEditWorkout = useCallback(() => {
+        if (!workout) return;
+        closeOptionsSheet(() => onPressEditWorkout?.(index, data));
+    }, [closeOptionsSheet, onPressEditWorkout, index, data, workout]);
 
     const handlePressDeletePost = useCallback(() => {
         closeOptionsSheet(() => {
@@ -1218,6 +1261,34 @@ const SimpleFeedPost = ({
                                     />
                                 </View>
                             </Pressable>
+                            {canEditWorkoutOption ? (
+                                <>
+                                    <View style={styles.optionsDivider} />
+                                    <Pressable
+                                        style={({ pressed }) => [
+                                            styles.optionsItem,
+                                            pressed ? styles.optionsItemPressed : null,
+                                        ]}
+                                        onPress={handlePressEditWorkout}
+                                    >
+                                        <View style={styles.optionsItemRow}>
+                                            <View style={styles.optionsItemLeft}>
+                                                <OptionsWeightIcon
+                                                    size={scaleSize(20)}
+                                                    color={theme.textPrimary}
+                                                    style={styles.optionsItemIcon}
+                                                />
+                                                <Text style={styles.optionsItemText}>Edit Workout</Text>
+                                            </View>
+                                            <MaterialCommunityIcons
+                                                name="chevron-right"
+                                                size={scaleSize(20)}
+                                                color="rgba(255,255,255,0.32)"
+                                            />
+                                        </View>
+                                    </Pressable>
+                                </>
+                            ) : null}
                             <View style={styles.optionsDivider} />
                             <Pressable
                                 style={({ pressed }) => [

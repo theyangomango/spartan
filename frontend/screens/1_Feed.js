@@ -532,7 +532,7 @@ export default function Feed({ navigation, route }) {
         }
     }, [navigation]);
 
-    const openViewWorkoutModal = useCallback((index) => {
+    const openViewWorkoutModal = useCallback((index, options = {}) => {
         if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
             return;
         }
@@ -540,6 +540,8 @@ export default function Feed({ navigation, route }) {
         const post = listData[index];
         const workoutInput = post?.workout;
         if (!workoutInput) return;
+
+        const startEditing = Boolean(options?.startEditing);
 
         const fallback = {
             wid: workoutInput?.wid || workoutInput?.id,
@@ -608,7 +610,7 @@ export default function Feed({ navigation, route }) {
             (typeof post?.pid === "string" && post.pid.startsWith("workout:live"))
         );
 
-        navigation?.navigate?.("PastWorkout", {
+        const params = {
             workout: sanitizedWorkout,
             owner: {
                 uid: ownerUid,
@@ -631,8 +633,18 @@ export default function Feed({ navigation, route }) {
                 tagged: taggedForRoute,
             },
             isLiveWorkout: isLiveWorkoutPost,
-        });
+        };
+
+        if (startEditing) {
+            params.startEditing = true;
+        }
+
+        navigation?.navigate?.("PastWorkout", params);
     }, [listData, navigation]);
+
+    const handleEditWorkout = useCallback((index) => {
+        openViewWorkoutModal(index, { startEditing: true });
+    }, [openViewWorkoutModal]);
 
     const scrollToTop = useCallback(() => {
         if (flatListRef.current) {
@@ -735,8 +747,9 @@ export default function Feed({ navigation, route }) {
             openViewWorkoutModal={openViewWorkoutModal}
             onDeletePost={handleDeletePost}
             onEditPost={handleEditPost}
+            onEditWorkout={handleEditWorkout}
         />
-    ), [highlightSignal, openCommentsModal, openShareModal, openLikesSheet, toViewProfilePosts, openViewWorkoutModal, handleDeletePost, handleEditPost]);
+    ), [highlightSignal, openCommentsModal, openShareModal, openLikesSheet, toViewProfilePosts, openViewWorkoutModal, handleDeletePost, handleEditPost, handleEditWorkout]);
 
     const headerComponent = useMemo(() => (
         <FeedHeader

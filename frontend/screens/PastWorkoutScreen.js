@@ -443,6 +443,17 @@ const PastWorkoutScreen = () => {
     const canEditWorkout = Boolean(isOwner && !isLiveWorkout);
     const [deletingWorkout, setDeletingWorkout] = useState(false);
     const [editingVisible, setEditingVisible] = useState(false);
+    const startEditingFromRoute = Boolean(route.params?.startEditing);
+
+    useEffect(() => {
+        if (!startEditingFromRoute) return;
+        if (!canEditWorkout) {
+            try { navigation?.setParams?.({ startEditing: false }); } catch { }
+            return;
+        }
+        setEditingVisible(true);
+        try { navigation?.setParams?.({ startEditing: false }); } catch { }
+    }, [startEditingFromRoute, canEditWorkout, navigation]);
 
     const handleBack = useCallback(() => {
         navigation.goBack();

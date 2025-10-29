@@ -13,6 +13,7 @@ const PostListItem = memo(function PostListItem({
   openViewWorkoutModal,
   onDeletePost,
   onEditPost,
+  onEditWorkout,
 }) {
   const handleProfile = useCallback(() => {
     if (typeof toViewProfilePosts === "function") {
@@ -56,6 +57,12 @@ const PostListItem = memo(function PostListItem({
     }
   }, [onEditPost, index]);
 
+  const handleEditWorkout = useCallback(() => {
+    if (typeof onEditWorkout === "function") {
+      onEditWorkout(index);
+    }
+  }, [onEditWorkout, index]);
+
   return (
     <SimpleFeedPost
       data={item}
@@ -69,6 +76,7 @@ const PostListItem = memo(function PostListItem({
       onPressLikes={handleLikes}
       onPressDeletePost={handleDeletePost}
       onPressEditPost={typeof onEditPost === "function" ? handleEditPost : undefined}
+      onPressEditWorkout={typeof onEditWorkout === "function" ? handleEditWorkout : undefined}
     />
   );
 });
