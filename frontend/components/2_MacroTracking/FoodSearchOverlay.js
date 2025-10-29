@@ -86,6 +86,7 @@ export default function FoodSearchOverlay({
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(false);
     const [page, setPage] = useState(0);
+    const [loadingMorePage, setLoadingMorePage] = useState(null);
     const inputRef = useRef(null);
     const searchTokenRef = useRef(0);
     const latestQueryRef = useRef('');
@@ -228,8 +229,10 @@ export default function FoodSearchOverlay({
             setLoading(true);
             setLoadingMore(false);
             setHasMore(false);
+            setLoadingMorePage(null);
         } else {
             setLoadingMore(true);
+            setLoadingMorePage(nextPage);
         }
         const token = searchTokenRef.current;
         latestQueryRef.current = term;
@@ -257,19 +260,21 @@ export default function FoodSearchOverlay({
             if (searchTokenRef.current !== token) return;
             if (append) {
                 setLoadingMore(false);
+                setLoadingMorePage((current) => (current === nextPage ? null : current));
             } else {
                 setLoading(false);
+                setLoadingMorePage(null);
             }
         }
     }, []);
 
     const handleLoadMore = useCallback(() => {
         if (!visible) return;
-        if (!hasMore || loading || loadingMore) return;
+        if (!hasMore || loading || loadingMore || loadingMorePage !== null) return;
         const term = latestQueryRef.current;
         if (!term) return;
         void performSearch(term, page + 1, { append: true });
-    }, [hasMore, loading, loadingMore, page, performSearch, visible]);
+    }, [hasMore, loading, loadingMore, loadingMorePage, page, performSearch, visible]);
 
     useEffect(() => {
         if (!visible) {
@@ -280,6 +285,7 @@ export default function FoodSearchOverlay({
             setHasMore(false);
             setResults([]);
             setPage(0);
+            setLoadingMorePage(null);
             return undefined;
         }
         const task = InteractionManager.runAfterInteractions(() => {
@@ -291,6 +297,7 @@ export default function FoodSearchOverlay({
             setLoadingMore(false);
             setHasMore(false);
             setPage(0);
+            setLoadingMorePage(null);
             // slight timeout to allow Modal to attach before focusing
             setTimeout(() => inputRef.current?.focus?.(), 40);
         });
@@ -309,6 +316,7 @@ export default function FoodSearchOverlay({
             setLoadingMore(false);
             setHasMore(false);
             setPage(0);
+            setLoadingMorePage(null);
             return;
         }
         let cancelled = false;

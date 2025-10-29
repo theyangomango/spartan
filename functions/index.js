@@ -344,18 +344,6 @@ export const fatsecretSearchFood = onCall(
         };
 
         const qNorm = normalize(qRaw);
-        const cacheKey = `${qNorm}|${safeMax}|${safePage}`;
-        const cachedEntry = fatsecretSearchCache.get(cacheKey);
-        if (cachedEntry && cachedEntry.expiresAt > overallStartedAt) {
-            logger.info("fatsecretSearchFood stats", {
-                query: qNorm,
-                safeMax,
-                safePage,
-                cache: "hit",
-                durationMs: Date.now() - overallStartedAt,
-            });
-            return cachedEntry.value;
-        }
 
         const qTokens = toTokens(qRaw);
         const candidates = new Set();
@@ -429,6 +417,30 @@ export const fatsecretSearchFood = onCall(
         }
 
         const variantListAll = Array.from(candidates);
+
+        const rankVariants = (variants) => {
+            return variants
+                .map((expr, index) => {
+                    const normalizedExpr = normalize(expr);
+                    const similarity = similarityScore(qRaw, expr);
+                    const exactBoost = normalizedExpr === qNorm ? 0.4 : 0;
+                    const prefixBoost = normalizedExpr.startsWith(qNorm) && qNorm ? 0.2 : 0;
+                    const lengthPenalty = Math.abs(expr.length - qRaw.length) * 0.005;
+                    return {
+                        expr,
+                        score: similarity + exactBoost + prefixBoost - lengthPenalty,
+                        index,
+                    };
+                })
+                .sort((a, b) => {
+                    if (b.score === a.score) return a.index - b.index;
+                    return b.score - a.score;
+                })
+                .map((entry) => entry.expr);
+        };
+
+        const rankedVariants = rankVariants(variantListAll);
+
         const pageSize = safeMax;
         const startIndex = safePage * pageSize;
         const desiredUniqueCount = startIndex + pageSize;
@@ -436,14 +448,70 @@ export const fatsecretSearchFood = onCall(
         const MAX_TOTAL_CALLS = 8;
         const MAX_CONCURRENT_VARIANTS = 3;
         const MAX_ADDITIONAL_PAGES = 3;
+        const MAX_VARIANTS_PRIMARY = pageSize <= 10 ? 3 : 5;
+        const MAX_VARIANTS_SECONDARY = 4;
+
+        const cacheKeyRoot = `${qNorm}|${pageSize}`;
+        const cachedContainer = fatsecretSearchCache.get(cacheKeyRoot);
+        const cachedPayload = cachedContainer && cachedContainer.expiresAt > overallStartedAt ? cachedContainer.value || {} : null;
+        const cachedRankedList = Array.isArray(cachedPayload?.rankedList) ? cachedPayload.rankedList : [];
+        const cachedHasMore = cachedPayload?.hasMore;
+
+        if (cachedPayload && (cachedRankedList.length >= startIndex + pageSize || cachedHasMore === false)) {
+            const endIndex = startIndex + pageSize;
+            const pageItems = cachedRankedList.slice(startIndex, endIndex).map((entry) => entry.item);
+            const normalizedCachedHasMore = cachedHasMore === undefined ? true : !!cachedHasMore;
+            const moreAvailable =
+                cachedRankedList.length > endIndex || (normalizedCachedHasMore && cachedRankedList.length > startIndex);
+            const response = {
+                foods: {
+                    food: pageItems,
+                    max_results: String(pageSize),
+                    page_number: String(safePage),
+                    total_results: String(cachedRankedList.length),
+                    has_more: moreAvailable,
+                },
+                debug: {
+                    source: "cache",
+                    uniqueFoodsConsidered: cachedRankedList.length,
+                    cachedHasMore: cachedHasMore ?? null,
+                },
+            };
+
+            const refreshed = {
+                value: cachedPayload,
+                expiresAt: Date.now() + SEARCH_CACHE_TTL_MS,
+            };
+            fatsecretSearchCache.set(cacheKeyRoot, refreshed);
+
+            logger.info("fatsecretSearchFood stats", {
+                query: qNorm,
+                safeMax,
+                safePage,
+                cache: "hit",
+                durationMs: Date.now() - overallStartedAt,
+                cachedCount: cachedRankedList.length,
+                cachedHasMore: cachedHasMore ?? null,
+            });
+
+            return response;
+        }
 
         const byId = new Map();
-        const successfulVariants = new Set();
+        if (cachedRankedList.length) {
+            for (const entry of cachedRankedList) {
+                const fid = String(entry?.item?.food_id || "");
+                if (!fid) continue;
+                byId.set(fid, entry);
+            }
+        }
+
+        const successfulVariants = new Set(Array.isArray(cachedPayload?.successfulVariants) ? cachedPayload.successfulVariants : []);
         let calls = 0;
         let scheduled = 0;
         let stopEarly = false;
         let totalCallDurationMs = 0;
-        const attemptedTasks = new Set();
+        const attemptedTasks = new Set(Array.isArray(cachedPayload?.attemptedTasks) ? cachedPayload.attemptedTasks : []);
 
         const handleResultList = (expr, list) => {
             let anyAdded = false;
@@ -526,26 +594,46 @@ export const fatsecretSearchFood = onCall(
             await processQueue(queue);
         };
 
-        if (variantListAll.length) {
-            await runPageForVariants(safePage, variantListAll);
+        if (rankedVariants.length) {
+            const primaryBatch = rankedVariants.slice(0, MAX_VARIANTS_PRIMARY);
+            await runPageForVariants(safePage, primaryBatch);
+
+            if (!stopEarly && byId.size < desiredUniqueCount) {
+                const secondaryBatch = rankedVariants.slice(MAX_VARIANTS_PRIMARY, MAX_VARIANTS_PRIMARY + MAX_VARIANTS_SECONDARY);
+                if (secondaryBatch.length) {
+                    await runPageForVariants(safePage, secondaryBatch);
+                }
+            }
+
+            if (!stopEarly && byId.size < desiredUniqueCount) {
+                const remainingVariants = rankedVariants.slice(MAX_VARIANTS_PRIMARY + MAX_VARIANTS_SECONDARY);
+                if (remainingVariants.length) {
+                    await runPageForVariants(safePage, remainingVariants);
+                }
+            }
         }
 
         let pageOffset = 1;
         while (!stopEarly && byId.size < desiredUniqueCount && calls < MAX_TOTAL_CALLS && pageOffset <= MAX_ADDITIONAL_PAGES) {
             const nextPage = safePage + pageOffset;
-            const followVariants = successfulVariants.size ? Array.from(successfulVariants) : variantListAll;
+            const followVariants = successfulVariants.size ? Array.from(successfulVariants) : rankedVariants;
             if (!followVariants.length) break;
             await runPageForVariants(nextPage, followVariants);
             pageOffset++;
         }
 
-        const rankedAll = Array.from(byId.values())
-            .sort((a, b) => b.bestScore - a.bestScore)
-            .map((x) => x.item);
+        const rankedEntries = Array.from(byId.values()).sort((a, b) => b.bestScore - a.bestScore);
+        const rankedAll = rankedEntries.map((x) => x.item);
+        const averageScore = rankedEntries.length
+            ? rankedEntries.reduce((sum, entry) => sum + Number(entry.bestScore || 0), 0) / rankedEntries.length
+            : 0;
+        const topScore = rankedEntries.length ? rankedEntries[0].bestScore : 0;
 
         const endIndex = startIndex + pageSize;
         const pageItems = rankedAll.slice(startIndex, endIndex);
-        const hasMore = (!stopEarly && calls < MAX_TOTAL_CALLS) || rankedAll.length > endIndex;
+        const hasMore =
+            rankedAll.length > endIndex ||
+            (!stopEarly && calls < MAX_TOTAL_CALLS && successfulVariants.size > 0 && cachedHasMore !== false);
 
         const response = {
             foods: {
@@ -556,14 +644,25 @@ export const fatsecretSearchFood = onCall(
                 has_more: hasMore,
             },
             debug: {
-                fetchedPages: Array.from(attemptedTasks).map((key) => key.split("|")[1]).filter((v, i, arr) => arr.indexOf(v) === i),
+                fetchedPages: Array.from(attemptedTasks)
+                    .map((key) => key.split("|")[1])
+                    .filter((v, i, arr) => arr.indexOf(v) === i),
                 uniqueFoodsConsidered: byId.size,
                 calls,
+                averageScore,
+                topScore,
             },
         };
 
         const now = Date.now();
-        fatsecretSearchCache.set(cacheKey, { value: response, expiresAt: now + SEARCH_CACHE_TTL_MS });
+        const cacheValue = {
+            rankedList: rankedEntries,
+            hasMore,
+            attemptedTasks: Array.from(attemptedTasks),
+            successfulVariants: Array.from(successfulVariants),
+            variantsConsidered: rankedVariants.length,
+        };
+        fatsecretSearchCache.set(cacheKeyRoot, { value: cacheValue, expiresAt: now + SEARCH_CACHE_TTL_MS });
         if (fatsecretSearchCache.size > 64) {
             for (const [key, entry] of fatsecretSearchCache) {
                 if (entry.expiresAt <= now || fatsecretSearchCache.size > 64) {
@@ -578,7 +677,7 @@ export const fatsecretSearchFood = onCall(
             safeMax,
             safePage,
             cache: "miss",
-            variantsConsidered: variantListAll.length,
+            variantsConsidered: rankedVariants.length,
             variantsWithHits: successfulVariants.size,
             totalCandidates: byId.size,
             calls,
@@ -586,6 +685,8 @@ export const fatsecretSearchFood = onCall(
             totalCallDurationMs,
             stopEarly,
             hasMore,
+            averageScore,
+            topScore,
         });
 
         return response;
