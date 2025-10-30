@@ -42,6 +42,7 @@ const MUSCLE_FILTERS = [
             "quads",
             "abs",
             "obliques",
+            "back",
             "forearms",
             "arms",
             "shoulders",
@@ -54,7 +55,7 @@ const MUSCLE_FILTERS = [
     { label: "Arms", value: "Arms", segments: ["arms", "forearms"] },
     { label: "Legs", value: "Legs", segments: ["quads", "calves"] },
     { label: "Abs", value: "Abs", segments: ["abs", "obliques"] },
-    { label: "Back", value: "Back", segments: [] },
+    { label: "Back", value: "Back", segments: ["back", "traps"] },
 ];
 
 const EQUIPMENT_OPTIONS = [

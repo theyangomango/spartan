@@ -45,6 +45,7 @@ const MUSCLE_FILTERS = [
             "quads",
             "abs",
             "obliques",
+            "back",
             "forearms",
             "arms",
             "shoulders",
@@ -57,7 +58,7 @@ const MUSCLE_FILTERS = [
     { label: "Arms", value: "arms", segments: ["arms", "forearms"] },
     { label: "Legs", value: "legs", segments: ["legs", "quads", "calves", "hamstrings", "glutes"] },
     { label: "Abs", value: "abs", segments: ["abs", "obliques"] },
-    { label: "Back", value: "back", segments: [] },
+    { label: "Back", value: "back", segments: ["back", "traps"] },
 ];
 
 const EMPTY_STATS = Object.freeze({});
