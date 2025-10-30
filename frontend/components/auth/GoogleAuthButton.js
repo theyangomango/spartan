@@ -13,7 +13,6 @@ const GoogleAuthButton = ({
   onError,
   disabled,
   style,
-  shouldProceed,
 }) => {
   const { signIn, isConfigured } = useGoogleAuth();
   const [busy, setBusy] = useState(false);
@@ -35,20 +34,6 @@ const GoogleAuthButton = ({
   const onPress = useCallback(async () => {
     if (busy) return;
 
-    let proceedPayload;
-    try {
-      if (typeof shouldProceed === 'function') {
-        proceedPayload = await shouldProceed();
-        if (!proceedPayload) {
-          return;
-        }
-      }
-    } catch (preCheckError) {
-      // upstream handler already surfaced feedback
-      console.warn('Google auth pre-check failed:', preCheckError?.message || preCheckError);
-      return;
-    }
-
     if (!isConfigured) {
       handleError('Add your EXPO_PUBLIC_GOOGLE_* client IDs to enable Google auth.');
       return;
@@ -58,20 +43,7 @@ const GoogleAuthButton = ({
       const profile = await signIn();
       if (!profile) return;
 
-      const preferredHandle = (() => {
-        if (typeof proceedPayload === 'string') return proceedPayload;
-        if (proceedPayload && typeof proceedPayload === 'object') {
-          if (typeof proceedPayload.preferredHandle === 'string') {
-            return proceedPayload.preferredHandle;
-          }
-          if (typeof proceedPayload.handle === 'string') {
-            return proceedPayload.handle;
-          }
-        }
-        return undefined;
-      })();
-
-      const result = await upsertGoogleUser(profile, { preferredHandle });
+      const result = await upsertGoogleUser(profile);
       handleSuccess(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Google sign-in failed. Please try again.';
@@ -79,7 +51,7 @@ const GoogleAuthButton = ({
     } finally {
       setBusy(false);
     }
-  }, [busy, handleError, handleSuccess, isConfigured, shouldProceed, signIn]);
+  }, [busy, handleError, handleSuccess, isConfigured, signIn]);
 
   const buttonText = !isConfigured
     ? 'Google setup required'

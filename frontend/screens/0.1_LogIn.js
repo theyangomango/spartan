@@ -46,8 +46,16 @@ const LogIn = ({ navigation }) => {
         navigation.navigate('UserLogInCredentials');
     }, [navigation]);
 
-    const handleGoogleSuccess = useCallback(() => {
+    const handleGoogleSuccess = useCallback((result) => {
         setErrorMsg('');
+        if (result?.pendingUser) {
+            navigation.navigate('CreateUsername', {
+                pendingUser: result.pendingUser,
+                initialHandle: result.pendingUser?.suggestedHandle || '',
+                nextRoute: 'Tabs',
+            });
+            return;
+        }
         try {
             navigation.navigate('Tabs');
         } catch {}
@@ -117,7 +125,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
     },
     backgroundImage: {
-        opacity: 0.6,
+        opacity: 0.62,
     },
     safeArea: {
         flex: 1,

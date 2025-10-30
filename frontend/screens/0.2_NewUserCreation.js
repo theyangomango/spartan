@@ -1,32 +1,22 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback, TouchableOpacity } from 'react-native';
-import { Octicons, Feather } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
-import createDoc from '../../backend/helper/firebase/createDoc';
 import readDoc from '../../backend/helper/firebase/readDoc';
 import makeID from '../../backend/helper/makeID';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import arrayAppend from '../../backend/helper/firebase/arrayAppend';
-import buildInitialUser from '../utils/buildInitialUser';
-
-/* --- NEW: default PFP upload on sign-up --- */
-import uploadImage from '../../backend/storage/uploadImage';
-import { Image as RNImage } from 'react-native';
-import DEFAULT_PFP from '../assets/DEFAULT_PFP.png';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const scale = screenWidth / 375; // Base screen width assumed as 375
 function scaleSize(size) { return Math.round(size * scale); }
 
-const NewUserCreation = ({ navigation, route }) => {
+const NewUserCreation = ({ navigation }) => {
     const [emailOrPhone, setEmailOrPhone] = useState('');
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const emailOrPhoneInputRef = useRef(null);
-    const usernameFromRoute = route?.params?.username ?? '';
 
     function goBack() { navigation.goBack(); }
 
@@ -37,7 +27,10 @@ const NewUserCreation = ({ navigation, route }) => {
         if (d.startsWith('+')) return d.length >= 11 && d.length <= 16; // + and 10-15 digits
         return d.length >= 10 && d.length <= 15;
     };
-    const isValidUsername = (v) => /^[a-z0-9_.]{6,20}$/.test(v);
+    const normalizeHandle = (value) => {
+        if (!value) return '';
+        return value.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase();
+    };
 
     async function signUp() {
         try {
@@ -45,7 +38,6 @@ const NewUserCreation = ({ navigation, route }) => {
             setErrorMsg('');
             // Basic validation
             const trimmedEmailOrPhone = emailOrPhone.toLowerCase().trim();
-            const trimmedUsername = usernameFromRoute.toLowerCase().trim();
             const trimmedName = name.trim();
 
             if (!trimmedEmailOrPhone || !trimmedName || !password.trim()) {
@@ -53,18 +45,9 @@ const NewUserCreation = ({ navigation, route }) => {
                 return;
             }
 
-            if (!trimmedUsername) {
-                setErrorMsg('Please go back and create a username.');
-                return;
-            }
-
             // Constraints
             if (trimmedName.length < 2 || trimmedName.length > 40) {
                 setErrorMsg('Name must be 2–40 characters.');
-                return;
-            }
-            if (!isValidUsername(trimmedUsername)) {
-                setErrorMsg('Username must be 6–20 chars (a–z, 0–9, _ or .).');
                 return;
             }
             const isEmail = trimmedEmailOrPhone.includes('@');
@@ -84,43 +67,41 @@ const NewUserCreation = ({ navigation, route }) => {
                 (u) => (u.email && u.email.toLowerCase() === trimmedEmailOrPhone) || (u.phoneNumber && String(u.phoneNumber).toLowerCase() === trimmedEmailOrPhone)
             );
             if (userExists) { setErrorMsg('Email/phone already in use.'); return; }
-            const handleExists = existing.some((u) => String(u?.handle || '').toLowerCase() === trimmedUsername);
-            if (handleExists) { setErrorMsg('Username is already taken.'); return; }
 
             setSubmitting(true);
             const newID = makeID();
 
-            // --- DEFAULT PFP: resolve local asset URI & upload ---
-            // This avoids Asset.downloadAsync; works in Expo & bare RN.
-            const defaultPfpLocalUri = RNImage.resolveAssetSource(DEFAULT_PFP)?.uri;
-            let defaultPfpUrl = '';
-            if (defaultPfpLocalUri) {
-                // Ensure your uploadImage returns the download URL!
-                // e.g., return await getDownloadURL(ref)
-                defaultPfpUrl = await uploadImage(defaultPfpLocalUri, `pfps/${newID}.png`);
-            }
+            const baseFromName = normalizeHandle(trimmedName.replace(/\s+/g, ''));
+            const baseFromEmail = isEmail
+                ? normalizeHandle(trimmedEmailOrPhone.split('@')[0])
+                : normalizeHandle(trimmedEmailOrPhone);
+            const fallbackSeed = `user${newID.slice(0, 6).toLowerCase()}`;
 
-            const newUser = buildInitialUser({
-                uid: newID,
-                handle: trimmedUsername,
-                name: trimmedName,
-                email: isEmail ? trimmedEmailOrPhone : null,
-                phoneNumber: isEmail ? null : trimmedEmailOrPhone,
-                image: defaultPfpUrl || '',
-                password,
-                authProvider: 'password',
-            });
-
-            // Persist uid (await so errors don’t surface as unhandled)
-            await AsyncStorage.setItem('uid', newID);
-            try { global.setAuthUid?.(newID); } catch {}
-
-            // Write to Firestore (await BOTH)
-            await arrayAppend('global', 'users', 'all', newUser);
-            await createDoc('users', newID, newUser);
+            const pickStartingHandle = () => {
+                if (baseFromName.length >= 6) return baseFromName.slice(0, 20);
+                if (baseFromEmail.length >= 6) return baseFromEmail.slice(0, 20);
+                const stitched = (baseFromName || baseFromEmail || '').concat(newID.slice(0, 6));
+                if (stitched.length >= 6) return normalizeHandle(stitched).slice(0, 20);
+                return fallbackSeed;
+            };
 
             try {
-                navigation.navigate('Tabs');
+                const pendingUser = {
+                    uid: newID,
+                    name: trimmedName,
+                    email: isEmail ? trimmedEmailOrPhone : null,
+                    phoneNumber: isEmail ? null : trimmedEmailOrPhone,
+                    password,
+                    authProvider: 'password',
+                    needsDefaultPfp: true,
+                };
+
+                Keyboard.dismiss();
+                navigation.navigate('CreateUsername', {
+                    pendingUser,
+                    initialHandle: pickStartingHandle(),
+                    nextRoute: 'Tabs',
+                });
             } catch {}
         } catch (err) {
             console.warn('Sign-up failed:', err?.message || err);
@@ -138,11 +119,6 @@ const NewUserCreation = ({ navigation, route }) => {
                         <RNBounceable onPress={goBack}>
                             <Feather name="chevron-left" size={scaleSize(27)} color={theme.textSecondary} style={styles.backIcon} />
                         </RNBounceable>
-                    </View>
-                    <View style={styles.handleWrapper}>
-                        {!!usernameFromRoute && (
-                            <Text style={styles.handleText}>@{usernameFromRoute}</Text>
-                        )}
                     </View>
                     <View style={styles.iconSide} />
                 </View>
@@ -225,17 +201,8 @@ const styles = StyleSheet.create({
         alignItems: 'flex-start',
         justifyContent: 'center',
     },
-    handleWrapper: {
-        flex: 1,
-        alignItems: 'center',
-    },
     formWrapper: { flex: 1, paddingTop: scaleSize(screenHeight * 0.15) },
     formContainer: { alignItems: 'center', paddingHorizontal: scaleSize(22) },
-    handleText: {
-        color: theme.textPrimary,
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(16),
-    },
     title: {
         fontSize: scaleSize(15),
         fontWeight: '400',

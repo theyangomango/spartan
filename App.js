@@ -34,6 +34,7 @@ import { Asset } from 'expo-asset';
 import SignUp from './frontend/screens/0.0_SignUp';
 import LogIn from './frontend/screens/0.1_LogIn';
 import NewUserCreation from './frontend/screens/0.2_NewUserCreation';
+import CreateUsername from './frontend/screens/0.4_CreateUsername';
 import UserLogInCredentials from './frontend/screens/0.3_UserLogInCredentials';
 import Feed from './frontend/screens/FeedScreen';
 import Profile from './frontend/screens/5_Profile';
@@ -1093,6 +1094,7 @@ return (
                         <RootStack.Screen name="SignUp" component={SignUp} />
                         <RootStack.Screen name="LogIn" component={LogIn} />
                         <RootStack.Screen name="NewUserCreation" component={NewUserCreation} />
+                        <RootStack.Screen name="CreateUsername" component={CreateUsername} />
                         <RootStack.Screen name="UserLogInCredentials" component={UserLogInCredentials} />
 
                         {/* Main tabs (kept mounted). Force no animation when focusing Tabs. */}

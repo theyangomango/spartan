@@ -1,6 +1,6 @@
 // screens/FoodDetail.js
 import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar, SafeAreaView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import { db } from '../../firebase.config';
@@ -59,24 +59,31 @@ export default function FoodDetail({ navigation, route }) {
     const [saving, setSaving] = useState(false);
     const [apiServing, setApiServing] = useState(null); // temp holder when fetched from API
     const [extrasPS, setExtrasPS] = useState(null); // cached micronutrients per default serving
+    const [extrasLoading, setExtrasLoading] = useState(false);
 
     // Load extras per serving from entry cache → local cache → API
     useEffect(() => {
         let cancelled = false;
+        const setLoading = (value) => {
+            if (!cancelled) setExtrasLoading(value);
+        };
         (async () => {
+            const fid = mode === 'add'
+                ? String(food?.food_id || '').trim()
+                : String(entry?.foodId || entry?.food_id || '').trim();
+            if (!fid) {
+                setLoading(false);
+                return;
+            }
             try {
-                const fid = mode === 'add'
-                    ? String(food?.food_id || '').trim()
-                    : String(entry?.foodId || entry?.food_id || '').trim();
-                if (!fid) return;
-
                 // 1) If editing and entry already has per-serving extras cached, use them
                 if (mode === 'edit' && entry?.extrasPerServing) {
                     if (!cancelled) setExtrasPS(entry.extrasPerServing);
-                    // Prime local cache
                     try { await setFoodExtrasPS(fid, entry.extrasPerServing); } catch { }
                     return;
                 }
+
+                setLoading(true);
 
                 // 2) Try local cache
                 try {
@@ -108,9 +115,10 @@ export default function FoodDetail({ navigation, route }) {
                     setApiServing(def);
                     setExtrasPS(cached);
                 }
-                // Save locally for next time
                 try { await setFoodExtrasPS(fid, cached); } catch { }
-            } catch { }
+            } catch { } finally {
+                setLoading(false);
+            }
         })();
         return () => { cancelled = true; };
     }, [mode, food?.food_id, entry?.foodId, entry?.food_id]);
@@ -404,7 +412,7 @@ export default function FoodDetail({ navigation, route }) {
                 </View>
 
                 {/* Nutrition facts (collapsible) */}
-                <NutritionFacts extras={extras} />
+                <NutritionFacts extras={extras} extrasLoading={extrasLoading} />
             </ScrollView>
         </SafeAreaView>
     );
@@ -511,7 +519,7 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
                     <MacroRow m={macros} />
                 </View>
 
-                <NutritionFacts extras={extras} />
+                <NutritionFacts extras={extras} extrasLoading={extrasLoading} />
             </ScrollView>
         </View>
     );
@@ -668,7 +676,7 @@ function MacroStat({ color, label, grams, width }) {
     );
 }
 
-function NutritionFacts({ extras }) {
+function NutritionFacts({ extras, extrasLoading }) {
     // Daily Values (FDA 2016 update)
     const DV = {
         fiber_g: 28,
@@ -699,7 +707,12 @@ function NutritionFacts({ extras }) {
             </View>
             <View style={styles.hairline} />
             <View style={styles.factsWrap}>
-                {anyProvided ? (
+                {extrasLoading ? (
+                    <View style={styles.factsLoading}>
+                        <ActivityIndicator size="small" color={COLORS.subtext} />
+                        <Text style={styles.factsLoadingText}>Loading micronutrients...</Text>
+                    </View>
+                ) : anyProvided ? (
                     rows.map((r) => {
                         if (!Number.isFinite(r.value)) return null;
                         const val = r.unit === 'mg' ? Math.round(r.value) : Math.round(r.value * 10) / 10;
@@ -807,6 +820,8 @@ const styles = StyleSheet.create({
     sectionHeader: { paddingHorizontal: scaleSize(18), paddingVertical: scaleSize(12), flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
     sectionHeaderText: { color: COLORS.subtext, fontFamily: 'Nunito_800ExtraBold', fontSize: scaleSize(13), letterSpacing: 0.3 },
     factsWrap: { paddingHorizontal: scaleSize(18), paddingVertical: scaleSize(14), gap: scaleSize(14) },
+    factsLoading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: scaleSize(10), paddingVertical: scaleSize(6) },
+    factsLoadingText: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(12) },
     factRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', height: scaleSize(47), paddingVertical: scaleSize(6) },
     factLabel: { color: COLORS.text, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(14) },
     factValue: { color: COLORS.text, fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(16), letterSpacing: 0.2 },

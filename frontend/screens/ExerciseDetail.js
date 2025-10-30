@@ -733,6 +733,7 @@ export default function ExerciseDetail() {
                 <View style={styles.actionIconSpacer} />
             </Pressable>
 
+            {/*
             <Pressable
                 style={[styles.actionButton, styles.favoriteButton]}
                 onPress={withStrongPress(handleShare)}
@@ -745,6 +746,7 @@ export default function ExerciseDetail() {
                 <Text style={styles.favoriteText}>Share Exercise</Text>
                 <View style={styles.actionIconSpacer} />
             </Pressable>
+            */}
 
             {howToSteps.length > 0 && (
                 <View style={styles.howToBlock}>

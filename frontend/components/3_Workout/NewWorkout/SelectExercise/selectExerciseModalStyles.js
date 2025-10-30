@@ -102,7 +102,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaledSize(10),
     },
     muscleFilterContent: {
-        paddingHorizontal: scaledSize(10),
+        paddingLeft: scaledSize(10),
+        paddingRight: scaledSize(20),
         alignItems: "center",
     },
     muscleFilterRow: {
@@ -121,7 +122,7 @@ const styles = StyleSheet.create({
         flexGrow: 0,
     },
     muscleFilterChipLast: {
-        marginRight: 0,
+        marginRight: scaledSize(16),
     },
     muscleFilterChipActive: {},
     muscleFilterIconWrap: {

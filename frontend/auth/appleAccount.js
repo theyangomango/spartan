@@ -1,13 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Image as RNImage } from 'react-native';
-import createDoc from '../../backend/helper/firebase/createDoc';
 import readDoc from '../../backend/helper/firebase/readDoc';
-import arrayAppend from '../../backend/helper/firebase/arrayAppend';
 import updateDoc from '../../backend/helper/firebase/updateDoc';
 import makeID from '../../backend/helper/makeID';
-import buildInitialUser from '../utils/buildInitialUser';
-import uploadImage from '../../backend/storage/uploadImage';
-import DEFAULT_PFP from '../assets/DEFAULT_PFP.png';
 
 function normalizeHandle(source) {
   if (!source) return '';
@@ -36,22 +30,6 @@ function extractFullName(fullName) {
   }
 
   return '';
-}
-
-async function uploadDefaultPfp(uid) {
-  try {
-    const asset = RNImage.resolveAssetSource(DEFAULT_PFP);
-    const localUri = asset?.uri;
-    if (!localUri) {
-      return '';
-    }
-
-    const url = await uploadImage(localUri, `pfps/${uid}.png`);
-    return url || '';
-  } catch (error) {
-    console.warn('Apple auth default PFP upload failed:', error?.message || error);
-    return '';
-  }
 }
 
 function resolveDisplayName(credential) {
@@ -120,42 +98,20 @@ export async function upsertAppleUser(credential, options = {}) {
     ? normalizedPreferredHandle
     : baseHandleSource;
 
-  const handleExists = (candidate) => allUsers.some(
-    (user) => String(user?.handle || '').toLowerCase() === candidate.toLowerCase()
-  );
-
-  let candidateHandle = baseHandle;
-  let suffix = 1;
-  while (handleExists(candidateHandle)) {
-    const next = `${baseHandle}${suffix}`;
-    suffix += 1;
-    candidateHandle = next.slice(0, 20);
-  }
-
   const resolvedName = resolveDisplayName(credential);
 
-  const defaultPfpUrl = await uploadDefaultPfp(uid);
-
-  const newUser = buildInitialUser({
+  const pendingUser = {
     uid,
-    handle: candidateHandle,
     name: resolvedName,
     email,
     phoneNumber: null,
-    image: defaultPfpUrl,
+    image: '',
     password: null,
     authProvider: 'apple',
     extra: { appleId },
-  });
+    needsDefaultPfp: true,
+    suggestedHandle: baseHandle,
+  };
 
-  await AsyncStorage.setItem('uid', uid);
-  try { global.setAuthUid?.(uid); } catch {}
-  try { global.userData = newUser; } catch {}
-
-  try {
-    await arrayAppend('global', 'users', 'all', newUser);
-  } catch {}
-  await createDoc('users', uid, newUser);
-
-  return { user: newUser, isNew: true };
+  return { user: null, isNew: true, pendingUser };
 }

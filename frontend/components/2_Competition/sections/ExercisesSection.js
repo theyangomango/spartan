@@ -675,7 +675,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(10),
     },
     muscleFilterContent: {
-        paddingHorizontal: scaleSize(10),
+        paddingLeft: scaleSize(10),
+        paddingRight: scaleSize(20),
         alignItems: "center",
     },
     muscleFilterRow: {
@@ -695,7 +696,7 @@ const styles = StyleSheet.create({
     },
     muscleFilterChipActive: {},
     muscleFilterChipLast: {
-        marginRight: 0,
+        marginRight: scaleSize(16),
     },
     muscleFilterIconWrap: {
         width: scaleSize(70),

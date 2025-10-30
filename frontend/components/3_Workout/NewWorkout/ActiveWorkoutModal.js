@@ -54,7 +54,7 @@ import scaleSize from "../../../helper/scaleSize";
 import calculate1RM from "../../../helper/calculate1RM";
 import { formatWorkoutTimestamp } from "../../../utils/date";
 import ConfirmWorkoutModal from "./components/ConfirmWorkoutModal";
-import WorkoutReminderModal from "./components/WorkoutReminderModal";
+// import WorkoutReminderModal from "./components/WorkoutReminderModal";
 import KeyboardDismissAccessory, { useKeyboardAccessoryId } from "../../common/KeyboardDismissAccessory";
 
 const HANDLE_HORIZONTAL_PADDING = scaleSize(0);
@@ -284,9 +284,10 @@ const ActiveWorkoutModal = ({
     const [finishConfirmModalVisible, setFinishConfirmModalVisible] = useState(false);
     const [isFinishing, setIsFinishing] = useState(false);
     // Reminder modal (self only)
-    const [reminderVisible, setReminderVisible] = useState(false);
+    // const [reminderVisible, setReminderVisible] = useState(false);
+    const reminderVisible = false;
     const [endWorkoutSheetVisible, setEndWorkoutSheetVisible] = useState(false);
-    const reminderShownRef = useRef(new Set());
+    // const reminderShownRef = useRef(new Set());
     const {
         restModalVisible,
         restModalKey,
@@ -1391,6 +1392,7 @@ const ActiveWorkoutModal = ({
         registerInviteHandler?.(handleInviteSelected);
     }, [registerInviteHandler, handleInviteSelected]);
 
+    /*
     // Show the reminder whenever a new workout starts (per wid once per mount).
     // Triggered by local flag `__justStarted` or the global one-shot `__showWorkoutReminderForWid`.
     useEffect(() => {
@@ -1412,6 +1414,7 @@ const ActiveWorkoutModal = ({
             }
         } catch { }
     }, [viewingSelfEffective, workout?.wid, workout?.__justStarted, updateWorkoutWithMetrics, workout]);
+    */
 
     // Focus handler from child set inputs: gently scroll the exercise into view
     const handleStatFocus = useCallback((exerciseIndex /*, setIndex */) => {
@@ -1644,10 +1647,12 @@ const ActiveWorkoutModal = ({
                     }}
                 />
             )}
+            {/*
             <WorkoutReminderModal
                 visible={reminderVisible}
                 onDismiss={() => setReminderVisible(false)}
             />
+            */}
             {/* Confetti overlay (mount when cheering is relevant: spectating live OR self active) */}
             {(friendOngoing || isActiveSelf) && (() => {
                 const ConfettiCannon = loadConfettiModule(); return ConfettiCannon ? (

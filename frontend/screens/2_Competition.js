@@ -13,10 +13,12 @@ import {
     ts,
 } from "../components/2_Competition/layoutConstants";
 import LeaderboardsSection from "../components/2_Competition/sections/LeaderboardsSection";
+import ProgressSection from "../components/2_Competition/sections/ProgressSection";
 import ExercisesSection from "../components/2_Competition/sections/ExercisesSection";
 
 const VIEW_TABS = [
     { key: "leaderboard", label: "Leaderboards" },
+    { key: "progress", label: "Progress" },
     { key: "exercises", label: "Exercises" },
 ];
 
@@ -31,6 +33,7 @@ export default function Competition({ navigation }) {
     const sectionComponents = useMemo(
         () => ({
             leaderboard: <LeaderboardsSection navigation={navigation} />,
+            progress: <ProgressSection />,
             exercises: <ExercisesSection />,
         }),
         [navigation]

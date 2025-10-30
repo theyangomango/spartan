@@ -1,10 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import createDoc from '../../backend/helper/firebase/createDoc';
 import readDoc from '../../backend/helper/firebase/readDoc';
-import arrayAppend from '../../backend/helper/firebase/arrayAppend';
 import updateDoc from '../../backend/helper/firebase/updateDoc';
 import makeID from '../../backend/helper/makeID';
-import buildInitialUser from '../utils/buildInitialUser';
 
 function normalizeHandle(source) {
   if (!source) return '';
@@ -50,21 +47,11 @@ export async function upsertGoogleUser(profile, options = {}) {
   );
 
   const fallbackHandle = `user${uid.slice(0, 6).toLowerCase()}`;
-  const baseHandleSource = profileHandleSource && profileHandleSource.length >= 6
-    ? profileHandleSource
-    : fallbackHandle;
   const baseHandle = normalizedPreferredHandle && normalizedPreferredHandle.length >= 6
     ? normalizedPreferredHandle
-    : baseHandleSource;
-  const handleExists = (candidate) => allUsers.some((user) => String(user?.handle || '').toLowerCase() === candidate.toLowerCase());
-
-  let candidateHandle = baseHandle;
-  let suffix = 1;
-  while (handleExists(candidateHandle)) {
-    const next = `${baseHandle}${suffix}`;
-    suffix += 1;
-    candidateHandle = next.slice(0, 20);
-  }
+    : (profileHandleSource && profileHandleSource.length >= 6
+      ? profileHandleSource
+      : fallbackHandle);
 
   const displayName = profile?.name
     || [profile?.given_name, profile?.family_name].filter(Boolean).join(' ')
@@ -72,9 +59,8 @@ export async function upsertGoogleUser(profile, options = {}) {
 
   const avatar = typeof profile?.picture === 'string' ? profile.picture : '';
 
-  const newUser = buildInitialUser({
+  const pendingUser = {
     uid,
-    handle: candidateHandle,
     name: displayName,
     email,
     phoneNumber: null,
@@ -82,16 +68,8 @@ export async function upsertGoogleUser(profile, options = {}) {
     password: null,
     authProvider: 'google',
     extra: { googleId },
-  });
+    suggestedHandle: baseHandle,
+  };
 
-  await AsyncStorage.setItem('uid', uid);
-  try { global.setAuthUid?.(uid); } catch {}
-  try { global.userData = newUser; } catch {}
-
-  try {
-    await arrayAppend('global', 'users', 'all', newUser);
-  } catch {}
-  await createDoc('users', uid, newUser);
-
-  return { user: newUser, isNew: true };
+  return { user: null, isNew: true, pendingUser };
 }

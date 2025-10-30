@@ -10,7 +10,6 @@ const AppleAuthButton = ({
   onError,
   disabled,
   style,
-  shouldProceed,
 }) => {
   const { signIn, isAvailable } = useAppleAuth();
   const [busy, setBusy] = useState(false);
@@ -32,19 +31,6 @@ const AppleAuthButton = ({
   const onPress = useCallback(async () => {
     if (busy) return;
 
-    let proceedPayload;
-    try {
-      if (typeof shouldProceed === 'function') {
-        proceedPayload = await shouldProceed();
-        if (!proceedPayload) {
-          return;
-        }
-      }
-    } catch (preCheckError) {
-      console.warn('Apple auth pre-check failed:', preCheckError?.message || preCheckError);
-      return;
-    }
-
     if (!isAvailable) {
       handleError(
         Platform.OS === 'ios'
@@ -59,20 +45,7 @@ const AppleAuthButton = ({
       const credential = await signIn();
       if (!credential) return;
 
-      const preferredHandle = (() => {
-        if (typeof proceedPayload === 'string') return proceedPayload;
-        if (proceedPayload && typeof proceedPayload === 'object') {
-          if (typeof proceedPayload.preferredHandle === 'string') {
-            return proceedPayload.preferredHandle;
-          }
-          if (typeof proceedPayload.handle === 'string') {
-            return proceedPayload.handle;
-          }
-        }
-        return undefined;
-      })();
-
-      const result = await upsertAppleUser(credential, { preferredHandle });
+      const result = await upsertAppleUser(credential);
       handleSuccess(result);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Sign in with Apple failed. Please try again.';
@@ -80,7 +53,7 @@ const AppleAuthButton = ({
     } finally {
       setBusy(false);
     }
-  }, [busy, handleError, handleSuccess, isAvailable, shouldProceed, signIn]);
+  }, [busy, handleError, handleSuccess, isAvailable, signIn]);
 
   if (!isAvailable) {
     return null;

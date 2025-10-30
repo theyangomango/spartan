@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
@@ -55,7 +55,7 @@ const formatPreviousLabel = (set) => {
   return repsLabel;
 };
 
-const PastWorkoutExerciseLog = ({ exercise, index = 0 }) => {
+const PastWorkoutExerciseLog = ({ exercise, index = 0, onPress }) => {
   const name = exercise?.name || `Exercise ${index + 1}`;
   const muscle = exercise?.muscle || "";
   const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
@@ -70,10 +70,21 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0 }) => {
   return (
     <View style={styles.mainContainer}>
       <View style={styles.header}>
-        <View style={styles.nameContainer}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`View details for ${name}`}
+          onPress={() => onPress?.(exercise)}
+          disabled={!onPress}
+          hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+          style={({ pressed }) => [
+            styles.nameContainer,
+            pressed && styles.nameContainerPressed,
+            !onPress && styles.nameContainerDisabled,
+          ]}
+        >
           <ExerciseAvatar name={name} size={scaleSize(42)} style={styles.avatar} />
           <Text style={[workoutTypography.exerciseName, styles.nameText]} numberOfLines={1}>{name}</Text>
-        </View>
+        </Pressable>
       </View>
 
       <View style={styles.labelsRow}>
@@ -160,6 +171,12 @@ const styles = StyleSheet.create({
     marginRight: scaleSize(10),
     flex: 1,
     paddingBottom: scaleSize(4),
+  },
+  nameContainerPressed: {
+    opacity: 0.7,
+  },
+  nameContainerDisabled: {
+    opacity: 1,
   },
   avatar: {
     marginRight: scaleSize(10),

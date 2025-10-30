@@ -555,6 +555,57 @@ const PastWorkoutScreen = () => {
 
     const handlePressWorkoutHeader = useCallback(() => {}, []);
 
+    const handlePressExercise = useCallback(
+        (exercise) => {
+            if (!exercise || typeof exercise !== "object") return;
+            if (!navigation?.navigate) return;
+
+            const libraryExercise =
+                exercise?.libraryExercise && typeof exercise.libraryExercise === "object"
+                    ? exercise.libraryExercise
+                    : null;
+
+            const basePayload = libraryExercise ? { ...libraryExercise } : { ...exercise };
+            const rawName =
+                basePayload?.name ??
+                basePayload?.title ??
+                basePayload?.exercise ??
+                exercise?.name ??
+                exercise?.title ??
+                exercise?.exercise ??
+                "";
+            const name = typeof rawName === "string" ? rawName.trim() : "";
+            if (!name) return;
+
+            if (!basePayload.name) basePayload.name = name;
+            if (!basePayload.title) basePayload.title = name;
+            if (!basePayload.muscle && basePayload.muscleGroup) {
+                basePayload.muscle = basePayload.muscleGroup;
+            } else if (!basePayload.muscleGroup && basePayload.muscle) {
+                basePayload.muscleGroup = basePayload.muscle;
+            } else if (!basePayload.muscleGroup && exercise?.muscle) {
+                basePayload.muscleGroup = exercise.muscle;
+            }
+            if (!basePayload.slug && basePayload.exerciseSlug) {
+                basePayload.slug = basePayload.exerciseSlug;
+            } else if (!basePayload.slug && exercise?.slug) {
+                basePayload.slug = exercise.slug;
+            } else if (!basePayload.slug && exercise?.exerciseSlug) {
+                basePayload.slug = exercise.exerciseSlug;
+            }
+            if (!basePayload.equipment && basePayload.equipmentType) {
+                basePayload.equipment = basePayload.equipmentType;
+            } else if (!basePayload.equipment && exercise?.equipment) {
+                basePayload.equipment = exercise.equipment;
+            } else if (!basePayload.equipment && exercise?.equipmentType) {
+                basePayload.equipment = exercise.equipmentType;
+            }
+
+            navigation.navigate("ExerciseDetail", { exercise: basePayload });
+        },
+        [navigation]
+    );
+
     const performDeleteWorkout = useCallback(async () => {
         if (!canEditWorkout || deletingWorkout) return;
         const uid = viewerUid;
@@ -880,6 +931,7 @@ const PastWorkoutScreen = () => {
                                     key={`${exercise?.name || "exercise"}-${index}`}
                                     exercise={exercise}
                                     index={index}
+                                    onPress={handlePressExercise}
                                 />
                             ))
                         ) : (

@@ -153,6 +153,11 @@ function ExerciseLog({
     const [panelPosition, setPanelPosition] = useState({ top: 0, left: 0, anchorX: null });
     const fadeAnim = useRef(new Animated.Value(1)).current;
     const optionsAnchorRef = useRef(null);
+    const autoPrefilledIdsRef = useRef(new Set());
+
+    useEffect(() => {
+        autoPrefilledIdsRef.current = new Set();
+    }, [name]);
 
     const togglePanel = (event) => {
         if (readOnly) return;
@@ -198,18 +203,78 @@ function ExerciseLog({
     const addSet = withLayout(() => {
         const current = setsRef.current || [];
         const lastSet = current[current.length - 1] || null;
-        const defaultWeight = lastSet && Object.prototype.hasOwnProperty.call(lastSet, "weight")
+        let defaultWeight = lastSet && Object.prototype.hasOwnProperty.call(lastSet, "weight")
             ? (lastSet.weight ?? "")
             : "";
-        const defaultReps = lastSet && Object.prototype.hasOwnProperty.call(lastSet, "reps")
+        let defaultReps = lastSet && Object.prototype.hasOwnProperty.call(lastSet, "reps")
             ? (lastSet.reps ?? "")
             : "";
+
+        const fallbackForNextSet = Array.isArray(previousSets) ? previousSets[current.length] : null;
+        if ((defaultWeight === "" || defaultWeight == null) && fallbackForNextSet && fallbackForNextSet.weight != null) {
+            defaultWeight = fallbackForNextSet.weight;
+        }
+        if ((defaultReps === "" || defaultReps == null) && fallbackForNextSet && fallbackForNextSet.reps != null) {
+            defaultReps = fallbackForNextSet.reps;
+        }
+
         const next = [...current, { id: genLocalId(), weight: defaultWeight, reps: defaultReps, isDone: false }];
         setDraft(next);
         setsRef.current = next;
         flushNextFrame(next);
         try { Haptics.selectionAsync?.(); } catch {}
     });
+
+    useEffect(() => {
+        if (readOnly) return;
+        const current = setsRef.current || [];
+        if (!current.length) return;
+        const next = current.slice();
+        let mutated = false;
+
+        for (let i = 0; i < current.length; i++) {
+            const row = current[i];
+            if (!row) continue;
+            const sid = row.id || `${name}-${i}`;
+            if (autoPrefilledIdsRef.current.has(sid)) continue;
+
+            const prevForRow = Array.isArray(previousSets) ? previousSets[i] : null;
+            if (!prevForRow) continue;
+
+            const weightEmpty = row.weight == null || row.weight === "" || Number(row.weight) === 0;
+            const repsEmpty = row.reps == null || row.reps === "" || Number(row.reps) === 0;
+
+            if (!weightEmpty && !repsEmpty) {
+                autoPrefilledIdsRef.current.add(sid);
+                continue;
+            }
+
+            let updatedRow = row;
+            if (weightEmpty && prevForRow.weight != null && Number(prevForRow.weight) > 0) {
+                updatedRow = updatedRow === row ? { ...row } : updatedRow;
+                updatedRow.weight = prevForRow.weight;
+            }
+            if (repsEmpty && prevForRow.reps != null && Number(prevForRow.reps) > 0) {
+                updatedRow = updatedRow === row ? { ...updatedRow } : updatedRow;
+                updatedRow.reps = prevForRow.reps;
+            }
+
+            if (updatedRow !== row) {
+                next[i] = updatedRow;
+                mutated = true;
+            }
+
+            if (prevForRow && (prevForRow.weight || prevForRow.reps)) {
+                autoPrefilledIdsRef.current.add(sid);
+            }
+        }
+
+        if (mutated) {
+            setDraft(next);
+            setsRef.current = next;
+            flushNextFrame(next);
+        }
+    }, [readOnly, previousSets, flushNextFrame, name]);
 
     const updateSetById = useCallback((sid, patch) => {
         const cur = setsRef.current || [];
