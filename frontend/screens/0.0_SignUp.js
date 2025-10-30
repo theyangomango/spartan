@@ -26,7 +26,7 @@ function scaleSize(size) {
     return Math.round(size * scale);
 }
 
-const isValidUsername = (value) => /^[a-z0-9_.]{3,20}$/.test(value);
+const isValidUsername = (value) => /^[a-z0-9_.]{6,20}$/.test(value);
 const HERO_TARGET_GAP = scaleSize(125);
 const ACTIONS_MARGIN_TOP = scaleSize(12);
 const USERNAME_CONTAINER_MARGIN_BOTTOM = scaleSize(16);
@@ -63,7 +63,7 @@ const SignUp = ({ navigation }) => {
         }
 
         if (!isValidUsername(normalizedUsername)) {
-            setUsernameError('Username must be 3–20 characters (a–z, 0–9, _ or .).');
+            setUsernameError('Username must be 6–20 characters (a–z, 0–9, _ or .).');
             return null;
         }
 

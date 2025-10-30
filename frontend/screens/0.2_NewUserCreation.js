@@ -37,7 +37,7 @@ const NewUserCreation = ({ navigation, route }) => {
         if (d.startsWith('+')) return d.length >= 11 && d.length <= 16; // + and 10-15 digits
         return d.length >= 10 && d.length <= 15;
     };
-    const isValidUsername = (v) => /^[a-z0-9_.]{3,20}$/.test(v);
+    const isValidUsername = (v) => /^[a-z0-9_.]{6,20}$/.test(v);
 
     async function signUp() {
         try {
@@ -64,7 +64,7 @@ const NewUserCreation = ({ navigation, route }) => {
                 return;
             }
             if (!isValidUsername(trimmedUsername)) {
-                setErrorMsg('Username must be 3–20 chars (a–z, 0–9, _ or .).');
+                setErrorMsg('Username must be 6–20 chars (a–z, 0–9, _ or .).');
                 return;
             }
             const isEmail = trimmedEmailOrPhone.includes('@');
