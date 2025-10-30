@@ -19,6 +19,9 @@ const EditProfileModal = ({ setPFP }) => {
     const [bio, setBio] = useState(initialBio);
 
     const handleBioBlur = () => {
+        if (global?.userData) {
+            global.userData.bio = bio;
+        }
         updateDoc('users', global.userData.uid, { bio: bio });
     };
 

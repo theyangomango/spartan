@@ -385,9 +385,15 @@ export default function PostOptionsScreen({ navigation, route }) {
     const beginShare = () => {
         if (isEditing) {
             sharePost();
-        } else {
-            setHonestyVisible(true);
+            return;
         }
+
+        if (hasMedia) {
+            setHonestyVisible(true);
+            return;
+        }
+
+        sharePost();
     };
 
     const handleOpenSelectPhotos = useCallback(() => {
