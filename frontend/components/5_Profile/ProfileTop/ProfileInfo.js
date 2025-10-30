@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaledSize(12),
         paddingVertical: scaledSize(4),
         borderRadius: scaledSize(12),
-        backgroundColor: 'rgba(30, 55, 93, 1)', // richer blue
+        backgroundColor: '#FACC15', // gold accent for edit badge
         shadowColor: '#000',
         shadowOpacity: 0.25,
         shadowRadius: scaledSize(4),

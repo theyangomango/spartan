@@ -72,10 +72,10 @@ export default function MessagesHeader({
                     onPress={openCreateGroupChatBottomSheet}
                     style={[styles.iconCircle, styles.rightIcon]}
                 >
-                    <FontAwesome5 name="users" size={scaleSize(13)} color={ACCENT} />
+                    <FontAwesome5 name="users" size={scaleSize(15)} color={ACCENT} />
                     {/* subtle in-pill + badge */}
                     <View style={styles.plusBadge}>
-                        <FontAwesome5 name="plus" size={scaleSize(7)} color={theme.textPrimary} />
+                        <FontAwesome5 name="plus" size={scaleSize(8)} color={theme.textPrimary} />
                     </View>
                 </TouchableOpacity>
 
@@ -114,10 +114,10 @@ const styles = StyleSheet.create({
     iconCircle: {
         position: "absolute",
         top: "50%",
-        transform: [{ translateY: -scaleSize(14) }],
-        width: scaleSize(28),
-        height: scaleSize(28),
-        borderRadius: scaleSize(14),
+        transform: [{ translateY: -scaleSize(16) }],
+        width: scaleSize(30),
+        aspectRatio: 1,
+        borderRadius: scaleSize(100),
         backgroundColor: theme.surface,
         borderWidth: scaleSize(1),
         borderColor: theme.hairline,
