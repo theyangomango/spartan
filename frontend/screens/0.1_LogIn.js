@@ -12,6 +12,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import theme from '../theme/mfpDark';
 import AuthButton from '../components/auth/AuthButton';
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
+import AppleAuthButton from '../components/auth/AppleAuthButton';
 import authBackground from '../assets/AUTH_BACKGROUND.jpg';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -83,6 +84,11 @@ const LogIn = ({ navigation }) => {
                             onSuccess={handleGoogleSuccess}
                             onError={setErrorMsg}
                             style={styles.googleButton}
+                        />
+                        <AppleAuthButton
+                            onSuccess={handleGoogleSuccess}
+                            onError={setErrorMsg}
+                            style={styles.appleButton}
                         />
                         <AuthButton
                             icon="person"
@@ -172,6 +178,10 @@ const styles = StyleSheet.create({
     googleButton: {
         backgroundColor: '#fff',
         borderRadius: scaleSize(14),
+        marginBottom: scaleSize(12),
+        width: '100%',
+    },
+    appleButton: {
         marginBottom: scaleSize(12),
         width: '100%',
     },

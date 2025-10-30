@@ -20,6 +20,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.yangbai.spartan",
       "buildNumber": "20",
+      "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
       },
@@ -67,7 +68,8 @@
           "isAccessMediaLocationEnabled": true
         }
       ],
-      "react-native-video"
+      "react-native-video",
+      "expo-apple-authentication"
     ]
   }
 }

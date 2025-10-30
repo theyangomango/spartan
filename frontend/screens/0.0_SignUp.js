@@ -15,6 +15,7 @@ import theme from '../theme/mfpDark';
 
 import AuthButton from '../components/auth/AuthButton';
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
+import AppleAuthButton from '../components/auth/AppleAuthButton';
 import authBackground from '../assets/AUTH_BACKGROUND.jpg';
 import readDoc from '../../backend/helper/firebase/readDoc';
 
@@ -176,6 +177,11 @@ const SignUp = ({ navigation }) => {
                                 style={styles.googleButton}
                                 shouldProceed={ensureUsernameReady}
                             />
+                            <AppleAuthButton
+                                onSuccess={handleGoogleSuccess}
+                                style={styles.appleButton}
+                                shouldProceed={ensureUsernameReady}
+                            />
                             <AuthButton
                                 text="Continue"
                                 onPress={toNewUserCreationScreen}
@@ -318,6 +324,10 @@ const styles = StyleSheet.create({
     googleButton: {
         backgroundColor: '#fff',
         borderRadius: scaleSize(14),
+        marginBottom: scaleSize(12),
+        width: '100%',
+    },
+    appleButton: {
         marginBottom: scaleSize(12),
         width: '100%',
     },
