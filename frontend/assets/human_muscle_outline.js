@@ -7,22 +7,12 @@ import Svg, {
   Path,
   Ellipse,
 } from "react-native-svg";
-const HumanMuscleOutline = ({
-  color = "#000",
-  fills = {},
-  focusBox,
-  ...props
-}) => {
+const HumanMuscleOutline = ({ color = "#000", fills = {}, ...props }) => {
   const fillColor = (region) =>
     fills && fills[region] != null ? fills[region] : color;
 
   return (
-    <Svg
-      fill="none"
-      viewBox={focusBox || "0 0 660.46 1206.46"}
-      preserveAspectRatio="xMidYMid meet"
-      {...props}
-    >
+    <Svg fill="none" viewBox="0 0 660.46 1206.46" {...props}>
       <Defs>
         <RadialGradient
           id="jointradial"
