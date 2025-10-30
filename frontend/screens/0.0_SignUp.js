@@ -183,6 +183,19 @@ const SignUp = ({ navigation }) => {
                                 textStyle={styles.primaryButtonText}
                             />
                         </View>
+
+                        <View style={styles.agreementContainer}>
+                            <Text style={styles.agreementText}>By signing up, I agree to the</Text>
+                            <View style={styles.agreementRow}>
+                                <TouchableOpacity onPress={() => navigation.navigate('TermsOfService')}>
+                                    <Text style={styles.agreementLink}> Terms of Service</Text>
+                                </TouchableOpacity>
+                                <Text style={styles.agreementText}> and</Text>
+                                <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
+                                    <Text style={styles.agreementLink}> Privacy Policy</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
                     </View>
 
                     <View style={[styles.footer, { bottom: insets.bottom + scaleSize(20) }]}>
@@ -236,6 +249,26 @@ const styles = StyleSheet.create({
     actions: {
         width: '100%',
         marginTop: ACTIONS_MARGIN_TOP,
+    },
+    agreementContainer: {
+        alignItems: 'center',
+        marginTop: scaleSize(12),
+    },
+    agreementText: {
+        fontFamily: 'Outfit_400Regular',
+        fontSize: scaleSize(12),
+        color: theme.textSecondary,
+        textAlign: 'center',
+    },
+    agreementRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: scaleSize(3),
+    },
+    agreementLink: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(12),
+        color: theme.primary,
     },
     usernameContainer: {
         width: '100%',
