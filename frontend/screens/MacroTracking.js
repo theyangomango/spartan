@@ -21,6 +21,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import MacroGoalsSheet from '../components/2_MacroTracking/MacroGoalsSheet';
 import { strong as haptic } from '../utils/haptics';
 import scaleSize from '../helper/scaleSize';
+import { useSharedValue, withTiming } from 'react-native-reanimated';
 
 // No foodLogs hook for this screen — use global.userData.loggedFoods exclusively
 import { parseMacrosFromDescription } from '../utils/nutrition';
@@ -76,6 +77,7 @@ export default function MacroTracking({ navigation, route }) {
     const { width: screenWidth } = useWindowDimensions();
     // Fast caches for global.loggedFoods → day-index and built meals
     const lastCountRef = useRef(0);
+    const footerCollapseProgress = useSharedValue(0);
     // If opened from HubRow, suppress the next navigation animation once
     // No one-off transition suppression; keep other transitions intact
     // Allow focusing a specific date via navigation params
@@ -206,6 +208,14 @@ export default function MacroTracking({ navigation, route }) {
     const [barcodeScannerVisible, setBarcodeScannerVisible] = useState(false);
 
     const isGoalsSheetOpen = goalsSheetIndex >= 0;
+
+    useEffect(() => {
+        footerCollapseProgress.value = withTiming(isGoalsSheetOpen ? 1 : 0, { duration: 220 });
+    }, [footerCollapseProgress, isGoalsSheetOpen]);
+
+    useEffect(() => () => {
+        footerCollapseProgress.value = 0;
+    }, [footerCollapseProgress]);
 
     const handleBarcodePress = useCallback(() => {
         try { haptic(); } catch {}
@@ -681,7 +691,11 @@ export default function MacroTracking({ navigation, route }) {
                     COLORS={COLORS}
                 />
 
-                <Footer currentScreenName={'MacroTracking'} navigation={navigation} />
+                <Footer
+                    currentScreenName={'MacroTracking'}
+                    navigation={navigation}
+                    workoutSheetProgressSV={footerCollapseProgress}
+                />
             </View>
         </GestureHandlerRootView>
     );
