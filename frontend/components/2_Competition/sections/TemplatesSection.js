@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from "react-native";
 import theme from "../../../theme/mfpDark";
 import { scaleSize, scaleFont } from "../layoutConstants";
 
-const DEFAULT_MESSAGE = "Templates view coming soon";
+const DEFAULT_MESSAGE = "Templates coming soon";
 
 export default function TemplatesSection({ message = DEFAULT_MESSAGE }) {
     return (

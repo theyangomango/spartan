@@ -759,6 +759,40 @@ export const fatsecretLookupBarcode = onCall(
 
 // --------------- Leaderboard Last Rank Refresh ---------------- //
 const EPSILON = 1e-6;
+const HEX_RANK_KEYS = ['overall', 'chest', 'shoulders', 'abs', 'back', 'legs', 'arms'];
+
+function ensureMembersInValueMap(valueMap, memberIds) {
+    memberIds.forEach((uid) => {
+        if (!valueMap.has(uid)) {
+            valueMap.set(uid, 0);
+        }
+    });
+}
+
+function buildEntriesForMembers(valueMap, memberIds) {
+    if (!memberIds || !memberIds.length) return [];
+    const sorted = memberIds.slice().sort((a, b) => safeNumber(valueMap.get(b)) - safeNumber(valueMap.get(a)));
+    const entries = [];
+    let lastValue = null;
+    let lastRank = 0;
+    sorted.forEach((uid, index) => {
+        const value = safeNumber(valueMap.get(uid));
+        let rank;
+        if (index === 0) {
+            rank = 1;
+            lastValue = value;
+            lastRank = rank;
+        } else if (Math.abs(value - lastValue) > EPSILON) {
+            rank = index + 1;
+            lastValue = value;
+            lastRank = rank;
+        } else {
+            rank = lastRank;
+        }
+        entries.push({ uid, rank });
+    });
+    return entries;
+}
 
 function toUid(value) {
     if (value === undefined || value === null) return null;
@@ -798,50 +832,6 @@ function computeGlobalRanks(valueMap) {
     return ranks;
 }
 
-function computeSubsetRank(valueMap, uid, subset) {
-    if (!subset || subset.size === 0) return null;
-    const target = String(uid);
-    if (!subset.has(target)) {
-        subset = new Set([...subset, target]);
-    }
-
-    const userValue = safeNumber(valueMap.get(target));
-    let participants = 0;
-    let greater = 0;
-    subset.forEach((member) => {
-        const id = String(member);
-        if (!id) return;
-        if (!valueMap.has(id) && id !== target) return;
-        participants += 1;
-        if (id === target) return;
-        const val = safeNumber(valueMap.get(id));
-        if (val > userValue + EPSILON) greater += 1;
-    });
-    if (participants === 0) return null;
-    return greater + 1;
-}
-
-function lastRanksEqual(prev, next) {
-    const prevKeys = Object.keys(prev || {});
-    const nextKeys = Object.keys(next || {});
-    if (prevKeys.length !== nextKeys.length) return false;
-    for (const exercise of nextKeys) {
-        if (!Object.prototype.hasOwnProperty.call(prev, exercise)) return false;
-        const prevScopes = prev[exercise] || {};
-        const nextScopes = next[exercise] || {};
-        const prevScopeKeys = Object.keys(prevScopes);
-        const nextScopeKeys = Object.keys(nextScopes);
-        if (prevScopeKeys.length !== nextScopeKeys.length) return false;
-        for (const scope of nextScopeKeys) {
-            if (!Object.prototype.hasOwnProperty.call(prevScopes, scope)) return false;
-            const a = safeNumber(prevScopes[scope]);
-            const b = safeNumber(nextScopes[scope]);
-            if (a !== b) return false;
-        }
-    }
-    return true;
-}
-
 export const refreshLeaderboardLastRanks = onSchedule(
     {
         schedule: '0 0 * * 0',
@@ -861,18 +851,31 @@ export const refreshLeaderboardLastRanks = onSchedule(
         const users = [];
         const followingByUid = new Map();
         const statsByUid = new Map();
-        const existingLastRanks = new Map();
+        const hexStatsByUid = new Map();
 
         usersSnap.forEach((docSnap) => {
             try {
                 const data = docSnap.data() || {};
                 const uid = toUid(data?.uid) || docSnap.id;
                 if (!uid) return;
+                const isPrivate =
+                    data?.privacy?.profile === 'private' ||
+                    data?.profilePrivacy === 'private' ||
+                    data?.isProfilePrivate === true;
+                if (isPrivate) return;
+
                 const ref = docSnap.ref;
                 const statsExercises =
                     data?.statsExercises && typeof data.statsExercises === 'object'
                         ? data.statsExercises
                         : {};
+                const statsHexagonRaw =
+                    data?.statsHexagon && typeof data.statsHexagon === 'object'
+                        ? data.statsHexagon
+                        : {};
+                const statsHexagon = Object.fromEntries(
+                    Object.entries(statsHexagonRaw || {}).map(([k, v]) => [String(k).toLowerCase(), v]),
+                );
 
                 const followingSet = new Set([uid]);
                 const followingArr = Array.isArray(data?.following) ? data.following : [];
@@ -884,7 +887,7 @@ export const refreshLeaderboardLastRanks = onSchedule(
                 users.push({ uid, ref, statsExercises, data });
                 followingByUid.set(uid, followingSet);
                 statsByUid.set(uid, statsExercises);
-                existingLastRanks.set(uid, data?.lastRanks || {});
+                hexStatsByUid.set(uid, statsHexagon);
             } catch (err) {
                 logger.warn('refreshLeaderboardLastRanks: failed to process user doc', {
                     id: docSnap.id,
@@ -897,6 +900,9 @@ export const refreshLeaderboardLastRanks = onSchedule(
             logger.info('refreshLeaderboardLastRanks: no users after filtering');
             return;
         }
+
+        const snapshotId = new Date().toISOString();
+        const snapshotMetaRef = adminDb.collection('leaderboardMeta').doc('currentSnapshot');
 
         const tribeMembers = new Map();
         const tribesForUser = new Map();
@@ -942,8 +948,18 @@ export const refreshLeaderboardLastRanks = onSchedule(
             });
         });
 
-        if (!allExercises.size) {
-            logger.info('refreshLeaderboardLastRanks: no exercises found to rank');
+        const allHexKeys = new Set();
+        hexStatsByUid.forEach((stats) => {
+            Object.keys(stats || {}).forEach((key) => {
+                const normalized = String(key).toLowerCase();
+                if (HEX_RANK_KEYS.includes(normalized)) {
+                    allHexKeys.add(normalized);
+                }
+            });
+        });
+
+        if (!allExercises.size && !allHexKeys.size) {
+            logger.info('refreshLeaderboardLastRanks: no leaderboard metrics found to rank');
             return;
         }
 
@@ -960,65 +976,153 @@ export const refreshLeaderboardLastRanks = onSchedule(
             exerciseMaps.set(exercise, { valueMap, ranks });
         }
 
+        const hexMaps = new Map();
+        for (const key of allHexKeys) {
+            const valueMap = new Map();
+            users.forEach(({ uid }) => {
+                const stats = hexStatsByUid.get(uid) || {};
+                const raw = stats?.[key];
+                const value = safeNumber(raw);
+                valueMap.set(uid, value);
+            });
+            const ranks = computeGlobalRanks(valueMap);
+            hexMaps.set(key, { valueMap, ranks });
+        }
+
+        const globalMemberIds = users.map(({ uid }) => uid);
+        const globalExerciseSnapshot = {};
+        const globalHexSnapshot = {};
+
+        for (const exercise of allExercises) {
+            const config = exerciseMaps.get(exercise);
+            if (!config) continue;
+            ensureMembersInValueMap(config.valueMap, globalMemberIds);
+            const entries = buildEntriesForMembers(config.valueMap, globalMemberIds);
+            if (entries.length) globalExerciseSnapshot[exercise] = entries;
+        }
+
+        for (const hexKey of allHexKeys) {
+            const config = hexMaps.get(hexKey);
+            if (!config) continue;
+            ensureMembersInValueMap(config.valueMap, globalMemberIds);
+            const entries = buildEntriesForMembers(config.valueMap, globalMemberIds);
+            if (entries.length) globalHexSnapshot[hexKey] = entries;
+        }
+
         const updates = [];
         users.forEach(({ uid, ref, statsExercises }) => {
             const exerciseNames = Object.keys(statsExercises || {});
-            const nextLastRanks = {};
-
-            if (!exerciseNames.length) {
-                const existing = existingLastRanks.get(uid) || {};
-                if (Object.keys(existing).length) {
-                    updates.push({
-                        ref,
-                        data: { lastRanks: FieldValue.delete(), lastRanksUpdatedAt: FieldValue.serverTimestamp() },
-                    });
-                }
-                return;
-            }
-
             const followingSet = followingByUid.get(uid) || new Set([uid]);
+            if (!followingSet.has(uid)) followingSet.add(uid);
             const tribeSet = tribesForUser.get(uid) || new Set();
+
+            const followingExercises = {};
+            const followingHex = {};
+
+            const followingIds = Array.from(followingSet).map((id) => String(id));
 
             exerciseNames.forEach((exercise) => {
                 const config = exerciseMaps.get(exercise);
                 if (!config) return;
-                const scopes = {};
-                const globalRank = config.ranks.get(uid);
-                if (Number.isFinite(globalRank)) scopes.global = globalRank;
-
-                const followingRank = computeSubsetRank(config.valueMap, uid, followingSet);
-                if (Number.isFinite(followingRank)) scopes.following = followingRank;
-
-                tribeSet.forEach((tid) => {
-                    const members = tribeMembers.get(tid);
-                    if (!members || !members.size) return;
-                    const rank = computeSubsetRank(config.valueMap, uid, members);
-                    if (Number.isFinite(rank)) scopes[tid] = rank;
-                });
-
-                if (Object.keys(scopes).length) {
-                    nextLastRanks[exercise] = scopes;
+                ensureMembersInValueMap(config.valueMap, followingIds);
+                const entries = buildEntriesForMembers(config.valueMap, followingIds);
+                if (entries.length) {
+                    followingExercises[exercise] = { snapshotId, entries };
                 }
             });
 
-            const existing = existingLastRanks.get(uid) || {};
-            const newIsEmpty = Object.keys(nextLastRanks).length === 0;
-            let needsUpdate = false;
-            if (newIsEmpty) {
-                if (Object.keys(existing).length) needsUpdate = true;
-            } else if (!Object.keys(existing).length) {
-                needsUpdate = true;
-            } else if (!lastRanksEqual(existing, nextLastRanks)) {
-                needsUpdate = true;
+            allHexKeys.forEach((hexKey) => {
+                const config = hexMaps.get(hexKey);
+                if (!config) return;
+                ensureMembersInValueMap(config.valueMap, followingIds);
+                const entries = buildEntriesForMembers(config.valueMap, followingIds);
+                if (entries.length) {
+                    followingHex[hexKey] = { snapshotId, entries };
+                }
+            });
+
+            const tribeSnapshots = {};
+            tribeSet.forEach((tid) => {
+                const memberSet = tribeMembers.get(tid) || new Set();
+                if (!memberSet.size) return;
+                if (!memberSet.has(uid)) memberSet.add(uid);
+                const memberIds = Array.from(memberSet).map((id) => String(id));
+
+                const tribeExercises = {};
+                exerciseNames.forEach((exercise) => {
+                    const config = exerciseMaps.get(exercise);
+                    if (!config) return;
+                    ensureMembersInValueMap(config.valueMap, memberIds);
+                    const entries = buildEntriesForMembers(config.valueMap, memberIds);
+                    if (entries.length) {
+                        tribeExercises[exercise] = { snapshotId, entries };
+                    }
+                });
+
+                const tribeHex = {};
+                allHexKeys.forEach((hexKey) => {
+                    const config = hexMaps.get(hexKey);
+                    if (!config) return;
+                    ensureMembersInValueMap(config.valueMap, memberIds);
+                    const entries = buildEntriesForMembers(config.valueMap, memberIds);
+                    if (entries.length) {
+                        tribeHex[hexKey] = { snapshotId, entries };
+                    }
+                });
+
+                const snapshot = {};
+                if (Object.keys(tribeExercises).length) snapshot.exercises = tribeExercises;
+                if (Object.keys(tribeHex).length) snapshot.hex = tribeHex;
+                if (Object.keys(snapshot).length) {
+                    tribeSnapshots[tid] = snapshot;
+                }
+            });
+
+            const nextLastRanks = {};
+            if (Object.keys(followingExercises).length || Object.keys(followingHex).length) {
+                nextLastRanks.following = {};
+                if (Object.keys(followingExercises).length) nextLastRanks.following.exercises = followingExercises;
+                if (Object.keys(followingHex).length) nextLastRanks.following.hex = followingHex;
+            }
+            if (Object.keys(tribeSnapshots).length) {
+                nextLastRanks.tribes = tribeSnapshots;
             }
 
-            if (!needsUpdate) return;
-
-            const updateData = newIsEmpty
-                ? { lastRanks: FieldValue.delete(), lastRanksUpdatedAt: FieldValue.serverTimestamp() }
-                : { lastRanks: nextLastRanks, lastRanksUpdatedAt: FieldValue.serverTimestamp() };
-            updates.push({ ref, data: updateData });
+            if (Object.keys(nextLastRanks).length === 0) {
+                updates.push({
+                    ref,
+                    data: {
+                        lastRanks: FieldValue.delete(),
+                        lastRanksVersion: FieldValue.delete(),
+                        lastRanksUpdatedAt: FieldValue.serverTimestamp(),
+                    },
+                });
+            } else {
+                updates.push({
+                    ref,
+                    data: {
+                        lastRanks: nextLastRanks,
+                        lastRanksVersion: 4,
+                        lastRanksUpdatedAt: FieldValue.serverTimestamp(),
+                    },
+                });
+            }
         });
+
+        const snapshotDoc = {
+            snapshotId,
+            generatedAt: FieldValue.serverTimestamp(),
+            exercises: globalExerciseSnapshot,
+            hex: globalHexSnapshot,
+        };
+        await adminDb.collection('leaderboardSnapshots').doc(snapshotId).set(snapshotDoc);
+        await snapshotMetaRef.set(
+            {
+                snapshotId,
+                generatedAt: FieldValue.serverTimestamp(),
+            },
+            { merge: true },
+        );
 
         if (!updates.length) {
             logger.info(

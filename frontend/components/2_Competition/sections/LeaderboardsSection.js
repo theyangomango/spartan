@@ -26,6 +26,7 @@ import {
     arrayUnion,
     arrayRemove,
     getDocs,
+    getDoc,
 } from "firebase/firestore";
 
 import useStableSafeAreaInsets from "../../../hooks/useStableSafeAreaInsets";
@@ -35,6 +36,7 @@ import theme from "../../../theme/mfpDark";
 import { subscribeUserData, emitUserDataUpdate } from "../../../utils/userDataEvents";
 import { canViewerAccessProfile } from "../../../utils/workoutPrivacy";
 import { withStrongPress } from "../../../utils/haptics";
+import { getLeaderboardValue } from "../../../helper/getLeaderboardValue";
 
 import Podium, { PODIUM_HEIGHT } from "../Podium";
 import LeaderboardPanel from "../LeaderboardPanel";
@@ -94,39 +96,23 @@ const genCode = (len = 6) => {
     return out;
 };
 
-function safeBodyweight(u) {
-    return (
-        u?.personalInfo?.weight ||
-        u?.bodyweight ||
-        u?.bodyWeight ||
-        u?.weight ||
-        u?.stats?.bodyweight ||
-        u?.stats?.weight ||
-        0
-    );
-}
-
 function computeTribeRanking(users, comparison) {
     const { exercise, metric, normalizeByBodyweight } = comparison || {};
+    const exerciseKey = typeof exercise === "string" ? exercise.trim() : "";
     const list = (users || []).map((u) => {
-        const ex = u?.statsExercises?.[exercise] || {};
-        const raw = metric === "1RM" ? ex?.["1RM"] ?? 0
-            : metric === "Volume" ? ex?.["Volume"] ?? 0
-            : ex?.["Reps"] ?? 0;
+        const { value, missingWeightData } = getLeaderboardValue(u, {
+            mode: "exercise",
+            key: exerciseKey,
+            metric: metric || "1RM",
+            normalizeByBodyweight: !!normalizeByBodyweight,
+        });
 
-        if (normalizeByBodyweight) {
-            const weight = Number(safeBodyweight(u)) || 0;
-            const hasWeight = weight > 0;
-            const val = hasWeight ? Number(raw) / weight : NaN;
-            return {
-                ...u,
-                _tribeValue: hasWeight && Number.isFinite(val) ? val : null,
-                __noWeightForBW: !hasWeight,
-            };
-        }
-
-        const val = Number(raw);
-        return { ...u, _tribeValue: Number.isFinite(val) ? val : 0, __noWeightForBW: false };
+        const safeValue = Number.isFinite(value) ? value : 0;
+        return {
+            ...u,
+            _tribeValue: normalizeByBodyweight && missingWeightData ? null : safeValue,
+            __noWeightForBW: !!(normalizeByBodyweight && missingWeightData),
+        };
     });
 
     list.sort((a, b) => {
@@ -141,6 +127,57 @@ function computeTribeRanking(users, comparison) {
         return (bv || -Infinity) - (av || -Infinity);
     });
     return list;
+}
+
+function buildRankMap(entries) {
+    const map = new Map();
+    if (!Array.isArray(entries)) return map;
+    entries.forEach((entry) => {
+        const uid = String(entry?.uid || "");
+        const rank = Number(entry?.rank);
+        if (!uid || !Number.isFinite(rank) || rank <= 0) return;
+        if (!map.has(uid)) map.set(uid, rank);
+    });
+    return map;
+}
+
+function membershipListsMatch(previousEntries, currentIds) {
+    const prev = Array.isArray(previousEntries)
+        ? previousEntries.map((entry) => String(entry?.uid || "")).filter((id) => !!id)
+        : [];
+    const current = Array.isArray(currentIds)
+        ? currentIds.map((id) => String(id || "")).filter((id) => !!id)
+        : [];
+    if (prev.length !== current.length) return false;
+    prev.sort();
+    current.sort();
+    for (let i = 0; i < prev.length; i++) {
+        if (prev[i] !== current[i]) return false;
+    }
+    return true;
+}
+
+function attachGlobalRanks(list, entries, snapshotValid) {
+    if (!Array.isArray(list)) return [];
+    if (!snapshotValid) return list.map((user) => ({ ...user, lastRank: null }));
+    const rankMap = buildRankMap(entries);
+    return list.map((user) => {
+        const uid = String(user?.uid || "");
+        return { ...user, lastRank: rankMap.get(uid) ?? null };
+    });
+}
+
+function attachScopedRanks(list, entries, currentIds, snapshotValid) {
+    if (!Array.isArray(list)) return [];
+    if (!snapshotValid) return list.map((user) => ({ ...user, lastRank: null }));
+    if (!membershipListsMatch(entries, currentIds)) {
+        return list.map((user) => ({ ...user, lastRank: null }));
+    }
+    const rankMap = buildRankMap(entries);
+    return list.map((user) => {
+        const uid = String(user?.uid || "");
+        return { ...user, lastRank: rankMap.get(uid) ?? null };
+    });
 }
 
 const summaryOf = (c) => {
@@ -190,25 +227,6 @@ function filterBlockedVisibility(list) {
     }
 }
 
-function resolveLastRank(user, exercise, scopeKey) {
-    if (!user || !exercise || !scopeKey) return null;
-    const perExercise = user?.lastRanks?.[exercise];
-    if (!perExercise) return null;
-    const raw = perExercise?.[scopeKey];
-    const num = Number(raw);
-    if (!Number.isFinite(num) || num <= 0) return null;
-    return num;
-}
-
-function applyLastRanks(list, exercise, scopeKey) {
-    if (!Array.isArray(list)) return [];
-    if (!exercise || !scopeKey) return list.map((u) => ({ ...u, lastRank: null }));
-    return list.map((user) => ({
-        ...user,
-        lastRank: resolveLastRank(user, exercise, scopeKey) ?? null,
-    }));
-}
-
 export default function LeaderboardsSection({ navigation }) {
     const insets = useStableSafeAreaInsets();
     const podiumSectionHeight = useMemo(() => PODIUM_HEIGHT, []);
@@ -247,6 +265,48 @@ export default function LeaderboardsSection({ navigation }) {
     const [selectExerciseModalVisible, setSelectExerciseModalVisible] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
     const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
+
+    const [snapshotMeta, setSnapshotMeta] = useState(null);
+    const [globalSnapshot, setGlobalSnapshot] = useState(null);
+
+    useEffect(() => {
+        const ref = doc(db, "leaderboardMeta", "currentSnapshot");
+        const unsubscribe = onSnapshot(
+            ref,
+            (snap) => {
+                try {
+                    setSnapshotMeta(snap.exists() ? snap.data() || null : null);
+                } catch {
+                    setSnapshotMeta(null);
+                }
+            },
+            (err) => {
+                console.warn("leaderboard snapshot meta subscribe failed", err?.message || err);
+            }
+        );
+        return unsubscribe;
+    }, []);
+
+    useEffect(() => {
+        const snapshotId = snapshotMeta?.snapshotId;
+        if (!snapshotId) {
+            setGlobalSnapshot(null);
+            return;
+        }
+        const ref = doc(db, "leaderboardSnapshots", snapshotId);
+        getDoc(ref)
+            .then((snap) => {
+                try {
+                    setGlobalSnapshot(snap.exists() ? snap.data() || null : null);
+                } catch {
+                    setGlobalSnapshot(null);
+                }
+            })
+            .catch((err) => {
+                console.warn("failed to load global leaderboard snapshot", err?.message || err);
+                setGlobalSnapshot(null);
+            });
+    }, [snapshotMeta?.snapshotId]);
 
     const [comparedMetric, setComparedMetric] = useState("1RM");
     const exerciseStatKey = comparedMetric === "1RM" ? "1RM" : comparedMetric;
@@ -592,60 +652,154 @@ export default function LeaderboardsSection({ navigation }) {
     const recompute = useCallback(() => {
         const all = usersRef.current || [];
         const hexFocusKey = typeof bodyFocus === "string" && bodyFocus ? bodyFocus : null;
+        const snapshotId = snapshotMeta?.snapshotId || null;
+        const globalSnapshotId = globalSnapshot?.snapshotId || null;
+
+        let viewerUid = "";
+        try {
+            viewerUid = String(global?.userData?.uid || "");
+        } catch {
+            viewerUid = "";
+        }
+
+        const followingSet = new Set();
+        if (viewerUid) followingSet.add(viewerUid);
+        const followingArr = (() => {
+            try {
+                return Array.isArray(global?.userData?.following) ? global.userData.following : [];
+            } catch {
+                return [];
+            }
+        })();
+        followingArr.forEach((entry) => {
+            const id = entry?.uid ?? entry?.id ?? entry;
+            const str = String(id || "");
+            if (str) followingSet.add(str);
+        });
+        const followingIdsArray = Array.from(followingSet).map((id) => String(id));
+
+        const viewerLastRanks =
+            global && global.userData && typeof global.userData.lastRanks === "object"
+                ? global.userData.lastRanks
+                : {};
+        const followingSnapshots = viewerLastRanks?.following || {};
+        const followingExerciseSnapshots = followingSnapshots?.exercises || {};
+        const followingHexSnapshots = followingSnapshots?.hex || {};
+        const tribeSnapshots = viewerLastRanks?.tribes || {};
 
         if (isCustomTribe) {
             if (!tribesHydrated || !currentTribe) return;
 
-            const memberSet = new Set(currentTribe.members || []);
-            const tribeUsers = all.filter((u) => memberSet.has(u?.uid));
+            const memberSet = new Set();
+            (currentTribe.members || []).forEach((member) => {
+                const id = member?.uid ?? member?.id ?? member;
+                const str = String(id || "");
+                if (str) memberSet.add(str);
+            });
+            if (!memberSet.has(viewerUid) && viewerUid) memberSet.add(viewerUid);
+
+            const tribeUsers = all.filter((u) => memberSet.has(String(u?.uid || "")));
             const visible = filterBlockedVisibility(tribeUsers);
             const tribeScopeKey = String(currentTribe?.id || selectedTribeId || "");
+            const tribeSnapshot = tribeSnapshots?.[tribeScopeKey] || {};
+            const tribeExerciseSnapshots = tribeSnapshot?.exercises || {};
+            const tribeHexSnapshots = tribeSnapshot?.hex || {};
+            const memberIdsArray = Array.from(memberSet).map((id) => String(id));
+
             if (activeComparison) {
                 const ranked = computeTribeRanking(visible, activeComparison);
-                setUserList(applyLastRanks(ranked, activeComparison?.exercise, tribeScopeKey));
+                const previous = tribeExerciseSnapshots?.[activeComparison?.exercise || ""];
+                const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
+                setUserList(attachScopedRanks(ranked, previous?.entries, memberIdsArray, snapshotValid));
+            } else if (hexFocusKey) {
+                const arr = Array.isArray(visible)
+                    ? visible.map((user) => {
+                          const { value } = getLeaderboardValue(user, {
+                              mode: "hex",
+                              key: hexFocusKey,
+                          });
+                          return {
+                              ...user,
+                              __hexValue: Number.isFinite(value) ? value : 0,
+                          };
+                      })
+                    : [];
+                arr.sort(
+                    (a, b) => (Number(b.__hexValue ?? 0) || 0) - (Number(a.__hexValue ?? 0) || 0)
+                );
+                const previous = tribeHexSnapshots?.[hexFocusKey];
+                const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
+                setUserList(attachScopedRanks(arr, previous?.entries, memberIdsArray, snapshotValid));
             } else {
                 const ranked = rankUsers(visible, comparedExercise, comparedMetric);
-                setUserList(applyLastRanks(ranked, comparedExercise, tribeScopeKey));
+                const previous = tribeExerciseSnapshots?.[comparedExercise];
+                const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
+                setUserList(attachScopedRanks(ranked, previous?.entries, memberIdsArray, snapshotValid));
             }
             return;
         }
 
-        const buildHexRanking = (list, scopeKeyLabel) => {
-            const arr = Array.isArray(list)
-                ? list.map((user) => {
-                      const hexVal = Number(user?.statsHexagon?.[hexFocusKey] ?? 0);
-                      return {
-                          ...user,
-                          __hexValue: Number.isFinite(hexVal) ? hexVal : 0,
-                      };
-                  })
-                : [];
-            arr.sort(
-                (a, b) => (Number(b.__hexValue ?? 0) || 0) - (Number(a.__hexValue ?? 0) || 0)
-            );
-            setUserList(applyLastRanks(arr, null, scopeKeyLabel));
-        };
+        const usingHexFocus = !!hexFocusKey;
 
         if (scope === "Following") {
-            const followingSet = new Set((global.userData?.following || []).map((u) => u.uid));
-            const base = all.filter(
-                (usr) => usr?.uid === global.userData?.uid || followingSet.has(usr?.uid)
-            );
+            const base = all.filter((usr) => followingSet.has(String(usr?.uid || "")));
             const visible = filterBlockedVisibility(base);
-            if (hexFocusKey) {
-                buildHexRanking(visible, `following_hex_${hexFocusKey}`);
-                return;
+            if (usingHexFocus) {
+                const arr = Array.isArray(visible)
+                    ? visible.map((user) => {
+                          const { value } = getLeaderboardValue(user, {
+                              mode: "hex",
+                              key: hexFocusKey,
+                          });
+                          return {
+                              ...user,
+                              __hexValue: Number.isFinite(value) ? value : 0,
+                          };
+                      })
+                    : [];
+                arr.sort(
+                    (a, b) => (Number(b.__hexValue ?? 0) || 0) - (Number(a.__hexValue ?? 0) || 0)
+                );
+                const previous = followingHexSnapshots?.[hexFocusKey];
+                const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
+                setUserList(attachScopedRanks(arr, previous?.entries, followingIdsArray, snapshotValid));
+            } else {
+                const ranked = rankUsers(visible, comparedExercise, comparedMetric);
+                const previous = followingExerciseSnapshots?.[comparedExercise];
+                const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
+                setUserList(attachScopedRanks(ranked, previous?.entries, followingIdsArray, snapshotValid));
             }
-            const ranked = rankUsers(visible, comparedExercise, comparedMetric);
-            setUserList(applyLastRanks(ranked, comparedExercise, "following"));
         } else {
             const visible = filterBlockedVisibility(all);
-            if (hexFocusKey) {
-                buildHexRanking(visible, `global_hex_${hexFocusKey}`);
-                return;
+            if (usingHexFocus) {
+                const arr = Array.isArray(visible)
+                    ? visible.map((user) => {
+                          const { value } = getLeaderboardValue(user, {
+                              mode: "hex",
+                              key: hexFocusKey,
+                          });
+                          return {
+                              ...user,
+                              __hexValue: Number.isFinite(value) ? value : 0,
+                          };
+                      })
+                    : [];
+                arr.sort(
+                    (a, b) => (Number(b.__hexValue ?? 0) || 0) - (Number(a.__hexValue ?? 0) || 0)
+                );
+                const entries = Array.isArray(globalSnapshot?.hex?.[hexFocusKey])
+                    ? globalSnapshot.hex[hexFocusKey]
+                    : [];
+                const snapshotValid = Boolean(snapshotId && globalSnapshotId === snapshotId);
+                setUserList(attachGlobalRanks(arr, entries, snapshotValid));
+            } else {
+                const ranked = rankUsers(visible, comparedExercise, comparedMetric);
+                const entries = Array.isArray(globalSnapshot?.exercises?.[comparedExercise])
+                    ? globalSnapshot.exercises[comparedExercise]
+                    : [];
+                const snapshotValid = Boolean(snapshotId && globalSnapshotId === snapshotId);
+                setUserList(attachGlobalRanks(ranked, entries, snapshotValid));
             }
-            const ranked = rankUsers(visible, comparedExercise, comparedMetric);
-            setUserList(applyLastRanks(ranked, comparedExercise, "global"));
         }
     }, [
         bodyFocus,
@@ -657,6 +811,10 @@ export default function LeaderboardsSection({ navigation }) {
         comparedMetric,
         scope,
         selectedTribeId,
+        snapshotMeta?.snapshotId,
+        globalSnapshot,
+        global?.userData?.following,
+        global?.userData?.lastRanks,
     ]);
 
     useEffect(() => {
@@ -727,14 +885,50 @@ export default function LeaderboardsSection({ navigation }) {
             const comp = tribeComparisons[clampedIndex];
             if (!comp) return;
 
+            const snapshotId = snapshotMeta?.snapshotId || null;
+
             const all = usersRef.current || [];
-            const memberSet = new Set(currentTribe.members || []);
-            const tribeUsers = all.filter((x) => memberSet.has(x?.uid));
+            const viewerUid = (() => {
+                try {
+                    return String(global?.userData?.uid || "");
+                } catch {
+                    return "";
+                }
+            })();
+
+            const memberSet = new Set();
+            (currentTribe.members || []).forEach((member) => {
+                const id = member?.uid ?? member?.id ?? member;
+                const str = String(id || "");
+                if (str) memberSet.add(str);
+            });
+            if (viewerUid && !memberSet.has(viewerUid)) memberSet.add(viewerUid);
+            const memberIdsArray = Array.from(memberSet).map((id) => String(id));
+
+            const tribeUsers = all.filter((x) => memberSet.has(String(x?.uid || "")));
+            const visible = filterBlockedVisibility(tribeUsers);
+            const ranked = computeTribeRanking(visible, comp);
+
             const tribeScopeKey = String(currentTribe?.id || selectedTribeId || "");
-            const ranked = computeTribeRanking(tribeUsers, comp);
-            setUserList(applyLastRanks(ranked, comp?.exercise, tribeScopeKey));
+            const viewerLastRanks =
+                global && global.userData && typeof global.userData.lastRanks === "object"
+                    ? global.userData.lastRanks
+                    : {};
+            const tribeSnapshots = viewerLastRanks?.tribes || {};
+            const tribeSnapshot = tribeSnapshots?.[tribeScopeKey] || {};
+            const previous = tribeSnapshot?.exercises?.[comp?.exercise || ""];
+            const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
+
+            setUserList(attachScopedRanks(ranked, previous?.entries, memberIdsArray, snapshotValid));
         },
-        [tribeComparisons, isCustomTribe, currentTribe, selectedTribeId]
+        [
+            tribeComparisons,
+            isCustomTribe,
+            currentTribe,
+            selectedTribeId,
+            snapshotMeta?.snapshotId,
+            global?.userData?.lastRanks,
+        ]
     );
 
     const onOpenCreateFromMenu = useCallback(() => {
