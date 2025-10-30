@@ -23,8 +23,9 @@ function scaleSize(size) {
     return Math.round(size * scale);
 }
 
-const HERO_MARGIN_BOTTOM = scaleSize(110);
+const HERO_MARGIN_BOTTOM = scaleSize(40);
 const ACTIONS_MARGIN_TOP = scaleSize(16);
+const CONTENT_OFFSET = scaleSize(18);
 
 const SignUp = ({ navigation }) => {
     const insets = useSafeAreaInsets();
@@ -62,7 +63,7 @@ const SignUp = ({ navigation }) => {
         >
             <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
                 <View style={[styles.inner, { paddingBottom: scaleSize(120) + insets.bottom }]}>
-                    <View style={[styles.heroSection, { marginBottom: HERO_MARGIN_BOTTOM }]}>
+                    <View style={[styles.heroSection, { marginBottom: HERO_MARGIN_BOTTOM, marginTop: CONTENT_OFFSET }]}>
                         <Text style={styles.heroTitle}>Welcome to Spartan</Text>
                         <Text style={styles.heroSubtitle}>
                             Find your tribe. Lift with purpose. Unlock relentless performance.
@@ -126,7 +127,7 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         paddingHorizontal: scaleSize(26),
-        paddingTop: scaleSize(70),
+        paddingTop: scaleSize(92),
     },
     heroSection: {
         alignItems: 'center',
