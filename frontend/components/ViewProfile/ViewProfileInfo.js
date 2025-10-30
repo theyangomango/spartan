@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     name_and_score_ctnr: {
-        marginTop: scaleSize(25),
+        marginTop: scaleSize(18),
         flexDirection: 'row',
         paddingBottom: scaleSize(3.5),
         width: '100%',

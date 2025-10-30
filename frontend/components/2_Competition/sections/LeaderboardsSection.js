@@ -1186,12 +1186,12 @@ export default function LeaderboardsSection({ navigation }) {
     const gradientConfig = useMemo(() => {
         if (isCustomTribe) {
             return {
-                colors: ["#1B0F07", "#34190C", "#4A230E", "#713314", "#D5816A", theme.surface],
+                colors: [theme.bg, "#34190C", "#4A230E", "#713314", "#D5816A", theme.surface],
                 locations: [0, 0.2, 0.48, 0.7, 0.9, 1],
             };
         }
         return {
-            colors: ["#080E1A", "#142548", "#264A7B", "#3167AF", "#3B82DF", theme.surface],
+            colors: [theme.bg, "#142548", "#264A7B", "#3167AF", "#3B82DF", theme.surface],
             locations: [0, 0.22, 0.52, 0.74, 0.92, 1],
         };
     }, [isCustomTribe]);

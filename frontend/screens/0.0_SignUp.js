@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
     },
     backgroundImage: {
-        opacity: 0.75,
+        opacity: 0.6,
     },
     safeArea: {
         flex: 1,
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
     primaryButtonText: {
         color: '#FFFFFF',
         fontFamily: 'Nunito_800ExtraBold',
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(13),
         letterSpacing: scaleSize(0.4)
     },
     footer: {

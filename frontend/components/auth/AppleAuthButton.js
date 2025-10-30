@@ -1,9 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Platform, StyleSheet, View } from 'react-native';
-import * as AppleAuthentication from 'expo-apple-authentication';
+import { Alert, Platform, StyleSheet } from 'react-native';
 import useAppleAuth from '../../auth/useAppleAuth';
 import { upsertAppleUser } from '../../auth/appleAccount';
 import scaleSize from '../../helper/scaleSize';
+import AuthButton from './AuthButton';
 
 const AppleAuthButton = ({
   onSuccess,
@@ -86,28 +86,33 @@ const AppleAuthButton = ({
     return null;
   }
 
+  const buttonText = busy ? 'Signing in…' : 'Sign in with Apple';
+
   return (
-    <View style={[styles.wrapper, style]}>
-      <AppleAuthentication.AppleAuthenticationButton
-        buttonType={AppleAuthentication.AppleAuthenticationButtonType.SIGN_IN}
-        buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.BLACK}
-        cornerRadius={scaleSize(10)}
-        onPress={onPress}
-        style={styles.button}
-        disabled={disabled || busy}
-      />
-    </View>
+    <AuthButton
+      icon="logo-apple"
+      iconColor="#f5f6f9"
+      text={buttonText}
+      onPress={onPress}
+      disabled={disabled || busy}
+      style={[styles.button, style]}
+      textStyle={styles.buttonText}
+    />
   );
 };
 
 const styles = StyleSheet.create({
-  wrapper: {
-    borderRadius: scaleSize(10),
-    overflow: 'hidden',
-  },
   button: {
-    width: '100%',
-    height: scaleSize(48),
+    backgroundColor: '#121316',
+    borderRadius: scaleSize(14),
+    borderWidth: scaleSize(1.1),
+    borderColor: '#1f2025',
+    paddingVertical: scaleSize(13.5),
+  },
+  buttonText: {
+    color: '#f5f6f9',
+    fontSize: scaleSize(14),
+    fontFamily: 'Nunito_800ExtraBold',
   },
 });
 

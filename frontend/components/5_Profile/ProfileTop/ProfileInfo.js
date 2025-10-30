@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useMemo } from "react";
-import { StyleSheet, View, Text, Dimensions, Pressable, Animated } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { StyleSheet, View, Text, Dimensions, Pressable } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../../helper/usePFPs";
@@ -16,7 +16,6 @@ export default function ProfileInfo({
     pfp,
     onPressFollowers,
     onPressFollowing,
-    onPressEditPfp,
     isEditingBio = false,
     isSavingBio = false,
     bioValue = "",
@@ -34,10 +33,6 @@ export default function ProfileInfo({
     const trimmedBio = bioDraft.trim();
     const bioText = trimmedBio.length > 0 ? trimmedBio : 'No bio yet...';
     const bioInputRef = useRef(null);
-    const editBadgeScale = useRef(new Animated.Value(1)).current;
-    const pfpScale = useRef(new Animated.Value(1)).current;
-
-    const handleEditPfpPress = useMemo(() => withStrongPress(onPressEditPfp), [onPressEditPfp]);
 
     useEffect(() => {
         if (!isEditingBio) return undefined;
@@ -46,29 +41,6 @@ export default function ProfileInfo({
         }, 120);
         return () => clearTimeout(timer);
     }, [isEditingBio, focusBioSignal]);
-
-    const triggerBounceAnimations = () => {
-        pfpScale.setValue(0.94);
-        editBadgeScale.setValue(0.92);
-        Animated.parallel([
-            Animated.spring(pfpScale, {
-                toValue: 1,
-                stiffness: 240,
-                damping: 16,
-                mass: 0.7,
-                useNativeDriver: true,
-            }),
-            Animated.spring(editBadgeScale, {
-                toValue: 1,
-                stiffness: 220,
-                damping: 14,
-                mass: 0.7,
-                useNativeDriver: true,
-            }),
-        ]).start();
-    };
-
-    const isEditable = typeof onPressEditPfp === 'function';
 
     const renderPfpImage = () => (
         <View style={styles.pfp_ring}>
@@ -91,37 +63,7 @@ export default function ProfileInfo({
                     <Text style={styles.user_stat_count_text}>{followersCount}</Text>
                     <Text style={styles.user_stat_text}>Followers</Text>
                 </Pressable>
-                <View style={styles.pfp_ctnr}>
-                    {isEditable ? (
-                        <Pressable
-                            style={[styles.pfp_pressable]}
-                            onPress={() => {
-                                triggerBounceAnimations();
-                                handleEditPfpPress?.();
-                            }}
-                            hitSlop={{ top: scaledSize(6), bottom: scaledSize(6), left: scaledSize(6), right: scaledSize(6) }}
-                        >
-                            <Animated.View style={{ transform: [{ scale: pfpScale }] }}>
-                                {renderPfpImage()}
-                            </Animated.View>
-                            <Animated.View
-                                style={[
-                                    styles.edit_badge,
-                                    {
-                                        transform: [
-                                            { translateY: scaledSize(10) },
-                                            { scale: editBadgeScale },
-                                        ],
-                                    },
-                                ]}
-                            >
-                                <Text style={styles.edit_badge_text}>Edit</Text>
-                            </Animated.View>
-                        </Pressable>
-                    ) : (
-                        renderPfpImage()
-                    )}
-                </View>
+                <View style={styles.pfp_ctnr}>{renderPfpImage()}</View>
                 <Pressable style={styles.following_stat_ctnr} onPress={withStrongPress(onPressFollowing)} hitSlop={8}>
                     <Text style={styles.user_stat_count_text}>{followingCount}</Text>
                     <Text style={styles.user_stat_text}>Following</Text>
@@ -178,11 +120,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
-        paddingBottom: scaledSize(12),
-    },
-    pfp_pressable: {
-        alignItems: 'center',
-        justifyContent: 'center',
+        paddingBottom: scaledSize(6),
     },
     pfp_ring: {
         borderWidth: scaledSize(3),
@@ -216,7 +154,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     name_and_score_ctnr: {
-        marginTop: scaledSize(20),
+        marginTop: scaledSize(14),
         flexDirection: 'row',
         paddingBottom: scaledSize(3.5),
         width: '100%',
@@ -267,24 +205,5 @@ const styles = StyleSheet.create({
     },
     bio_placeholder_text: {
         color: '#FFFFFF',
-    },
-    edit_badge: {
-        position: 'absolute',
-        bottom: 0,
-        paddingHorizontal: scaledSize(12),
-        paddingVertical: scaledSize(4),
-        borderRadius: scaledSize(12),
-        backgroundColor: '#334c7ad6', // gold accent for edit badge
-        shadowColor: '#000',
-        shadowOpacity: 0.25,
-        shadowRadius: scaledSize(4),
-        shadowOffset: { width: 0, height: scaledSize(2) },
-        elevation: 4,
-    },
-    edit_badge_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(12),
-        color: '#FFFFFF',
-        letterSpacing: 0.3,
     },
 });
