@@ -50,10 +50,10 @@ export async function upsertGoogleUser(profile, options = {}) {
   );
 
   const fallbackHandle = `user${uid.slice(0, 6).toLowerCase()}`;
-  const baseHandleSource = profileHandleSource && profileHandleSource.length >= 3
+  const baseHandleSource = profileHandleSource && profileHandleSource.length >= 6
     ? profileHandleSource
     : fallbackHandle;
-  const baseHandle = normalizedPreferredHandle && normalizedPreferredHandle.length >= 3
+  const baseHandle = normalizedPreferredHandle && normalizedPreferredHandle.length >= 6
     ? normalizedPreferredHandle
     : baseHandleSource;
   const handleExists = (candidate) => allUsers.some((user) => String(user?.handle || '').toLowerCase() === candidate.toLowerCase());
