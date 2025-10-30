@@ -1,5 +1,6 @@
 import { StyleSheet, View } from "react-native";
-import { ArrowDown2, ArrowLeft2, DirectInbox } from "iconsax-react-native";
+import { ArrowDown2, Send2 } from "iconsax-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
@@ -18,7 +19,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
     return (
         <View style={styles.main_ctnr}>
             <RNBounceable onPress={withStrongPress(goBack)} hitSlop={10} style={styles.iconBtn}>
-                <ArrowLeft2 size={ICON_SIZE} color={ICON_COLOR} strokeWidth={ICON_STROKE_WIDTH} />
+                <Ionicons name="chevron-back" size={ICON_SIZE} color={theme.textSecondary} />
             </RNBounceable>
 
             <RNBounceable onPress={withStrongPress(onOpenOptions)} hitSlop={10} style={styles.center}>
@@ -40,7 +41,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
             </RNBounceable>
 
             <RNBounceable onPress={withStrongPress(toMessages)} hitSlop={10} style={styles.iconBtn}>
-                <DirectInbox size={ICON_SIZE} color={ICON_COLOR} strokeWidth={ICON_STROKE_WIDTH} />
+                <Send2 size={ICON_SIZE} color={ICON_COLOR} strokeWidth={ICON_STROKE_WIDTH} variant="Linear" />
             </RNBounceable>
         </View>
     );
@@ -58,12 +59,15 @@ const styles = StyleSheet.create({
         minHeight: METRICS.paddingTop + METRICS.paddingBottom + METRICS.centerH,
     },
     center: {
-        flex: 1,
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: scaleSize(6),
         height: METRICS.centerH,
         paddingBottom: scaleSize(3.5),
+        flexShrink: 1,
+        flexGrow: 0,
+        maxWidth: "65%",
+        alignSelf: "center",
     },
     handleRow: {
         flexDirection: "row",

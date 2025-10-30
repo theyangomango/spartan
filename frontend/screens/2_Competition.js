@@ -14,12 +14,10 @@ import {
 } from "../components/2_Competition/layoutConstants";
 import LeaderboardsSection from "../components/2_Competition/sections/LeaderboardsSection";
 import ExercisesSection from "../components/2_Competition/sections/ExercisesSection";
-import TemplatesSection from "../components/2_Competition/sections/TemplatesSection";
 
 const VIEW_TABS = [
     { key: "leaderboard", label: "Leaderboards" },
     { key: "exercises", label: "Exercises" },
-    { key: "templates", label: "Templates" },
 ];
 
 export default function Competition({ navigation }) {
@@ -34,7 +32,6 @@ export default function Competition({ navigation }) {
         () => ({
             leaderboard: <LeaderboardsSection navigation={navigation} />,
             exercises: <ExercisesSection />,
-            templates: <TemplatesSection />,
         }),
         [navigation]
     );

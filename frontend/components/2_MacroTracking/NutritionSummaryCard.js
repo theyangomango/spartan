@@ -5,6 +5,10 @@ import MacroBar from './MacroBar';
 
 import scaleSize from "../../helper/scaleSize";
 
+const RING_SIZE = 135;
+const RING_STROKE_WIDTH = 11;
+const RING_PADDING = 4;
+
 export default function NutritionSummaryCard({ totals, goals, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const progress = Math.min(100, (Math.max(0, totals.calories) / Math.max(1, goals.calories)) * 100);
@@ -13,8 +17,9 @@ export default function NutritionSummaryCard({ totals, goals, COLORS }) {
             <View style={styles.row}>
                 <View style={styles.progressContainer}>
                     <AnimatedCircularProgress
-                        size={135}
-                        width={11}
+                        size={RING_SIZE + RING_PADDING}
+                        width={RING_STROKE_WIDTH}
+                        padding={RING_PADDING}
                         fill={progress}
                         tintColor={'#2D9EFF'}
                         backgroundColor={'#bbdbff4f'}
