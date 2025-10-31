@@ -902,8 +902,13 @@ export default function ProgressSection() {
     }, [hasChartData, chartData, activeIndex, handlePointerActivate]);
 
     return (
-        <View style={styles.container}>
-            <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding }]}>
+        <>
+            <ScrollView
+                style={styles.scroll}
+                contentContainerStyle={styles.container}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding }]}>
                 <View style={styles.header}>
                     <Text style={styles.sectionTitle}>Weight</Text>
                     <View style={styles.headerActions}>
@@ -1166,12 +1171,12 @@ export default function ProgressSection() {
                         />
                     </Pressable>
                 </View>
-
             </View>
+        </ScrollView>
 
-            <ManageMeasurementsModal
-                isVisible={isManageModalVisible}
-                onDismiss={handleCloseManageModal}
+        <ManageMeasurementsModal
+            isVisible={isManageModalVisible}
+            onDismiss={handleCloseManageModal}
                 entries={entries}
                 onEdit={handleEditEntry}
                 onDelete={handleRequestDelete}
@@ -1186,14 +1191,18 @@ export default function ProgressSection() {
                 initialEntry={entryToEdit}
                 mode={entryToEdit ? "edit" : "create"}
             />
-        </View>
+        </>
     );
 }
 
 const styles = StyleSheet.create({
-    container: {
+    scroll: {
         flex: 1,
+        backgroundColor: theme.bg,
+    },
+    container: {
         paddingTop: scaleSize(10),
+        paddingBottom: scaleSize(24),
         backgroundColor: theme.bg,
     },
     card: {
@@ -1251,9 +1260,9 @@ const styles = StyleSheet.create({
     },
     weightValue: {
         fontFamily: "Outfit_700Bold",
-        fontSize: ts(32),
+        fontSize: ts(30),
         color: theme.textPrimary ?? "#F6F8FF",
-        lineHeight: ts(34),
+        lineHeight: ts(32),
     },
     weightUnit: {
         fontFamily: "Outfit_600SemiBold",
