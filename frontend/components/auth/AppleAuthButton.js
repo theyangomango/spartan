@@ -5,7 +5,12 @@ import { upsertAppleUser } from '../../auth/appleAccount';
 import scaleSize from '../../helper/scaleSize';
 import AuthButton from './AuthButton';
 
+const DEFAULT_LABEL = 'Continue with Apple';
+const DEFAULT_BUSY_LABEL = 'Signing in…';
+
 const AppleAuthButton = ({
+  label = DEFAULT_LABEL,
+  busyText = DEFAULT_BUSY_LABEL,
   onSuccess,
   onError,
   disabled,
@@ -59,7 +64,7 @@ const AppleAuthButton = ({
     return null;
   }
 
-  const buttonText = busy ? 'Signing in…' : 'Sign in with Apple';
+  const buttonText = busy ? busyText : label;
 
   return (
     <AuthButton

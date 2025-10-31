@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { View, Text, StyleSheet, Dimensions, Pressable, Animated, Easing } from "react-native";
 import theme from "../../theme/mfpDark";
 
@@ -26,6 +26,29 @@ export default function ReactionPopover({
     const menuOpacity = useRef(new Animated.Value(0)).current;
     const menuTranslate = useRef(new Animated.Value(8)).current;
 
+    const [barLayout, setBarLayout] = useState(null);
+    const [menuLayout, setMenuLayout] = useState(null);
+
+    const handleBarLayout = useCallback((event) => {
+        const { width, height } = event.nativeEvent.layout;
+        setBarLayout((prev) => {
+            if (prev && Math.abs(prev.width - width) < 1 && Math.abs(prev.height - height) < 1) {
+                return prev;
+            }
+            return { width, height };
+        });
+    }, []);
+
+    const handleMenuLayout = useCallback((event) => {
+        const { width, height } = event.nativeEvent.layout;
+        setMenuLayout((prev) => {
+            if (prev && Math.abs(prev.width - width) < 1 && Math.abs(prev.height - height) < 1) {
+                return prev;
+            }
+            return { width, height };
+        });
+    }, []);
+
     useEffect(() => {
         if (visible) setMounted(true);
 
@@ -43,20 +66,78 @@ export default function ReactionPopover({
     if (!mounted) return null;
 
     // ---- Geometry (plain calculations, NOT hooks) ----
-    const margin = 10;
+    const margin = scaleSize(12);
+    const verticalGap = scaleSize(12);
+    const firstItemInset = scaleSize(8);
+    const reactionGap = scaleSize(8);
+    const itemSize = scaleSize(40);
+
     const ax = (anchor?.x ?? SW / 2) + (anchor?.width ?? 0) / 2;
     const top = anchor?.y ?? (SH / 2 - 24);
     const bot = (anchor?.y ?? SH / 2) + (anchor?.height ?? 48);
 
-    const itemSize = 40;
-    const gap = 8;
-    const barWidth = reactions.length ? reactions.length * itemSize + (reactions.length - 1) * gap + 16 : 0;
+    const estimatedBarHeight = reactions.length ? scaleSize(56) : 0;
+    const barHeight = barLayout?.height ?? estimatedBarHeight;
+    const estimatedMenuHeight = actions.length ? actions.length * scaleSize(48) + scaleSize(8) : 0;
+    const menuHeight = menuLayout?.height ?? estimatedMenuHeight;
+
+    const availableAbove = Math.max(0, top - margin);
+    const availableBelow = Math.max(0, SH - bot - margin);
+
+    let barTop = null;
+    let barPlacement = null;
+    if (reactions.length > 0) {
+        const preferAbove = availableAbove >= availableBelow;
+        const fitsAbove = barHeight + verticalGap <= availableAbove;
+        const fitsBelow = barHeight + verticalGap <= availableBelow;
+
+        if ((preferAbove && fitsAbove) || (!fitsBelow && fitsAbove)) {
+            barPlacement = "above";
+            const desiredTop = top - verticalGap - barHeight;
+            barTop = Math.max(margin, desiredTop);
+        } else if (fitsBelow) {
+            barPlacement = "below";
+            const desiredTop = bot + verticalGap;
+            barTop = Math.min(SH - margin - barHeight, desiredTop);
+        } else {
+            barPlacement = "float";
+            const midTop = top + (bot - top) / 2 - barHeight / 2;
+            barTop = Math.max(margin, Math.min(midTop, SH - margin - barHeight));
+        }
+    }
+
+    const barWidth = reactions.length
+        ? reactions.length * itemSize + Math.max(reactions.length - 1, 0) * reactionGap + firstItemInset * 2
+        : 0;
     const barLeft = Math.max(margin, Math.min(ax - barWidth / 2, SW - barWidth - margin));
-    const barTop = Math.max(margin, top - 58);
+
+    const anchorForMenuBelow = barPlacement === "below" ? (barTop ?? bot) + barHeight : bot;
+    const anchorForMenuAbove = barPlacement === "above" ? (barTop ?? top) : top;
+
+    const spaceBelowAnchor = Math.max(0, SH - anchorForMenuBelow - margin);
+    const spaceAboveAnchor = Math.max(0, anchorForMenuAbove - margin);
+
+    const fitsMenuBelow = menuHeight + verticalGap <= spaceBelowAnchor;
+    const fitsMenuAbove = menuHeight + verticalGap <= spaceAboveAnchor;
+
+    let menuTop;
+    if (fitsMenuBelow && (!fitsMenuAbove || spaceBelowAnchor >= spaceAboveAnchor)) {
+        const desiredTop = anchorForMenuBelow + verticalGap;
+        menuTop = Math.min(SH - margin - menuHeight, desiredTop);
+    } else if (fitsMenuAbove) {
+        const desiredTop = anchorForMenuAbove - verticalGap - menuHeight;
+        menuTop = Math.max(margin, desiredTop);
+    } else if (spaceBelowAnchor >= spaceAboveAnchor) {
+        const desiredTop = anchorForMenuBelow + verticalGap;
+        menuTop = Math.min(SH - margin - menuHeight, Math.max(margin, desiredTop));
+    } else {
+        const desiredTop = anchorForMenuAbove - verticalGap - menuHeight;
+        menuTop = Math.max(margin, Math.min(desiredTop, SH - margin - menuHeight));
+    }
 
     const menuWidth = Math.min(300, SW - margin * 2);
     const menuLeft = Math.max(margin, Math.min(ax - menuWidth / 2, SW - menuWidth - margin));
-    const menuTop = Math.min(SH - margin - 120, bot + 10);
+    const clampedMenuTop = Math.max(margin, Math.min(menuTop, SH - margin - menuHeight));
 
     return (
         <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -66,17 +147,18 @@ export default function ReactionPopover({
             </Animated.View>
 
             {/* reaction bar */}
-            {reactions.length > 0 && (
+            {reactions.length > 0 && barTop !== null && (
                 <Animated.View
                     style={[
                         styles.reactionBar,
                         { left: barLeft, top: barTop, width: barWidth, opacity: barOpacity, transform: [{ scale: barScale }] },
                     ]}
+                    onLayout={handleBarLayout}
                 >
                     {reactions.map((r, i) => (
                         <Pressable
                             key={r.key}
-                            style={[styles.reactionItem, { marginLeft: i === 0 ? 8 : gap }]}
+                            style={[styles.reactionItem, { marginLeft: i === 0 ? firstItemInset : reactionGap }]}
                             onPress={() => { onReaction?.(r.key); onClose?.(); }}
                         >
                             <Text style={styles.reactionEmoji}>{r.emoji}</Text>
@@ -90,8 +172,9 @@ export default function ReactionPopover({
                 <Animated.View
                     style={[
                         styles.menuCard,
-                        { left: menuLeft, top: menuTop, width: menuWidth, opacity: menuOpacity, transform: [{ translateY: menuTranslate }] },
+                        { left: menuLeft, top: clampedMenuTop, width: menuWidth, opacity: menuOpacity, transform: [{ translateY: menuTranslate }] },
                     ]}
+                    onLayout={handleMenuLayout}
                     pointerEvents="auto"
                 >
                     {actions.map((a, idx) => (

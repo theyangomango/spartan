@@ -308,7 +308,7 @@ const CreateUsername = ({ navigation, route }) => {
           <View style={[styles.container, { paddingBottom: insets.bottom + scaleSize(28) }]}>
             <View style={styles.content}>
               <View style={styles.heading}>
-                <Text style={styles.title}>Create your username</Text>
+                <Text style={styles.title}>Create your Username</Text>
                 <Text style={styles.subtitle}>
                   This is how your friends will find you on Spartan.
                 </Text>

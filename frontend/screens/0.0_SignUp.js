@@ -72,15 +72,19 @@ const SignUp = ({ navigation }) => {
 
                     <View style={styles.actions}>
                         <GoogleAuthButton
+                            label="Sign up with Google"
+                            busyText="Signing up…"
                             onSuccess={handleProviderSuccess}
                             style={styles.googleButton}
                         />
                         <AppleAuthButton
+                            label="Sign up with Apple"
+                            busyText="Signing up…"
                             onSuccess={handleProviderSuccess}
                             style={styles.appleButton}
                         />
                         <AuthButton
-                            text="Continue with Email"
+                            text="Sign up"
                             onPress={toNewUserCreationScreen}
                             style={styles.primaryButton}
                             textStyle={styles.primaryButtonText}

@@ -6,9 +6,11 @@ import AuthButton from './AuthButton';
 import scaleSize from '../../helper/scaleSize';
 
 const DEFAULT_LABEL = 'Continue with Google';
+const DEFAULT_BUSY_LABEL = 'Signing in…';
 
 const GoogleAuthButton = ({
   label = DEFAULT_LABEL,
+  busyText = DEFAULT_BUSY_LABEL,
   onSuccess,
   onError,
   disabled,
@@ -55,7 +57,7 @@ const GoogleAuthButton = ({
 
   const buttonText = !isConfigured
     ? 'Google setup required'
-    : (busy ? 'Signing in…' : label);
+    : (busy ? busyText : label);
 
   return (
     <AuthButton
