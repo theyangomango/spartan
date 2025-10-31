@@ -3,8 +3,10 @@ import {
     Alert,
     KeyboardAvoidingView,
     Modal,
+    PanResponder,
     Platform,
     Pressable,
+    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -18,7 +20,7 @@ import makeID from "../../../../backend/helper/makeID";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import { emitUserDataUpdate, subscribeUserData } from "../../../utils/userDataEvents";
 import { DEVICE_WIDTH, scaleSize, ts } from "../layoutConstants";
-import { LineChart } from "react-native-gifted-charts";
+import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from "react-native-svg";
 
 const resolvePreferredWeightUnit = (user) => {
     const rawUnit =
@@ -141,20 +143,7 @@ const formatAxisValue = (value) => {
     return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 };
 
-const PointerLabelBubble = React.memo(({ entry, unit, stripHeight, isRightAligned, onActivate, index }) => {
-    const lastNotifiedIndexRef = useRef(null);
-
-    useEffect(() => {
-        if (!entry || typeof index !== "number" || !onActivate) return;
-        if (lastNotifiedIndexRef.current === index) return;
-        lastNotifiedIndexRef.current = index;
-        onActivate({
-            index,
-            recordedAt: entry.recordedAt,
-            weight: Number(entry.weight),
-        });
-    }, [entry, index, onActivate]);
-
+const PointerLabelBubble = React.memo(({ entry, unit, isRightAligned }) => {
     if (!entry) return null;
 
     const weightText = `${formatWeightValue(entry.weight)} ${unit}`;
@@ -163,17 +152,19 @@ const PointerLabelBubble = React.memo(({ entry, unit, stripHeight, isRightAligne
     return (
         <View
             pointerEvents="none"
-            style={[styles.pointerLabelRoot, { height: stripHeight + scaleSize(92) }]}
+            style={[
+                styles.pointerLabelRoot,
+                isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+            ]}
+            accessible
+            accessibilityRole="summary"
+            accessibilityLabel={`Weight ${weightText} logged ${timestampText}`}
         >
-            <View style={{ height: stripHeight }} />
             <View
                 style={[
                     styles.pointerBubbleWrapper,
                     isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
                 ]}
-                accessible
-                accessibilityRole="summary"
-                accessibilityLabel={`Weight ${weightText} logged ${timestampText}`}
             >
                 <View style={styles.pointerBubble}>
                     <Text style={styles.pointerBubbleWeight}>{weightText}</Text>
@@ -190,6 +181,8 @@ const AddMeasurementModal = ({
     onSubmit,
     unit,
     isSaving,
+    initialEntry,
+    mode = "create",
 }) => {
     const [weightInput, setWeightInput] = useState("");
     const [dateInput, setDateInput] = useState(() => dayjs().format("YYYY-MM-DD"));
@@ -197,11 +190,18 @@ const AddMeasurementModal = ({
 
     useEffect(() => {
         if (!isVisible) return;
-        const current = dayjs();
-        setWeightInput("");
-        setDateInput(current.format("YYYY-MM-DD"));
-        setTimeInput(current.format("HH:mm"));
-    }, [isVisible]);
+        if (mode === "edit" && initialEntry) {
+            setWeightInput(String(initialEntry.weight ?? ""));
+            const entryDay = dayjs(initialEntry.recordedAt);
+            setDateInput(entryDay.isValid() ? entryDay.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"));
+            setTimeInput(entryDay.isValid() ? entryDay.format("HH:mm") : dayjs().format("HH:mm"));
+        } else {
+            const current = dayjs();
+            setWeightInput("");
+            setDateInput(current.format("YYYY-MM-DD"));
+            setTimeInput(current.format("HH:mm"));
+        }
+    }, [isVisible, initialEntry, mode]);
 
     const handleSetNow = useCallback(() => {
         const current = dayjs();
@@ -211,8 +211,11 @@ const AddMeasurementModal = ({
 
     const handleSave = useCallback(() => {
         if (isSaving) return;
-        onSubmit({ weightInput, dateInput, timeInput });
-    }, [dateInput, timeInput, weightInput, onSubmit, isSaving]);
+        onSubmit({ weightInput, dateInput, timeInput, entryId: initialEntry?.id });
+    }, [dateInput, timeInput, weightInput, onSubmit, isSaving, initialEntry?.id]);
+
+    const weightUnitLabel = (initialEntry?.unit || unit) ?? unit;
+    const isEditMode = mode === "edit";
 
     return (
         <Modal
@@ -233,17 +236,19 @@ const AddMeasurementModal = ({
                     style={styles.modalCardWrapper}
                 >
                     <View style={styles.modalCard}>
-                        <Text style={styles.modalTitle}>Log Measurement</Text>
+                        <Text style={styles.modalTitle}>{isEditMode ? "Edit Measurement" : "Log Measurement"}</Text>
                         <Text style={styles.modalSubtitle}>
-                            Record a new bodyweight entry to update your progress.
+                            {isEditMode
+                                ? "Update your bodyweight entry to keep your progress accurate."
+                                : "Record a new bodyweight entry to update your progress."}
                         </Text>
 
                         <View style={styles.modalField}>
-                            <Text style={styles.modalLabel}>Weight ({unit})</Text>
+                            <Text style={styles.modalLabel}>Weight ({weightUnitLabel})</Text>
                             <TextInput
                                 value={weightInput}
                                 onChangeText={setWeightInput}
-                                placeholder={`Enter weight in ${unit}`}
+                                placeholder={`Enter weight in ${weightUnitLabel}`}
                                 placeholderTextColor="rgba(255,255,255,0.4)"
                                 keyboardType="decimal-pad"
                                 returnKeyType="done"
@@ -297,23 +302,121 @@ const AddMeasurementModal = ({
                                 activeScale={0.97}
                                 disabled={isSaving}
                                 accessibilityRole="button"
-                                accessibilityLabel="Cancel logging measurement"
-                            >
-                                <Text style={styles.cancelButtonText}>Cancel</Text>
-                            </RNBounceable>
-                            <RNBounceable
-                                style={[styles.modalButton, styles.saveButton, isSaving && styles.saveButtonDisabled]}
+                            accessibilityLabel={isEditMode ? "Cancel editing measurement" : "Cancel logging measurement"}
+                        >
+                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                        </RNBounceable>
+                        <RNBounceable
+                            style={[styles.modalButton, styles.saveButton, isSaving && styles.saveButtonDisabled]}
                                 onPress={handleSave}
                                 activeScale={0.97}
                                 disabled={isSaving}
                                 accessibilityRole="button"
-                                accessibilityLabel="Save measurement"
-                            >
-                                <Text style={styles.saveButtonText}>{isSaving ? "Saving..." : "Save"}</Text>
-                            </RNBounceable>
+                            accessibilityLabel={isEditMode ? "Save measurement changes" : "Save measurement"}
+                        >
+                            <Text style={styles.saveButtonText}>
+                                {isSaving ? "Saving..." : isEditMode ? "Save Changes" : "Save"}
+                            </Text>
+                        </RNBounceable>
                         </View>
                     </View>
                 </KeyboardAvoidingView>
+            </View>
+        </Modal>
+    );
+};
+
+const ManageMeasurementsModal = ({
+    isVisible,
+    onDismiss,
+    entries,
+    onEdit,
+    onDelete,
+    isSaving,
+}) => {
+    const sortedEntries = useMemo(
+        () => [...entries].sort((a, b) => b.recordedAt - a.recordedAt),
+        [entries]
+    );
+
+    return (
+        <Modal
+            transparent
+            visible={isVisible}
+            animationType="fade"
+            onRequestClose={() => {
+                if (!isSaving) onDismiss();
+            }}
+        >
+            <View style={styles.modalRoot}>
+                <Pressable
+                    style={styles.modalBackdrop}
+                    onPress={isSaving ? () => {} : onDismiss}
+                />
+                <View style={[styles.modalCardWrapper, styles.manageModalWrapper]}>
+                    <View style={styles.manageModalCard}>
+                        <View style={styles.manageHeader}>
+                            <Text style={styles.manageTitle}>Manage Measurements</Text>
+                            <RNBounceable
+                                style={[styles.modalButton, styles.manageCloseButton]}
+                                onPress={onDismiss}
+                                activeScale={0.97}
+                                disabled={isSaving}
+                                accessibilityRole="button"
+                                accessibilityLabel="Close manage measurements"
+                            >
+                                <Text style={styles.manageCloseButtonText}>Done</Text>
+                            </RNBounceable>
+                        </View>
+                        {sortedEntries.length ? (
+                            <ScrollView
+                                style={styles.manageList}
+                                contentContainerStyle={styles.manageListContent}
+                            >
+                                {sortedEntries.map((entry) => {
+                                    const weightText = `${formatWeightValue(entry.weight)} ${entry.unit}`;
+                                    const timestampText = dayjs(entry.recordedAt).format(
+                                        "MMM D, YYYY • h:mm A"
+                                    );
+                                    return (
+                                        <View key={entry.id} style={styles.manageItem}>
+                                            <View style={styles.manageItemInfo}>
+                                                <Text style={styles.manageItemWeight}>{weightText}</Text>
+                                                <Text style={styles.manageItemTimestamp}>{timestampText}</Text>
+                                            </View>
+                                            <View style={styles.manageActions}>
+                                                <RNBounceable
+                                                    style={[styles.manageActionButton, styles.manageEditButton]}
+                                                    onPress={() => onEdit(entry)}
+                                                    activeScale={0.97}
+                                                    disabled={isSaving}
+                                                    accessibilityRole="button"
+                                                    accessibilityLabel="Edit measurement"
+                                                >
+                                                    <Text style={styles.manageEditLabel}>Edit</Text>
+                                                </RNBounceable>
+                                                <RNBounceable
+                                                    style={[styles.manageActionButton, styles.manageDeleteButton]}
+                                                    onPress={() => onDelete(entry)}
+                                                    activeScale={0.97}
+                                                    disabled={isSaving}
+                                                    accessibilityRole="button"
+                                                    accessibilityLabel="Delete measurement"
+                                                >
+                                                    <Text style={styles.manageDeleteLabel}>Delete</Text>
+                                                </RNBounceable>
+                                            </View>
+                                        </View>
+                                    );
+                                })}
+                            </ScrollView>
+                        ) : (
+                            <View style={styles.manageEmptyState}>
+                                <Text style={styles.manageEmptyText}>No measurements logged yet.</Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
             </View>
         </Modal>
     );
@@ -330,7 +433,9 @@ export default function ProgressSection() {
     const userRef = useRef(userData);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [activePoint, setActivePoint] = useState(null);
+    const [activeIndex, setActiveIndex] = useState(null);
+    const [isManageModalVisible, setIsManageModalVisible] = useState(false);
+    const [entryToEdit, setEntryToEdit] = useState(null);
     const activeIndexRef = useRef(null);
 
     useEffect(() => {
@@ -361,15 +466,14 @@ export default function ProgressSection() {
     const latestUnit = (latestEntry?.unit || preferredUnit || "lb").toLowerCase().startsWith("k") ? "kg" : "lb";
     const latestInfoText = latestEntry ? formatTimestamp(latestEntry.recordedAt) : "No entries yet";
 
-    const chartData = useMemo(
-        () =>
-            entries.map((entry) => ({
-                value: Number(entry.weight) || 0,
-                label: dayjs(entry.recordedAt).format("MMM D"),
-                recordedAt: entry.recordedAt,
-            })),
-        [entries]
-    );
+    const chartData = useMemo(() => {
+        if (!entries.length) return [];
+        return entries.map((entry) => ({
+            value: Number(entry.weight) || 0,
+            recordedAt: entry.recordedAt,
+            entry,
+        }));
+    }, [entries]);
     const sectionsCount = 4;
     const weightValues = useMemo(() => chartData.map((point) => point.value), [chartData]);
     const axisMetrics = useMemo(
@@ -386,99 +490,259 @@ export default function ProgressSection() {
         return ticks;
     }, [axisMetrics]);
 
-    const yAxisOffsetValue = useMemo(() => {
-        if (!axisMetrics) return 0;
-        const baseStep = axisMetrics.step || 1;
-        const buffer = baseStep * 6;
-        return Math.max(0, axisMetrics.minValue - buffer);
-    }, [axisMetrics]);
-
     const cardHorizontalPadding = scaleSize(20);
     const chartHeight = scaleSize(220);
-    const chartWidth = Math.max(DEVICE_WIDTH - cardHorizontalPadding * 2, scaleSize(240));
-    const chartPaddingTop = scaleSize(36);
-    const chartPaddingBottom = scaleSize(32);
+    const chartWidth = DEVICE_WIDTH;
+    const chartPaddingTop = scaleSize(10);
+    const chartPaddingBottom = scaleSize(10);
     const initialSpacing = scaleSize(20);
-    const pointerStripHeight = Math.max(
-        chartHeight - chartPaddingTop - chartPaddingBottom,
-        scaleSize(140)
-    );
     const pointerStripWidth = scaleSize(2);
     const yAxisLabelWidth = scaleSize(48);
 
+    const chartGeometry = useMemo(() => {
+        const plotWidth = Math.max(chartWidth - yAxisLabelWidth, scaleSize(160));
+        const plotHeight = chartHeight;
+        const leftMargin = initialSpacing;
+        const rightMargin = initialSpacing;
+        const topMargin = chartPaddingTop;
+        const bottomMargin = chartPaddingBottom;
+        const innerWidth = Math.max(plotWidth - leftMargin - rightMargin, 1);
+        const innerHeight = Math.max(plotHeight - topMargin - bottomMargin, 1);
+        const baselineY = plotHeight - bottomMargin;
+
+        return {
+            plotWidth,
+            plotHeight,
+            leftMargin,
+            rightMargin,
+            topMargin,
+            bottomMargin,
+            innerWidth,
+            innerHeight,
+            baselineY,
+        };
+    }, [chartWidth, chartHeight, yAxisLabelWidth, initialSpacing, chartPaddingTop, chartPaddingBottom]);
+
+    const {
+        plotWidth: chartPlotWidth,
+        leftMargin: chartLeftMargin,
+        rightMargin: chartRightMargin,
+        topMargin: chartTopMargin,
+        bottomMargin: chartBottomMargin,
+        innerWidth: chartInnerWidth,
+        innerHeight: chartInnerHeight,
+        baselineY: chartBaselineY,
+    } = chartGeometry;
+
+    const chartSeries = useMemo(() => {
+        if (!chartData.length) {
+            return {
+                points: [],
+                linePath: "",
+                areaPath: "",
+                domain: null,
+            };
+        }
+
+        const minY = Number(axisMetrics?.minValue ?? 0);
+        const maxY = Number(axisMetrics?.maxValue ?? minY + 1);
+        const yRange = Math.max(maxY - minY, 1);
+
+        const timestamps = chartData.map((point) => Number(point.recordedAt));
+        let minX = Math.min(...timestamps);
+        let maxX = Math.max(...timestamps);
+
+        if (!Number.isFinite(minX) || !Number.isFinite(maxX)) {
+            const now = Date.now();
+            minX = now - 12 * 60 * 60 * 1000;
+            maxX = now + 12 * 60 * 60 * 1000;
+        }
+
+        if (minX === maxX) {
+            const fallbackSpan = 24 * 60 * 60 * 1000;
+            minX -= fallbackSpan / 2;
+            maxX += fallbackSpan / 2;
+        }
+
+        const roundCoord = (value) => Math.round(value * 100) / 100;
+
+        const points = chartData.map((point) => {
+            const rawXRatio = (Number(point.recordedAt) - minX) / (maxX - minX);
+            const xRatio = Number.isFinite(rawXRatio) ? Math.min(Math.max(rawXRatio, 0), 1) : 0;
+            const x = chartLeftMargin + chartInnerWidth * xRatio;
+
+            const rawYRatio = (Number(point.value) - minY) / yRange;
+            const yRatio = Number.isFinite(rawYRatio) ? Math.min(Math.max(rawYRatio, 0), 1) : 0;
+            const y = chartTopMargin + chartInnerHeight * (1 - yRatio);
+
+            return {
+                ...point,
+                x,
+                y,
+            };
+        });
+
+        if (!points.length) {
+            return {
+                points,
+                linePath: "",
+                areaPath: "",
+                domain: { minX, maxX, minY, maxY },
+            };
+        }
+
+        const baseline = chartBaselineY;
+        const firstPoint = points[0];
+        const lastPoint = points[points.length - 1];
+
+        const linePath = points
+            .map((point, index) => `${index === 0 ? "M" : "L"} ${roundCoord(point.x)} ${roundCoord(point.y)}`)
+            .join(" ");
+
+        let areaPath = `M ${roundCoord(firstPoint.x)} ${roundCoord(baseline)} L ${roundCoord(firstPoint.x)} ${roundCoord(firstPoint.y)}`;
+        for (let i = 1; i < points.length; i += 1) {
+            const point = points[i];
+            areaPath += ` L ${roundCoord(point.x)} ${roundCoord(point.y)}`;
+        }
+        areaPath += ` L ${roundCoord(lastPoint.x)} ${roundCoord(baseline)} Z`;
+
+        return {
+            points,
+            linePath,
+            areaPath,
+            domain: { minX, maxX, minY, maxY },
+        };
+    }, [chartData, axisMetrics, chartLeftMargin, chartInnerWidth, chartTopMargin, chartInnerHeight, chartBaselineY]);
+
     const handlePointerActivate = useCallback((payload) => {
         if (!payload) return;
-        const { index, recordedAt, weight } = payload;
+        const { index } = payload;
+        if (!Number.isFinite(index)) return;
         if (activeIndexRef.current === index) return;
-        const nextDate = new Date(recordedAt);
-        setActivePoint({
-            index,
-            x: nextDate,
-            y: weight,
-        });
         activeIndexRef.current = index;
+        setActiveIndex(index);
     }, []);
 
-    const pointerLabel = useCallback(
-        (items, _secondaryItems, pointerIndexArg) => {
-            if (!entries.length) return null;
-            let resolvedIndex = Number.isFinite(pointerIndexArg)
-                ? pointerIndexArg
-                : items?.[0]?.index;
-            if (!Number.isFinite(resolvedIndex)) return null;
+    const chartPoints = chartSeries.points;
 
-            const clampedIndex = Math.max(0, Math.min(entries.length - 1, resolvedIndex));
-            const entry = entries[clampedIndex];
-            if (!entry) return null;
+    const handleChartTouch = useCallback(
+        (nativeEvent) => {
+            if (!nativeEvent || !chartPoints.length) return;
+            const { locationX } = nativeEvent;
+            if (!Number.isFinite(locationX)) return;
 
-            const isRightAligned = clampedIndex >= Math.ceil(entries.length / 2);
+            const minX = chartLeftMargin;
+            const maxX = chartLeftMargin + chartInnerWidth;
+            const clampedX = Math.max(minX, Math.min(maxX, locationX));
 
-            return (
-                <PointerLabelBubble
-                    entry={entry}
-                    unit={latestUnit}
-                    stripHeight={pointerStripHeight}
-                    isRightAligned={isRightAligned}
-                    onActivate={handlePointerActivate}
-                    index={clampedIndex}
-                />
-            );
+            let closestIndex = 0;
+            let smallestDistance = Math.abs(chartPoints[0].x - clampedX);
+
+            for (let i = 1; i < chartPoints.length; i += 1) {
+                const point = chartPoints[i];
+                const distance = Math.abs(point.x - clampedX);
+                if (distance < smallestDistance) {
+                    smallestDistance = distance;
+                    closestIndex = i;
+                }
+            }
+
+            handlePointerActivate({ index: closestIndex });
         },
-        [entries, latestUnit, pointerStripHeight, handlePointerActivate]
+        [chartPoints, chartLeftMargin, chartInnerWidth, handlePointerActivate]
     );
 
-    const chartSpacing = useMemo(() => {
-        if (chartData.length <= 1) return scaleSize(60);
-        const availableWidth = chartWidth - initialSpacing * 2;
-        return Math.max(scaleSize(28), availableWidth / (chartData.length - 1));
-    }, [chartData.length, chartWidth, initialSpacing]);
-
-    const pointerConfig = useMemo(
-        () => ({
-            pointerColor: "rgba(45, 158, 255, 0.95)",
-            pointerRadius: scaleSize(6),
-            pointerStripColor: "rgba(45, 158, 255, 0.45)",
-            pointerStripWidth,
-            pointerStripHeight,
-            pointerStripUptoDataPoint: false,
-            pointerVanishDelay: 1600,
-            activateOnPan: true,
-            pointerLabelWidth: scaleSize(184),
-            pointerLabelHeight: pointerStripHeight + scaleSize(92),
-            pointerLabelComponent: pointerLabel,
-        }),
-        [pointerStripHeight, pointerLabel, pointerStripWidth]
+    const chartPanResponder = useMemo(
+        () =>
+            PanResponder.create({
+                onStartShouldSetPanResponder: () => !!chartPoints.length,
+                onMoveShouldSetPanResponder: () => !!chartPoints.length,
+                onPanResponderGrant: (evt) => handleChartTouch(evt?.nativeEvent),
+                onPanResponderMove: (evt) => handleChartTouch(evt?.nativeEvent),
+                onPanResponderRelease: () => {},
+                onPanResponderTerminate: () => {},
+            }),
+        [chartPoints.length, handleChartTouch]
     );
 
-    const handleSubmitMeasurement = useCallback(
-        async ({ weightInput, dateInput, timeInput }) => {
-            if (isSaving) return;
+    const getCurrentSanitizedEntries = useCallback(() => {
+        const currentUser = userRef.current;
+        const list =
+            currentUser?.progress?.weightEntries ||
+            currentUser?.weightEntries ||
+            currentUser?.bodyweightLog ||
+            [];
+        return sanitizeEntries(list);
+    }, []);
+
+    const persistEntries = useCallback(
+        async (nextEntriesSanitized) => {
             const currentUser = userRef.current;
             const uid = currentUser?.uid || currentUser?.id;
             if (!uid) {
                 Alert.alert("Unable to save", "We couldn't find your account. Please try again later.");
-                return;
+                return false;
             }
+
+            const previousSnapshot = currentUser ? { ...currentUser } : null;
+            const nextProgress = {
+                ...(currentUser?.progress || {}),
+                weightEntries: nextEntriesSanitized,
+            };
+            const nextUserData = {
+                ...(currentUser || {}),
+                progress: nextProgress,
+            };
+
+            setIsSaving(true);
+
+            try {
+                if (global?.userData && typeof global.userData === "object") {
+                    global.userData = { ...global.userData, progress: nextProgress };
+                } else if (typeof global !== "undefined") {
+                    global.userData = nextUserData;
+                }
+            } catch {}
+
+            userRef.current = nextUserData;
+            setUserData(nextUserData);
+            emitUserDataUpdate();
+
+            try {
+                await updateDoc("users", uid, { progress: nextProgress });
+                emitUserDataUpdate();
+                return true;
+            } catch (error) {
+                const message =
+                    error?.message ||
+                    "Something went wrong while saving your measurement. Please try again.";
+
+                if (previousSnapshot) {
+                    try {
+                        if (global?.userData && typeof global.userData === "object") {
+                            global.userData = previousSnapshot;
+                        } else if (typeof global !== "undefined") {
+                            global.userData = previousSnapshot;
+                        }
+                    } catch {}
+
+                    userRef.current = previousSnapshot;
+                    setUserData(previousSnapshot);
+                    emitUserDataUpdate();
+                }
+
+                Alert.alert("Unable to save measurement", message);
+                return false;
+            } finally {
+                setIsSaving(false);
+            }
+        },
+        []
+    );
+
+    const handleSubmitMeasurement = useCallback(
+        async ({ weightInput, dateInput, timeInput, entryId }) => {
+            if (isSaving) return;
 
             const weightNumber = Number.parseFloat(String(weightInput).replace(",", "."));
             if (!Number.isFinite(weightNumber) || weightNumber <= 0) {
@@ -499,132 +763,156 @@ export default function ProgressSection() {
             }
 
             const recordedAt = parsed.valueOf();
-            const safeUnit = (preferredUnit || "lb").toLowerCase().startsWith("k") ? "kg" : "lb";
-            const entry = {
-                id: makeID(),
-                weight: Math.round(weightNumber * 10) / 10,
-                unit: safeUnit,
-                recordedAt,
-                createdAt: Date.now(),
-            };
+            const existingEntries = getCurrentSanitizedEntries();
+            let nextEntries = existingEntries;
 
-            setIsSaving(true);
-
-            const prevEntriesRaw = Array.isArray(currentUser?.progress?.weightEntries)
-                ? currentUser.progress.weightEntries
-                : [];
-            const prevEntries = sanitizeEntries(prevEntriesRaw);
-            const nextEntries = sanitizeEntries([...prevEntries, entry]);
-            const nextProgress = {
-                ...(currentUser?.progress || {}),
-                weightEntries: nextEntries,
-            };
-
-            const previousSnapshot = currentUser ? { ...currentUser } : null;
-            const nextUserData = {
-                ...(currentUser || {}),
-                progress: nextProgress,
-            };
-
-            try {
-                if (global?.userData && typeof global.userData === "object") {
-                    global.userData = { ...global.userData, progress: nextProgress };
-                } else if (typeof global !== "undefined") {
-                    global.userData = nextUserData;
+            if (entryId) {
+                const targetEntry = existingEntries.find((item) => item.id === entryId);
+                if (!targetEntry) {
+                    Alert.alert("Measurement not found", "We couldn't locate that measurement.");
+                    return;
                 }
-            } catch {}
 
-            userRef.current = nextUserData;
-            setUserData(nextUserData);
-            emitUserDataUpdate();
+                const updatedEntry = {
+                    ...targetEntry,
+                    weight: Math.round(weightNumber * 10) / 10,
+                    recordedAt,
+                };
 
-            try {
-                await updateDoc("users", uid, { progress: nextProgress });
-                emitUserDataUpdate();
+                nextEntries = sanitizeEntries(
+                    existingEntries.map((item) => (item.id === entryId ? updatedEntry : item))
+                );
+            } else {
+                const safeUnit = (preferredUnit || "lb").toLowerCase().startsWith("k") ? "kg" : "lb";
+                const newEntry = {
+                    id: makeID(),
+                    weight: Math.round(weightNumber * 10) / 10,
+                    unit: safeUnit,
+                    recordedAt,
+                    createdAt: Date.now(),
+                };
+
+                nextEntries = sanitizeEntries([...existingEntries, newEntry]);
+            }
+
+            const wasPersisted = await persistEntries(nextEntries);
+            if (wasPersisted) {
                 setIsModalVisible(false);
-            } catch (error) {
-                const message =
-                    error?.message ||
-                    "Something went wrong while saving your measurement. Please try again.";
-                Alert.alert("Unable to save measurement", message);
-                const revertedUserData = previousSnapshot
-                    ? {
-                          ...previousSnapshot,
-                          progress: {
-                              ...(previousSnapshot.progress || {}),
-                              weightEntries: prevEntries,
-                          },
-                      }
-                    : {
-                          ...(nextUserData || {}),
-                          progress: {
-                              ...(nextUserData?.progress || {}),
-                              weightEntries: prevEntries,
-                          },
-                      };
-
-                try {
-                    if (global?.userData && typeof global.userData === "object") {
-                        global.userData = {
-                            ...global.userData,
-                            progress: revertedUserData.progress,
-                        };
-                    } else if (typeof global !== "undefined") {
-                        global.userData = revertedUserData;
-                    }
-                } catch {}
-
-                userRef.current = revertedUserData;
-                setUserData(revertedUserData);
-                emitUserDataUpdate();
-            } finally {
-                setIsSaving(false);
+                setEntryToEdit(null);
             }
         },
-        [isSaving, preferredUnit]
+        [getCurrentSanitizedEntries, isSaving, persistEntries, preferredUnit]
     );
 
+    const handleDeleteMeasurement = useCallback(
+        async (entryId) => {
+            if (isSaving) return;
+            const existingEntries = getCurrentSanitizedEntries();
+            const nextEntries = sanitizeEntries(existingEntries.filter((item) => item.id !== entryId));
+            await persistEntries(nextEntries);
+        },
+        [getCurrentSanitizedEntries, isSaving, persistEntries]
+    );
+
+    const handleRequestDelete = useCallback(
+        (entry) => {
+            const timestampText = dayjs(entry.recordedAt).format("MMM D, YYYY • h:mm A");
+            Alert.alert(
+                "Delete measurement?",
+                `Remove the measurement from ${timestampText}?`,
+                [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                        text: "Delete",
+                        style: "destructive",
+                        onPress: () => handleDeleteMeasurement(entry.id),
+                    },
+                ]
+            );
+        },
+        [handleDeleteMeasurement]
+    );
+
+    const handleEditEntry = useCallback((entry) => {
+        setIsManageModalVisible(false);
+        setEntryToEdit(entry);
+        setIsModalVisible(true);
+    }, []);
+
+    const handleOpenAddModal = useCallback(() => {
+        setEntryToEdit(null);
+        setIsModalVisible(true);
+    }, []);
+
+    const handleCloseAddModal = useCallback(() => {
+        if (isSaving) return;
+        setIsModalVisible(false);
+        setEntryToEdit(null);
+    }, [isSaving]);
+
+    const handleCloseManageModal = useCallback(() => {
+        if (isSaving) return;
+        setIsManageModalVisible(false);
+    }, [isSaving]);
+
     const hasChartData = chartData.length > 0;
-    const activeDetails = useMemo(() => {
-        if (!activePoint) return null;
-        const weightText = `${formatWeightValue(activePoint.y)} ${latestUnit}`;
-        const timestampText = dayjs(activePoint.x).format("MMMM D, YYYY • h:mm A");
-        return { weightText, timestampText };
-    }, [activePoint, latestUnit]);
+
+    const activePoint = activeIndex != null ? chartPoints[activeIndex] : null;
+    const activeEntry = activeIndex != null ? chartData[activeIndex]?.entry : null;
+    const pointerLabelWidth = scaleSize(184);
+    const pointerLabelLeft = useMemo(() => {
+        if (!activePoint) return chartLeftMargin;
+        const minLeft = chartLeftMargin;
+        const maxLeft = chartPlotWidth - chartRightMargin;
+        const centered = activePoint.x - pointerLabelWidth / 2;
+        const clamped = Math.max(minLeft, Math.min(centered, maxLeft - pointerLabelWidth));
+        return clamped;
+    }, [activePoint, chartLeftMargin, chartPlotWidth, chartRightMargin, pointerLabelWidth]);
+    const isPointerRightAligned = activeIndex != null ? activeIndex >= Math.ceil(chartData.length / 2) : false;
 
     useEffect(() => {
-        if (!hasChartData && activePoint) {
-            setActivePoint(null);
+        if (!hasChartData && activeIndex != null) {
+            setActiveIndex(null);
             activeIndexRef.current = null;
         }
-    }, [hasChartData, activePoint]);
+    }, [hasChartData, activeIndex]);
 
     useEffect(() => {
-        if (!hasChartData || activePoint) return;
+        if (!hasChartData || activeIndex != null) return;
         const lastIndex = chartData.length - 1;
-        const lastPoint = chartData[lastIndex];
-        if (!lastPoint) return;
+        if (lastIndex < 0) return;
         handlePointerActivate({
             index: lastIndex,
-            recordedAt: lastPoint.recordedAt,
-            weight: lastPoint.value,
         });
-    }, [hasChartData, chartData, activePoint, handlePointerActivate]);
+    }, [hasChartData, chartData, activeIndex, handlePointerActivate]);
 
     return (
         <View style={styles.container}>
             <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding }]}>
                 <View style={styles.header}>
-                    <Text style={styles.sectionTitle}>Progress</Text>
-                    <RNBounceable
-                        style={styles.addButton}
-                        onPress={() => setIsModalVisible(true)}
-                        activeScale={0.97}
-                        accessibilityRole="button"
-                        accessibilityLabel="Add a new weight measurement"
-                    >
-                        <Text style={styles.addButtonLabel}>+ Add Measurement</Text>
-                    </RNBounceable>
+                    <Text style={styles.sectionTitle}>Weight</Text>
+                    <View style={styles.headerActions}>
+                        <RNBounceable
+                            style={styles.manageButton}
+                            onPress={() => setIsManageModalVisible(true)}
+                            activeScale={0.97}
+                            disabled={isSaving}
+                            accessibilityRole="button"
+                            accessibilityLabel="Manage existing measurements"
+                        >
+                            <Text style={styles.manageButtonLabel}>Manage Measurements</Text>
+                        </RNBounceable>
+                        <RNBounceable
+                            style={styles.addButton}
+                            onPress={handleOpenAddModal}
+                            activeScale={0.97}
+                            disabled={isSaving}
+                            accessibilityRole="button"
+                            accessibilityLabel="Add a new weight measurement"
+                        >
+                            <Text style={styles.addButtonLabel}>+ Add Measurement</Text>
+                        </RNBounceable>
+                    </View>
                 </View>
 
                 <View style={styles.metricsRow}>
@@ -647,55 +935,195 @@ export default function ProgressSection() {
                     ]}
                 >
                     {hasChartData ? (
-                        <LineChart
-                            style={styles.lineChart}
-                            data={chartData}
-                            curved
-                            areaChart
-                            adjustToWidth
-                            color="#7FB7FF"
-                            // color1="#7FB7FF"
-                            startFillColor="#64A0FF"
-                            startOpacity={0.3}
-                            endFillColor="#2D7BFF"
-                            endOpacity={0.08}
-                            thickness={scaleSize(3)}
-                            spacing={chartSpacing}
-                            initialSpacing={initialSpacing}
-                            endSpacing={initialSpacing}
-                            hideDataPoints={!hasChartData}
-                            showDataPoints={hasChartData}
-                            dataPointsColor="#E1EEFF"
-                            dataPointsWidth={scaleSize(7)}
-                            dataPointsHeight={scaleSize(7)}
-                            rulesType="dashed"
-                            rulesColor="rgba(255,255,255,0.1)"
-                            rulesThickness={StyleSheet.hairlineWidth}
-                            maxValue={axisMetrics.maxValue}
-                            yAxisOffset={yAxisOffsetValue}
-                            noOfSections={axisMetrics.sections}
-                            yAxisLabelTexts={yTickValues.map((value) => formatAxisValue(value))}
-                            yAxisLabelTextStyle={styles.axisLabel}
-                            yAxisTextStyle={styles.axisLabel}
-                            yAxisColor="rgba(148, 157, 172, 0.35)"
-                            yAxisLabelWidth={yAxisLabelWidth}
-                            xAxisLabelTexts={chartData.map((point) => point.label)}
-                            xAxisLabelTextStyle={styles.axisLabel}
-                            xAxisTextStyle={styles.axisLabel}
-                            xAxisColor="rgba(148, 157, 172, 0.35)"
-                            xAxisLabelsHeight={scaleSize(15)}
-                            pointerConfig={pointerConfig}
-                            onDataPointClick={({ index }) => {
-                                if (index == null) return;
-                                const point = chartData[index];
-                                if (!point) return;
-                                handlePointerActivate({
-                                    index,
-                                    recordedAt: point.recordedAt,
-                                    weight: point.value,
-                                });
-                            }}
-                        />
+                        <View style={styles.chartContent}>
+                            <View
+                                style={[
+                                    styles.yAxisLabelsContainer,
+                                    { width: yAxisLabelWidth, height: chartHeight },
+                                ]}
+                                pointerEvents="none"
+                            >
+                                {yTickValues.map((value, index) => {
+                                    const range = Math.max(
+                                        (axisMetrics?.maxValue ?? 0) - (axisMetrics?.minValue ?? 0),
+                                        1
+                                    );
+                                    const ratio = (value - (axisMetrics?.minValue ?? 0)) / range;
+                                    const clampedRatio = Number.isFinite(ratio)
+                                        ? Math.min(Math.max(ratio, 0), 1)
+                                        : 0;
+                                    const yPosition =
+                                        chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                    const approxLabelHeight = scaleSize(14);
+                                    const top = Math.min(
+                                        chartHeight - chartBottomMargin - approxLabelHeight,
+                                        Math.max(
+                                            chartTopMargin - approxLabelHeight / 2,
+                                            yPosition - approxLabelHeight / 2
+                                        )
+                                    );
+
+                                    return (
+                                        <Text
+                                            key={`y-axis-label-${value}-${index}`}
+                                            style={[
+                                                styles.axisLabel,
+                                                styles.yAxisLabel,
+                                                { top },
+                                            ]}
+                                        >
+                                            {formatAxisValue(value)}
+                                        </Text>
+                                    );
+                                })}
+                            </View>
+
+                            <View
+                                style={[
+                                    styles.chartCanvas,
+                                    { width: chartPlotWidth, height: chartHeight },
+                                ]}
+                                {...chartPanResponder.panHandlers}
+                            >
+                                <Svg width={chartPlotWidth} height={chartHeight}>
+                                    <Defs>
+                                        <LinearGradient
+                                            id="progressChartGradient"
+                                            x1="0"
+                                            y1="0"
+                                            x2="0"
+                                            y2="1"
+                                        >
+                                            <Stop offset="0%" stopColor="#64A0FF" stopOpacity="0.3" />
+                                            <Stop
+                                                offset="100%"
+                                                stopColor="#2D7BFF"
+                                                stopOpacity="0.08"
+                                            />
+                                        </LinearGradient>
+                                    </Defs>
+
+                                    {yTickValues.map((value, index) => {
+                                        const range = Math.max(
+                                            (axisMetrics?.maxValue ?? 0) -
+                                                (axisMetrics?.minValue ?? 0),
+                                            1
+                                        );
+                                        const ratio = (value - (axisMetrics?.minValue ?? 0)) / range;
+                                        const clampedRatio = Number.isFinite(ratio)
+                                            ? Math.min(Math.max(ratio, 0), 1)
+                                            : 0;
+                                        const y =
+                                            chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                        return (
+                                            <Line
+                                                key={`grid-line-${value}-${index}`}
+                                                x1={chartLeftMargin}
+                                                y1={y}
+                                                x2={chartPlotWidth - chartRightMargin}
+                                                y2={y}
+                                                stroke="rgba(255,255,255,0.1)"
+                                                strokeWidth={StyleSheet.hairlineWidth}
+                                                strokeDasharray={[6, 6]}
+                                            />
+                                        );
+                                    })}
+
+                                    {chartSeries.areaPath ? (
+                                        <Path
+                                            d={chartSeries.areaPath}
+                                            fill="url(#progressChartGradient)"
+                                            stroke="none"
+                                        />
+                                    ) : null}
+
+                                    {chartSeries.linePath ? (
+                                        <Path
+                                            d={chartSeries.linePath}
+                                            fill="none"
+                                            stroke="#7FB7FF"
+                                            strokeWidth={scaleSize(3)}
+                                            strokeLinejoin="round"
+                                            strokeLinecap="round"
+                                        />
+                                    ) : null}
+
+                                    <Line
+                                        x1={chartLeftMargin}
+                                        y1={chartTopMargin}
+                                        x2={chartLeftMargin}
+                                        y2={chartBaselineY}
+                                        stroke="rgba(148, 157, 172, 0.35)"
+                                        strokeWidth={StyleSheet.hairlineWidth}
+                                    />
+                                    <Line
+                                        x1={chartLeftMargin}
+                                        y1={chartBaselineY}
+                                        x2={chartPlotWidth - chartRightMargin}
+                                        y2={chartBaselineY}
+                                        stroke="rgba(148, 157, 172, 0.35)"
+                                        strokeWidth={StyleSheet.hairlineWidth}
+                                    />
+
+                                    {activePoint ? (
+                                        <Line
+                                            x1={activePoint.x}
+                                            y1={chartTopMargin}
+                                            x2={activePoint.x}
+                                            y2={chartBaselineY}
+                                            stroke="rgba(45, 158, 255, 0.45)"
+                                            strokeWidth={pointerStripWidth}
+                                        />
+                                    ) : null}
+
+                                    {chartPoints.map((point, index) => {
+                                        const isActive = index === activeIndex;
+                                        const radius = isActive ? scaleSize(6) : scaleSize(4.2);
+                                        const strokeWidth = isActive ? scaleSize(2) : scaleSize(1);
+                                        const strokeColor = isActive
+                                            ? "rgba(45, 158, 255, 0.9)"
+                                            : "rgba(45, 158, 255, 0.45)";
+                                        const fillColor = isActive
+                                            ? "#E1EEFF"
+                                            : "rgba(225, 238, 255, 0.78)";
+                                        return (
+                                            <Circle
+                                                key={point.entry?.id || `point-${index}`}
+                                                cx={point.x}
+                                                cy={point.y}
+                                                r={radius}
+                                                fill={fillColor}
+                                                stroke={strokeColor}
+                                                strokeWidth={strokeWidth}
+                                            />
+                                        );
+                                    })}
+                                </Svg>
+
+                                {activeEntry ? (
+                                    <View
+                                        pointerEvents="none"
+                                        style={[
+                                            styles.pointerBubbleContainer,
+                                            {
+                                                left: pointerLabelLeft,
+                                                top: Math.max(
+                                                    scaleSize(-8),
+                                                    chartTopMargin - scaleSize(72)
+                                                ),
+                                                width: pointerLabelWidth,
+                                            },
+                                        ]}
+                                    >
+                                        <PointerLabelBubble
+                                            entry={activeEntry}
+                                            unit={latestUnit}
+                                            isRightAligned={isPointerRightAligned}
+                                        />
+                                    </View>
+                                ) : null}
+                            </View>
+                        </View>
                     ) : (
                         <View style={styles.chartEmptyState}>
                             <Text style={styles.placeholderText}>
@@ -707,14 +1135,22 @@ export default function ProgressSection() {
 
             </View>
 
+            <ManageMeasurementsModal
+                isVisible={isManageModalVisible}
+                onDismiss={handleCloseManageModal}
+                entries={entries}
+                onEdit={handleEditEntry}
+                onDelete={handleRequestDelete}
+                isSaving={isSaving}
+            />
             <AddMeasurementModal
                 isVisible={isModalVisible}
-                onDismiss={() => {
-                    if (!isSaving) setIsModalVisible(false);
-                }}
+                onDismiss={handleCloseAddModal}
                 onSubmit={handleSubmitMeasurement}
-                unit={latestUnit}
+                unit={entryToEdit?.unit || latestUnit}
                 isSaving={isSaving}
+                initialEntry={entryToEdit}
+                mode={entryToEdit ? "edit" : "create"}
             />
         </View>
     );
@@ -739,10 +1175,26 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: scaleSize(12),
     },
+    headerActions: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
     sectionTitle: {
         fontFamily: "Outfit_600SemiBold",
         fontSize: ts(18),
         color: theme.textPrimary ?? "#F6F8FF",
+    },
+    manageButton: {
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(5),
+        backgroundColor: "rgba(148, 157, 172, 0.18)",
+        borderRadius: scaleSize(999),
+        marginRight: scaleSize(12),
+    },
+    manageButtonLabel: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(12),
+        color: "rgba(236, 241, 255, 0.9)",
     },
     addButton: {
         paddingHorizontal: scaleSize(12),
@@ -793,8 +1245,22 @@ const styles = StyleSheet.create({
         alignSelf: "center",
         overflow: "visible",
     },
-    lineChart: {
+    chartContent: {
+        flexDirection: "row",
+        height: "100%",
+    },
+    yAxisLabelsContainer: {
+        position: "relative",
+        justifyContent: "center",
+    },
+    yAxisLabel: {
+        position: "absolute",
+        right: scaleSize(6),
+        textAlign: "right",
+    },
+    chartCanvas: {
         flex: 1,
+        position: "relative",
     },
     chartEmptyState: {
         flex: 1,
@@ -811,6 +1277,9 @@ const styles = StyleSheet.create({
         fontSize: ts(11),
         color: '#aaa',
     },
+    pointerBubbleContainer: {
+        position: "absolute",
+    },
     pointerLabelRoot: {
         width: scaleSize(184),
         alignItems: "center",
@@ -818,8 +1287,8 @@ const styles = StyleSheet.create({
     },
     pointerBubbleWrapper: {
         width: "100%",
-        marginTop: scaleSize(12),
-        marginBottom: scaleSize(8),
+        marginTop: scaleSize(4),
+        marginBottom: scaleSize(4),
         paddingHorizontal: scaleSize(8),
     },
     pointerBubbleWrapperLeft: {
@@ -959,5 +1428,103 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
         fontSize: ts(13),
         color: "#0A1420",
+    },
+    manageModalWrapper: {
+        maxHeight: "80%",
+    },
+    manageModalCard: {
+        backgroundColor: theme.fieldDeep,
+        borderRadius: scaleSize(18),
+        paddingHorizontal: scaleSize(20),
+        paddingVertical: scaleSize(20),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.08)",
+    },
+    manageHeader: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: scaleSize(12),
+    },
+    manageTitle: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(16),
+        color: theme.textPrimary ?? "#F6F8FF",
+    },
+    manageCloseButton: {
+        backgroundColor: "rgba(148, 157, 172, 0.18)",
+        paddingHorizontal: scaleSize(14),
+        paddingVertical: scaleSize(6),
+        borderRadius: scaleSize(999),
+    },
+    manageCloseButtonText: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(12),
+        color: "rgba(236, 241, 255, 0.9)",
+    },
+    manageList: {
+        maxHeight: scaleSize(360, "h"),
+    },
+    manageListContent: {
+        paddingBottom: scaleSize(8),
+    },
+    manageItem: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingVertical: scaleSize(12),
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.08)",
+    },
+    manageItemInfo: {
+        flex: 1,
+        marginRight: scaleSize(12),
+    },
+    manageItemWeight: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(15),
+        color: theme.textPrimary ?? "#F6F8FF",
+    },
+    manageItemTimestamp: {
+        marginTop: scaleSize(3),
+        fontFamily: "Outfit_400Regular",
+        fontSize: ts(12),
+        color: "rgba(255,255,255,0.62)",
+    },
+    manageActions: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    manageActionButton: {
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(6),
+        borderRadius: scaleSize(999),
+    },
+    manageEditButton: {
+        backgroundColor: "rgba(101, 155, 255, 0.18)",
+        marginRight: scaleSize(8),
+    },
+    manageDeleteButton: {
+        backgroundColor: "rgba(255, 86, 86, 0.18)",
+    },
+    manageEditLabel: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(12),
+        color: "#7FB7FF",
+    },
+    manageDeleteLabel: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(12),
+        color: "#FF6B6B",
+    },
+    manageEmptyState: {
+        alignItems: "center",
+        justifyContent: "center",
+        paddingVertical: scaleSize(24),
+    },
+    manageEmptyText: {
+        fontFamily: "Outfit_400Regular",
+        fontSize: ts(13),
+        color: "rgba(255,255,255,0.55)",
     },
 });
