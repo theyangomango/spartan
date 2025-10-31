@@ -13,6 +13,8 @@ import {
     View,
 } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import { Ionicons } from "@expo/vector-icons";
+import { Weight } from "iconsax-react-native";
 import dayjs from "dayjs";
 
 import theme from "../../../theme/mfpDark";
@@ -465,6 +467,17 @@ export default function ProgressSection() {
     const latestWeightText = formatWeightValue(latestEntry?.weight);
     const latestUnit = (latestEntry?.unit || preferredUnit || "lb").toLowerCase().startsWith("k") ? "kg" : "lb";
     const latestInfoText = latestEntry ? formatTimestamp(latestEntry.recordedAt) : "No entries yet";
+    const measurementRowSubtitle = useMemo(() => {
+        if (!entries.length) return "No measurements yet";
+        const count = entries.length;
+        const countLabel = count === 1 ? "1 measurement" : `${count} measurements`;
+        const lastTimestamp = entries[entries.length - 1]?.recordedAt;
+        const lastLogged =
+            Number.isFinite(lastTimestamp) && lastTimestamp > 0
+                ? dayjs(lastTimestamp).format("MMM D, YYYY")
+                : null;
+        return lastLogged ? `${countLabel} • Updated ${lastLogged}` : countLabel;
+    }, [entries]);
 
     const chartData = useMemo(() => {
         if (!entries.length) return [];
@@ -493,11 +506,11 @@ export default function ProgressSection() {
     const cardHorizontalPadding = scaleSize(20);
     const chartHeight = scaleSize(220);
     const chartWidth = DEVICE_WIDTH;
-    const chartPaddingTop = scaleSize(10);
-    const chartPaddingBottom = scaleSize(10);
-    const initialSpacing = scaleSize(20);
+    const chartPaddingTop = scaleSize(0);
+    const chartPaddingBottom = scaleSize(0);
+    const initialSpacing = scaleSize(15);
     const pointerStripWidth = scaleSize(2);
-    const yAxisLabelWidth = scaleSize(48);
+    const yAxisLabelWidth = scaleSize(42);
 
     const chartGeometry = useMemo(() => {
         const plotWidth = Math.max(chartWidth - yAxisLabelWidth, scaleSize(160));
@@ -893,16 +906,6 @@ export default function ProgressSection() {
                     <Text style={styles.sectionTitle}>Weight</Text>
                     <View style={styles.headerActions}>
                         <RNBounceable
-                            style={styles.manageButton}
-                            onPress={() => setIsManageModalVisible(true)}
-                            activeScale={0.97}
-                            disabled={isSaving}
-                            accessibilityRole="button"
-                            accessibilityLabel="Manage existing measurements"
-                        >
-                            <Text style={styles.manageButtonLabel}>Manage Measurements</Text>
-                        </RNBounceable>
-                        <RNBounceable
                             style={styles.addButton}
                             onPress={handleOpenAddModal}
                             activeScale={0.97}
@@ -1133,6 +1136,34 @@ export default function ProgressSection() {
                     )}
                 </View>
 
+                <View style={styles.measurementsRowContainer}>
+                    <Pressable
+                        onPress={() => setIsManageModalVisible(true)}
+                        accessibilityRole="button"
+                        accessibilityLabel="See weight measurements"
+                        style={({ pressed }) => [
+                            styles.measurementsRow,
+                            pressed && styles.measurementsRowPressed,
+                        ]}
+                    >
+                        <View style={styles.measurementsIconBadge}>
+                            <Weight size={scaleSize(20)} color="#F6F8FF" />
+                        </View>
+                        <View style={styles.measurementsTextWrap}>
+                            <Text style={styles.measurementsTitle}>See Weight Measurements</Text>
+                            <Text style={styles.measurementsSubtitle} numberOfLines={1}>
+                                {measurementRowSubtitle}
+                            </Text>
+                        </View>
+                        <Ionicons
+                            name="chevron-forward"
+                            size={scaleSize(18)}
+                            color="rgba(198, 206, 222, 0.84)"
+                            style={styles.measurementsChevron}
+                        />
+                    </Pressable>
+                </View>
+
             </View>
 
             <ManageMeasurementsModal
@@ -1159,12 +1190,12 @@ export default function ProgressSection() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        paddingVertical: scaleSize(24),
+        paddingTop: scaleSize(10),
         backgroundColor: theme.bg,
     },
     card: {
         backgroundColor: theme.surface,
-        paddingVertical: scaleSize(22),
+        paddingTop: scaleSize(16),
         borderTopWidth: StyleSheet.hairlineWidth,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(255,255,255,0.06)",
@@ -1173,7 +1204,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: scaleSize(12),
+        marginBottom: scaleSize(8),
     },
     headerActions: {
         flexDirection: "row",
@@ -1198,7 +1229,7 @@ const styles = StyleSheet.create({
     },
     addButton: {
         paddingHorizontal: scaleSize(12),
-        paddingVertical: scaleSize(5),
+        paddingVertical: scaleSize(6),
         backgroundColor: "rgba(45, 158, 255, 0.16)",
         borderRadius: scaleSize(999),
     },
@@ -1209,9 +1240,7 @@ const styles = StyleSheet.create({
     },
     metricsRow: {
         flexDirection: "row",
-        alignItems: "flex-end",
         justifyContent: "space-between",
-        marginBottom: scaleSize(16),
     },
     weightGroup: {
         flexDirection: "row",
@@ -1239,6 +1268,7 @@ const styles = StyleSheet.create({
         flexShrink: 1,
         marginLeft: scaleSize(12),
         textAlign: "right",
+        paddingVertical: scaleSize(2)
     },
     chartWrapper: {
         justifyContent: "center",
@@ -1247,7 +1277,6 @@ const styles = StyleSheet.create({
     },
     chartContent: {
         flexDirection: "row",
-        height: "100%",
     },
     yAxisLabelsContainer: {
         position: "relative",
@@ -1266,6 +1295,50 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
+    },
+    measurementsRowContainer: {
+        marginTop: scaleSize(16),
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.08)",
+    },
+    measurementsRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: scaleSize(20),
+        paddingHorizontal: scaleSize(6),
+        borderRadius: scaleSize(14),
+    },
+    measurementsRowPressed: {
+        backgroundColor: "rgba(255,255,255,0.04)",
+        borderRadius: scaleSize(14),
+    },
+    measurementsIconBadge: {
+        width: scaleSize(38),
+        height: scaleSize(38),
+        borderRadius: scaleSize(18),
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: scaleSize(12),
+        backgroundColor: "rgba(58, 98, 194, 0.28)",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(142, 188, 255, 0.38)",
+    },
+    measurementsTextWrap: {
+        flex: 1,
+    },
+    measurementsTitle: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(14),
+        color: theme.textPrimary ?? "#F6F8FF",
+    },
+    measurementsSubtitle: {
+        marginTop: scaleSize(2),
+        fontFamily: "Outfit_400Regular",
+        fontSize: ts(11),
+        color: "rgba(216, 226, 255, 0.72)",
+    },
+    measurementsChevron: {
+        marginLeft: scaleSize(12),
     },
     placeholderText: {
         fontFamily: "Outfit_500Medium",
