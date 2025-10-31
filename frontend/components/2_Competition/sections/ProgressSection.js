@@ -13,6 +13,7 @@ import {
     View,
 } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Weight } from "iconsax-react-native";
 import dayjs from "dayjs";
@@ -433,6 +434,7 @@ export default function ProgressSection() {
         }
     });
     const userRef = useRef(userData);
+    const navigation = useNavigation();
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [activeIndex, setActiveIndex] = useState(null);
@@ -1138,9 +1140,10 @@ export default function ProgressSection() {
 
                 <View style={styles.measurementsRowContainer}>
                     <Pressable
-                        onPress={() => setIsManageModalVisible(true)}
+                        onPress={() => navigation.navigate("WeightMeasurements")}
                         accessibilityRole="button"
                         accessibilityLabel="See weight measurements"
+                        disabled={isSaving}
                         style={({ pressed }) => [
                             styles.measurementsRow,
                             pressed && styles.measurementsRowPressed,
