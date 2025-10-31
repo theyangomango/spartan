@@ -458,7 +458,7 @@ export default function WeightMeasurementsScreen() {
                     accessibilityRole="button"
                     accessibilityLabel="Go back"
                 >
-                    <Ionicons name="chevron-back" size={scaleSize(22)} color="rgba(236, 241, 255, 0.92)" />
+                    <Ionicons name="chevron-back" size={scaleSize(24)} color="rgba(196, 204, 222, 0.9)" />
                 </RNBounceable>
                 <View pointerEvents="none" style={styles.headerTitleWrapper}>
                     <Text style={styles.headerTitle}>Weight Measurements</Text>
@@ -559,12 +559,10 @@ const styles = StyleSheet.create({
     backButton: {
         width: scaleSize(38),
         height: scaleSize(38),
-        borderRadius: scaleSize(12),
-        backgroundColor: "rgba(34, 48, 75, 0.4)",
+        borderRadius: scaleSize(19),
+        backgroundColor: "transparent",
         alignItems: "center",
         justifyContent: "center",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(90, 124, 188, 0.38)",
     },
     headerTitleWrapper: {
         position: "absolute",
@@ -590,7 +588,7 @@ const styles = StyleSheet.create({
     },
     headerAddLabel: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(13),
+        fontSize: ts(12),
         color: theme.primary ?? "#2D9EFF",
     },
     list: {
@@ -603,8 +601,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingVertical: scaleSize(16),
-        paddingHorizontal: scaleSize(16),
+        paddingLeft: scaleSize(26),
+        paddingVertical: scaleSize(17),
+        paddingHorizontal: scaleSize(20),
         borderRadius: 0,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(255,255,255,0.08)",
@@ -618,7 +617,7 @@ const styles = StyleSheet.create({
     },
     entryWeight: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(16),
+        fontSize: ts(14),
         color: theme.textPrimary ?? "#F6F8FF",
     },
     entryTimestamp: {
