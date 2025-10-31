@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         paddingVertical: scaleSize(16),
-        paddingHorizontal: scaleSize(20),
+        paddingRight: scaleSize(16),
         paddingLeft: scaleSize(26),
         borderRadius: 0,
         borderWidth: StyleSheet.hairlineWidth,
