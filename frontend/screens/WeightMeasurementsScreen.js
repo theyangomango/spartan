@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
+import { Swipeable } from "react-native-gesture-handler";
 import { Ionicons } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import dayjs from "dayjs";
@@ -22,6 +23,7 @@ import makeID from "../../backend/helper/makeID";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import { emitUserDataUpdate, subscribeUserData } from "../utils/userDataEvents";
 import { scaleSize, ts } from "../components/2_Competition/layoutConstants";
+import { strong as hapticStrong } from "../utils/haptics";
 
 const resolvePreferredWeightUnit = (user) => {
     const rawUnit =
@@ -482,36 +484,62 @@ export default function WeightMeasurementsScreen() {
                     >
                         {sortedEntries.map((entry) => {
                             const weightText = `${formatWeightValue(entry.weight)} ${entry.unit}`;
-                            const timestampText = dayjs(entry.recordedAt).format("MMM D, YYYY • h:mm A");
-                            return (
-                                <View key={entry.id} style={styles.entryCard}>
-                                    <View style={styles.entryInfo}>
-                                        <Text style={styles.entryWeight}>{weightText}</Text>
-                                        <Text style={styles.entryTimestamp}>{timestampText}</Text>
-                                    </View>
-                                    <View style={styles.entryActions}>
-                                        <RNBounceable
-                                            style={[styles.entryActionButton, styles.entryEditButton]}
-                                            onPress={() => handleEditEntry(entry)}
-                                            activeScale={0.97}
-                                            disabled={isSaving}
-                                            accessibilityRole="button"
-                                            accessibilityLabel="Edit measurement"
-                                        >
-                                            <Text style={styles.entryEditLabel}>Edit</Text>
-                                        </RNBounceable>
-                                        <RNBounceable
-                                            style={[styles.entryActionButton, styles.entryDeleteButton]}
-                                            onPress={() => handleRequestDelete(entry)}
-                                            activeScale={0.97}
-                                            disabled={isSaving}
-                                            accessibilityRole="button"
-                                            accessibilityLabel="Delete measurement"
-                                        >
-                                            <Text style={styles.entryDeleteLabel}>Delete</Text>
-                                        </RNBounceable>
-                                    </View>
+                            const entryDay = dayjs(entry.recordedAt);
+                            const dateText = entryDay.isValid()
+                                ? entryDay.format("MMM D, YYYY")
+                                : "";
+                            const timeText = entryDay.isValid()
+                                ? entryDay.format("h:mm A")
+                                : "";
+
+                            const renderRightActions = () => (
+                                <View style={styles.entryActionsContainer}>
+                                    <Pressable
+                                        onPress={() => {
+                                            try {
+                                                hapticStrong?.();
+                                            } catch {}
+                                            handleRequestDelete(entry);
+                                        }}
+                                        style={styles.entryDeleteSwipe}
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Delete measurement"
+                                        disabled={isSaving}
+                                    >
+                                        <Ionicons name="trash-outline" size={scaleSize(18)} color="#F27171" />
+                                    </Pressable>
                                 </View>
+                            );
+
+                            return (
+                                <Swipeable
+                                    key={entry.id}
+                                    overshootRight={false}
+                                    friction={2.2}
+                                    rightThreshold={40}
+                                    renderRightActions={renderRightActions}
+                                >
+                                    <Pressable
+                                        onPress={() => {
+                                            try {
+                                                hapticStrong?.();
+                                            } catch {}
+                                            handleEditEntry(entry);
+                                        }}
+                                        android_ripple={{ color: "rgba(255,255,255,0.06)" }}
+                                        style={styles.entryCard}
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Edit measurement"
+                                    >
+                                        <View style={styles.entryInfo}>
+                                            <Text style={styles.entryWeight}>{weightText}</Text>
+                                            <View style={styles.entryTimestampWrap}>
+                                                <Text style={styles.entryDate}>{dateText}</Text>
+                                                <Text style={styles.entryTime}>{timeText}</Text>
+                                            </View>
+                                        </View>
+                                    </Pressable>
+                                </Swipeable>
                             );
                         })}
                     </ScrollView>
@@ -601,9 +629,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingLeft: scaleSize(26),
-        paddingVertical: scaleSize(17),
+        paddingVertical: scaleSize(16),
         paddingHorizontal: scaleSize(20),
+        paddingLeft: scaleSize(26),
         borderRadius: 0,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(255,255,255,0.08)",
@@ -614,46 +642,46 @@ const styles = StyleSheet.create({
     entryInfo: {
         flex: 1,
         marginRight: scaleSize(12),
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
     },
     entryWeight: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(14),
+        fontSize: ts(15),
         color: theme.textPrimary ?? "#F6F8FF",
     },
-    entryTimestamp: {
-        marginTop: scaleSize(2),
-        fontFamily: "Outfit_400Regular",
+    entryTimestampWrap: {
+        alignItems: "flex-end",
+        justifyContent: "center",
+        minWidth: scaleSize(110),
+    },
+    entryDate: {
+        fontFamily: "Outfit_500Medium",
         fontSize: ts(11),
-        color: "rgba(216, 226, 255, 0.7)",
+        color: "rgba(216, 226, 255, 0.85)",
+        textAlign: "right",
     },
-    entryActions: {
-        flexDirection: "row",
+    entryTime: {
+        marginTop: scaleSize(3),
+        fontFamily: "Outfit_400Regular",
+        fontSize: ts(10),
+        color: "rgba(216, 226, 255, 0.55)",
+        textAlign: "right",
+    },
+    entryActionsContainer: {
+        justifyContent: "center",
+        alignItems: "flex-end",
+        height: "100%",
+        width: scaleSize(96),
+        backgroundColor: "transparent",
+    },
+    entryDeleteSwipe: {
+        height: "100%",
+        width: "100%",
+        backgroundColor: "rgba(242,113,113,0.16)",
         alignItems: "center",
-    },
-    entryActionButton: {
-        paddingVertical: scaleSize(6),
-        paddingHorizontal: scaleSize(12),
-        borderRadius: scaleSize(999),
-        borderWidth: StyleSheet.hairlineWidth,
-    },
-    entryEditButton: {
-        borderColor: "rgba(120, 173, 255, 0.6)",
-        backgroundColor: "rgba(52, 96, 160, 0.22)",
-    },
-    entryDeleteButton: {
-        marginLeft: scaleSize(8),
-        borderColor: "rgba(255, 102, 102, 0.5)",
-        backgroundColor: "rgba(128, 32, 32, 0.18)",
-    },
-    entryEditLabel: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(12),
-        color: "rgba(200, 220, 255, 0.95)",
-    },
-    entryDeleteLabel: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(12),
-        color: "rgba(255, 135, 135, 0.95)",
+        justifyContent: "center",
     },
     emptyState: {
         flex: 1,
