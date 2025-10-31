@@ -450,28 +450,30 @@ export default function WeightMeasurementsScreen() {
     return (
         <SafeAreaView style={styles.safeArea}>
             <View style={styles.container}>
-                <View style={styles.header}>
-                    <RNBounceable
-                        onPress={handleGoBack}
-                        activeScale={0.97}
-                        style={styles.backButton}
-                        accessibilityRole="button"
-                        accessibilityLabel="Go back"
-                    >
-                        <Ionicons name="chevron-back" size={scaleSize(22)} color="rgba(236, 241, 255, 0.92)" />
-                    </RNBounceable>
+            <View style={styles.header}>
+                <RNBounceable
+                    onPress={handleGoBack}
+                    activeScale={0.97}
+                    style={styles.backButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Go back"
+                >
+                    <Ionicons name="chevron-back" size={scaleSize(22)} color="rgba(236, 241, 255, 0.92)" />
+                </RNBounceable>
+                <View pointerEvents="none" style={styles.headerTitleWrapper}>
                     <Text style={styles.headerTitle}>Weight Measurements</Text>
-                    <RNBounceable
-                        onPress={handleAddEntry}
-                        activeScale={0.97}
-                        disabled={isSaving}
-                        style={styles.headerAddButton}
-                        accessibilityRole="button"
-                        accessibilityLabel="Add new weight measurement"
-                    >
-                        <Text style={styles.headerAddLabel}>+ Add</Text>
-                    </RNBounceable>
                 </View>
+                <RNBounceable
+                    onPress={handleAddEntry}
+                    activeScale={0.97}
+                    disabled={isSaving}
+                    style={styles.headerAddButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add new weight measurement"
+                >
+                    <Text style={styles.headerAddLabel}>+ Add</Text>
+                </RNBounceable>
+            </View>
 
                 {sortedEntries.length ? (
                     <ScrollView
@@ -543,15 +545,16 @@ const styles = StyleSheet.create({
     },
     container: {
         flex: 1,
-        paddingHorizontal: scaleSize(20),
         paddingTop: scaleSize(12),
         paddingBottom: scaleSize(24),
+        backgroundColor: theme.bg,
     },
     header: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         marginBottom: scaleSize(20),
+        paddingHorizontal: scaleSize(20),
     },
     backButton: {
         width: scaleSize(38),
@@ -563,11 +566,17 @@ const styles = StyleSheet.create({
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(90, 124, 188, 0.38)",
     },
+    headerTitleWrapper: {
+        position: "absolute",
+        left: scaleSize(20),
+        right: scaleSize(20),
+        height: scaleSize(38),
+        alignItems: "center",
+        justifyContent: "center",
+    },
     headerTitle: {
-        flex: 1,
-        marginHorizontal: scaleSize(12),
         fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(20),
+        fontSize: ts(16),
         color: theme.textPrimary ?? "#F6F8FF",
         textAlign: "center",
     },
@@ -594,13 +603,14 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingVertical: scaleSize(14),
+        paddingVertical: scaleSize(16),
         paddingHorizontal: scaleSize(16),
-        borderRadius: scaleSize(18),
+        borderRadius: 0,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(255,255,255,0.08)",
-        backgroundColor: "rgba(22, 32, 54, 0.6)",
-        marginBottom: scaleSize(12),
+        backgroundColor: theme.surface,
+        marginBottom: 0,
+        width: "100%",
     },
     entryInfo: {
         flex: 1,
@@ -776,4 +786,3 @@ const styles = StyleSheet.create({
         color: "#0B1017",
     },
 });
-
