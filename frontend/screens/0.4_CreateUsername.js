@@ -397,6 +397,7 @@ const styles = StyleSheet.create({
     color: '#f2f6ffdd',
     textAlign: 'center',
     lineHeight: scaleSize(22),
+    marginHorizontal: scaleSize(36),
   },
   form: {
     width: '100%',

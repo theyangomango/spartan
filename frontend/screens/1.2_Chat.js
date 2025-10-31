@@ -529,7 +529,6 @@ export default function Chat({ navigation, route }) {
                             actions={[
                                 { key: "reply", label: "Reply" },
                                 { key: "copy", label: "Copy" },
-                                { key: "delete", label: "Delete" },
                             ]}
                             onReaction={handleReaction}
                             onAction={handleAction}
