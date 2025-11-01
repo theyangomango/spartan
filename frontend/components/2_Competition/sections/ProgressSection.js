@@ -307,11 +307,48 @@ const formatAxisValue = (value) => {
     return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 };
 
-const PointerLabelBubble = React.memo(({ entry, unit, isRightAligned }) => {
+const PointerLabelBubble = React.memo(({ entry, unit, delta, isRightAligned }) => {
     if (!entry) return null;
 
     const weightText = `${formatWeightValue(entry.weight)} ${unit}`;
     const timestampText = dayjs(entry.recordedAt).format("MMM D, h:mm A");
+    const shouldShowDelta = typeof delta === "number" && delta !== null;
+
+    const buildDeltaText = () => {
+        if (!shouldShowDelta) return null;
+        const absValue = Math.abs(delta);
+        const formatDeltaValue = (value) => {
+            if (!Number.isFinite(value)) return null;
+            if (value >= 100) return Math.round(value).toString();
+            const rounded = Math.round(value * 10) / 10;
+            return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+        };
+
+        const formattedValue = formatDeltaValue(absValue);
+        if (formattedValue == null) return null;
+
+        const unitLabel =
+            unit === "lb"
+                ? absValue === 1
+                    ? "lb"
+                    : "lbs"
+                : unit;
+
+        const prefix = delta > 0 ? "+" : delta < 0 ? "-" : "+";
+        return `${prefix}${formattedValue} ${unitLabel}`;
+    };
+
+    const deltaText = buildDeltaText();
+    const isPositiveDelta = typeof delta === "number" && delta > 0;
+    const isNegativeDelta = typeof delta === "number" && delta < 0;
+    const deltaStyle = [
+        styles.pointerBubbleDelta,
+        isPositiveDelta
+            ? styles.pointerBubbleDeltaPositive
+            : isNegativeDelta
+                ? styles.pointerBubbleDeltaNegative
+                : styles.pointerBubbleDeltaNeutral,
+    ];
 
     return (
         <View
@@ -332,6 +369,7 @@ const PointerLabelBubble = React.memo(({ entry, unit, isRightAligned }) => {
             >
                 <View style={styles.pointerBubble}>
                     <Text style={styles.pointerBubbleWeight}>{weightText}</Text>
+                    {deltaText ? <Text style={deltaStyle}>{deltaText}</Text> : null}
                     <Text style={styles.pointerBubbleTimestamp}>{timestampText}</Text>
                 </View>
             </View>
@@ -686,11 +724,19 @@ export default function ProgressSection() {
 
     const chartData = useMemo(() => {
         if (!entries.length) return [];
-        return entries.map((entry) => ({
-            value: Number(entry.weight) || 0,
-            recordedAt: entry.recordedAt,
-            entry,
-        }));
+        return entries.map((entry, index) => {
+            const value = Number(entry.weight) || 0;
+            const previousEntry = index > 0 ? entries[index - 1] : null;
+            const previousValue = previousEntry ? Number(previousEntry.weight) || 0 : null;
+            const delta = previousValue != null ? value - previousValue : null;
+
+            return {
+                value,
+                recordedAt: entry.recordedAt,
+                entry,
+                delta,
+            };
+        });
     }, [entries]);
 
     const volumeChartData = useMemo(() => {
@@ -1085,6 +1131,7 @@ export default function ProgressSection() {
 
     const weightActivePoint = activeIndex != null ? weightChartPoints[activeIndex] : null;
     const weightActiveEntry = activeIndex != null ? chartData[activeIndex]?.entry : null;
+    const weightActiveDelta = activeIndex != null ? chartData[activeIndex]?.delta : null;
     const pointerLabelWidth = scaleSize(184);
     const pointerLabelLeft = useMemo(() => {
         if (!weightActivePoint) return chartLeftMargin;
@@ -1588,6 +1635,7 @@ export default function ProgressSection() {
                                             <PointerLabelBubble
                                                 entry={weightActiveEntry}
                                                 unit={latestUnit}
+                                                delta={weightActiveDelta}
                                                 isRightAligned={isPointerRightAligned}
                                             />
                                         </View>
@@ -1858,6 +1906,20 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
         fontSize: ts(16),
         color: theme.textPrimary ?? "#F6F8FF",
+    },
+    pointerBubbleDelta: {
+        marginTop: scaleSize(2),
+        fontFamily: "Outfit_500Medium",
+        fontSize: ts(11),
+    },
+    pointerBubbleDeltaPositive: {
+        color: "#65F2B6",
+    },
+    pointerBubbleDeltaNegative: {
+        color: "#FF6B6B",
+    },
+    pointerBubbleDeltaNeutral: {
+        color: "rgba(216, 226, 255, 0.82)",
     },
     pointerBubbleIncrement: {
         marginTop: scaleSize(2),
