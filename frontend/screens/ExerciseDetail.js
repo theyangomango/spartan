@@ -416,7 +416,7 @@ const ExerciseVolumePointerLabel = React.memo(({ entry, unit, isRightAligned }) 
                     {incrementText ? (
                         <Text
                             style={[styles.progressPointerSubtitle, { color: '#65F2B6' }]}
-                        >{`${incrementText} this session`}</Text>
+                        >{`${incrementText} this workout`}</Text>
                     ) : null}
                     <Text style={styles.progressPointerTimestamp}>{timestampText}</Text>
                 </View>
@@ -450,7 +450,7 @@ const ExerciseRepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
                     {incrementText ? (
                         <Text
                             style={[styles.progressPointerSubtitle, { color: '#65F2B6' }]}
-                        >{`${incrementText} this session`}</Text>
+                        >{`${incrementText} this workout`}</Text>
                     ) : null}
                     <Text style={styles.progressPointerTimestamp}>{timestampText}</Text>
                 </View>
@@ -461,12 +461,16 @@ const ExerciseRepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
 
 const ExercisePersonalRecordPointerLabel = React.memo(({ entry, unit, isRightAligned }) => {
     if (!entry) return null;
-    const totalText = `${formatNumberCompact(entry.value)} records`;
-    const recordWeightText = entry.weight ? formatWeightValue(entry.weight) : null;
-    const repsText = Number.isFinite(entry.reps) && entry.reps > 0 ? `${Math.round(entry.reps)} reps` : null;
-    const detailLine = recordWeightText
-        ? `${recordWeightText}${unit ? ` ${unit}` : ''}${repsText ? ` • ${repsText}` : ''}`
-        : repsText;
+    const totalText = `${formatNumberCompact(entry.value)} PRs`;
+    const weightValue = Number(entry.weight) || 0;
+    const repsValue = Number(entry.reps) || 0;
+    const hasWeight = weightValue > 0;
+    const hasReps = repsValue > 0;
+    const formattedWeight = hasWeight ? `${formatWeightValue(weightValue)}${unit ? unit : ''}` : null;
+    const formattedCombo =
+        hasReps && hasWeight ? `${Math.round(repsValue)} x ${formattedWeight}` : null;
+    const incrementValue = Number(entry.increment) || 0;
+    const incrementText = incrementValue > 0 ? `+${formatNumberCompact(incrementValue)} PR${incrementValue === 1 ? '' : 's'}` : null;
     const timestampText = dayjs(entry.recordedAt).format('MMM D, h:mm A');
 
     return (
@@ -485,8 +489,25 @@ const ExercisePersonalRecordPointerLabel = React.memo(({ entry, unit, isRightAli
             >
                 <View style={styles.progressPointerBubble}>
                     <Text style={styles.progressPointerTitle}>{totalText}</Text>
-                    {detailLine ? (
-                        <Text style={styles.progressPointerSubtitle}>{detailLine}</Text>
+                    {incrementText ? (
+                        <Text
+                            style={[
+                                styles.progressPointerSubtitle,
+                                { color: '#65F2B6' },
+                            ]}
+                        >
+                            {incrementText} this workout
+                        </Text>
+                    ) : null}
+                    {formattedCombo ? (
+                        <Text
+                            style={[
+                                styles.progressPointerSubtitle,
+                                { color: '#7FB7FF' },
+                            ]}
+                        >
+                            {formattedCombo}
+                        </Text>
                     ) : null}
                     <Text style={styles.progressPointerTimestamp}>{timestampText}</Text>
                 </View>
@@ -1633,7 +1654,11 @@ export default function ExerciseDetail() {
         ? dayjs(latestExercisePersonalRecordEntry.recordedAt).format('MMM D, h:mm A')
         : 'No data yet';
     const latestExercisePersonalRecordDeltaMeta = latestExercisePersonalRecordEntry
-        ? buildMetricDeltaDisplay(latestExercisePersonalRecordEntry.increment, 'records', formatNumberCompact)
+        ? buildMetricDeltaDisplay(
+              latestExercisePersonalRecordEntry.increment,
+              latestExercisePersonalRecordEntry.increment === 1 ? 'PR' : 'PRs',
+              formatNumberCompact
+          )
         : null;
 
 

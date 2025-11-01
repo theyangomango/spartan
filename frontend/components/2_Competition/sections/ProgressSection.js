@@ -980,9 +980,13 @@ export default function ProgressSection() {
     const latestPersonalRecordInfo = latestPersonalRecordEntry
         ? formatTimestamp(latestPersonalRecordEntry.recordedAt)
         : "No PRs yet";
-    const latestPersonalRecordUnit = latestPersonalRecordEntry ? "records" : "";
+    const latestPersonalRecordUnit = latestPersonalRecordEntry ? "PRs" : "";
     const latestPersonalRecordDeltaMeta = latestPersonalRecordEntry
-        ? buildMetricDeltaDisplay(latestPersonalRecordEntry.increment, "records", formatVolumeValue)
+        ? buildMetricDeltaDisplay(
+              latestPersonalRecordEntry.increment,
+              latestPersonalRecordEntry.increment === 1 ? "PR" : "PRs",
+              formatVolumeValue
+          )
         : null;
     const measurementRowSubtitle = useMemo(() => {
         if (!entries.length) return "No measurements yet";
