@@ -138,7 +138,7 @@ const computeSnapshot = (user) => {
     const preferredUnit = resolvePreferredWeightUnit(user);
     const displayUnit = toDisplayWeightUnit(preferredUnit);
 
-    const rangeLabel = `${formatShortDate(weekStart)} to ${formatShortDate(now)}`;
+    const rangeLabel = `${formatShortDate(weekStart)} - ${formatShortDate(now)}`;
 
     let weeklyVolume = 0;
     let weeklyDurationMs = 0;
@@ -353,7 +353,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.surface,
         width: "100%",
         paddingHorizontal: scaleSize(18),
-        paddingTop: scaleSize(12),
+        paddingTop: scaleSize(14),
         paddingBottom: scaleSize(8),
     },
     headerRow: {

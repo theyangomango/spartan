@@ -1,0 +1,37 @@
+diff --git a/node_modules/expo-apple-authentication/ios/AppleAuthenticationExceptions.swift b/node_modules/expo-apple-authentication/ios/AppleAuthenticationExceptions.swift
+index 6eb50b1..87936a1 100644
+--- a/node_modules/expo-apple-authentication/ios/AppleAuthenticationExceptions.swift
++++ b/node_modules/expo-apple-authentication/ios/AppleAuthenticationExceptions.swift
+@@ -63,5 +63,8 @@ func exceptionForAuthorizationError(_ error: ASAuthorizationError) -> Exception
+     return RequestFailedException()
+   case .notInteractive:
+     return RequestNotInteractiveException()
++  @unknown default:
++    // Forward-compatibility for new authorization error codes.
++    return RequestUnknownException()
+   }
+ }
+diff --git a/node_modules/expo-apple-authentication/ios/AppleAuthenticationUtils.swift b/node_modules/expo-apple-authentication/ios/AppleAuthenticationUtils.swift
+index 2c8a022..98f6641 100644
+--- a/node_modules/expo-apple-authentication/ios/AppleAuthenticationUtils.swift
++++ b/node_modules/expo-apple-authentication/ios/AppleAuthenticationUtils.swift
+@@ -10,6 +10,9 @@ func credentialStateToInt(_ credentialState: ASAuthorizationAppleIDProvider.Cred
+     return 2
+   case .transferred:
+     return 3
++  @unknown default:
++    // Treat future states as not found to avoid crashing on newer SDKs.
++    return 2
+   }
+ }
+ 
+@@ -21,6 +24,9 @@ func realUserStatusToInt(_ status: ASUserDetectionStatus?) -> Int {
+     return 2
+   case .unsupported, .none:
+     return 3
++  @unknown default:
++    // Unknown future statuses fall back to `unknown`.
++    return 1
+   }
+ }
+ 
