@@ -395,6 +395,7 @@ const ExerciseVolumePointerLabel = React.memo(({ entry, unit, isRightAligned }) 
     const unitText = toDisplayWeightUnit(unit);
     const totalText = `${formatNumberCompact(entry.value)} ${unitText}`;
     const incrementText = entry.increment ? `+${formatNumberCompact(entry.increment)} ${unitText}` : null;
+    const workoutName = typeof entry.name === 'string' && entry.name.trim() ? entry.name.trim() : null;
     const timestampText = dayjs(entry.recordedAt).format('MMM D, h:mm A');
 
     return (
@@ -418,6 +419,13 @@ const ExerciseVolumePointerLabel = React.memo(({ entry, unit, isRightAligned }) 
                             style={[styles.progressPointerSubtitle, { color: '#65F2B6' }]}
                         >{`${incrementText} this workout`}</Text>
                     ) : null}
+                    {workoutName ? (
+                        <Text
+                            style={[styles.progressPointerSubtitle, { color: '#7FB7FF' }]}
+                        >
+                            {workoutName}
+                        </Text>
+                    ) : null}
                     <Text style={styles.progressPointerTimestamp}>{timestampText}</Text>
                 </View>
             </View>
@@ -429,6 +437,7 @@ const ExerciseRepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
     if (!entry) return null;
     const totalText = `${formatNumberCompact(entry.value)} reps`;
     const incrementText = entry.increment ? `+${formatNumberCompact(entry.increment)} reps` : null;
+    const workoutName = typeof entry.name === 'string' && entry.name.trim() ? entry.name.trim() : null;
     const timestampText = dayjs(entry.recordedAt).format('MMM D, h:mm A');
 
     return (
@@ -451,6 +460,13 @@ const ExerciseRepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
                         <Text
                             style={[styles.progressPointerSubtitle, { color: '#65F2B6' }]}
                         >{`${incrementText} this workout`}</Text>
+                    ) : null}
+                    {workoutName ? (
+                        <Text
+                            style={[styles.progressPointerSubtitle, { color: '#7FB7FF' }]}
+                        >
+                            {workoutName}
+                        </Text>
                     ) : null}
                     <Text style={styles.progressPointerTimestamp}>{timestampText}</Text>
                 </View>
@@ -471,6 +487,7 @@ const ExercisePersonalRecordPointerLabel = React.memo(({ entry, unit, isRightAli
         hasReps && hasWeight ? `${Math.round(repsValue)} x ${formattedWeight}` : null;
     const incrementValue = Number(entry.increment) || 0;
     const incrementText = incrementValue > 0 ? `+${formatNumberCompact(incrementValue)} PR${incrementValue === 1 ? '' : 's'}` : null;
+    const workoutName = typeof entry.name === 'string' && entry.name.trim() ? entry.name.trim() : null;
     const timestampText = dayjs(entry.recordedAt).format('MMM D, h:mm A');
 
     return (
@@ -497,6 +514,13 @@ const ExercisePersonalRecordPointerLabel = React.memo(({ entry, unit, isRightAli
                             ]}
                         >
                             {incrementText} this workout
+                        </Text>
+                    ) : null}
+                    {workoutName ? (
+                        <Text
+                            style={[styles.progressPointerSubtitle, { color: '#7FB7FF' }]}
+                        >
+                            {workoutName}
                         </Text>
                     ) : null}
                     {formattedCombo ? (
@@ -989,26 +1013,36 @@ export default function ExerciseDetail() {
             const weight = Math.max(0, Number(set.weight) || 0);
             const reps = Math.max(0, Number(set.reps) || 0);
             if (weight <= 0 && reps <= 0) return;
+            const workout =
+                set?.wid && workoutsByWid.has(String(set.wid))
+                    ? workoutsByWid.get(String(set.wid))
+                    : null;
+            const workoutName = workout ? deriveSessionTitle(workout, recordedAt) : null;
 
             if (weight > 0) {
                 personalRecordCandidates.push({
                     recordedAt,
                     weight,
                     reps,
+                    name: workoutName,
                 });
             }
 
             const volumeIncrement = weight * reps;
             if (volumeIncrement > 0) {
                 const key = String(recordedAt);
-                const existing = volumeMap.get(key) || { recordedAt, increment: 0 };
+                const existing =
+                    volumeMap.get(key) || { recordedAt, increment: 0, name: workoutName };
                 existing.increment += volumeIncrement;
+                if (!existing.name && workoutName) existing.name = workoutName;
                 volumeMap.set(key, existing);
             }
             if (reps > 0) {
                 const key = String(recordedAt);
-                const existing = repsMap.get(key) || { recordedAt, increment: 0 };
+                const existing =
+                    repsMap.get(key) || { recordedAt, increment: 0, name: workoutName };
                 existing.increment += reps;
+                if (!existing.name && workoutName) existing.name = workoutName;
                 repsMap.set(key, existing);
             }
         });
@@ -1044,6 +1078,7 @@ export default function ExerciseDetail() {
                     increment: 1,
                     weight: candidate.weight,
                     reps: candidate.reps,
+                    name: candidate.name || null,
                 });
                 bestWeight = candidate.weight;
             }

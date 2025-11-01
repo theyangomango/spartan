@@ -542,6 +542,7 @@ const VolumePointerLabel = React.memo(({ entry, unit, isRightAligned }) => {
     const totalText = `${formatVolumeValue(entry.value)} ${unitText}`;
     const incrementText = entry.increment ? `+${formatVolumeValue(entry.increment)} ${unitText}` : null;
     const timestampText = dayjs(entry.recordedAt).format("MMM D, h:mm A");
+    const workoutName = (typeof entry.name === "string" && entry.name.trim()) || null;
 
     return (
         <View
@@ -561,6 +562,9 @@ const VolumePointerLabel = React.memo(({ entry, unit, isRightAligned }) => {
                     <Text style={styles.pointerBubbleWeight}>{totalText}</Text>
                     {incrementText ? (
                         <Text style={styles.pointerBubbleIncrement}>{incrementText} this workout</Text>
+                    ) : null}
+                    {workoutName ? (
+                        <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
                     ) : null}
                     <Text style={styles.pointerBubbleTimestamp}>{timestampText}</Text>
                 </View>
@@ -575,6 +579,7 @@ const RepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
     const totalText = `${formatVolumeValue(entry.value)} reps`;
     const incrementText = entry.increment ? `+${formatVolumeValue(entry.increment)} reps` : null;
     const timestampText = dayjs(entry.recordedAt).format("MMM D, h:mm A");
+    const workoutName = (typeof entry.name === "string" && entry.name.trim()) || null;
 
     return (
         <View
@@ -595,6 +600,9 @@ const RepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
                     {incrementText ? (
                         <Text style={styles.pointerBubbleIncrement}>{incrementText} this workout</Text>
                     ) : null}
+                    {workoutName ? (
+                        <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                    ) : null}
                     <Text style={styles.pointerBubbleTimestamp}>{timestampText}</Text>
                 </View>
             </View>
@@ -605,11 +613,11 @@ const RepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
 const PersonalRecordPointerLabel = React.memo(({ entry, isRightAligned }) => {
     if (!entry) return null;
 
-    const totalText = `${formatVolumeValue(entry.value)} records`;
+    const totalText = `${formatVolumeValue(entry.value)} PRs`;
     const incrementValue = Number(entry.increment) || 0;
-    const incrementText = incrementValue > 0 ? `+${formatVolumeValue(incrementValue)} records` : null;
+    const incrementText = incrementValue > 0 ? `+${formatVolumeValue(incrementValue)} PR${incrementValue === 1 ? "" : "s"}` : null;
     const workoutName = (typeof entry.name === "string" && entry.name.trim()) || null;
-    const noRecordText = incrementValue === 0 ? "No new records" : null;
+    const noRecordText = incrementValue === 0 ? "No new PRs" : null;
     const timestampText = dayjs(entry.recordedAt).format("MMM D, h:mm A");
 
     return (
@@ -629,10 +637,10 @@ const PersonalRecordPointerLabel = React.memo(({ entry, isRightAligned }) => {
                 <View style={styles.pointerBubble}>
                     <Text style={styles.pointerBubbleWeight}>{totalText}</Text>
                     {workoutName ? (
-                        <Text style={styles.pointerBubbleDeltaNeutral}>{workoutName}</Text>
+                        <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
                     ) : null}
                     {incrementText ? (
-                        <Text style={styles.pointerBubbleIncrement}>{incrementText}</Text>
+                        <Text style={styles.pointerBubbleIncrement}>{incrementText} this workout</Text>
                     ) : null}
                     {noRecordText ? (
                         <Text style={styles.pointerBubbleDeltaNeutral}>{noRecordText}</Text>
