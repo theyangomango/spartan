@@ -53,6 +53,22 @@ const toDisplayWeightUnit = (unit, fallback = "lbs") => {
     return fallback;
 };
 
+const buildMetricDeltaDisplay = (delta, unitLabel, formatter = formatVolumeValue) => {
+    const numericDelta = Number(delta);
+    if (!Number.isFinite(numericDelta) || numericDelta === 0) return null;
+    const absValue = Math.abs(numericDelta);
+    const formattedValue = formatter(absValue);
+    const sign = numericDelta > 0 ? "+" : "-";
+    const icon = numericDelta > 0 ? "arrow-up" : "arrow-down";
+    const color = numericDelta > 0 ? "#65F2B6" : "#FF6B6B";
+    const suffix = unitLabel ? ` ${unitLabel}` : "";
+    return {
+        icon,
+        color,
+        text: `${sign}${formattedValue}${suffix}`,
+    };
+};
+
 const formatWeightValue = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num) || num <= 0) return "00";
@@ -848,6 +864,9 @@ export default function ProgressSection() {
     const latestVolumeInfo = latestVolumeEntry ? formatTimestamp(latestVolumeEntry.recordedAt) : "No workouts yet";
     const displayVolumeUnit = displayPreferredUnit;
     const latestVolumeUnit = displayVolumeUnit;
+    const latestVolumeDeltaMeta = latestVolumeEntry
+        ? buildMetricDeltaDisplay(latestVolumeEntry.increment, displayVolumeUnit, formatVolumeValue)
+        : null;
     const repsEntries = useMemo(
         () => sanitizeRepsEntries(userData?.completedWorkouts || []),
         [userData]
@@ -856,6 +875,9 @@ export default function ProgressSection() {
     const latestRepsText = latestRepsEntry ? formatVolumeValue(latestRepsEntry.value) : "--";
     const latestRepsInfo = latestRepsEntry ? formatTimestamp(latestRepsEntry.recordedAt) : "No workouts yet";
     const latestRepsUnit = latestRepsEntry ? "reps" : "";
+    const latestRepsDeltaMeta = latestRepsEntry
+        ? buildMetricDeltaDisplay(latestRepsEntry.increment, "reps", formatVolumeValue)
+        : null;
     const measurementRowSubtitle = useMemo(() => {
         if (!entries.length) return "No measurements yet";
         const count = entries.length;
@@ -884,6 +906,9 @@ export default function ProgressSection() {
             };
         });
     }, [entries]);
+    const latestWeightDeltaMeta = chartData.length
+        ? buildMetricDeltaDisplay(chartData[chartData.length - 1]?.delta, latestUnit, formatWeightValue)
+        : null;
 
     const volumeChartData = useMemo(() => {
         if (!volumeEntries.length) return [];
@@ -1609,6 +1634,21 @@ export default function ProgressSection() {
                         <View style={styles.weightGroup}>
                             <Text style={styles.weightValue}>{latestVolumeText}</Text>
                             <Text style={styles.weightUnit}>{latestVolumeUnit}</Text>
+                            {latestVolumeDeltaMeta ? (
+                                <View style={styles.deltaGroup}>
+                                    <Ionicons
+                                        name={latestVolumeDeltaMeta.icon}
+                                        size={scaleSize(19)}
+                                        color={latestVolumeDeltaMeta.color}
+                                        style={styles.deltaIcon}
+                                    />
+                                    <Text
+                                        style={[styles.weightValue, styles.deltaText, { color: latestVolumeDeltaMeta.color }]}
+                                    >
+                                        {latestVolumeDeltaMeta.text}
+                                    </Text>
+                                </View>
+                            ) : null}
                         </View>
                         <Text style={styles.summaryText}>{latestVolumeInfo}</Text>
                     </View>
@@ -1866,6 +1906,21 @@ export default function ProgressSection() {
                         <View style={styles.weightGroup}>
                             <Text style={styles.weightValue}>{latestRepsText}</Text>
                             <Text style={styles.weightUnit}>{latestRepsUnit}</Text>
+                            {latestRepsDeltaMeta ? (
+                                <View style={styles.deltaGroup}>
+                                    <Ionicons
+                                        name={latestRepsDeltaMeta.icon}
+                                        size={scaleSize(19)}
+                                        color={latestRepsDeltaMeta.color}
+                                        style={styles.deltaIcon}
+                                    />
+                                    <Text
+                                        style={[styles.weightValue, styles.deltaText, { color: latestRepsDeltaMeta.color }]}
+                                    >
+                                        {latestRepsDeltaMeta.text}
+                                    </Text>
+                                </View>
+                            ) : null}
                         </View>
                         <Text style={styles.summaryText}>{latestRepsInfo}</Text>
                     </View>
@@ -2122,6 +2177,21 @@ export default function ProgressSection() {
                         <View style={styles.weightGroup}>
                             <Text style={styles.weightValue}>{latestWeightText}</Text>
                             <Text style={styles.weightUnit}>{latestUnit}</Text>
+                            {latestWeightDeltaMeta ? (
+                                <View style={styles.deltaGroup}>
+                                    <Ionicons
+                                        name={latestWeightDeltaMeta.icon}
+                                        size={scaleSize(19)}
+                                        color={latestWeightDeltaMeta.color}
+                                        style={styles.deltaIcon}
+                                    />
+                                    <Text
+                                        style={[styles.weightValue, styles.deltaText, { color: latestWeightDeltaMeta.color }]}
+                                    >
+                                        {latestWeightDeltaMeta.text}
+                                    </Text>
+                                </View>
+                            ) : null}
                         </View>
                         <Text style={styles.summaryText}>{latestInfoText}</Text>
                     </View>
@@ -2482,9 +2552,22 @@ const styles = StyleSheet.create({
     },
     weightValue: {
         fontFamily: "Outfit_700Bold",
-        fontSize: ts(24),
+        fontSize: ts(22),
         color: theme.textPrimary ?? "#F6F8FF",
-        lineHeight: ts(25),
+        lineHeight: ts(23),
+    },
+    deltaGroup: {
+        flexDirection: "row",
+        alignItems: "flex-end",
+        marginLeft: scaleSize(10),
+    },
+    deltaIcon: {
+        marginRight: scaleSize(4),
+        marginBottom: scaleSize(2),
+    },
+    deltaText: {
+        fontSize: ts(16),
+        lineHeight: ts(18),
     },
     weightUnit: {
         fontFamily: "Outfit_600SemiBold",

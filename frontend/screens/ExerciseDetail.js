@@ -703,6 +703,22 @@ const toDisplayWeightUnit = (unit, fallback = 'lbs') => {
     return fallback;
 };
 
+const buildMetricDeltaDisplay = (delta, unitLabel, formatter = formatNumberCompact) => {
+    const numericDelta = Number(delta);
+    if (!Number.isFinite(numericDelta) || numericDelta === 0) return null;
+    const absValue = Math.abs(numericDelta);
+    const formattedValue = formatter(absValue);
+    const sign = numericDelta > 0 ? '+' : '-';
+    const icon = numericDelta > 0 ? 'arrow-up' : 'arrow-down';
+    const color = numericDelta > 0 ? '#65F2B6' : '#FF6B6B';
+    const suffix = unitLabel ? ` ${unitLabel}` : '';
+    return {
+        icon,
+        color,
+        text: `${sign}${formattedValue}${suffix}`,
+    };
+};
+
 const findStatsEntry = (statsMap, exerciseName) => {
     if (!statsMap || typeof statsMap !== 'object') return null;
     if (!exerciseName) return null;
@@ -1332,6 +1348,9 @@ export default function ExerciseDetail() {
         ? dayjs(latestExerciseVolumeEntry.recordedAt).format('MMM D, h:mm A')
         : 'No data yet';
     const volumeUnitLabel = toDisplayWeightUnit(weightUnit);
+    const latestExerciseVolumeDeltaMeta = latestExerciseVolumeEntry
+        ? buildMetricDeltaDisplay(latestExerciseVolumeEntry.increment, volumeUnitLabel)
+        : null;
 
     const latestExerciseRepsEntry = exerciseRepsEntries.length
         ? exerciseRepsEntries[exerciseRepsEntries.length - 1]
@@ -1342,6 +1361,9 @@ export default function ExerciseDetail() {
     const latestExerciseRepsInfo = latestExerciseRepsEntry
         ? dayjs(latestExerciseRepsEntry.recordedAt).format('MMM D, h:mm A')
         : 'No data yet';
+    const latestExerciseRepsDeltaMeta = latestExerciseRepsEntry
+        ? buildMetricDeltaDisplay(latestExerciseRepsEntry.increment, 'reps', formatNumberCompact)
+        : null;
 
 
     const weightColumnLabel = useMemo(() => {
@@ -1631,6 +1653,21 @@ export default function ExerciseDetail() {
                             <View style={styles.progressValueGroup}>
                                 <Text style={styles.progressValue}>{latestExerciseVolumeText}</Text>
                                 <Text style={styles.progressUnit}>{volumeUnitLabel}</Text>
+                                {latestExerciseVolumeDeltaMeta ? (
+                                    <View style={styles.progressDeltaGroup}>
+                                        <Ionicons
+                                            name={latestExerciseVolumeDeltaMeta.icon}
+                                            size={scaleSize(19)}
+                                            color={latestExerciseVolumeDeltaMeta.color}
+                                            style={styles.progressDeltaIcon}
+                                        />
+                                        <Text
+                                            style={[styles.progressValue, styles.progressDeltaText, { color: latestExerciseVolumeDeltaMeta.color }]}
+                                        >
+                                            {latestExerciseVolumeDeltaMeta.text}
+                                        </Text>
+                                    </View>
+                                ) : null}
                             </View>
                             <Text style={styles.progressSummaryText}>{latestExerciseVolumeInfo}</Text>
                         </View>
@@ -1876,6 +1913,21 @@ export default function ExerciseDetail() {
                             <View style={styles.progressValueGroup}>
                                 <Text style={styles.progressValue}>{latestExerciseRepsText}</Text>
                                 <Text style={styles.progressUnit}>reps</Text>
+                                {latestExerciseRepsDeltaMeta ? (
+                                    <View style={styles.progressDeltaGroup}>
+                                        <Ionicons
+                                            name={latestExerciseRepsDeltaMeta.icon}
+                                            size={scaleSize(19)}
+                                            color={latestExerciseRepsDeltaMeta.color}
+                                            style={styles.progressDeltaIcon}
+                                        />
+                                        <Text
+                                            style={[styles.progressValue, styles.progressDeltaText, { color: latestExerciseRepsDeltaMeta.color }]}
+                                        >
+                                            {latestExerciseRepsDeltaMeta.text}
+                                        </Text>
+                                    </View>
+                                ) : null}
                             </View>
                             <Text style={styles.progressSummaryText}>{latestExerciseRepsInfo}</Text>
                         </View>
@@ -2442,9 +2494,22 @@ const styles = StyleSheet.create({
     },
     progressValue: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: ts(24),
+        fontSize: ts(22),
         color: theme.textPrimary,
-        lineHeight: ts(25),
+        lineHeight: ts(23),
+    },
+    progressDeltaGroup: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        marginLeft: scaleSize(10),
+    },
+    progressDeltaIcon: {
+        marginRight: scaleSize(2),
+        marginBottom: scaleSize(2),
+    },
+    progressDeltaText: {
+        fontSize: ts(16),
+        lineHeight: ts(18),
     },
     progressUnit: {
         fontFamily: 'Outfit_600SemiBold',
