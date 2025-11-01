@@ -1,9 +1,8 @@
 import React from "react";
 import { Animated, View, StyleSheet } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { ss } from "../sections/workoutTheme";
 
-import scaleSize from "../../../helper/scaleSize";
+import scaleSize, { ss } from "../../../helper/scaleSize";
 
 export default function CopyTemplateToast({ anim, text = "Template added" }) {
   return (
@@ -38,4 +37,3 @@ const styles = StyleSheet.create({
   },
   toastText: { color: "#fff", fontFamily: "Outfit_700Bold", fontSize: ss(12.5) },
 });
-

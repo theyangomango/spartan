@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     collection,
     query,
@@ -12,6 +13,9 @@ import {
 import { db } from '../../firebase.config';
 
 const PAGE_SIZE_DEFAULT = 50;
+const FEED_CACHE_PREFIX = 'feed-cache:v2:';
+const FEED_CACHE_LIMIT = 30;
+const CACHE_WRITE_DELAY = 600;
 
 const toStringUid = (value) => {
     if (value == null) return '';
@@ -19,9 +23,16 @@ const toStringUid = (value) => {
     return String(value).trim();
 };
 
+const toStringPid = (value, fallback = '') => {
+    if (value === undefined || value === null) return fallback;
+    const str = String(value).trim();
+    return str || fallback;
+};
+
 const resolveTimestamp = (item) => {
     if (!item) return 0;
     const candidates = [
+        item?.sortKey,
         item?.created,
         item?.createdAt,
         item?.updatedAt,
@@ -47,10 +58,74 @@ const resolveTimestamp = (item) => {
     return 0;
 };
 
+const normalizePost = (post, prev = null) => {
+    if (!post || typeof post !== 'object') return null;
+
+    const uid = toStringUid(post.uid ?? prev?.uid);
+    if (!uid) return null;
+
+    const prevSortKey = typeof prev?.sortKey === 'number' ? prev.sortKey : 0;
+    const resolved = resolveTimestamp(post);
+    const sortKey = Number.isFinite(resolved) && resolved > 0
+        ? resolved
+        : (Number.isFinite(prevSortKey) && prevSortKey > 0 ? prevSortKey : 0);
+
+    const pid = toStringPid(
+        post.pid ?? post.id ?? prev?.pid ?? `feed:${uid}:${sortKey || Date.now()}`
+    );
+
+    const normalized = {
+        ...post,
+        uid,
+        pid,
+        id: post.id ?? pid,
+        sortKey,
+    };
+
+    if (!normalized.created && sortKey) normalized.created = sortKey;
+    if (!normalized.createdAt && sortKey) normalized.createdAt = sortKey;
+
+    return normalized;
+};
+
+const cacheReplacer = (key, value) => {
+    if (typeof value === 'function') return undefined;
+    if (key === 'comments' && Array.isArray(value)) {
+        return value.slice(0, 3);
+    }
+    if (key === 'likes' && Array.isArray(value)) {
+        return value.slice(0, 8);
+    }
+    if (value instanceof Map) return Array.from(value.entries());
+    if (value instanceof Set) return Array.from(value.values());
+    return value;
+};
+
+const parseCachedPosts = (raw, allowedSet, excludedSet) => {
+    if (!raw) return [];
+    try {
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+            .map((entry) => normalizePost(entry, entry))
+            .filter((entry) => {
+                const uid = toStringUid(entry?.uid);
+                if (!uid) return false;
+                if (allowedSet && allowedSet.size && !allowedSet.has(uid)) return false;
+                if (excludedSet && excludedSet.has(uid)) return false;
+                return true;
+            });
+    } catch {
+        return [];
+    }
+};
+
 export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEFAULT) {
     const [feed, setFeed] = useState([]);
     const [hasMore, setHasMore] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [hydratedFromCache, setHydratedFromCache] = useState(false);
+    const [initialSyncComplete, setInitialSyncComplete] = useState(false);
 
     const myUid = global?.userData?.uid ? String(global.userData.uid) : null;
 
@@ -64,6 +139,98 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
     const hasMoreRef = useRef(true);
     const loadingMoreRef = useRef(false);
     const liveUnsubRef = useRef(new Map());
+    const cacheKeyRef = useRef(null);
+    const hydrationAttemptedRef = useRef(false);
+    const cacheWriteTimeoutRef = useRef(null);
+    const serverSyncedRef = useRef(false);
+
+    const cacheKey = useMemo(() => (
+        myUid ? `${FEED_CACHE_PREFIX}${myUid}` : null
+    ), [myUid]);
+
+    useEffect(() => {
+        cacheKeyRef.current = cacheKey;
+        hydrationAttemptedRef.current = false;
+        setHydratedFromCache(false);
+    }, [cacheKey]);
+
+    useEffect(() => () => {
+        if (cacheWriteTimeoutRef.current) {
+            clearTimeout(cacheWriteTimeoutRef.current);
+            cacheWriteTimeoutRef.current = null;
+        }
+    }, []);
+
+    const scheduleCachePersist = useCallback((entries) => {
+        if (!cacheKeyRef.current) return;
+        if (!Array.isArray(entries) || entries.length === 0) return;
+
+        const trimmed = entries
+            .slice(0, FEED_CACHE_LIMIT)
+            .map((entry) => normalizePost(entry, entry))
+            .filter(Boolean);
+
+        if (trimmed.length === 0) return;
+
+        const serialized = JSON.stringify(trimmed, cacheReplacer);
+
+        if (cacheWriteTimeoutRef.current) {
+            clearTimeout(cacheWriteTimeoutRef.current);
+        }
+
+        cacheWriteTimeoutRef.current = setTimeout(() => {
+            cacheWriteTimeoutRef.current = null;
+            AsyncStorage.setItem(cacheKeyRef.current, serialized).catch((error) => {
+                console.warn('useFilteredFeed: failed to persist cache', error);
+            });
+        }, CACHE_WRITE_DELAY);
+    }, []);
+
+    const recomputeFeed = useCallback((persistFlag) => {
+        const combined = new Map();
+
+        liveMapRef.current.forEach((value, key) => {
+            if (value) combined.set(key, value);
+        });
+        firstPageMapRef.current.forEach((value, key) => {
+            if (value) combined.set(key, value);
+        });
+        extraMapRef.current.forEach((value, key) => {
+            if (!combined.has(key) && value) {
+                combined.set(key, value);
+            }
+        });
+
+        const array = [];
+        combined.forEach((value) => {
+            const normalized = normalizePost(value, value);
+            if (normalized) array.push(normalized);
+        });
+
+        array.sort((a, b) => {
+            const liveA = Boolean(a?.isLive || a?.liveWorkout);
+            const liveB = Boolean(b?.isLive || b?.liveWorkout);
+            if (liveA !== liveB) {
+                return liveA ? -1 : 1;
+            }
+            const sortA = typeof a?.sortKey === 'number' ? a.sortKey : resolveTimestamp(a);
+            const sortB = typeof b?.sortKey === 'number' ? b.sortKey : resolveTimestamp(b);
+            if (sortA !== sortB) return sortB - sortA;
+            const pidA = toStringPid(a?.pid || a?.id);
+            const pidB = toStringPid(b?.pid || b?.id);
+            return pidB.localeCompare(pidA);
+        });
+
+        setFeed(array);
+
+        const shouldPersist = typeof persistFlag === 'boolean'
+            ? persistFlag
+            : serverSyncedRef.current;
+
+        if (shouldPersist && array.length) {
+            scheduleCachePersist(array);
+        }
+    }, [scheduleCachePersist]);
 
     const cleanupLiveSubscriptions = useCallback(() => {
         liveUnsubRef.current.forEach((unsub) => {
@@ -78,16 +245,16 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
             profile?.username,
             profile?.displayHandle,
             profile?.tag,
-            profile?.name ? profile.name.replace(/\s+/g, "") : null,
+            profile?.name ? profile.name.replace(/\s+/g, '') : null,
         ];
         for (const value of candidates) {
             if (!value && value !== 0) continue;
             const str = String(value).trim();
             if (str) {
-                return str.startsWith("@") ? str : `@${str}`;
+                return str.startsWith('@') ? str : `@${str}`;
             }
         }
-        const suffix = uid ? String(uid).slice(-4) : "user";
+        const suffix = uid ? String(uid).slice(-4) : 'user';
         return `@${suffix}`;
     }, []);
 
@@ -111,11 +278,11 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
             id: `workout:live:${uid}`,
             uid,
             handle: ensureHandle(profile, uid),
-            pfp: profile?.pfp || profile?.pfpUrl || profile?.photoURL || profile?.image || "",
+            pfp: profile?.pfp || profile?.pfpUrl || profile?.photoURL || profile?.image || '',
             pfpVersion: profile?.pfpVersion || profile?.profileImageVersion || 0,
             created: createdMs,
             updatedAt: Date.now(),
-            caption: workout?.caption || workout?.note || "",
+            caption: workout?.caption || workout?.note || '',
             media: [],
             likes: [],
             likeCount: 0,
@@ -124,33 +291,9 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
             workout: normalizedWorkout,
             isLive: true,
             liveWorkout: true,
+            sortKey: createdMs,
         };
     }, [ensureHandle]);
-
-    const recomputeFeed = useCallback(() => {
-        const combined = new Map();
-        liveMapRef.current.forEach((value, key) => {
-            combined.set(key, value);
-        });
-        firstPageMapRef.current.forEach((value, key) => {
-            combined.set(key, value);
-        });
-        extraMapRef.current.forEach((value, key) => {
-            if (!combined.has(key)) {
-                combined.set(key, value);
-            }
-        });
-        const array = Array.from(combined.values());
-        array.sort((a, b) => {
-            const liveA = Boolean(a?.isLive || a?.liveWorkout);
-            const liveB = Boolean(b?.isLive || b?.liveWorkout);
-            if (liveA !== liveB) {
-                return liveA ? -1 : 1;
-            }
-            return resolveTimestamp(b) - resolveTimestamp(a);
-        });
-        setFeed(array);
-    }, []);
 
     useEffect(() => {
         const followingArray = Array.isArray(followingUsers) ? followingUsers : [];
@@ -179,7 +322,6 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
 
         cleanupLiveSubscriptions();
         liveMapRef.current = new Map();
-        recomputeFeed();
 
         firstPageMapRef.current = new Map();
         extraMapRef.current = new Map();
@@ -187,6 +329,57 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
         lastLoadedDocRef.current = null;
         hasMoreRef.current = true;
         loadingMoreRef.current = false;
+
+        recomputeFeed(false);
+
+        serverSyncedRef.current = false;
+        setInitialSyncComplete(false);
+        setHasMore(true);
+        setLoadingMore(false);
+
+        let cancelled = false;
+
+        const hydrateFromCache = async () => {
+            if (hydrationAttemptedRef.current) return;
+            hydrationAttemptedRef.current = true;
+
+            if (!cacheKeyRef.current) {
+                if (!cancelled) setHydratedFromCache(true);
+                return;
+            }
+
+            try {
+                const raw = await AsyncStorage.getItem(cacheKeyRef.current);
+                if (cancelled) return;
+                const cached = parseCachedPosts(raw, allowed, excluded);
+                if (cached.length) {
+                    setFeed(cached);
+                }
+            } catch (error) {
+                if (!cancelled) {
+                    console.warn('useFilteredFeed: failed to hydrate cache', error);
+                }
+            } finally {
+                if (!cancelled) {
+                    setHydratedFromCache(true);
+                }
+            }
+        };
+
+        hydrateFromCache();
+
+        if (allowed.size === 0) {
+            hydrationAttemptedRef.current = true;
+            serverSyncedRef.current = true;
+            setFeed([]);
+            setHasMore(false);
+            setLoadingMore(false);
+            setHydratedFromCache(true);
+            setInitialSyncComplete(true);
+            return () => {
+                cancelled = true;
+            };
+        }
 
         const allowedArray = Array.from(allowed);
 
@@ -221,13 +414,15 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
                         const { allowed: allowedSet, excluded: excludedSet } = filtersRef.current;
                         if (!allowedSet.has(uid) || excludedSet.has(uid)) {
                             liveMapRef.current.delete(`live:${uid}`);
-                            recomputeFeed();
+                            recomputeFeed(false);
                             return;
                         }
                         if (workout) {
+                            const existing = liveMapRef.current.get(`live:${uid}`) || null;
                             const entry = buildLiveFeedEntry(uid, data, workout);
-                            if (entry) {
-                                liveMapRef.current.set(`live:${uid}`, entry);
+                            const normalized = normalizePost(entry, existing);
+                            if (normalized) {
+                                liveMapRef.current.set(`live:${uid}`, normalized);
                             } else {
                                 liveMapRef.current.delete(`live:${uid}`);
                             }
@@ -253,17 +448,7 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
             }
         };
 
-        if (allowed.size === 0) {
-            setFeed([]);
-            setHasMore(false);
-            setLoadingMore(false);
-            return;
-        }
-
         syncLiveSubscriptions();
-
-        setHasMore(true);
-        setLoadingMore(false);
 
         const postsRef = collection(db, 'posts');
         const baseQuery = query(postsRef, orderBy('created', 'desc'), limit(pageSize));
@@ -278,12 +463,14 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
                 if (!uid || !allowedSet.has(uid) || excludedSet.has(uid)) {
                     return;
                 }
-                const prev = firstPageMapRef.current.get(docSnap.id) || {};
+                const prev = firstPageMapRef.current.get(docSnap.id) || null;
                 const merged = { ...prev, ...data, pid: data?.pid ?? docSnap.id };
-                newFirstPageMap.set(docSnap.id, merged);
-
-                if (extraMapRef.current.has(docSnap.id)) {
-                    extraMapRef.current.set(docSnap.id, merged);
+                const normalized = normalizePost(merged, prev);
+                if (normalized) {
+                    newFirstPageMap.set(docSnap.id, normalized);
+                    if (extraMapRef.current.has(docSnap.id)) {
+                        extraMapRef.current.set(docSnap.id, normalized);
+                    }
                 }
             });
 
@@ -302,7 +489,12 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
                 setHasMore(canLoadMore);
             }
 
-            recomputeFeed();
+            if (!serverSyncedRef.current) {
+                serverSyncedRef.current = true;
+                setInitialSyncComplete(true);
+            }
+
+            recomputeFeed(true);
         });
 
         unsubscribeRef.current = () => {
@@ -310,13 +502,14 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
         };
 
         return () => {
+            cancelled = true;
             if (unsubscribeRef.current) {
                 try { unsubscribeRef.current(); } catch { }
                 unsubscribeRef.current = null;
             }
             cleanupLiveSubscriptions();
             liveMapRef.current = new Map();
-            recomputeFeed();
+            recomputeFeed(false);
         };
     }, [
         recomputeFeed,
@@ -329,6 +522,7 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
         ),
         pageSize,
         myUid,
+        cacheKey,
     ]);
 
     const loadMore = useCallback(async () => {
@@ -360,10 +554,15 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
                 if (!uid || !allowed.has(uid) || excluded.has(uid)) {
                     return;
                 }
-                const prev = extraMapRef.current.get(docSnap.id) || {};
+                const prev = extraMapRef.current.get(docSnap.id)
+                    || firstPageMapRef.current.get(docSnap.id)
+                    || null;
                 const merged = { ...prev, ...data, pid: data?.pid ?? docSnap.id };
-                extraMapRef.current.set(docSnap.id, merged);
-                appended = true;
+                const normalized = normalizePost(merged, prev);
+                if (normalized) {
+                    extraMapRef.current.set(docSnap.id, normalized);
+                    appended = true;
+                }
             });
 
             if (snapshot.docs.length > 0) {
@@ -375,7 +574,7 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
             setHasMore(moreAvailable);
 
             if (appended) {
-                recomputeFeed();
+                recomputeFeed(true);
             }
         } finally {
             loadingMoreRef.current = false;
@@ -388,5 +587,7 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
         loadMore,
         hasMore,
         loadingMore,
+        hydratedFromCache,
+        initialSyncComplete,
     };
 }

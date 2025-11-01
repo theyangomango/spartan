@@ -44,6 +44,7 @@ import { emitHexagonUpdate } from "../utils/hexagonEvents";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import { strong as hapticStrong } from "../utils/haptics";
 import FeedSnapshotCard from "../components/1_Feed/FeedSnapshotCard";
+import FeedLoadingSkeleton from "../components/1_Feed/FeedLoadingSkeleton";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import { navigateOneWay } from "../../navigationRef";
 
@@ -118,6 +119,8 @@ export default function Feed({ navigation, route }) {
         loadMore: loadMorePosts,
         hasMore: hasMorePosts,
         loadingMore: loadingMorePosts,
+        hydratedFromCache,
+        initialSyncComplete,
     } = useFilteredFeed(followingList);
 
     const {
@@ -189,19 +192,22 @@ export default function Feed({ navigation, route }) {
         return sortedPosts;
     }, [sortedPosts, feedScope, myUid]);
 
+    const showFeedSkeleton = (!hydratedFromCache || !initialSyncComplete)
+        && (!Array.isArray(listData) || listData.length === 0);
+
     const handleEndReached = useCallback(() => {
         if (!hasMorePosts || loadingMorePosts) return;
         loadMorePosts();
     }, [hasMorePosts, loadingMorePosts, loadMorePosts]);
 
     const listFooter = useMemo(() => {
-        if (!loadingMorePosts) return null;
+        if (showFeedSkeleton || !loadingMorePosts) return null;
         return (
             <View style={styles.listFooter}>
                 <ActivityIndicator size="small" color={theme.textSecondary} />
             </View>
         );
-    }, [loadingMorePosts]);
+    }, [loadingMorePosts, showFeedSkeleton]);
 
     const onRefresh = useCallback(async () => {
         try {
@@ -774,6 +780,10 @@ export default function Feed({ navigation, route }) {
         />
     ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef, feedScope]);
 
+    const renderLoadingList = useCallback(() => (
+        <FeedLoadingSkeleton />
+    ), []);
+
     const renderEmptyList = () => {
         const isPersonalScope = feedScope === "personal";
         return (
@@ -864,7 +874,7 @@ export default function Feed({ navigation, route }) {
                 keyExtractor={listKeyExtractor}
                 renderItem={renderPost}
                 style={styles.list}
-                ListEmptyComponent={renderEmptyList}
+                ListEmptyComponent={showFeedSkeleton ? renderLoadingList : renderEmptyList}
                 ListFooterComponent={listFooter}
                 ListHeaderComponent={renderSnapshotCard}
                 refreshControl={(
@@ -883,6 +893,15 @@ export default function Feed({ navigation, route }) {
                 showsVerticalScrollIndicator={false}
                 onEndReached={handleEndReached}
                 onEndReachedThreshold={0.6}
+                maintainVisibleContentPosition={{
+                    minIndexForVisible: 0,
+                    autoscrollToTopThreshold: scaleSize(120),
+                }}
+                initialNumToRender={6}
+                maxToRenderPerBatch={6}
+                windowSize={8}
+                updateCellsBatchingPeriod={50}
+                removeClippedSubviews
             />
 
             <TouchableOpacity

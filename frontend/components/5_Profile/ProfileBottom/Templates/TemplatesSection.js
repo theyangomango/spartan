@@ -9,11 +9,18 @@ import scaleSize from "../../../../helper/scaleSize";
 import theme from "../../../../theme/mfpDark";
 import { withStrongPress } from "../../../../utils/haptics";
 import EditTemplateModal from "../../../3_Workout/Template/EditTemplateModal";
-import { BLUE } from "../../../3_Workout/sections/workoutTheme";
 import makeID from "../../../../../backend/helper/makeID";
 import updateDoc from "../../../../../backend/helper/firebase/updateDoc";
 import { emitUserDataUpdate } from "../../../../utils/userDataEvents";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const BLUE = {
+    ACCENT: "#2D9EFF",
+    ACCENT_BG: "rgba(45,158,255,0.16)",
+    CARD_BG: "#E7F0FF",
+    BORDER: "#B7D7FF",
+    TITLE: "#0F172A",
+};
 
 const TEMPLATE_ICON_COLOR = "#F4F8FF";
 const TEMPLATE_SECONDARY_ICON_COLOR = BLUE.ACCENT;

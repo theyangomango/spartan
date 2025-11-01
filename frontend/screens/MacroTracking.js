@@ -4,8 +4,9 @@ import { View, UIManager, Platform, LayoutAnimation, StatusBar, useWindowDimensi
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView as SafeAreaInsetsView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import Footer from '../components/Footer';
-import WorkoutBarcodeScannerModal from '../components/3_Workout/sections/WorkoutBarcodeScannerModal';
+import WorkoutBarcodeScannerModal from '../components/2_MacroTracking/WorkoutBarcodeScannerModal';
 
 // search is handled inside FoodSearchOverlay to reduce re-renders
 import PlusIcon from '../assets/PlusIcon';
@@ -15,16 +16,11 @@ import breakfastIcon from '../assets/breakfast.png';
 import lunchIcon from '../assets/lunch.png';
 import dinnerIcon from '../assets/dinner.png';
 import snacksIcon from '../assets/snacks.png'
-
-import FoodSearchOverlay from '../components/2_MacroTracking/FoodSearchOverlay';
-import { useFocusEffect } from '@react-navigation/native';
 import MacroGoalsSheet from '../components/2_MacroTracking/MacroGoalsSheet';
-import { strong as haptic } from '../utils/haptics';
-import scaleSize from '../helper/scaleSize';
-
-// No foodLogs hook for this screen — use global.userData.loggedFoods exclusively
-import { parseMacrosFromDescription } from '../utils/nutrition';
 import PersonalInfoSheet from '../components/2_MacroTracking/PersonalInfoSheet';
+import FoodSearchOverlay from '../components/2_MacroTracking/FoodSearchOverlay';
+
+import scaleSize from '../helper/scaleSize';
 
 // 🔥 Firestore (load + save macro goals)
 import { db } from '../../firebase.config';
@@ -76,8 +72,6 @@ export default function MacroTracking({ navigation, route }) {
     const { width: screenWidth } = useWindowDimensions();
     // Fast caches for global.loggedFoods → day-index and built meals
     const lastCountRef = useRef(0);
-    // If opened from HubRow, suppress the next navigation animation once
-    // No one-off transition suppression; keep other transitions intact
     // Allow focusing a specific date via navigation params
     const parseFocusParam = (param) => {
         if (!param) return null;

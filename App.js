@@ -934,42 +934,12 @@ export default function App() {
     }, [global?.userData?.uid]);
 
     const [appForceReady, setAppForceReady] = useState(false);
-    const hubRowReadyRef = useRef(false);
-    const [hubRowReady, setHubRowReady] = useState(false);
-
-    useEffect(() => {
-        try {
-            global.__markHubRowReady = () => {
-                if (!hubRowReadyRef.current) {
-                    hubRowReadyRef.current = true;
-                    setHubRowReady(true);
-                }
-            };
-        } catch { }
-        return () => {
-            try { delete global.__markHubRowReady; } catch { }
-        };
-    }, []);
-
-    useEffect(() => {
-        const waitForHubRow = isAuthenticated;
-        if (!waitForHubRow) {
-            if (!hubRowReadyRef.current || !hubRowReady) {
-                hubRowReadyRef.current = true;
-                setHubRowReady(true);
-            }
-            return;
-        }
-        hubRowReadyRef.current = false;
-        setHubRowReady(false);
-    }, [isAuthenticated]);
     useEffect(() => {
         if (appForceReady) return;
         const id = setTimeout(() => setAppForceReady(true), 4500);
         return () => clearTimeout(id);
     }, [appForceReady]);
     const hasUserData = authChecked && (!isAuthenticated || userReady);
-    const shouldWaitForHubRow = isAuthenticated;
     const shouldWaitForAuthBackground = !isAuthenticated;
     const baseAppReady = fontsReady
         && (hasUserData || appForceReady)
@@ -991,7 +961,6 @@ export default function App() {
     const onLayoutRootView = React.useCallback(() => {
         setHasLaidOut(true);
         if (appReady
-            && (!shouldWaitForHubRow || hubRowReady)
             && (!shouldWaitForAuthBackground || authBackgroundReadyRef.current)) {
             // Wait a frame after layout so content can paint before hiding splash
             requestAnimationFrame(() => {
@@ -1000,13 +969,12 @@ export default function App() {
                 });
             });
         }
-    }, [appReady, hubRowReady, shouldWaitForAuthBackground, shouldWaitForHubRow]);
+    }, [appReady, shouldWaitForAuthBackground]);
 
     // Safety: if readiness flips after initial layout, still hide splash
     useEffect(() => {
         if (appReady
             && hasLaidOut
-            && (!shouldWaitForHubRow || hubRowReady)
             && (!shouldWaitForAuthBackground || authBackgroundReadyRef.current)) {
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
@@ -1014,13 +982,11 @@ export default function App() {
                 });
             });
         }
-    }, [appReady, hasLaidOut, hubRowReady, shouldWaitForAuthBackground, shouldWaitForHubRow]);
+    }, [appReady, hasLaidOut, shouldWaitForAuthBackground]);
 
     // Absolute fallback: ensure splash hides even if layout event didn't fire
     useEffect(() => {
         if (appForceReady) {
-            hubRowReadyRef.current = true;
-            setHubRowReady(true);
             if (!authBackgroundReadyRef.current) {
                 authBackgroundReadyRef.current = true;
                 setAuthBackgroundReady(true);

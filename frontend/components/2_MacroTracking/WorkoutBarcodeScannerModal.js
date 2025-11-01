@@ -3,10 +3,11 @@ import { Modal, View, Text, Pressable, StyleSheet, Platform } from "react-native
 import { Camera } from "expo-camera";
 import { CameraView } from "expo-camera/next";
 import { Ionicons } from "@expo/vector-icons";
-import theme from "../../../theme/mfpDark";
-import scaleSize from "../../../helper/scaleSize";
-import { lookupBarcode } from "../../../screens/fatsecretClient";
-import { strong as haptic } from "../../../utils/haptics";
+
+import theme from "../../theme/mfpDark";
+import scaleSize from "../../helper/scaleSize";
+import { lookupBarcode } from "../../screens/fatsecretClient";
+import { strong as haptic } from "../../utils/haptics";
 
 const SCAN_RETRY_DELAY_MS = 500;
 
@@ -82,7 +83,7 @@ const WorkoutBarcodeScannerModal = ({ visible, onClose, onResult }) => {
                 setScanBusy(false);
                 scheduleRetry();
             }
-        } catch (err) {
+        } catch {
             setScanError("Lookup failed");
             setScanBusy(false);
             scheduleRetry();
