@@ -284,6 +284,24 @@ const computeAxisMetrics = (values, sections = 4) => {
 const formatAxisValue = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num)) return "";
+    const abs = Math.abs(num);
+
+    const toScaledString = (scaled) => {
+        if (Math.abs(scaled) >= 100) return Math.round(scaled).toString();
+        const rounded = Math.round(scaled * 10) / 10;
+        return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+    };
+
+    if (abs >= 1_000_000) {
+        const scaled = num / 1_000_000;
+        return `${toScaledString(scaled)}m`;
+    }
+
+    if (abs >= 1_000) {
+        const scaled = num / 1_000;
+        return `${toScaledString(scaled)}k`;
+    }
+
     if (Math.abs(num) >= 100) return Math.round(num).toString();
     const rounded = Math.round(num * 10) / 10;
     return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
@@ -1596,9 +1614,6 @@ export default function ProgressSection() {
                                 pressed && styles.measurementsRowPressed,
                             ]}
                         >
-                            <View style={styles.measurementsIconBadge}>
-                                <Weight size={scaleSize(20)} color="#F6F8FF" />
-                            </View>
                             <View style={styles.measurementsTextWrap}>
                                 <Text style={styles.measurementsTitle}>See Weight Measurements</Text>
                                 <Text style={styles.measurementsSubtitle} numberOfLines={1}>
@@ -1754,6 +1769,7 @@ const styles = StyleSheet.create({
         position: "absolute",
         right: scaleSize(6),
         textAlign: "right",
+        fontSize: ts(12),
     },
     chartCanvas: {
         flex: 1,
@@ -1773,23 +1789,13 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         paddingVertical: scaleSize(20),
-        paddingHorizontal: scaleSize(6),
+        paddingRight: scaleSize(8),
+        paddingLeft: scaleSize(12),
         borderRadius: scaleSize(14),
     },
     measurementsRowPressed: {
         backgroundColor: "rgba(255,255,255,0.04)",
         borderRadius: scaleSize(14),
-    },
-    measurementsIconBadge: {
-        width: scaleSize(38),
-        height: scaleSize(38),
-        borderRadius: scaleSize(18),
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: scaleSize(12),
-        backgroundColor: "rgba(58, 98, 194, 0.28)",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(142, 188, 255, 0.38)",
     },
     measurementsTextWrap: {
         flex: 1,
