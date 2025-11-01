@@ -150,6 +150,89 @@ const sanitizeVolumeEntries = (completedWorkouts) => {
     return result;
 };
 
+const sanitizeRepsEntries = (completedWorkouts) => {
+    if (!Array.isArray(completedWorkouts)) return [];
+    const prelim = completedWorkouts
+        .map((workout) => {
+            if (!workout) return null;
+            const recordedAt = resolveWorkoutTimestamp(workout);
+            const reps =
+                Number(
+                    workout?.reps ??
+                    workout?.totalReps ??
+                    workout?.stats?.reps ??
+                    workout?.stats?.totalReps ??
+                    workout?.stats?.Reps ??
+                    workout?.Reps ??
+                    workout?.metrics?.reps ??
+                    0
+                ) || 0;
+            if (!Number.isFinite(recordedAt) || !Number.isFinite(reps) || reps <= 0) return null;
+            return {
+                id: workout.id || workout.wid || workout.workoutId || workout.sessionId || makeID(),
+                increment: reps,
+                recordedAt,
+                name:
+                    (typeof workout?.name === "string" && workout.name.trim())
+                        ? workout.name.trim()
+                        : workout?.templateName || "Workout",
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.recordedAt - b.recordedAt);
+
+    const result = [];
+    let runningTotal = 0;
+    prelim.forEach((entry) => {
+        runningTotal += entry.increment;
+        result.push({ ...entry, value: runningTotal });
+    });
+
+    return result;
+};
+
+const DEFAULT_X_AXIS_LABEL_COUNT = 5;
+
+const formatXAxisDateLabel = (timestamp, span) => {
+    const dateInstance = dayjs(timestamp);
+    if (!dateInstance.isValid()) return "";
+
+    const oneWeek = 7 * 24 * 60 * 60 * 1000;
+    const threeMonths = 90 * 24 * 60 * 60 * 1000;
+
+    if (span <= oneWeek) return dateInstance.format("MMM D");
+    if (span <= threeMonths) return dateInstance.format("MMM D");
+    return dateInstance.format("MMM YYYY");
+};
+
+const buildXAxisLabels = (domain, desiredCount = DEFAULT_X_AXIS_LABEL_COUNT) => {
+    if (!domain || typeof domain !== "object") return [];
+    const { minX, maxX } = domain;
+    if (!Number.isFinite(minX) || !Number.isFinite(maxX)) return [];
+
+    const span = Math.max(maxX - minX, 0);
+
+    if (span <= 0) {
+        const label = formatXAxisDateLabel(minX, span);
+        return label ? [{ label, timestamp: minX }] : [];
+    }
+
+    const count = Math.max(2, Number(desiredCount) || DEFAULT_X_AXIS_LABEL_COUNT);
+    const step = span / (count - 1);
+    const labels = [];
+
+    for (let i = 0; i < count; i += 1) {
+        const isLast = i === count - 1;
+        const timestamp = isLast ? maxX : minX + step * i;
+        const formatted = formatXAxisDateLabel(timestamp, span);
+        if (formatted) {
+            labels.push({ label: formatted, timestamp });
+        }
+    }
+
+    return labels;
+};
+
 const buildChartSeries = (chartData, axisMetrics, geometry) => {
     const { leftMargin, innerWidth, topMargin, innerHeight, baselineY } = geometry;
 
@@ -383,6 +466,39 @@ const VolumePointerLabel = React.memo(({ entry, isRightAligned }) => {
 
     const totalText = `${formatVolumeValue(entry.value)} lb`; 
     const incrementText = entry.increment ? `+${formatVolumeValue(entry.increment)} lb` : null;
+    const timestampText = dayjs(entry.recordedAt).format("MMM D, h:mm A");
+
+    return (
+        <View
+            pointerEvents="none"
+            style={[
+                styles.pointerLabelRoot,
+                isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+            ]}
+        >
+            <View
+                style={[
+                    styles.pointerBubbleWrapper,
+                    isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+                ]}
+            >
+                <View style={styles.pointerBubble}>
+                    <Text style={styles.pointerBubbleWeight}>{totalText}</Text>
+                    {incrementText ? (
+                        <Text style={styles.pointerBubbleIncrement}>{incrementText} this workout</Text>
+                    ) : null}
+                    <Text style={styles.pointerBubbleTimestamp}>{timestampText}</Text>
+                </View>
+            </View>
+        </View>
+    );
+});
+
+const RepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
+    if (!entry) return null;
+
+    const totalText = `${formatVolumeValue(entry.value)} reps`;
+    const incrementText = entry.increment ? `+${formatVolumeValue(entry.increment)} reps` : null;
     const timestampText = dayjs(entry.recordedAt).format("MMM D, h:mm A");
 
     return (
@@ -711,6 +827,14 @@ export default function ProgressSection() {
     const latestVolumeText = latestVolumeEntry ? formatVolumeValue(latestVolumeEntry.value) : "--";
     const latestVolumeInfo = latestVolumeEntry ? formatTimestamp(latestVolumeEntry.recordedAt) : "No workouts yet";
     const latestVolumeUnit = latestVolumeEntry ? "lb" : "";
+    const repsEntries = useMemo(
+        () => sanitizeRepsEntries(userData?.completedWorkouts || []),
+        [userData]
+    );
+    const latestRepsEntry = repsEntries.length ? repsEntries[repsEntries.length - 1] : null;
+    const latestRepsText = latestRepsEntry ? formatVolumeValue(latestRepsEntry.value) : "--";
+    const latestRepsInfo = latestRepsEntry ? formatTimestamp(latestRepsEntry.recordedAt) : "No workouts yet";
+    const latestRepsUnit = latestRepsEntry ? "reps" : "";
     const measurementRowSubtitle = useMemo(() => {
         if (!entries.length) return "No measurements yet";
         const count = entries.length;
@@ -748,6 +872,14 @@ export default function ProgressSection() {
             entry,
         }));
     }, [volumeEntries]);
+    const repsChartData = useMemo(() => {
+        if (!repsEntries.length) return [];
+        return repsEntries.map((entry) => ({
+            value: Number(entry.value) || 0,
+            recordedAt: entry.recordedAt,
+            entry,
+        }));
+    }, [repsEntries]);
     const sectionsCount = 4;
     const weightValues = useMemo(() => chartData.map((point) => point.value), [chartData]);
     const axisMetrics = useMemo(
@@ -779,11 +911,26 @@ export default function ProgressSection() {
         return ticks;
     }, [volumeAxisMetrics]);
 
+    const repsValues = useMemo(() => repsChartData.map((point) => point.value), [repsChartData]);
+    const repsAxisMetrics = useMemo(
+        () => computeAxisMetrics(repsValues, sectionsCount),
+        [repsValues]
+    );
+    const repsYTickValues = useMemo(() => {
+        if (!repsAxisMetrics) return [];
+        const ticks = [];
+        for (let i = 0; i <= repsAxisMetrics.sections; i += 1) {
+            const value = repsAxisMetrics.minValue + repsAxisMetrics.step * i;
+            ticks.push(Math.round((value + Number.EPSILON) * 100) / 100);
+        }
+        return ticks;
+    }, [repsAxisMetrics]);
+
     const cardHorizontalPadding = scaleSize(16);
     const chartHeight = scaleSize(220);
     const chartWidth = Math.max(DEVICE_WIDTH - cardHorizontalPadding, scaleSize(200));
     const chartPaddingTop = scaleSize(0);
-    const chartPaddingBottom = scaleSize(0);
+    const chartPaddingBottom = scaleSize(32);
     const initialSpacing = scaleSize(12);
     const pointerStripWidth = scaleSize(2);
     const yAxisLabelWidth = scaleSize(42);
@@ -833,6 +980,26 @@ export default function ProgressSection() {
         [volumeChartData, volumeAxisMetrics, chartGeometry]
     );
 
+    const repsSeries = useMemo(
+        () => buildChartSeries(repsChartData, repsAxisMetrics, chartGeometry),
+        [repsChartData, repsAxisMetrics, chartGeometry]
+    );
+
+    const weightXAxisLabels = useMemo(
+        () => buildXAxisLabels(weightSeries?.domain),
+        [weightSeries?.domain]
+    );
+
+    const volumeXAxisLabels = useMemo(
+        () => buildXAxisLabels(volumeSeries?.domain),
+        [volumeSeries?.domain]
+    );
+
+    const repsXAxisLabels = useMemo(
+        () => buildXAxisLabels(repsSeries?.domain),
+        [repsSeries?.domain]
+    );
+
     const handlePointerActivate = useCallback(
         (payload) => {
             if (!payload) return;
@@ -847,6 +1014,7 @@ export default function ProgressSection() {
 
     const weightChartPoints = weightSeries.points;
     const volumeChartPoints = volumeSeries.points;
+    const repsChartPoints = repsSeries.points;
 
     const handleChartTouch = useCallback(
         (nativeEvent) => {
@@ -941,6 +1109,61 @@ export default function ProgressSection() {
                 onPanResponderTerminate: () => scheduleVolumeHide(),
             }),
         [volumeChartPoints.length, handleVolumeChartTouch, scheduleVolumeHide]
+    );
+
+    const repsActiveIndexRef = useRef(null);
+    const [repsActiveIndex, setRepsActiveIndex] = useState(null);
+
+    const handleRepsPointerActivate = useCallback(
+        (payload) => {
+            if (!payload) return;
+            const { index } = payload;
+            if (!Number.isFinite(index)) return;
+            repsActiveIndexRef.current = index;
+            setRepsActiveIndex((prev) => (prev === index ? prev : index));
+            showRepsPointer();
+        },
+        [showRepsPointer]
+    );
+
+    const handleRepsChartTouch = useCallback(
+        (nativeEvent) => {
+            if (!nativeEvent || !repsChartPoints.length) return;
+            const { locationX } = nativeEvent;
+            if (!Number.isFinite(locationX)) return;
+
+            const minX = chartLeftMargin;
+            const maxX = chartLeftMargin + chartInnerWidth;
+            const clampedX = Math.max(minX, Math.min(maxX, locationX));
+
+            let closestIndex = 0;
+            let smallestDistance = Math.abs(repsChartPoints[0].x - clampedX);
+
+            for (let i = 1; i < repsChartPoints.length; i += 1) {
+                const point = repsChartPoints[i];
+                const distance = Math.abs(point.x - clampedX);
+                if (distance < smallestDistance) {
+                    smallestDistance = distance;
+                    closestIndex = i;
+                }
+            }
+
+            handleRepsPointerActivate({ index: closestIndex });
+        },
+        [repsChartPoints, chartLeftMargin, chartInnerWidth, handleRepsPointerActivate]
+    );
+
+    const repsPanResponder = useMemo(
+        () =>
+            PanResponder.create({
+                onStartShouldSetPanResponder: () => !!repsChartPoints.length,
+                onMoveShouldSetPanResponder: () => !!repsChartPoints.length,
+                onPanResponderGrant: (evt) => handleRepsChartTouch(evt?.nativeEvent),
+                onPanResponderMove: (evt) => handleRepsChartTouch(evt?.nativeEvent),
+                onPanResponderRelease: () => scheduleRepsHide(),
+                onPanResponderTerminate: () => scheduleRepsHide(),
+            }),
+        [repsChartPoints.length, handleRepsChartTouch, scheduleRepsHide]
     );
 
     const getCurrentSanitizedEntries = useCallback(() => {
@@ -1135,6 +1358,7 @@ export default function ProgressSection() {
 
     const hasChartData = chartData.length > 0;
     const hasVolumeChartData = volumeChartData.length > 0;
+    const hasRepsChartData = repsChartData.length > 0;
 
     const weightActivePoint = activeIndex != null ? weightChartPoints[activeIndex] : null;
     const weightActiveEntry = activeIndex != null ? chartData[activeIndex]?.entry : null;
@@ -1163,11 +1387,27 @@ export default function ProgressSection() {
     const volumePointerRightAligned = volumeActiveIndex != null
         ? volumeActiveIndex >= Math.ceil(volumeChartData.length / 2)
         : false;
+    const repsActivePoint = repsActiveIndex != null ? repsChartPoints[repsActiveIndex] : null;
+    const repsActiveEntry = repsActiveIndex != null ? repsChartData[repsActiveIndex]?.entry : null;
+    const repsPointerLabelWidth = scaleSize(184);
+    const repsPointerLabelLeft = useMemo(() => {
+        if (!repsActivePoint) return chartLeftMargin;
+        const minLeft = chartLeftMargin;
+        const maxLeft = chartPlotWidth - chartRightMargin;
+        const centered = repsActivePoint.x - repsPointerLabelWidth / 2;
+        const clamped = Math.max(minLeft, Math.min(centered, maxLeft - repsPointerLabelWidth));
+        return clamped;
+    }, [repsActivePoint, chartLeftMargin, chartPlotWidth, chartRightMargin, repsPointerLabelWidth]);
+    const repsPointerRightAligned = repsActiveIndex != null
+        ? repsActiveIndex >= Math.ceil(repsChartData.length / 2)
+        : false;
 
     const weightPointerOpacity = useRef(new Animated.Value(0)).current;
     const volumePointerOpacity = useRef(new Animated.Value(0)).current;
+    const repsPointerOpacity = useRef(new Animated.Value(0)).current;
     const weightHideTimeout = useRef(null);
     const volumeHideTimeout = useRef(null);
+    const repsHideTimeout = useRef(null);
 
     const clearWeightHideTimeout = useCallback(() => {
         if (weightHideTimeout.current) {
@@ -1180,6 +1420,13 @@ export default function ProgressSection() {
         if (volumeHideTimeout.current) {
             clearTimeout(volumeHideTimeout.current);
             volumeHideTimeout.current = null;
+        }
+    }, []);
+
+    const clearRepsHideTimeout = useCallback(() => {
+        if (repsHideTimeout.current) {
+            clearTimeout(repsHideTimeout.current);
+            repsHideTimeout.current = null;
         }
     }, []);
 
@@ -1202,6 +1449,16 @@ export default function ProgressSection() {
             useNativeDriver: true,
         }).start();
     }, [clearVolumeHideTimeout, volumePointerOpacity]);
+
+    const showRepsPointer = useCallback(() => {
+        clearRepsHideTimeout();
+        repsPointerOpacity.stopAnimation();
+        Animated.timing(repsPointerOpacity, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+        }).start();
+    }, [clearRepsHideTimeout, repsPointerOpacity]);
 
     const scheduleWeightHide = useCallback(() => {
         clearWeightHideTimeout();
@@ -1241,6 +1498,25 @@ export default function ProgressSection() {
         }, 2000);
     }, [clearVolumeHideTimeout, volumePointerOpacity]);
 
+    const scheduleRepsHide = useCallback(() => {
+        clearRepsHideTimeout();
+        if (repsActiveIndexRef.current == null) {
+            return;
+        }
+        repsHideTimeout.current = setTimeout(() => {
+            repsPointerOpacity.stopAnimation();
+            Animated.timing(repsPointerOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start(() => {
+                repsActiveIndexRef.current = null;
+                setRepsActiveIndex(null);
+            });
+            repsHideTimeout.current = null;
+        }, 2000);
+    }, [clearRepsHideTimeout, repsPointerOpacity]);
+
     useEffect(() => {
         if (hasChartData) return;
         clearWeightHideTimeout();
@@ -1269,12 +1545,27 @@ export default function ProgressSection() {
         }
     }, [hasVolumeChartData, clearVolumeHideTimeout, volumePointerOpacity]);
 
+    useEffect(() => {
+        if (hasRepsChartData) return;
+        clearRepsHideTimeout();
+        Animated.timing(repsPointerOpacity, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+        if (repsActiveIndexRef.current != null) {
+            repsActiveIndexRef.current = null;
+            setRepsActiveIndex(null);
+        }
+    }, [hasRepsChartData, clearRepsHideTimeout, repsPointerOpacity]);
+
     useEffect(
         () => () => {
             clearWeightHideTimeout();
             clearVolumeHideTimeout();
+            clearRepsHideTimeout();
         },
-        [clearWeightHideTimeout, clearVolumeHideTimeout]
+        [clearWeightHideTimeout, clearVolumeHideTimeout, clearRepsHideTimeout]
     );
 
     return (
@@ -1475,26 +1766,52 @@ export default function ProgressSection() {
                                         })}
                                     </Svg>
 
+                                    {volumeXAxisLabels.length ? (
+                                        <View
+                                            pointerEvents="none"
+                                            style={[
+                                                styles.xAxisLabelsOverlay,
+                                                {
+                                                    left: chartLeftMargin,
+                                                    right: chartRightMargin,
+                                                    justifyContent:
+                                                        volumeXAxisLabels.length > 1
+                                                            ? "space-between"
+                                                            : "center",
+                                                },
+                                            ]}
+                                        >
+                                            {volumeXAxisLabels.map((item, index) => (
+                                                <Text
+                                                    key={`volume-x-axis-label-${item.timestamp ?? index}-${index}`}
+                                                    style={[styles.axisLabel, styles.xAxisLabel]}
+                                                >
+                                                    {item.label}
+                                                </Text>
+                                            ))}
+                                        </View>
+                                    ) : null}
+
                                     {volumeActiveEntry ? (
                                         <Animated.View
                                             pointerEvents="none"
                                             style={[
-                                               styles.pointerBubbleContainer,
-                                               {
-                                                   left: volumePointerLabelLeft,
-                                                   top: Math.max(
-                                                       scaleSize(-8),
-                                                       chartTopMargin - scaleSize(72)
-                                                   ),
-                                                   width: volumePointerLabelWidth,
+                                                styles.pointerBubbleContainer,
+                                                {
+                                                    left: volumePointerLabelLeft,
+                                                    top: Math.max(
+                                                        scaleSize(-8),
+                                                        chartTopMargin - scaleSize(72)
+                                                    ),
+                                                    width: volumePointerLabelWidth,
                                                     opacity: volumePointerOpacity,
-                                               },
-                                           ]}
-                                       >
-                                           <VolumePointerLabel
-                                               entry={volumeActiveEntry}
-                                               isRightAligned={volumePointerRightAligned}
-                                           />
+                                                },
+                                            ]}
+                                        >
+                                            <VolumePointerLabel
+                                                entry={volumeActiveEntry}
+                                                isRightAligned={volumePointerRightAligned}
+                                            />
                                         </Animated.View>
                                     ) : null}
                                 </View>
@@ -1506,9 +1823,265 @@ export default function ProgressSection() {
                         )}
                     </View>
                 </View>
+                <View
+                    style={[
+                        styles.card,
+                        {
+                            paddingHorizontal: cardHorizontalPadding,
+                            marginBottom: scaleSize(32),
+                        },
+                    ]}
+                >
+                    <View style={styles.header}>
+                        <Text style={styles.sectionTitle}>Total Reps</Text>
+                        <View style={styles.autoUpdateHintWrapper}>
+                            <Text style={styles.autoUpdateHint}>Auto-updates from</Text>
+                            <Text style={styles.autoUpdateHint}>completed workouts.</Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.metricsRow}>
+                        <View style={styles.weightGroup}>
+                            <Text style={styles.weightValue}>{latestRepsText}</Text>
+                            <Text style={styles.weightUnit}>{latestRepsUnit}</Text>
+                        </View>
+                        <Text style={styles.summaryText}>{latestRepsInfo}</Text>
+                    </View>
+
+                    <View
+                        style={[
+                            styles.chartWrapper,
+                            {
+                                height: chartHeight,
+                                width: chartWidth,
+                                paddingTop: chartPaddingTop,
+                                paddingBottom: chartPaddingBottom,
+                            },
+                        ]}
+                    >
+                        {hasRepsChartData ? (
+                            <View style={styles.chartContent}>
+                                <View
+                                    style={[
+                                        styles.yAxisLabelsContainer,
+                                        { width: yAxisLabelWidth, height: chartHeight },
+                                    ]}
+                                    pointerEvents="none"
+                                >
+                                    {repsYTickValues.map((value, index) => {
+                                        const range = Math.max(
+                                            (repsAxisMetrics?.maxValue ?? 0) -
+                                                (repsAxisMetrics?.minValue ?? 0),
+                                            1
+                                        );
+                                        const ratio = (value - (repsAxisMetrics?.minValue ?? 0)) / range;
+                                        const clampedRatio = Number.isFinite(ratio)
+                                            ? Math.min(Math.max(ratio, 0), 1)
+                                            : 0;
+                                        const yPosition =
+                                            chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                        const approxLabelHeight = scaleSize(14);
+                                        const top = Math.min(
+                                            chartHeight - chartBottomMargin - approxLabelHeight,
+                                            Math.max(
+                                                chartTopMargin - approxLabelHeight / 2,
+                                                yPosition - approxLabelHeight / 2
+                                            )
+                                        );
+
+                                        return (
+                                            <Text
+                                                key={`reps-y-axis-label-${value}-${index}`}
+                                                style={[
+                                                    styles.axisLabel,
+                                                    styles.yAxisLabel,
+                                                    { top },
+                                                ]}
+                                            >
+                                                {formatAxisValue(value)}
+                                            </Text>
+                                        );
+                                    })}
+                                </View>
+
+                                <View
+                                    style={[
+                                        styles.chartCanvas,
+                                        { width: chartPlotWidth, height: chartHeight },
+                                    ]}
+                                    {...repsPanResponder.panHandlers}
+                                >
+                                    <Svg width={chartPlotWidth} height={chartHeight}>
+                                        <Defs>
+                                            <LinearGradient
+                                                id="repsChartGradient"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
+                                                <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
+                                            </LinearGradient>
+                                        </Defs>
+
+                                        {repsYTickValues.map((value, index) => {
+                                            const range = Math.max(
+                                                (repsAxisMetrics?.maxValue ?? 0) -
+                                                    (repsAxisMetrics?.minValue ?? 0),
+                                                1
+                                            );
+                                            const ratio = (value - (repsAxisMetrics?.minValue ?? 0)) / range;
+                                            const clampedRatio = Number.isFinite(ratio)
+                                                ? Math.min(Math.max(ratio, 0), 1)
+                                                : 0;
+                                            const y =
+                                                chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                            return (
+                                                <Line
+                                                    key={`reps-grid-line-${value}-${index}`}
+                                                    x1={chartLeftMargin}
+                                                    y1={y}
+                                                    x2={chartPlotWidth - chartRightMargin}
+                                                    y2={y}
+                                                    stroke="rgba(255,255,255,0.1)"
+                                                    strokeWidth={StyleSheet.hairlineWidth}
+                                                    strokeDasharray={[6, 6]}
+                                                />
+                                            );
+                                        })}
+
+                                        {repsSeries.areaPath ? (
+                                            <Path
+                                                d={repsSeries.areaPath}
+                                                fill="url(#repsChartGradient)"
+                                                stroke="none"
+                                            />
+                                        ) : null}
+
+                                        {repsSeries.linePath ? (
+                                            <Path
+                                                d={repsSeries.linePath}
+                                                fill="none"
+                                                stroke="#7FB7FF"
+                                                strokeWidth={scaleSize(3)}
+                                                strokeLinejoin="round"
+                                                strokeLinecap="round"
+                                            />
+                                        ) : null}
+
+                                        <Line
+                                            x1={chartLeftMargin}
+                                            y1={chartTopMargin}
+                                            x2={chartLeftMargin}
+                                            y2={chartBaselineY}
+                                            stroke="rgba(148, 157, 172, 0.35)"
+                                            strokeWidth={StyleSheet.hairlineWidth}
+                                        />
+                                        <Line
+                                            x1={chartLeftMargin}
+                                            y1={chartBaselineY}
+                                            x2={chartPlotWidth - chartRightMargin}
+                                            y2={chartBaselineY}
+                                            stroke="rgba(148, 157, 172, 0.35)"
+                                            strokeWidth={StyleSheet.hairlineWidth}
+                                        />
+
+                                        {repsActivePoint ? (
+                                            <Line
+                                                x1={repsActivePoint.x}
+                                                y1={chartTopMargin}
+                                                x2={repsActivePoint.x}
+                                                y2={chartBaselineY}
+                                                stroke="rgba(100, 160, 255, 0.45)"
+                                                strokeWidth={pointerStripWidth}
+                                            />
+                                        ) : null}
+
+                                        {repsChartPoints.map((point, index) => {
+                                            const isActive = index === repsActiveIndex;
+                                            const radius = isActive ? scaleSize(6) : scaleSize(4.2);
+                                            const strokeWidth = isActive ? scaleSize(2) : scaleSize(1);
+                                            const strokeColor = isActive
+                                                ? "rgba(100, 160, 255, 0.9)"
+                                                : "rgba(100, 160, 255, 0.45)";
+                                            const fillColor = isActive
+                                                ? "#E1EEFF"
+                                                : "rgba(225, 238, 255, 0.78)";
+                                            return (
+                                                <Circle
+                                                    key={point.entry?.id || `reps-point-${index}`}
+                                                    cx={point.x}
+                                                    cy={point.y}
+                                                    r={radius}
+                                                    fill={fillColor}
+                                                    stroke={strokeColor}
+                                                    strokeWidth={strokeWidth}
+                                                />
+                                            );
+                                        })}
+                                    </Svg>
+
+                                    {repsXAxisLabels.length ? (
+                                        <View
+                                            pointerEvents="none"
+                                            style={[
+                                                styles.xAxisLabelsOverlay,
+                                                {
+                                                    left: chartLeftMargin,
+                                                    right: chartRightMargin,
+                                                    justifyContent:
+                                                        repsXAxisLabels.length > 1
+                                                            ? "space-between"
+                                                            : "center",
+                                                },
+                                            ]}
+                                        >
+                                            {repsXAxisLabels.map((item, index) => (
+                                                <Text
+                                                    key={`reps-x-axis-label-${item.timestamp ?? index}-${index}`}
+                                                    style={[styles.axisLabel, styles.xAxisLabel]}
+                                                >
+                                                    {item.label}
+                                                </Text>
+                                            ))}
+                                        </View>
+                                    ) : null}
+
+                                    {repsActiveEntry ? (
+                                        <Animated.View
+                                            pointerEvents="none"
+                                            style={[
+                                                styles.pointerBubbleContainer,
+                                                {
+                                                    left: repsPointerLabelLeft,
+                                                    top: Math.max(
+                                                        scaleSize(-8),
+                                                        chartTopMargin - scaleSize(72)
+                                                    ),
+                                                    width: repsPointerLabelWidth,
+                                                    opacity: repsPointerOpacity,
+                                                },
+                                            ]}
+                                        >
+                                            <RepsPointerLabel
+                                                entry={repsActiveEntry}
+                                                isRightAligned={repsPointerRightAligned}
+                                            />
+                                        </Animated.View>
+                                    ) : null}
+                                </View>
+                            </View>
+                        ) : (
+                            <View style={styles.chartEmptyState}>
+                                <Text style={styles.placeholderText}>Complete workouts to log reps.</Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
                 <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding }]}>
                     <View style={styles.header}>
-                        <Text style={styles.sectionTitle}>Weight</Text>
+                        <Text style={styles.sectionTitle}>Body Weight</Text>
                         <View style={styles.headerActions}>
                             <RNBounceable
                                 style={styles.addButton}
@@ -1708,6 +2281,32 @@ export default function ProgressSection() {
                                         })}
                                     </Svg>
 
+                                    {weightXAxisLabels.length ? (
+                                        <View
+                                            pointerEvents="none"
+                                            style={[
+                                                styles.xAxisLabelsOverlay,
+                                                {
+                                                    left: chartLeftMargin,
+                                                    right: chartRightMargin,
+                                                    justifyContent:
+                                                        weightXAxisLabels.length > 1
+                                                            ? "space-between"
+                                                            : "center",
+                                                },
+                                            ]}
+                                        >
+                                            {weightXAxisLabels.map((item, index) => (
+                                                <Text
+                                                    key={`weight-x-axis-label-${item.timestamp ?? index}-${index}`}
+                                                    style={[styles.axisLabel, styles.xAxisLabel]}
+                                                >
+                                                    {item.label}
+                                                </Text>
+                                            ))}
+                                        </View>
+                                    ) : null}
+
                                     {weightActiveEntry ? (
                                         <Animated.View
                                             pointerEvents="none"
@@ -1811,8 +2410,6 @@ const styles = StyleSheet.create({
     },
     volumeCard: {
         marginBottom: scaleSize(32),
-        borderTopWidth: 0,
-        paddingBottom: scaleSize(16),
     },
     header: {
         flexDirection: "row",
@@ -1911,6 +2508,18 @@ const styles = StyleSheet.create({
         textAlign: "right",
         fontSize: ts(12),
     },
+    xAxisLabelsOverlay: {
+        position: "absolute",
+        bottom: 0,
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "flex-start",
+    },
+    xAxisLabel: {
+        minWidth: scaleSize(40),
+        textAlign: "center",
+        color: "rgba(216, 226, 255, 0.65)",
+    },
     chartCanvas: {
         flex: 1,
         position: "relative",
@@ -1921,7 +2530,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     measurementsRowContainer: {
-        marginTop: scaleSize(16),
         borderTopWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(255,255,255,0.08)",
     },
