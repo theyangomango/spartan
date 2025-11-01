@@ -3042,6 +3042,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-end',
         marginLeft: scaleSize(10),
+        paddingBottom: scaleSize(2)
     },
     progressDeltaIcon: {
         marginRight: scaleSize(2),
