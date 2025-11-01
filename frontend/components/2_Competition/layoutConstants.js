@@ -19,7 +19,7 @@ const scaleSize = (value, axis = "min") => {
 const SIZES = {
     headerIconSize: scaleSize(21),
     chevronDelta: scaleSize(6),
-    headerPaddingHorizontal: scaleSize(30, "w"),
+    headerPaddingHorizontal: scaleSize(26, "w"),
     headerPaddingTop: scaleSize(4),
     tribeHitSlop: scaleSize(8),
     tribeLabelFont: scaleSize(15),

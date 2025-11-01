@@ -1396,7 +1396,7 @@ export default function LeaderboardsSection({ navigation }) {
                 <View
                     style={[
                         styles.header,
-                        { paddingHorizontal: SIZES.headerPaddingHorizontal + scaleSize(4) },
+                        { paddingHorizontal: SIZES.headerPaddingHorizontal },
                     ]}
                 >
                     <View style={styles.headerPillsRow}>

@@ -68,6 +68,7 @@ export const GROUP_WR = { chest: 350, shoulders: 235, back: 501, legs: 500, arms
 
 const NORM_VOL_30D = { chest: 22000, shoulders: 15000, back: 28000, legs: 34000, arms: 12000, abs: 10000 };
 const CONSIST_TARGET_30D = 8;
+const DIFFICULTY_MULTIPLIER = 0.85;
 
 const defaultCalculate1RM = (weight, reps) => {
   const w = Number(weight) || 0;
@@ -354,17 +355,23 @@ export function computeHexagonCore(
     }
   });
 
+  const scaled = GROUP_KEYS.reduce((acc, key) => {
+    const value = Number(next[key] || 0);
+    acc[key] = roundTo3(clamp(value * DIFFICULTY_MULTIPLIER, 0, 100));
+    return acc;
+  }, {});
+
   const overall = roundTo3(
-    GROUP_KEYS.reduce((acc, key) => acc + Number(next[key] || 0), 0) / GROUP_KEYS.length
+    GROUP_KEYS.reduce((acc, key) => acc + Number(scaled[key] || 0), 0) / GROUP_KEYS.length
   );
 
   const statsHexagon = {
-    shoulders: roundTo3(next.shoulders || 0),
-    chest: roundTo3(next.chest || 0),
-    arms: roundTo3(next.arms || 0),
-    legs: roundTo3(next.legs || 0),
-    back: roundTo3(next.back || 0),
-    abs: roundTo3(next.abs || 0),
+    shoulders: scaled.shoulders,
+    chest: scaled.chest,
+    arms: scaled.arms,
+    legs: scaled.legs,
+    back: scaled.back,
+    abs: scaled.abs,
     overall,
   };
 
@@ -383,6 +390,7 @@ export function computeHexagonCore(
       workScores,
       consistencyScores,
       decayFactors,
+      difficultyMultiplier: DIFFICULTY_MULTIPLIER,
     };
   }
   return result;
