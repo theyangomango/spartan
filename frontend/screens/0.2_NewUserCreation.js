@@ -1,10 +1,16 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import React, { useState, useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
-import readDoc from '../../backend/helper/firebase/readDoc';
 import makeID from '../../backend/helper/makeID';
+import {
+    sanitizeHandle,
+    USERNAME_REGEX,
+    fetchAllUsers,
+    isHandleTaken,
+    persistPendingUserWithHandle,
+} from '../utils/usernameRegistration';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const scale = screenWidth / 375; // Base screen width assumed as 375
@@ -14,95 +20,107 @@ const NewUserCreation = ({ navigation }) => {
     const [emailOrPhone, setEmailOrPhone] = useState('');
     const [name, setName] = useState('');
     const [password, setPassword] = useState('');
+    const [handle, setHandle] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const emailOrPhoneInputRef = useRef(null);
 
     function goBack() { navigation.goBack(); }
 
-    // simple validators
     const isValidEmail = (v) => /^(?:[A-Z0-9._%+-]+)@(?:[A-Z0-9-]+\.)+[A-Z]{2,}$/i.test(v);
     const isValidPhone = (v) => {
         const d = (v || '').replace(/[^0-9+]/g, '');
         if (d.startsWith('+')) return d.length >= 11 && d.length <= 16; // + and 10-15 digits
         return d.length >= 10 && d.length <= 15;
     };
-    const normalizeHandle = (value) => {
-        if (!value) return '';
-        return value.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase();
+
+    const handleHandleChange = (value) => {
+        setHandle(sanitizeHandle(value));
     };
 
     async function signUp() {
+        if (submitting) return;
+        setErrorMsg('');
+
+        const trimmedEmailOrPhone = emailOrPhone.toLowerCase().trim();
+        const trimmedName = name.trim();
+        let normalizedHandle = sanitizeHandle(handle);
+
+        if (!trimmedEmailOrPhone || !trimmedName || !password.trim()) {
+            setErrorMsg('Please fill out all fields.');
+            return;
+        }
+
+        if (trimmedName.length < 2 || trimmedName.length > 40) {
+            setErrorMsg('Name must be 2–40 characters.');
+            return;
+        }
+
+        const isEmail = trimmedEmailOrPhone.includes('@');
+        if (isEmail ? !isValidEmail(trimmedEmailOrPhone) : !isValidPhone(trimmedEmailOrPhone)) {
+            setErrorMsg('Enter a valid email or phone number.');
+            return;
+        }
+
+        if (password.length < 6) {
+            setErrorMsg('Password must be at least 6 characters.');
+            return;
+        }
+
+        if (!normalizedHandle) {
+            setErrorMsg('Please choose a username.');
+            return;
+        }
+
+        if (!USERNAME_REGEX.test(normalizedHandle)) {
+            setErrorMsg('Username must be 6–20 characters (a–z, 0–9, _ or .).');
+            return;
+        }
+
+        setSubmitting(true);
         try {
-            if (submitting) return;
-            setErrorMsg('');
-            // Basic validation
-            const trimmedEmailOrPhone = emailOrPhone.toLowerCase().trim();
-            const trimmedName = name.trim();
+            const allUsers = await fetchAllUsers();
+            const userExists = allUsers.some((entry) => {
+                if (!entry || typeof entry !== 'object') return false;
+                const emailCandidate = typeof entry.email === 'string' ? entry.email.toLowerCase() : '';
+                const phoneCandidate = entry.phoneNumber != null ? String(entry.phoneNumber).toLowerCase() : '';
+                return (emailCandidate && emailCandidate === trimmedEmailOrPhone)
+                    || (phoneCandidate && phoneCandidate === trimmedEmailOrPhone);
+            });
 
-            if (!trimmedEmailOrPhone || !trimmedName || !password.trim()) {
-                setErrorMsg('Please fill out all fields.');
+            if (userExists) {
+                setErrorMsg('Email/phone already in use.');
                 return;
             }
 
-            // Constraints
-            if (trimmedName.length < 2 || trimmedName.length > 40) {
-                setErrorMsg('Name must be 2–40 characters.');
-                return;
-            }
-            const isEmail = trimmedEmailOrPhone.includes('@');
-            if (isEmail ? !isValidEmail(trimmedEmailOrPhone) : !isValidPhone(trimmedEmailOrPhone)) {
-                setErrorMsg('Enter a valid email or phone number.');
-                return;
-            }
-            if (password.length < 6) {
-                setErrorMsg('Password must be at least 6 characters.');
+            if (isHandleTaken(allUsers, normalizedHandle)) {
+                setErrorMsg('Username is already taken.');
                 return;
             }
 
-            // Check duplicates
-            const users = await readDoc('global', 'users');
-            const existing = Array.isArray(users?.all) ? users.all : [];
-            const userExists = existing.some(
-                (u) => (u.email && u.email.toLowerCase() === trimmedEmailOrPhone) || (u.phoneNumber && String(u.phoneNumber).toLowerCase() === trimmedEmailOrPhone)
-            );
-            if (userExists) { setErrorMsg('Email/phone already in use.'); return; }
-
-            setSubmitting(true);
             const newID = makeID();
 
-            const baseFromName = normalizeHandle(trimmedName.replace(/\s+/g, ''));
-            const baseFromEmail = isEmail
-                ? normalizeHandle(trimmedEmailOrPhone.split('@')[0])
-                : normalizeHandle(trimmedEmailOrPhone);
-            const fallbackSeed = `user${newID.slice(0, 6).toLowerCase()}`;
-
-            const pickStartingHandle = () => {
-                if (baseFromName.length >= 6) return baseFromName.slice(0, 20);
-                if (baseFromEmail.length >= 6) return baseFromEmail.slice(0, 20);
-                const stitched = (baseFromName || baseFromEmail || '').concat(newID.slice(0, 6));
-                if (stitched.length >= 6) return normalizeHandle(stitched).slice(0, 20);
-                return fallbackSeed;
+            const pendingUser = {
+                uid: newID,
+                name: trimmedName,
+                email: isEmail ? trimmedEmailOrPhone : null,
+                phoneNumber: isEmail ? null : trimmedEmailOrPhone,
+                password,
+                authProvider: 'password',
+                needsDefaultPfp: true,
             };
 
-            try {
-                const pendingUser = {
-                    uid: newID,
-                    name: trimmedName,
-                    email: isEmail ? trimmedEmailOrPhone : null,
-                    phoneNumber: isEmail ? null : trimmedEmailOrPhone,
-                    password,
-                    authProvider: 'password',
-                    needsDefaultPfp: true,
-                };
+            await persistPendingUserWithHandle({
+                pendingUser,
+                handle: normalizedHandle,
+                allUsers,
+            });
 
-                Keyboard.dismiss();
-                navigation.navigate('CreateUsername', {
-                    pendingUser,
-                    initialHandle: pickStartingHandle(),
-                    nextRoute: 'Tabs',
-                });
-            } catch {}
+            Keyboard.dismiss();
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Tabs' }],
+            });
         } catch (err) {
             console.warn('Sign-up failed:', err?.message || err);
             setErrorMsg('Sign-up failed. Please try again.');
@@ -156,6 +174,25 @@ const NewUserCreation = ({ navigation }) => {
                             onChangeText={setPassword}
                             secureTextEntry
                         />
+
+                        <Text style={styles.title}>Choose a Username</Text>
+                        <View style={styles.usernameWrapper}>
+                            <Text style={styles.usernamePrefix}>@</Text>
+                            <TextInput
+                                style={styles.usernameInput}
+                                placeholder="yourusername"
+                                placeholderTextColor={theme.textSecondary}
+                                value={handle}
+                                onChangeText={handleHandleChange}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                returnKeyType="done"
+                                onSubmitEditing={signUp}
+                            />
+                        </View>
+                        <Text style={styles.usernameHelper}>
+                            Usernames are 6–20 characters. Letters, numbers, underscores, and periods only.
+                        </Text>
                     </View>
 
                     <View style={styles.footerContainer}>
@@ -222,6 +259,37 @@ const styles = StyleSheet.create({
         color: theme.textPrimary,
         fontFamily: 'Outfit_500Medium',
         marginBottom: scaleSize(20),
+    },
+    usernameWrapper: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: scaleSize(6),
+        backgroundColor: theme.field,
+        paddingVertical: scaleSize(11.5),
+        paddingHorizontal: scaleSize(12),
+        marginBottom: scaleSize(10),
+    },
+    usernamePrefix: {
+        fontSize: scaleSize(16),
+        color: theme.textSecondary,
+        fontFamily: 'Outfit_600SemiBold',
+        marginRight: scaleSize(6),
+    },
+    usernameInput: {
+        flex: 1,
+        fontSize: scaleSize(16),
+        color: theme.textPrimary,
+        fontFamily: 'Outfit_500Medium',
+        padding: 0,
+    },
+    usernameHelper: {
+        alignSelf: 'flex-start',
+        fontSize: scaleSize(11.5),
+        color: theme.textSecondary,
+        marginBottom: scaleSize(16),
+        paddingLeft: scaleSize(3),
+        fontFamily: 'Outfit_400Regular',
     },
     footerContainer: {
         alignItems: 'center',

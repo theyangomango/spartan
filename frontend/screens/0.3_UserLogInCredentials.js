@@ -1,12 +1,10 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback, Platform } from 'react-native';
-import { Ionicons, Octicons, Feather } from '@expo/vector-icons';
+import { Octicons, Feather } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import readDoc from '../../backend/helper/firebase/readDoc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import useGoogleAuth from '../auth/useGoogleAuth';
-import { upsertGoogleUser } from '../auth/googleAccount';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -20,9 +18,7 @@ const UserLogInCredentials = ({ navigation }) => {
     const [emailOrPhone, setEmailOrPhone] = useState('');
     const [password, setPassword] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
-    const [googleBusy, setGoogleBusy] = useState(false);
     const usersRef = useRef(null);
-    const { signIn: startGoogleSignIn, isConfigured: isGoogleConfigured } = useGoogleAuth();
 
     const emailOrPhoneInputRef = useRef(null);
 
@@ -94,31 +90,6 @@ const UserLogInCredentials = ({ navigation }) => {
         }
     }
 
-    async function logInWithGoogle() {
-        if (!isGoogleConfigured) {
-            setErrorMsg('Google sign-in is not configured yet.');
-            return;
-        }
-        if (googleBusy) return;
-        setErrorMsg('');
-        setGoogleBusy(true);
-        try {
-            const profile = await startGoogleSignIn();
-            if (!profile) return;
-
-            await upsertGoogleUser(profile);
-
-            try {
-                navigation.navigate('Tabs');
-            } catch { }
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Google sign-in failed. Please try again.';
-            setErrorMsg(message);
-        } finally {
-            setGoogleBusy(false);
-        }
-    }
-
     return (
         <TouchableWithoutFeedback onPress={() => { }}>
             <View style={styles.container}>
@@ -159,16 +130,6 @@ const UserLogInCredentials = ({ navigation }) => {
                         {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
                         <RNBounceable style={styles.button} onPress={logIn}>
                             <Text style={styles.auth_button_text}>Continue</Text>
-                        </RNBounceable>
-                        <RNBounceable
-                            style={[styles.googleButton, (googleBusy || !isGoogleConfigured) && styles.googleButtonDisabled]}
-                            onPress={logInWithGoogle}
-                            disabled={googleBusy || !isGoogleConfigured}
-                        >
-                            <Ionicons name="logo-google" size={scaleSize(19)} color={theme.textPrimary} style={styles.googleIcon} />
-                            <Text style={styles.googleButtonText}>
-                                {!isGoogleConfigured ? 'Google setup required' : (googleBusy ? 'Signing in…' : 'Continue with Google')}
-                            </Text>
                         </RNBounceable>
                     </View>
                 </View>
@@ -254,30 +215,6 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         fontFamily: 'Outfit_600SemiBold',
         marginLeft: scaleSize(6),
-    },
-    googleButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: scaleSize(1.1),
-        borderColor: require('../theme/mfpDark').default.hairline,
-        backgroundColor: require('../theme/mfpDark').default.field,
-        paddingVertical: scaleSize(12),
-        borderRadius: scaleSize(8),
-        marginTop: scaleSize(12),
-        justifyContent: 'center',
-        width: '100%',
-    },
-    googleButtonDisabled: {
-        opacity: 0.6,
-    },
-    googleButtonText: {
-        fontSize: scaleSize(15),
-        fontFamily: 'Outfit_600SemiBold',
-        color: require('../theme/mfpDark').default.textPrimary,
-    },
-    googleIcon: {
-        position: 'absolute',
-        left: scaleSize(16),
     },
 });
 

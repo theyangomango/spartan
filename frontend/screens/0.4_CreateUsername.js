@@ -9,30 +9,24 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
-  Image as RNImage,
 } from 'react-native';
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import theme from '../theme/mfpDark';
 import readDoc from '../../backend/helper/firebase/readDoc';
 import updateDoc from '../../backend/helper/firebase/updateDoc';
-import createDoc from '../../backend/helper/firebase/createDoc';
-import buildInitialUser from '../utils/buildInitialUser';
 import authBackground from '../assets/AUTH_BACKGROUND.jpg';
-import uploadImage from '../../backend/storage/uploadImage';
-import DEFAULT_PFP from '../assets/DEFAULT_PFP.png';
 import scaleSize from '../helper/scaleSize';
 import makeID from '../../backend/helper/makeID';
 import useAuthBackgroundSource from '../hooks/useAuthBackgroundSource';
-
-const USERNAME_REGEX = /^[a-z0-9_.]{6,20}$/;
-
-function sanitizeHandle(value) {
-  if (!value) return '';
-  return value.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase().slice(0, 20);
-}
+import {
+  sanitizeHandle,
+  USERNAME_REGEX,
+  fetchAllUsers,
+  isHandleTaken,
+  persistPendingUserWithHandle,
+} from '../utils/usernameRegistration';
 
 const CreateUsername = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
@@ -144,18 +138,9 @@ const CreateUsername = ({ navigation, route }) => {
 
     setSaving(true);
     try {
-      const usersDoc = await readDoc('global', 'users').catch(() => null);
-      const allUsers = Array.isArray(usersDoc?.all) ? usersDoc.all : [];
+      const allUsers = await fetchAllUsers();
 
-      const conflict = allUsers.some((entry) => {
-        if (!entry || typeof entry !== 'object') return false;
-        const entryUid = String(entry.uid || '');
-        if (entryUid === String(uid)) return false;
-        const entryHandle = typeof entry.handle === 'string' ? entry.handle : '';
-        return entryHandle.toLowerCase() === normalized;
-      });
-
-      if (conflict) {
+      if (isHandleTaken(allUsers, normalized, uid)) {
         setError('Username is already taken.');
         return;
       }
@@ -163,44 +148,13 @@ const CreateUsername = ({ navigation, route }) => {
       let mergedUser;
 
       if (pendingUser) {
-        const uidFinal = uid || makeID();
-        let image = pendingUser.image || '';
-
-        if ((!image || pendingUser.needsDefaultPfp) && !pendingUser.skipDefaultPfp) {
-          try {
-            const asset = RNImage.resolveAssetSource(DEFAULT_PFP);
-            const localUri = asset?.uri;
-            if (localUri) {
-              image = await uploadImage(localUri, `pfps/${uidFinal}.png`);
-            }
-          } catch (uploadErr) {
-            console.warn('Default avatar upload failed:', uploadErr?.message || uploadErr);
-          }
-        }
-
-        mergedUser = buildInitialUser({
-          uid: uidFinal,
+        const result = await persistPendingUserWithHandle({
+          pendingUser,
           handle: normalized,
-          name: pendingUser.name || 'New Spartan',
-          email: pendingUser.email ?? null,
-          phoneNumber: pendingUser.phoneNumber ?? null,
-          image,
-          password: pendingUser.password ?? null,
-          authProvider: pendingUser.authProvider || 'password',
-          extra: pendingUser.extra || {},
+          allUsers,
         });
-
-        await createDoc('users', uidFinal, mergedUser);
-
-        const updatedAll = [
-          ...allUsers.filter((entry) => String(entry?.uid || '') !== String(uidFinal)),
-          mergedUser,
-        ];
-        await updateDoc('global', 'users', { all: updatedAll });
-
-        try { await AsyncStorage.setItem('uid', uidFinal); } catch {}
-        try { global.setAuthUid?.(uidFinal); } catch {}
-        try { global.userData = mergedUser; } catch {}
+        mergedUser = result.mergedUser;
+        setUserSnapshot(result.mergedUser);
       } else {
         if (!uid) {
           setError('Something went wrong. Please try again.');
