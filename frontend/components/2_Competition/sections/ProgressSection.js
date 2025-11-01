@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Alert,
+    Animated,
     KeyboardAvoidingView,
     Modal,
     PanResponder,
@@ -832,14 +833,17 @@ export default function ProgressSection() {
         [volumeChartData, volumeAxisMetrics, chartGeometry]
     );
 
-    const handlePointerActivate = useCallback((payload) => {
-        if (!payload) return;
-        const { index } = payload;
-        if (!Number.isFinite(index)) return;
-        if (activeIndexRef.current === index) return;
-        activeIndexRef.current = index;
-        setActiveIndex(index);
-    }, []);
+    const handlePointerActivate = useCallback(
+        (payload) => {
+            if (!payload) return;
+            const { index } = payload;
+            if (!Number.isFinite(index)) return;
+            activeIndexRef.current = index;
+            setActiveIndex((prev) => (prev === index ? prev : index));
+            showWeightPointer();
+        },
+        [showWeightPointer]
+    );
 
     const weightChartPoints = weightSeries.points;
     const volumeChartPoints = volumeSeries.points;
@@ -878,23 +882,26 @@ export default function ProgressSection() {
                 onMoveShouldSetPanResponder: () => !!weightChartPoints.length,
                 onPanResponderGrant: (evt) => handleChartTouch(evt?.nativeEvent),
                 onPanResponderMove: (evt) => handleChartTouch(evt?.nativeEvent),
-                onPanResponderRelease: () => {},
-                onPanResponderTerminate: () => {},
+                onPanResponderRelease: () => scheduleWeightHide(),
+                onPanResponderTerminate: () => scheduleWeightHide(),
             }),
-        [weightChartPoints.length, handleChartTouch]
+        [weightChartPoints.length, handleChartTouch, scheduleWeightHide]
     );
 
     const volumeActiveIndexRef = useRef(null);
     const [volumeActiveIndex, setVolumeActiveIndex] = useState(null);
 
-    const handleVolumePointerActivate = useCallback((payload) => {
-        if (!payload) return;
-        const { index } = payload;
-        if (!Number.isFinite(index)) return;
-        if (volumeActiveIndexRef.current === index) return;
-        volumeActiveIndexRef.current = index;
-        setVolumeActiveIndex(index);
-    }, []);
+    const handleVolumePointerActivate = useCallback(
+        (payload) => {
+            if (!payload) return;
+            const { index } = payload;
+            if (!Number.isFinite(index)) return;
+            volumeActiveIndexRef.current = index;
+            setVolumeActiveIndex((prev) => (prev === index ? prev : index));
+            showVolumePointer();
+        },
+        [showVolumePointer]
+    );
 
     const handleVolumeChartTouch = useCallback(
         (nativeEvent) => {
@@ -930,10 +937,10 @@ export default function ProgressSection() {
                 onMoveShouldSetPanResponder: () => !!volumeChartPoints.length,
                 onPanResponderGrant: (evt) => handleVolumeChartTouch(evt?.nativeEvent),
                 onPanResponderMove: (evt) => handleVolumeChartTouch(evt?.nativeEvent),
-                onPanResponderRelease: () => {},
-                onPanResponderTerminate: () => {},
+                onPanResponderRelease: () => scheduleVolumeHide(),
+                onPanResponderTerminate: () => scheduleVolumeHide(),
             }),
-        [volumeChartPoints.length, handleVolumeChartTouch]
+        [volumeChartPoints.length, handleVolumeChartTouch, scheduleVolumeHide]
     );
 
     const getCurrentSanitizedEntries = useCallback(() => {
@@ -1157,35 +1164,118 @@ export default function ProgressSection() {
         ? volumeActiveIndex >= Math.ceil(volumeChartData.length / 2)
         : false;
 
+    const weightPointerOpacity = useRef(new Animated.Value(0)).current;
+    const volumePointerOpacity = useRef(new Animated.Value(0)).current;
+    const weightHideTimeout = useRef(null);
+    const volumeHideTimeout = useRef(null);
+
+    const clearWeightHideTimeout = useCallback(() => {
+        if (weightHideTimeout.current) {
+            clearTimeout(weightHideTimeout.current);
+            weightHideTimeout.current = null;
+        }
+    }, []);
+
+    const clearVolumeHideTimeout = useCallback(() => {
+        if (volumeHideTimeout.current) {
+            clearTimeout(volumeHideTimeout.current);
+            volumeHideTimeout.current = null;
+        }
+    }, []);
+
+    const showWeightPointer = useCallback(() => {
+        clearWeightHideTimeout();
+        weightPointerOpacity.stopAnimation();
+        Animated.timing(weightPointerOpacity, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+        }).start();
+    }, [clearWeightHideTimeout, weightPointerOpacity]);
+
+    const showVolumePointer = useCallback(() => {
+        clearVolumeHideTimeout();
+        volumePointerOpacity.stopAnimation();
+        Animated.timing(volumePointerOpacity, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+        }).start();
+    }, [clearVolumeHideTimeout, volumePointerOpacity]);
+
+    const scheduleWeightHide = useCallback(() => {
+        clearWeightHideTimeout();
+        if (activeIndexRef.current == null) {
+            return;
+        }
+        weightHideTimeout.current = setTimeout(() => {
+            weightPointerOpacity.stopAnimation();
+            Animated.timing(weightPointerOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start(() => {
+                activeIndexRef.current = null;
+                setActiveIndex(null);
+            });
+            weightHideTimeout.current = null;
+        }, 2000);
+    }, [clearWeightHideTimeout, weightPointerOpacity]);
+
+    const scheduleVolumeHide = useCallback(() => {
+        clearVolumeHideTimeout();
+        if (volumeActiveIndexRef.current == null) {
+            return;
+        }
+        volumeHideTimeout.current = setTimeout(() => {
+            volumePointerOpacity.stopAnimation();
+            Animated.timing(volumePointerOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start(() => {
+                volumeActiveIndexRef.current = null;
+                setVolumeActiveIndex(null);
+            });
+            volumeHideTimeout.current = null;
+        }, 2000);
+    }, [clearVolumeHideTimeout, volumePointerOpacity]);
+
     useEffect(() => {
-        if (!hasChartData && activeIndex != null) {
-            setActiveIndex(null);
+        if (hasChartData) return;
+        clearWeightHideTimeout();
+        Animated.timing(weightPointerOpacity, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+        if (activeIndexRef.current != null) {
             activeIndexRef.current = null;
+            setActiveIndex(null);
         }
-    }, [hasChartData, activeIndex]);
+    }, [hasChartData, clearWeightHideTimeout, weightPointerOpacity]);
 
     useEffect(() => {
-        if (!hasChartData || activeIndex != null) return;
-        const lastIndex = chartData.length - 1;
-        if (lastIndex < 0) return;
-        handlePointerActivate({
-            index: lastIndex,
-        });
-    }, [hasChartData, chartData, activeIndex, handlePointerActivate]);
-
-    useEffect(() => {
-        if (!hasVolumeChartData && volumeActiveIndex != null) {
-            setVolumeActiveIndex(null);
+        if (hasVolumeChartData) return;
+        clearVolumeHideTimeout();
+        Animated.timing(volumePointerOpacity, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+        if (volumeActiveIndexRef.current != null) {
             volumeActiveIndexRef.current = null;
+            setVolumeActiveIndex(null);
         }
-    }, [hasVolumeChartData, volumeActiveIndex]);
+    }, [hasVolumeChartData, clearVolumeHideTimeout, volumePointerOpacity]);
 
-    useEffect(() => {
-        if (!hasVolumeChartData || volumeActiveIndex != null) return;
-        const lastIndex = volumeChartData.length - 1;
-        if (lastIndex < 0) return;
-        handleVolumePointerActivate({ index: lastIndex });
-    }, [hasVolumeChartData, volumeChartData, volumeActiveIndex, handleVolumePointerActivate]);
+    useEffect(
+        () => () => {
+            clearWeightHideTimeout();
+            clearVolumeHideTimeout();
+        },
+        [clearWeightHideTimeout, clearVolumeHideTimeout]
+    );
 
     return (
         <>
@@ -1386,25 +1476,26 @@ export default function ProgressSection() {
                                     </Svg>
 
                                     {volumeActiveEntry ? (
-                                        <View
+                                        <Animated.View
                                             pointerEvents="none"
                                             style={[
-                                                styles.pointerBubbleContainer,
-                                                {
-                                                    left: volumePointerLabelLeft,
-                                                    top: Math.max(
-                                                        scaleSize(-8),
-                                                        chartTopMargin - scaleSize(72)
-                                                    ),
-                                                    width: volumePointerLabelWidth,
-                                                },
-                                            ]}
-                                        >
-                                            <VolumePointerLabel
-                                                entry={volumeActiveEntry}
-                                                isRightAligned={volumePointerRightAligned}
-                                            />
-                                        </View>
+                                               styles.pointerBubbleContainer,
+                                               {
+                                                   left: volumePointerLabelLeft,
+                                                   top: Math.max(
+                                                       scaleSize(-8),
+                                                       chartTopMargin - scaleSize(72)
+                                                   ),
+                                                   width: volumePointerLabelWidth,
+                                                    opacity: volumePointerOpacity,
+                                               },
+                                           ]}
+                                       >
+                                           <VolumePointerLabel
+                                               entry={volumeActiveEntry}
+                                               isRightAligned={volumePointerRightAligned}
+                                           />
+                                        </Animated.View>
                                     ) : null}
                                 </View>
                             </View>
@@ -1618,7 +1709,7 @@ export default function ProgressSection() {
                                     </Svg>
 
                                     {weightActiveEntry ? (
-                                        <View
+                                        <Animated.View
                                             pointerEvents="none"
                                             style={[
                                                 styles.pointerBubbleContainer,
@@ -1629,6 +1720,7 @@ export default function ProgressSection() {
                                                         chartTopMargin - scaleSize(72)
                                                     ),
                                                     width: pointerLabelWidth,
+                                                    opacity: weightPointerOpacity,
                                                 },
                                             ]}
                                         >
@@ -1638,7 +1730,7 @@ export default function ProgressSection() {
                                                 delta={weightActiveDelta}
                                                 isRightAligned={isPointerRightAligned}
                                             />
-                                        </View>
+                                        </Animated.View>
                                     ) : null}
                                 </View>
                             </View>
