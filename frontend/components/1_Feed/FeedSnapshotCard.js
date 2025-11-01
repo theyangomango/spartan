@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View, Text } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
@@ -272,9 +273,17 @@ export default function FeedSnapshotCard() {
         <View style={styles.wrapper}>
             <View style={styles.card}>
                 <View style={styles.headerRow}>
-                    <View>
+                    <View style={styles.headerLeft}>
                         <Text style={styles.title}>This Week</Text>
                         <Text style={styles.subtitle}>{snapshot.rangeLabel}</Text>
+                    </View>
+                    <View style={styles.headerRight}>
+                        <Text style={styles.workoutCountText}>{snapshot.workoutCountLabel}</Text>
+                        <Ionicons
+                            name="chevron-forward"
+                            size={scaled(18)}
+                            color="rgba(234, 240, 247, 0.65)"
+                        />
                     </View>
                 </View>
 
@@ -305,20 +314,28 @@ export default function FeedSnapshotCard() {
 const styles = StyleSheet.create({
     wrapper: {
         paddingHorizontal: 0,
-        paddingBottom: scaled(8),
+        paddingBottom: scaled(10),
     },
     card: {
         backgroundColor: theme.surface,
         width: "100%",
-        paddingHorizontal: scaled(18),
+        paddingHorizontal: scaled(12),
         paddingTop: scaleSize(12),
-        paddingBottom: scaleSize(6)
+        paddingBottom: scaleSize(8)
     },
     headerRow: {
         flexDirection: "row",
-        alignItems: "flex-start",
+        alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: scaleSize(8)
+        paddingHorizontal: scaleSize(16),
+    },
+    headerLeft: {
+        flexShrink: 1,
+        paddingRight: scaleSize(8),
+    },
+    headerRight: {
+        flexDirection: "row",
+        alignItems: "center",
     },
     title: {
         fontFamily: "Outfit_700Bold",
@@ -331,6 +348,13 @@ const styles = StyleSheet.create({
         fontSize: scaled(11),
         color: "rgba(234, 240, 247, 0.65)",
         marginTop: scaleSize(2),
+    },
+    workoutCountText: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaled(12),
+        color: theme.textPrimary,
+        marginRight: scaleSize(8),
+        letterSpacing: 0.2,
     },
     metricsRow: {
         flexDirection: "row",

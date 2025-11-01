@@ -75,3 +75,38 @@ export const chartTypography = StyleSheet.create({
         color: '#aaa',
     },
 });
+
+export const chartCardTypography = StyleSheet.create({
+    sectionTitle: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: ts(16),
+        color: theme.textPrimary ?? '#F6F8FF',
+    },
+    hint: {
+        fontFamily: 'Outfit_400Regular',
+        fontSize: ts(11),
+        color: 'rgba(216, 226, 255, 0.55)',
+    },
+    metricValue: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: ts(22),
+        color: theme.textPrimary ?? '#F6F8FF',
+        lineHeight: ts(23),
+    },
+    metricUnit: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: ts(16),
+        color: theme.textPrimary ?? '#F6F8FF',
+    },
+    summary: {
+        fontFamily: 'Outfit_400Regular',
+        fontSize: ts(12),
+        color: 'rgba(255,255,255,0.55)',
+    },
+    deltaValue: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: ts(16),
+        color: theme.textPrimary ?? '#F6F8FF',
+        lineHeight: ts(18),
+    },
+});

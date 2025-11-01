@@ -19,7 +19,7 @@ import dayjs from 'dayjs';
 import useStableSafeAreaInsets from '../hooks/useStableSafeAreaInsets';
 import theme from '../theme/mfpDark';
 import { DEVICE_WIDTH, scaleSize, ts } from '../components/2_Competition/layoutConstants';
-import { chartPointerStyles, chartTypography } from '../components/charts/chartStyles';
+import { chartPointerStyles, chartTypography, chartCardTypography } from '../components/charts/chartStyles';
 import ExerciseImagePreview from '../components/3_Workout/NewWorkout/SelectExercise/ExerciseImagePreview';
 import { toExerciseSlug } from '../components/common/exerciseImageMap';
 import { withStrongPress } from '../utils/haptics';
@@ -2152,17 +2152,17 @@ export default function ExerciseDetail() {
                 {hasProgressVolumeData ? (
                     <View style={[styles.progressCard, { paddingHorizontal: progressCardHorizontalPadding }]}>
                         <View style={styles.progressHeader}>
-                            <Text style={styles.progressSectionTitle}>Volume</Text>
+                            <Text style={[chartCardTypography.sectionTitle, styles.progressSectionTitle]}>Volume</Text>
                             <View style={styles.progressAutoHintWrapper}>
-                                <Text style={styles.progressAutoHint}>Auto-updates from</Text>
-                                <Text style={styles.progressAutoHint}>completed workouts.</Text>
+                                <Text style={[chartCardTypography.hint, styles.progressAutoHint]}>Auto-updates from</Text>
+                                <Text style={[chartCardTypography.hint, styles.progressAutoHint]}>completed workouts.</Text>
                             </View>
                         </View>
 
                         <View style={styles.progressMetricsRow}>
                             <View style={styles.progressValueGroup}>
-                                <Text style={styles.progressValue}>{latestExerciseVolumeText}</Text>
-                                <Text style={styles.progressUnit}>{volumeUnitLabel}</Text>
+                                <Text style={[chartCardTypography.metricValue, styles.progressValue]}>{latestExerciseVolumeText}</Text>
+                                <Text style={[chartCardTypography.metricUnit, styles.progressUnit]}>{volumeUnitLabel}</Text>
                                 {latestExerciseVolumeDeltaMeta ? (
                                     <View style={styles.progressDeltaGroup}>
                                         <Ionicons
@@ -2172,14 +2172,18 @@ export default function ExerciseDetail() {
                                             style={styles.progressDeltaIcon}
                                         />
                                         <Text
-                                            style={[styles.progressValue, styles.progressDeltaText, { color: latestExerciseVolumeDeltaMeta.color }]}
+                                            style={[
+                                                chartCardTypography.deltaValue,
+                                                styles.progressDeltaText,
+                                                { color: latestExerciseVolumeDeltaMeta.color },
+                                            ]}
                                         >
                                             {latestExerciseVolumeDeltaMeta.text}
                                         </Text>
                                     </View>
                                 ) : null}
                             </View>
-                            <Text style={styles.progressSummaryText}>{latestExerciseVolumeInfo}</Text>
+                            <Text style={[chartCardTypography.summary, styles.progressSummaryText]}>{latestExerciseVolumeInfo}</Text>
                         </View>
 
                         <View
@@ -2411,19 +2415,27 @@ export default function ExerciseDetail() {
                 ) : null}
 
                 {hasProgressPersonalRecordData ? (
-                    <View style={[styles.progressCard, { paddingHorizontal: progressCardHorizontalPadding }]}> 
+                    <View style={[styles.progressCard, { paddingHorizontal: progressCardHorizontalPadding }]}>
                         <View style={styles.progressHeader}>
-                            <Text style={styles.progressSectionTitle}>Personal Records</Text>
+                            <Text style={[chartCardTypography.sectionTitle, styles.progressSectionTitle]}>
+                                Personal Records
+                            </Text>
                             <View style={styles.progressAutoHintWrapper}>
-                                <Text style={styles.progressAutoHint}>Auto-updates when you</Text>
-                                <Text style={styles.progressAutoHint}>set a new PR.</Text>
+                                <Text style={[chartCardTypography.hint, styles.progressAutoHint]}>
+                                    Auto-updates when you
+                                </Text>
+                                <Text style={[chartCardTypography.hint, styles.progressAutoHint]}>
+                                    set a new PR.
+                                </Text>
                             </View>
                         </View>
 
                         <View style={styles.progressMetricsRow}>
                             <View style={styles.progressValueGroup}>
-                                <Text style={styles.progressValue}>{latestExercisePersonalRecordText}</Text>
-                                <Text style={styles.progressUnit}>records</Text>
+                                <Text style={[chartCardTypography.metricValue, styles.progressValue]}>
+                                    {latestExercisePersonalRecordText}
+                                </Text>
+                                <Text style={[chartCardTypography.metricUnit, styles.progressUnit]}>records</Text>
                                 {latestExercisePersonalRecordDeltaMeta ? (
                                     <View style={styles.progressDeltaGroup}>
                                         <Ionicons
@@ -2434,7 +2446,7 @@ export default function ExerciseDetail() {
                                         />
                                         <Text
                                             style={[
-                                                styles.progressValue,
+                                                chartCardTypography.deltaValue,
                                                 styles.progressDeltaText,
                                                 { color: latestExercisePersonalRecordDeltaMeta.color },
                                             ]}
@@ -2444,7 +2456,9 @@ export default function ExerciseDetail() {
                                     </View>
                                 ) : null}
                             </View>
-                            <Text style={styles.progressSummaryText}>{latestExercisePersonalRecordInfo}</Text>
+                            <Text style={[chartCardTypography.summary, styles.progressSummaryText]}>
+                                {latestExercisePersonalRecordInfo}
+                            </Text>
                         </View>
 
                         <View
@@ -2683,17 +2697,21 @@ export default function ExerciseDetail() {
                 {hasProgressRepsData ? (
                     <View style={[styles.progressCard, { paddingHorizontal: progressCardHorizontalPadding }]}>
                         <View style={styles.progressHeader}>
-                            <Text style={styles.progressSectionTitle}>Reps</Text>
+                            <Text style={[chartCardTypography.sectionTitle, styles.progressSectionTitle]}>Reps</Text>
                             <View style={styles.progressAutoHintWrapper}>
-                                <Text style={styles.progressAutoHint}>Auto-updates from</Text>
-                                <Text style={styles.progressAutoHint}>completed workouts.</Text>
+                                <Text style={[chartCardTypography.hint, styles.progressAutoHint]}>Auto-updates from</Text>
+                                <Text style={[chartCardTypography.hint, styles.progressAutoHint]}>
+                                    completed workouts.
+                                </Text>
                             </View>
                         </View>
 
                         <View style={styles.progressMetricsRow}>
                             <View style={styles.progressValueGroup}>
-                                <Text style={styles.progressValue}>{latestExerciseRepsText}</Text>
-                                <Text style={styles.progressUnit}>reps</Text>
+                                <Text style={[chartCardTypography.metricValue, styles.progressValue]}>
+                                    {latestExerciseRepsText}
+                                </Text>
+                                <Text style={[chartCardTypography.metricUnit, styles.progressUnit]}>reps</Text>
                                 {latestExerciseRepsDeltaMeta ? (
                                     <View style={styles.progressDeltaGroup}>
                                         <Ionicons
@@ -2703,14 +2721,20 @@ export default function ExerciseDetail() {
                                             style={styles.progressDeltaIcon}
                                         />
                                         <Text
-                                            style={[styles.progressValue, styles.progressDeltaText, { color: latestExerciseRepsDeltaMeta.color }]}
+                                            style={[
+                                                chartCardTypography.deltaValue,
+                                                styles.progressDeltaText,
+                                                { color: latestExerciseRepsDeltaMeta.color },
+                                            ]}
                                         >
                                             {latestExerciseRepsDeltaMeta.text}
                                         </Text>
                                     </View>
                                 ) : null}
                             </View>
-                            <Text style={styles.progressSummaryText}>{latestExerciseRepsInfo}</Text>
+                            <Text style={[chartCardTypography.summary, styles.progressSummaryText]}>
+                                {latestExerciseRepsInfo}
+                            </Text>
                         </View>
 
                         <View
@@ -3253,16 +3277,12 @@ const styles = StyleSheet.create({
         marginBottom: scaleSize(4),
     },
     progressSectionTitle: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: ts(15),
         color: theme.textPrimary,
     },
     progressAutoHintWrapper: {
         alignItems: 'flex-end',
     },
     progressAutoHint: {
-        fontFamily: 'Outfit_400Regular',
-        fontSize: ts(11),
         color: 'rgba(216, 226, 255, 0.55)',
     },
     progressMetricsRow: {
@@ -3275,10 +3295,7 @@ const styles = StyleSheet.create({
         alignItems: 'flex-end',
     },
     progressValue: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: ts(22),
         color: theme.textPrimary,
-        lineHeight: ts(23),
     },
     progressDeltaGroup: {
         flexDirection: 'row',
@@ -3291,20 +3308,15 @@ const styles = StyleSheet.create({
         marginBottom: scaleSize(2),
     },
     progressDeltaText: {
-        fontSize: ts(16),
         lineHeight: ts(18),
     },
     progressUnit: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: ts(16),
         color: theme.textPrimary,
         marginLeft: scaleSize(6),
         marginBottom: scaleSize(4),
         textTransform: 'lowercase',
     },
     progressSummaryText: {
-        fontFamily: 'Outfit_400Regular',
-        fontSize: ts(12),
         color: 'rgba(255,255,255,0.55)',
         maxWidth: '50%',
         flexShrink: 1,

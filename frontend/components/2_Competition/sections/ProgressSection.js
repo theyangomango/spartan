@@ -24,7 +24,7 @@ import makeID from "../../../../backend/helper/makeID";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import { emitUserDataUpdate, subscribeUserData } from "../../../utils/userDataEvents";
 import { DEVICE_WIDTH, scaleSize, ts } from "../layoutConstants";
-import { chartPointerStyles, chartTypography } from "../../charts/chartStyles";
+import { chartPointerStyles, chartTypography, chartCardTypography } from "../../charts/chartStyles";
 import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from "react-native-svg";
 import { navigateOneWay } from "../../../../navigationRef";
 
@@ -2158,17 +2158,17 @@ const completedWorkouts = useMemo(
             >
                 <View style={[styles.card, styles.volumeCard, { paddingHorizontal: cardHorizontalPadding }]}>
                     <View style={styles.header}>
-                        <Text style={styles.sectionTitle}>Total Volume</Text>
+                        <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Total Volume</Text>
                         <View style={styles.autoUpdateHintWrapper}>
-                            <Text style={styles.autoUpdateHint}>Auto-updates from</Text>
-                            <Text style={styles.autoUpdateHint}>completed workouts.</Text>
+                            <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>Auto-updates from</Text>
+                            <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>completed workouts.</Text>
                         </View>
                     </View>
 
                     <View style={styles.metricsRow}>
                         <View style={styles.weightGroup}>
-                            <Text style={styles.weightValue}>{latestVolumeText}</Text>
-                            <Text style={styles.weightUnit}>{latestVolumeUnit}</Text>
+                            <Text style={[chartCardTypography.metricValue, styles.weightValue]}>{latestVolumeText}</Text>
+                            <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>{latestVolumeUnit}</Text>
                             {latestVolumeDeltaMeta ? (
                                 <View style={styles.deltaGroup}>
                                     <Ionicons
@@ -2178,14 +2178,18 @@ const completedWorkouts = useMemo(
                                         style={styles.deltaIcon}
                                     />
                                     <Text
-                                        style={[styles.weightValue, styles.deltaText, { color: latestVolumeDeltaMeta.color }]}
+                                        style={[
+                                            chartCardTypography.deltaValue,
+                                            styles.deltaText,
+                                            { color: latestVolumeDeltaMeta.color },
+                                        ]}
                                     >
                                         {latestVolumeDeltaMeta.text}
                                     </Text>
                                 </View>
                             ) : null}
                         </View>
-                        <Text style={styles.summaryText}>{latestVolumeInfo}</Text>
+                        <Text style={[chartCardTypography.summary, styles.summaryText]}>{latestVolumeInfo}</Text>
                     </View>
 
                     <View
@@ -2431,17 +2435,17 @@ const completedWorkouts = useMemo(
                     ]}
                 >
                     <View style={styles.header}>
-                        <Text style={styles.sectionTitle}>Total Reps</Text>
+                        <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Total Reps</Text>
                         <View style={styles.autoUpdateHintWrapper}>
-                            <Text style={styles.autoUpdateHint}>Auto-updates from</Text>
-                            <Text style={styles.autoUpdateHint}>completed workouts.</Text>
+                            <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>Auto-updates from</Text>
+                            <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>completed workouts.</Text>
                         </View>
                     </View>
 
                     <View style={styles.metricsRow}>
                         <View style={styles.weightGroup}>
-                            <Text style={styles.weightValue}>{latestRepsText}</Text>
-                            <Text style={styles.weightUnit}>{latestRepsUnit}</Text>
+                            <Text style={[chartCardTypography.metricValue, styles.weightValue]}>{latestRepsText}</Text>
+                            <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>{latestRepsUnit}</Text>
                             {latestRepsDeltaMeta ? (
                                 <View style={styles.deltaGroup}>
                                     <Ionicons
@@ -2451,14 +2455,18 @@ const completedWorkouts = useMemo(
                                         style={styles.deltaIcon}
                                     />
                                     <Text
-                                        style={[styles.weightValue, styles.deltaText, { color: latestRepsDeltaMeta.color }]}
+                                        style={[
+                                            chartCardTypography.deltaValue,
+                                            styles.deltaText,
+                                            { color: latestRepsDeltaMeta.color },
+                                        ]}
                                     >
                                         {latestRepsDeltaMeta.text}
                                     </Text>
                                 </View>
                             ) : null}
                         </View>
-                        <Text style={styles.summaryText}>{latestRepsInfo}</Text>
+                        <Text style={[chartCardTypography.summary, styles.summaryText]}>{latestRepsInfo}</Text>
                     </View>
 
                     <View
@@ -2695,19 +2703,29 @@ const completedWorkouts = useMemo(
                 </View>
 
                 {hasPersonalRecordChartData ? (
-                    <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding, marginBottom: scaleSize(32) }]}> 
+                    <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding, marginBottom: scaleSize(32) }]}>
                         <View style={styles.header}>
-                            <Text style={styles.sectionTitle}>Total Personal Records</Text>
+                            <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>
+                                Total Personal Records
+                            </Text>
                             <View style={styles.autoUpdateHintWrapper}>
-                                <Text style={styles.autoUpdateHint}>Auto-updates when you</Text>
-                                <Text style={styles.autoUpdateHint}>hit new PRs.</Text>
+                                <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>
+                                    Auto-updates when you
+                                </Text>
+                                <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>
+                                    hit new PRs.
+                                </Text>
                             </View>
                         </View>
 
                         <View style={styles.metricsRow}>
                             <View style={styles.weightGroup}>
-                                <Text style={styles.weightValue}>{latestPersonalRecordText}</Text>
-                                <Text style={styles.weightUnit}>{latestPersonalRecordUnit}</Text>
+                                <Text style={[chartCardTypography.metricValue, styles.weightValue]}>
+                                    {latestPersonalRecordText}
+                                </Text>
+                                <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>
+                                    {latestPersonalRecordUnit}
+                                </Text>
                                 {latestPersonalRecordDeltaMeta ? (
                                     <View style={styles.deltaGroup}>
                                         <Ionicons
@@ -2717,14 +2735,20 @@ const completedWorkouts = useMemo(
                                             style={styles.deltaIcon}
                                         />
                                         <Text
-                                            style={[styles.weightValue, styles.deltaText, { color: latestPersonalRecordDeltaMeta.color }]}
+                                            style={[
+                                                chartCardTypography.deltaValue,
+                                                styles.deltaText,
+                                                { color: latestPersonalRecordDeltaMeta.color },
+                                            ]}
                                         >
                                             {latestPersonalRecordDeltaMeta.text}
                                         </Text>
                                     </View>
                                 ) : null}
                             </View>
-                            <Text style={styles.summaryText}>{latestPersonalRecordInfo}</Text>
+                            <Text style={[chartCardTypography.summary, styles.summaryText]}>
+                                {latestPersonalRecordInfo}
+                            </Text>
                         </View>
 
                         <View
@@ -2960,9 +2984,9 @@ const completedWorkouts = useMemo(
                         </View>
                     </View>
                 ) : null}
-                <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding }]}> 
+                <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding }]}>
                     <View style={styles.header}>
-                        <Text style={styles.sectionTitle}>Body Weight</Text>
+                        <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Body Weight</Text>
                         <View style={styles.headerActions}>
                             <RNBounceable
                                 style={styles.addButton}
@@ -2979,8 +3003,8 @@ const completedWorkouts = useMemo(
 
                     <View style={styles.metricsRow}>
                         <View style={styles.weightGroup}>
-                            <Text style={styles.weightValue}>{latestWeightText}</Text>
-                            <Text style={styles.weightUnit}>{latestUnit}</Text>
+                            <Text style={[chartCardTypography.metricValue, styles.weightValue]}>{latestWeightText}</Text>
+                            <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>{latestUnit}</Text>
                             {latestWeightDeltaMeta ? (
                                 <View style={styles.deltaGroup}>
                                     <Ionicons
@@ -2990,14 +3014,18 @@ const completedWorkouts = useMemo(
                                         style={styles.deltaIcon}
                                     />
                                     <Text
-                                        style={[styles.weightValue, styles.deltaText, { color: latestWeightDeltaMeta.color }]}
+                                        style={[
+                                            chartCardTypography.deltaValue,
+                                            styles.deltaText,
+                                            { color: latestWeightDeltaMeta.color },
+                                        ]}
                                     >
                                         {latestWeightDeltaMeta.text}
                                     </Text>
                                 </View>
                             ) : null}
                         </View>
-                        <Text style={styles.summaryText}>{latestInfoText}</Text>
+                        <Text style={[chartCardTypography.summary, styles.summaryText]}>{latestInfoText}</Text>
                     </View>
 
                     <View
