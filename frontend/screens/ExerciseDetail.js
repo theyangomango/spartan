@@ -413,7 +413,9 @@ const ExerciseVolumePointerLabel = React.memo(({ entry, unit, isRightAligned }) 
                 <View style={styles.progressPointerBubble}>
                     <Text style={styles.progressPointerTitle}>{totalText}</Text>
                     {incrementText ? (
-                        <Text style={styles.progressPointerSubtitle}>{`${incrementText} this session`}</Text>
+                        <Text
+                            style={[styles.progressPointerSubtitle, { color: '#65F2B6' }]}
+                        >{`${incrementText} this session`}</Text>
                     ) : null}
                     <Text style={styles.progressPointerTimestamp}>{timestampText}</Text>
                 </View>
@@ -445,7 +447,9 @@ const ExerciseRepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
                 <View style={styles.progressPointerBubble}>
                     <Text style={styles.progressPointerTitle}>{totalText}</Text>
                     {incrementText ? (
-                        <Text style={styles.progressPointerSubtitle}>{`${incrementText} this session`}</Text>
+                        <Text
+                            style={[styles.progressPointerSubtitle, { color: '#65F2B6' }]}
+                        >{`${incrementText} this session`}</Text>
                     ) : null}
                     <Text style={styles.progressPointerTimestamp}>{timestampText}</Text>
                 </View>
