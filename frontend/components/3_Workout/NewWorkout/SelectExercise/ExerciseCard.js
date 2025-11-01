@@ -9,48 +9,72 @@ import theme from "../../../../theme/mfpDark";
 
 const scaledSize = (size) => scaleSize(size);
 
-let compactNumberFormatter;
+const formatNumericWithMaxChars = (value, maxChars = 3) => {
+    const normalized = Number(value);
+    if (!Number.isFinite(normalized)) return null;
+    const abs = Math.abs(normalized);
+    if (abs === 0) return "0";
+
+    const decimalOrder = [2, 1, 0];
+
+    for (const decimals of decimalOrder) {
+        const factor = 10 ** decimals;
+        const rounded = Math.round(normalized * factor) / factor;
+        let str;
+        if (decimals === 0) {
+            str = Math.round(rounded).toString();
+        } else {
+            str = rounded.toFixed(decimals);
+        }
+
+        str = str.replace(/(\.\d*?[1-9])0+$/, "$1").replace(/\.0+$/, "").replace(/\.$/, "");
+        if (str === "-0") str = "0";
+        if (str.length <= maxChars) return str;
+    }
+
+    return null;
+};
+
+const SUFFIX_OPTIONS = [
+    { divisor: 1e9, suffix: "b" },
+    { divisor: 1e6, suffix: "m" },
+    { divisor: 1e3, suffix: "k" },
+    { divisor: 1, suffix: "" },
+];
 
 const formatVolumeLabel = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num) || num <= 0) return "0";
 
-    if (
-        compactNumberFormatter === undefined &&
-        typeof Intl !== "undefined" &&
-        typeof Intl.NumberFormat === "function"
-    ) {
-        try {
-            compactNumberFormatter = new Intl.NumberFormat(undefined, {
-                notation: "compact",
-                maximumFractionDigits: 1,
-            });
-        } catch {
-            compactNumberFormatter = null;
-        }
-    }
+    const candidates = [];
 
-    if (compactNumberFormatter) {
-        try {
-            return compactNumberFormatter.format(num);
-        } catch {
-            // fall through to manual formatting
-        }
-    }
-
-    const abs = Math.abs(num);
-    const withSuffix = (divisor, suffix) => {
+    SUFFIX_OPTIONS.forEach(({ divisor, suffix }, index) => {
         const scaled = num / divisor;
-        const precision = Math.abs(scaled) >= 10 ? 0 : 1;
-        return `${scaled.toFixed(precision).replace(/\.0$/, "")}${suffix}`;
-    };
+        const numericPart = formatNumericWithMaxChars(scaled, 3);
+        if (numericPart === null) return;
+        if (numericPart === "0" && num !== 0) return;
 
-    if (abs >= 1e9) return withSuffix(1e9, "b");
-    if (abs >= 1e6) return withSuffix(1e6, "m");
-    if (abs >= 1e3) return withSuffix(1e3, "k");
-    if (abs >= 100) return String(Math.round(num));
-    if (abs >= 10) return (Math.round(num * 10) / 10).toString().replace(/\.0$/, "");
-    return (Math.round(num * 100) / 100).toString().replace(/\.0+$/, "") || "0";
+        const approx = Number(numericPart) * divisor;
+        if (!Number.isFinite(approx)) return;
+
+        const error = Math.abs(approx - num);
+        candidates.push({
+            label: `${numericPart}${suffix}`,
+            error,
+            divisor,
+            order: index,
+        });
+    });
+
+    if (!candidates.length) return "0";
+
+    candidates.sort((a, b) => {
+        if (a.error !== b.error) return a.error - b.error;
+        if (a.divisor !== b.divisor) return a.divisor - b.divisor;
+        return a.order - b.order;
+    });
+
+    return candidates[0].label;
 };
 
 const COLORS = {
