@@ -734,7 +734,7 @@ export default function ProgressSection() {
 
     const cardHorizontalPadding = scaleSize(16);
     const chartHeight = scaleSize(220);
-    const chartWidth = Math.max(DEVICE_WIDTH - cardHorizontalPadding * 2, scaleSize(200));
+    const chartWidth = Math.max(DEVICE_WIDTH - cardHorizontalPadding, scaleSize(200));
     const chartPaddingTop = scaleSize(0);
     const chartPaddingBottom = scaleSize(0);
     const initialSpacing = scaleSize(12);
