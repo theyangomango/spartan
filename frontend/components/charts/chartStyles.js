@@ -79,7 +79,7 @@ export const chartTypography = StyleSheet.create({
 export const chartCardTypography = StyleSheet.create({
     sectionTitle: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: ts(16),
+        fontSize: ts(15),
         color: theme.textPrimary ?? '#F6F8FF',
     },
     hint: {
@@ -108,5 +108,37 @@ export const chartCardTypography = StyleSheet.create({
         fontSize: ts(16),
         color: theme.textPrimary ?? '#F6F8FF',
         lineHeight: ts(18),
+    },
+});
+
+export const chartCardLayout = StyleSheet.create({
+    card: {
+        backgroundColor: theme.surface,
+        paddingTop: scaleSize(16),
+        paddingBottom: scaleSize(6),
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.06)',
+    },
+    header: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: scaleSize(4),
+    },
+    metricsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: scaleSize(2),
+    },
+    valueGroup: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+    },
+    deltaGroup: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+        marginLeft: scaleSize(10),
+        paddingBottom: scaleSize(2),
     },
 });

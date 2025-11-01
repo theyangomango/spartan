@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View, Text } from "react-native";
+import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Ionicons } from "@expo/vector-icons";
 
 import theme from "../../theme/mfpDark";
@@ -220,7 +221,7 @@ const computeSnapshot = (user) => {
 
 const EMPTY_SNAPSHOT = computeSnapshot(null);
 
-export default function FeedSnapshotCard() {
+export default function FeedSnapshotCard({ onPressOverall }) {
     const [snapshot, setSnapshot] = useState(() => {
         try {
             return computeSnapshot(global?.userData || null);
@@ -294,6 +295,26 @@ export default function FeedSnapshotCard() {
                             metric.accent ? styles.metricAccent : styles.metricStandard,
                             metric.showDivider ? styles.metricDivider : null,
                         ].filter(Boolean);
+                        const isPressable = metric.accent && typeof onPressOverall === "function";
+                        if (isPressable) {
+                            return (
+                                <RNBounceable
+                                    key={metric.key}
+                                    style={metricStyles}
+                                    onPress={onPressOverall}
+                                    activeScale={0.96}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Open detailed hexagon stats"
+                                >
+                                    <Text style={[styles.metricValue, styles.metricValueAccent]}>
+                                        {metric.value}
+                                    </Text>
+                                    <Text style={[styles.metricLabel, styles.metricLabelAccent]}>
+                                        {metric.label}
+                                    </Text>
+                                </RNBounceable>
+                            );
+                        }
                         return (
                             <View key={metric.key} style={metricStyles}>
                                 <Text style={[styles.metricValue, metric.accent ? styles.metricValueAccent : null]}>
@@ -361,6 +382,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         paddingTop: scaled(8),
+        paddingRight: scaleSize(8)
     },
     metricItem: {
         flex: 1,
@@ -381,7 +403,6 @@ const styles = StyleSheet.create({
         paddingVertical: scaled(8),
         paddingHorizontal: scaled(8),
         borderRadius: scaled(12),
-        marginLeft: scaled(10),
         flex: 0.7
     },
     metricDivider: {

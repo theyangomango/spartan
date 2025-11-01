@@ -24,7 +24,7 @@ import makeID from "../../../../backend/helper/makeID";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import { emitUserDataUpdate, subscribeUserData } from "../../../utils/userDataEvents";
 import { DEVICE_WIDTH, scaleSize, ts } from "../layoutConstants";
-import { chartPointerStyles, chartTypography, chartCardTypography } from "../../charts/chartStyles";
+import { chartPointerStyles, chartTypography, chartCardTypography, chartCardLayout } from "../../charts/chartStyles";
 import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from "react-native-svg";
 import { navigateOneWay } from "../../../../navigationRef";
 
@@ -2156,8 +2156,15 @@ const completedWorkouts = useMemo(
                 contentContainerStyle={styles.container}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={[styles.card, styles.volumeCard, { paddingHorizontal: cardHorizontalPadding }]}>
-                    <View style={styles.header}>
+                <View
+                    style={[
+                        chartCardLayout.card,
+                        styles.card,
+                        styles.volumeCard,
+                        { paddingHorizontal: cardHorizontalPadding },
+                    ]}
+                >
+                    <View style={[chartCardLayout.header, styles.header]}>
                         <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Total Volume</Text>
                         <View style={styles.autoUpdateHintWrapper}>
                             <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>Auto-updates from</Text>
@@ -2165,12 +2172,12 @@ const completedWorkouts = useMemo(
                         </View>
                     </View>
 
-                    <View style={styles.metricsRow}>
-                        <View style={styles.weightGroup}>
-                            <Text style={[chartCardTypography.metricValue, styles.weightValue]}>{latestVolumeText}</Text>
+                    <View style={[chartCardLayout.metricsRow, styles.metricsRow]}>
+                        <View style={[chartCardLayout.valueGroup, styles.weightGroup]}>
+                            <Text style={chartCardTypography.metricValue}>{latestVolumeText}</Text>
                             <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>{latestVolumeUnit}</Text>
                             {latestVolumeDeltaMeta ? (
-                                <View style={styles.deltaGroup}>
+                                <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
                                     <Ionicons
                                         name={latestVolumeDeltaMeta.icon}
                                         size={scaleSize(19)}
@@ -2180,7 +2187,6 @@ const completedWorkouts = useMemo(
                                     <Text
                                         style={[
                                             chartCardTypography.deltaValue,
-                                            styles.deltaText,
                                             { color: latestVolumeDeltaMeta.color },
                                         ]}
                                     >
@@ -2427,6 +2433,7 @@ const completedWorkouts = useMemo(
                 </View>
                 <View
                     style={[
+                        chartCardLayout.card,
                         styles.card,
                         {
                             paddingHorizontal: cardHorizontalPadding,
@@ -2434,7 +2441,7 @@ const completedWorkouts = useMemo(
                         },
                     ]}
                 >
-                    <View style={styles.header}>
+                    <View style={[chartCardLayout.header, styles.header]}>
                         <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Total Reps</Text>
                         <View style={styles.autoUpdateHintWrapper}>
                             <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>Auto-updates from</Text>
@@ -2442,12 +2449,12 @@ const completedWorkouts = useMemo(
                         </View>
                     </View>
 
-                    <View style={styles.metricsRow}>
-                        <View style={styles.weightGroup}>
-                            <Text style={[chartCardTypography.metricValue, styles.weightValue]}>{latestRepsText}</Text>
+                    <View style={[chartCardLayout.metricsRow, styles.metricsRow]}>
+                        <View style={[chartCardLayout.valueGroup, styles.weightGroup]}>
+                            <Text style={chartCardTypography.metricValue}>{latestRepsText}</Text>
                             <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>{latestRepsUnit}</Text>
                             {latestRepsDeltaMeta ? (
-                                <View style={styles.deltaGroup}>
+                                <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
                                     <Ionicons
                                         name={latestRepsDeltaMeta.icon}
                                         size={scaleSize(19)}
@@ -2457,7 +2464,6 @@ const completedWorkouts = useMemo(
                                     <Text
                                         style={[
                                             chartCardTypography.deltaValue,
-                                            styles.deltaText,
                                             { color: latestRepsDeltaMeta.color },
                                         ]}
                                     >
@@ -2703,8 +2709,14 @@ const completedWorkouts = useMemo(
                 </View>
 
                 {hasPersonalRecordChartData ? (
-                    <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding, marginBottom: scaleSize(32) }]}>
-                        <View style={styles.header}>
+                    <View
+                        style={[
+                            chartCardLayout.card,
+                            styles.card,
+                            { paddingHorizontal: cardHorizontalPadding, marginBottom: scaleSize(32) },
+                        ]}
+                    >
+                        <View style={[chartCardLayout.header, styles.header]}>
                             <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>
                                 Total Personal Records
                             </Text>
@@ -2718,16 +2730,16 @@ const completedWorkouts = useMemo(
                             </View>
                         </View>
 
-                        <View style={styles.metricsRow}>
-                            <View style={styles.weightGroup}>
-                                <Text style={[chartCardTypography.metricValue, styles.weightValue]}>
+                        <View style={[chartCardLayout.metricsRow, styles.metricsRow]}>
+                            <View style={[chartCardLayout.valueGroup, styles.weightGroup]}>
+                                <Text style={chartCardTypography.metricValue}>
                                     {latestPersonalRecordText}
                                 </Text>
                                 <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>
                                     {latestPersonalRecordUnit}
                                 </Text>
                                 {latestPersonalRecordDeltaMeta ? (
-                                    <View style={styles.deltaGroup}>
+                                    <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
                                         <Ionicons
                                             name={latestPersonalRecordDeltaMeta.icon}
                                             size={scaleSize(19)}
@@ -2737,7 +2749,6 @@ const completedWorkouts = useMemo(
                                         <Text
                                             style={[
                                                 chartCardTypography.deltaValue,
-                                                styles.deltaText,
                                                 { color: latestPersonalRecordDeltaMeta.color },
                                             ]}
                                         >
@@ -2984,8 +2995,14 @@ const completedWorkouts = useMemo(
                         </View>
                     </View>
                 ) : null}
-                <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding }]}>
-                    <View style={styles.header}>
+                <View
+                    style={[
+                        chartCardLayout.card,
+                        styles.card,
+                        { paddingHorizontal: cardHorizontalPadding },
+                    ]}
+                >
+                    <View style={[chartCardLayout.header, styles.header]}>
                         <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Body Weight</Text>
                         <View style={styles.headerActions}>
                             <RNBounceable
@@ -3001,12 +3018,12 @@ const completedWorkouts = useMemo(
                         </View>
                     </View>
 
-                    <View style={styles.metricsRow}>
-                        <View style={styles.weightGroup}>
-                            <Text style={[chartCardTypography.metricValue, styles.weightValue]}>{latestWeightText}</Text>
+                    <View style={[chartCardLayout.metricsRow, styles.metricsRow]}>
+                        <View style={[chartCardLayout.valueGroup, styles.weightGroup]}>
+                            <Text style={chartCardTypography.metricValue}>{latestWeightText}</Text>
                             <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>{latestUnit}</Text>
                             {latestWeightDeltaMeta ? (
-                                <View style={styles.deltaGroup}>
+                                <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
                                     <Ionicons
                                         name={latestWeightDeltaMeta.icon}
                                         size={scaleSize(19)}
@@ -3016,7 +3033,6 @@ const completedWorkouts = useMemo(
                                     <Text
                                         style={[
                                             chartCardTypography.deltaValue,
-                                            styles.deltaText,
                                             { color: latestWeightDeltaMeta.color },
                                         ]}
                                     >
@@ -3346,8 +3362,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     sectionTitle: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(15),
         color: theme.textPrimary ?? "#F6F8FF",
     },
     manageButton: {
@@ -3383,10 +3397,7 @@ const styles = StyleSheet.create({
         alignItems: "flex-end",
     },
     weightValue: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: ts(22),
         color: theme.textPrimary ?? "#F6F8FF",
-        lineHeight: ts(23),
     },
     deltaGroup: {
         flexDirection: "row",
@@ -3399,20 +3410,15 @@ const styles = StyleSheet.create({
         marginBottom: scaleSize(2),
     },
     deltaText: {
-        fontSize: ts(16),
         lineHeight: ts(18),
     },
     weightUnit: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(16),
         color: theme.textPrimary ?? "#F6F8FF",
         marginLeft: scaleSize(6),
         marginBottom: scaleSize(4),
         textTransform: "lowercase",
     },
     summaryText: {
-        fontFamily: "Outfit_400Regular",
-        fontSize: ts(12),
         color: "rgba(255,255,255,0.55)",
         maxWidth: "50%",
         flexShrink: 1,
@@ -3424,8 +3430,6 @@ const styles = StyleSheet.create({
         alignItems: "flex-end",
     },
     autoUpdateHint: {
-        fontFamily: "Outfit_400Regular",
-        fontSize: ts(11),
         color: "rgba(216, 226, 255, 0.55)",
     },
     chartWrapper: {

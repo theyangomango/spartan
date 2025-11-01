@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import BottomSheet from "@gorhom/bottom-sheet";
 import { useSharedValue, useAnimatedReaction } from "react-native-reanimated";
 import { useWindowDimensions, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -73,18 +73,6 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
     );
 
     const renderHandle = useCallback(() => null, []);
-
-    const renderBackdrop = useCallback(
-        (props) => (
-            <BottomSheetBackdrop
-                {...props}
-                disappearsOnIndex={-1}
-                appearsOnIndex={0}
-                style={[props.style, { backgroundColor: "rgba(45, 70, 110, 0.52)" }]}
-            />
-        ),
-        []
-    );
 
     useEffect(() => {
         if (isVisible) {
@@ -162,7 +150,6 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
             index={-1}
             animatedIndex={animatedIndexSV}
             animatedPosition={animatedPositionSV}
-            // backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
             handleComponent={renderHandle}
             handleHeight={0}
@@ -171,7 +158,14 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
                 borderTopLeftRadius: scaleSize(24),
                 borderTopRightRadius: scaleSize(24),
             }}
-            containerStyle={{ marginTop: -insetTop, overflow: "hidden", borderTopLeftRadius: scaleSize(24), borderTopRightRadius: scaleSize(24) }}
+            containerStyle={{
+                marginTop: -insetTop,
+                overflow: "hidden",
+                borderTopLeftRadius: scaleSize(24),
+                borderTopRightRadius: scaleSize(24),
+                zIndex: 999,
+                elevation: 30,
+            }}
             enablePanDownToClose
             onClose={() => {
                 setIsVisible(false);

@@ -44,6 +44,7 @@ import { emitHexagonUpdate } from "../utils/hexagonEvents";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import { strong as hapticStrong } from "../utils/haptics";
 import FeedSnapshotCard from "../components/1_Feed/FeedSnapshotCard";
+import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -141,6 +142,7 @@ export default function Feed({ navigation, route }) {
     const [likesSheetUsers, setLikesSheetUsers] = useState([]);
     const [likesSheetTitle, setLikesSheetTitle] = useState("Liked by");
     const [deletingPostPid, setDeletingPostPid] = useState(null);
+    const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
 
     const highlightPidRef = useRef(null);
     const [highlightSignal, setHighlightSignal] = useState(0);
@@ -808,7 +810,16 @@ export default function Feed({ navigation, route }) {
         ? listData[activePostIndex] || null
         : null;
 
-    const renderSnapshotCard = useCallback(() => <FeedSnapshotCard />, []);
+    const handleOpenUserStats = useCallback(() => {
+        if (!global?.userData) return;
+        try { hapticStrong(); } catch { }
+        try { setIsUserStatsBottomSheetVisible(true); } catch { setIsUserStatsBottomSheetVisible(true); }
+    }, []);
+
+    const renderSnapshotCard = useCallback(
+        () => <FeedSnapshotCard onPressOverall={handleOpenUserStats} />,
+        [handleOpenUserStats]
+    );
 
     return (
         <SafeAreaView style={styles.screen} edges={["top"]}>
@@ -887,6 +898,14 @@ export default function Feed({ navigation, route }) {
                         return current;
                     });
                 }}
+            />
+
+            <UserStatsBottomSheet
+                isVisible={isUserStatsBottomSheetVisible}
+                setIsVisible={setIsUserStatsBottomSheetVisible}
+                user={global?.userData || null}
+                navigation={navigation}
+                heightRatio={0.88}
             />
 
             <Footer key={footerKey} currentScreenName="Feed" navigation={navigation} />
