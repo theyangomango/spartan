@@ -28,7 +28,7 @@ import { customFonts } from './fonts';
 import { db } from './firebase.config';
 import { doc, onSnapshot, collection, query, where, getDoc, getDocFromCache } from 'firebase/firestore';
 import { initCommunityStats, refreshCommunityStats } from './frontend/logic/communityStats';
-import { Asset } from 'expo-asset';
+import { ensureAuthBackgroundAsync } from './frontend/utils/authBackground';
 
 /* Screens */
 import SignUp from './frontend/screens/0.0_SignUp';
@@ -73,7 +73,6 @@ import { ensureNotificationsListener, stopNotificationsListener } from './fronte
 import WorkoutInviteOverlay from './frontend/components/WorkoutInviteOverlay';
 import { openActiveWorkout } from './frontend/workout/workoutActions';
 
-const AUTH_BACKGROUND_ASSET = require('./frontend/assets/AUTH_BACKGROUND.jpg');
 const PRELOADED_FONTS = {
     ...customFonts,
     ...Entypo.font,
@@ -255,17 +254,39 @@ export default function App() {
         setIsFooterVisible((prev) => (prev === shouldShow ? prev : shouldShow));
     }, [animateFooterVisibility, isFooterNavEligible, isFooterSuppressed]);
 
+    const markAuthBackgroundReady = useCallback(() => {
+        if (!authBackgroundReadyRef.current) {
+            authBackgroundReadyRef.current = true;
+        }
+        setAuthBackgroundReady(true);
+    }, []);
+
     useEffect(() => {
         if (isAuthenticated) {
-            if (!authBackgroundReadyRef.current) {
-                authBackgroundReadyRef.current = true;
-                setAuthBackgroundReady(true);
-            }
+            markAuthBackgroundReady();
             return;
         }
 
-        Asset.loadAsync(AUTH_BACKGROUND_ASSET).catch(() => { });
-    }, [isAuthenticated]);
+        let cancelled = false;
+        authBackgroundReadyRef.current = false;
+        setAuthBackgroundReady(false);
+
+        ensureAuthBackgroundAsync()
+            .then(() => {
+                if (!cancelled) {
+                    markAuthBackgroundReady();
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    markAuthBackgroundReady();
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [isAuthenticated, markAuthBackgroundReady]);
 
     useEffect(() => {
         if (authBackgroundReady && !authBackgroundReadyRef.current) {
@@ -274,28 +295,20 @@ export default function App() {
     }, [authBackgroundReady]);
 
     useEffect(() => {
-        if (!isAuthenticated) {
-            authBackgroundReadyRef.current = false;
-            setAuthBackgroundReady(false);
-        }
-    }, [hasShownAppOnce, isAuthenticated]);
-
-    useEffect(() => {
         if (isAuthenticated) {
             return;
         }
         try {
-            global.__markAuthBackgroundReady = () => {
-                if (!authBackgroundReadyRef.current) {
-                    authBackgroundReadyRef.current = true;
-                    setAuthBackgroundReady(true);
-                }
-            };
+            global.__markAuthBackgroundReady = markAuthBackgroundReady;
         } catch { }
         return () => {
-            try { delete global.__markAuthBackgroundReady; } catch { }
+            try {
+                if (global.__markAuthBackgroundReady === markAuthBackgroundReady) {
+                    delete global.__markAuthBackgroundReady;
+                }
+            } catch { }
         };
-    }, [hasShownAppOnce, isAuthenticated]);
+    }, [isAuthenticated, markAuthBackgroundReady]);
 
     useEffect(() => {
         const setter = (id, suppressed) => {

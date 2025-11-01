@@ -28,6 +28,53 @@ import { chartPointerStyles, chartTypography, chartCardTypography, chartCardLayo
 import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from "react-native-svg";
 import { navigateOneWay } from "../../../../navigationRef";
 
+const WORKOUT_TIMESTAMP_FIELDS = ["created"];
+
+const toMillisSafe = (value) => {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+    if (value instanceof Date) {
+        const ms = value.getTime();
+        return Number.isFinite(ms) ? ms : 0;
+    }
+    if (typeof value?.toMillis === "function") {
+        const direct = Number(value.toMillis());
+        return Number.isFinite(direct) ? direct : 0;
+    }
+    if (typeof value?.toDate === "function") {
+        try {
+            const dateValue = value.toDate();
+            if (dateValue instanceof Date) {
+                const ms = dateValue.getTime();
+                if (Number.isFinite(ms)) return ms;
+            }
+        } catch {
+            // ignore conversion failure
+        }
+    }
+    if (typeof value === "object" && typeof value.seconds === "number") {
+        const base = Number(value.seconds) * 1000;
+        const fractional = Number.isFinite(Number(value.nanoseconds)) ? Number(value.nanoseconds) / 1e6 : 0;
+        const total = base + fractional;
+        return Number.isFinite(total) ? total : 0;
+    }
+    if (typeof value === "object" && typeof value._seconds === "number") {
+        const base = Number(value._seconds) * 1000;
+        const fractional = Number.isFinite(Number(value._nanoseconds)) ? Number(value._nanoseconds) / 1e6 : 0;
+        const total = base + fractional;
+        return Number.isFinite(total) ? total : 0;
+    }
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (!trimmed) return 0;
+        const numeric = Number(trimmed);
+        if (Number.isFinite(numeric)) return numeric;
+        const parsed = Date.parse(trimmed);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
+};
+
 const resolvePreferredWeightUnit = (user) => {
     const rawUnit =
         user?.settings?.units ||
@@ -80,7 +127,7 @@ const formatWeightValue = (value) => {
 };
 
 const formatTimestamp = (value) => {
-    const ms = Number(value);
+    const ms = toMillisSafe(value);
     if (!Number.isFinite(ms) || ms <= 0) return "No Logged Data";
     try {
         return dayjs(ms).format("MMM D, h:mm A");
@@ -95,15 +142,15 @@ const sanitizeEntries = (rawEntries) => {
         .map((entry) => {
             if (!entry) return null;
             const weight = Number(entry.weight);
-            const recordedAt = Number(entry.recordedAt || entry.timestamp || entry.loggedAt);
-            if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(recordedAt)) return null;
+            const recordedAt = toMillisSafe(entry.created);
+            if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(recordedAt) || recordedAt <= 0) return null;
             const unit = (entry.unit || "").toString().toLowerCase().startsWith("k") ? "kg" : "lb";
             return {
                 id: entry.id || entry.key || makeID(),
                 weight,
                 unit,
                 recordedAt,
-                createdAt: Number(entry.createdAt || recordedAt || Date.now()),
+                createdAt: recordedAt,
             };
         })
         .filter(Boolean)
@@ -111,32 +158,12 @@ const sanitizeEntries = (rawEntries) => {
 };
 
 const resolveWorkoutTimestamp = (workout) => {
-    const candidates = [
-        workout?.finishedAt,
-        workout?.completedAt,
-        workout?.endedAt,
-        workout?.timestamp,
-        workout?.loggedAt,
-        workout?.updatedAt,
-        workout?.createdAt,
-        workout?.created,
-    ];
-    for (const candidate of candidates) {
-        if (candidate == null) continue;
-        const direct = Number(candidate);
-        if (Number.isFinite(direct) && direct > 0) return direct;
-        if (typeof candidate === "string" && candidate.trim()) {
-            const parsed = Date.parse(candidate);
-            if (Number.isFinite(parsed)) return parsed;
-        }
-        if (typeof candidate === "object" && candidate?.toDate) {
-            try {
-                const converted = candidate.toDate().getTime();
-                if (Number.isFinite(converted)) return converted;
-            } catch {}
-        }
+    if (!workout || typeof workout !== "object") return 0;
+    for (const field of WORKOUT_TIMESTAMP_FIELDS) {
+        const ms = toMillisSafe(workout?.[field]);
+        if (ms) return ms;
     }
-    return null;
+    return 0;
 };
 
 const sanitizeCompletedWorkouts = (raw) => {
@@ -150,7 +177,7 @@ const sanitizePersonalRecordEntries = (completedWorkouts) => {
     const prelim = completedWorkouts
         .map((workout) => {
             const recordedAt = resolveWorkoutTimestamp(workout);
-            if (!Number.isFinite(recordedAt)) return null;
+            if (!Number.isFinite(recordedAt) || recordedAt <= 0) return null;
 
             const rawIncrement = Number(workout?.PBs ?? workout?.pbs ?? 0);
             const increment = Number.isFinite(rawIncrement) && rawIncrement > 0 ? rawIncrement : 0;
@@ -232,7 +259,7 @@ const sanitizeVolumeEntries = (completedWorkouts) => {
             if (!workout) return null;
             const recordedAt = resolveWorkoutTimestamp(workout);
             const volume = Number(workout?.volume ?? workout?.totalVolume ?? workout?.stats?.volume ?? 0);
-            if (!Number.isFinite(recordedAt) || !Number.isFinite(volume) || volume <= 0) return null;
+            if (!Number.isFinite(recordedAt) || recordedAt <= 0 || !Number.isFinite(volume) || volume <= 0) return null;
             return {
                 id: workout.id || workout.wid || workout.workoutId || workout.sessionId || makeID(),
                 increment: volume,
@@ -277,7 +304,7 @@ const sanitizeRepsEntries = (completedWorkouts) => {
                     workout?.metrics?.reps ??
                     0
                 ) || 0;
-            if (!Number.isFinite(recordedAt) || !Number.isFinite(reps) || reps <= 0) return null;
+            if (!Number.isFinite(recordedAt) || recordedAt <= 0 || !Number.isFinite(reps) || reps <= 0) return null;
             return {
                 id: workout.id || workout.wid || workout.workoutId || workout.sessionId || makeID(),
                 increment: reps,

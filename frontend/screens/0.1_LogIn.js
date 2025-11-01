@@ -14,6 +14,7 @@ import AuthButton from '../components/auth/AuthButton';
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
 import AppleAuthButton from '../components/auth/AppleAuthButton';
 import authBackground from '../assets/AUTH_BACKGROUND.jpg';
+import useAuthBackgroundSource from '../hooks/useAuthBackgroundSource';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -61,9 +62,11 @@ const LogIn = ({ navigation }) => {
         } catch {}
     }, [navigation]);
 
+    const backgroundSource = useAuthBackgroundSource();
+
     return (
         <ImageBackground
-            source={authBackground}
+            source={backgroundSource}
             defaultSource={authBackground}
             style={styles.background}
             imageStyle={styles.backgroundImage}

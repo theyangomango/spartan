@@ -25,6 +25,7 @@ import uploadImage from '../../backend/storage/uploadImage';
 import DEFAULT_PFP from '../assets/DEFAULT_PFP.png';
 import scaleSize from '../helper/scaleSize';
 import makeID from '../../backend/helper/makeID';
+import useAuthBackgroundSource from '../hooks/useAuthBackgroundSource';
 
 const USERNAME_REGEX = /^[a-z0-9_.]{6,20}$/;
 
@@ -287,11 +288,13 @@ const CreateUsername = ({ navigation, route }) => {
     }
   }, [dismissKeyboard, handle, navigation, nextRoute, pendingUser, saving, uid, userSnapshot]);
 
+  const backgroundSource = useAuthBackgroundSource();
   const showSpinner = saving || loading;
 
   return (
     <ImageBackground
-      source={authBackground}
+      source={backgroundSource}
+      defaultSource={authBackground}
       style={styles.background}
       imageStyle={styles.backgroundImage}
       resizeMode="cover"

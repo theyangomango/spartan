@@ -155,14 +155,7 @@ const buildFallbackHowToSteps = ({ title, muscleGroup, equipment }) => {
 
 const HISTORY_SESSION_LIMIT = 15;
 const WEEKDAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
-const WORKOUT_TIMESTAMP_FIELDS = [
-    'finishedAt',
-    'completedAt',
-    'updatedAt',
-    'startedAt',
-    'createdAt',
-    'created',
-];
+const WORKOUT_TIMESTAMP_FIELDS = ['created'];
 
 const toMillisSafe = (value) => {
     if (value === null || value === undefined) return 0;
@@ -172,8 +165,32 @@ const toMillisSafe = (value) => {
         const result = Number(value.toMillis());
         return Number.isFinite(result) ? result : 0;
     }
+    if (typeof value?.toDate === 'function') {
+        try {
+            const dateResult = value.toDate();
+            if (dateResult instanceof Date) {
+                const ms = dateResult.getTime();
+                if (Number.isFinite(ms)) return ms;
+            }
+        } catch {
+            // ignore conversion issues
+        }
+    }
     if (typeof value === 'object' && typeof value.seconds === 'number') {
-        return value.seconds * 1000;
+        const base = Number(value.seconds) * 1000;
+        const fractional = Number.isFinite(Number(value.nanoseconds))
+            ? Number(value.nanoseconds) / 1e6
+            : 0;
+        const total = base + fractional;
+        return Number.isFinite(total) ? total : 0;
+    }
+    if (typeof value === 'object' && typeof value._seconds === 'number') {
+        const base = Number(value._seconds) * 1000;
+        const fractional = Number.isFinite(Number(value._nanoseconds))
+            ? Number(value._nanoseconds) / 1e6
+            : 0;
+        const total = base + fractional;
+        return Number.isFinite(total) ? total : 0;
     }
     if (typeof value === 'string') {
         const trimmed = value.trim();
@@ -816,21 +833,11 @@ const resolveWorkoutTimestamp = (workout) => {
 
 const resolveSetTimestamp = (set, workoutsByWid) => {
     if (!set || typeof set !== 'object') return 0;
-    const direct = toMillisSafe(set.timestamp);
-    if (direct) return direct;
     const wid = set?.wid ? String(set.wid).trim() : '';
     if (wid && workoutsByWid && workoutsByWid.has(wid)) {
         const workout = workoutsByWid.get(wid);
         const workoutTs = resolveWorkoutTimestamp(workout);
         if (workoutTs) return workoutTs;
-    }
-    if (typeof set.date === 'string' && set.date.trim()) {
-        const parsed = parseDayKeyToDate(set.date.trim());
-        if (parsed) {
-            parsed.setHours(12, 0, 0, 0);
-            const dateTs = parsed.getTime();
-            if (Number.isFinite(dateTs)) return dateTs;
-        }
     }
     return 0;
 };
