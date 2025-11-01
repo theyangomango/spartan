@@ -253,10 +253,16 @@ export default function LeaderboardsSection({ navigation }) {
 
     const [userList, setUserList] = useState(persisted.userList ?? LAST_USERLIST);
     const [comparedExercise, setComparedExercise] = useState("Overall");
-    const [scope, setScope] = useState(persisted.scope ?? LAST_SCOPE);
+    const fallbackScope = LAST_SCOPE === "Global" ? "Following" : LAST_SCOPE;
+    const sanitizedInitialScope =
+        persisted.scope === "Global" ? "Following" : persisted.scope;
+    // const [scope, setScope] = useState(persisted.scope ?? LAST_SCOPE);
+    const [scope, setScope] = useState(sanitizedInitialScope ?? fallbackScope);
 
     useEffect(() => {
-        if (persisted?.scope === "All Followers") setScope("Following");
+        if (persisted?.scope === "All Followers" || persisted?.scope === "Global") {
+            setScope("Following");
+        }
     }, [persisted?.scope]);
 
     const [usersLoaded, setUsersLoaded] = useState(false);
@@ -548,7 +554,8 @@ export default function LeaderboardsSection({ navigation }) {
             if (type === "following" || type === "followers") {
                 setScope("Following");
             } else {
-                setScope("Global");
+                // setScope("Global");
+                setScope("Following");
             }
             if (lastView.exercise) setComparedExercise(String(lastView.exercise));
             if (lastView.metric) setComparedMetric(String(lastView.metric));
@@ -1113,8 +1120,9 @@ export default function LeaderboardsSection({ navigation }) {
 
     const scopeLabel = useMemo(() => {
         if (selectedTribeId) return "Tribe";
-        return scope === "Following" ? "Following" : "Global";
-    }, [selectedTribeId, scope]);
+        // return scope === "Following" ? "Following" : "Global";
+        return "Following";
+    }, [selectedTribeId /* , scope */]);
 
     const scopeSubtitle = useMemo(() => {
         if (selectedTribeId) {
@@ -1122,7 +1130,7 @@ export default function LeaderboardsSection({ navigation }) {
             return name ? String(name) : null;
         }
         if (scope === "Following") return "People you follow";
-        if (scope === "Global") return "All athletes";
+        // if (scope === "Global") return "All athletes";
         return null;
     }, [selectedTribeId, currentTribe, scope]);
 
@@ -1472,11 +1480,11 @@ export default function LeaderboardsSection({ navigation }) {
                 selectedTribeId={selectedTribeId}
                 scope={scope}
                 onClose={() => setTribeMenuVisible(false)}
-                onSelectGlobal={() => {
+                /* onSelectGlobal={() => {
                     setSelectedTribeId(null);
                     setScope("Global");
                     setTribeMenuVisible(false);
-                }}
+                }} */
                 onSelectFollowing={() => {
                     setSelectedTribeId(null);
                     setScope("Following");
