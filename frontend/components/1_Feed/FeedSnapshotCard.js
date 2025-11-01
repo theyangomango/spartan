@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { StyleSheet, View, Text } from "react-native";
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -221,7 +221,7 @@ const computeSnapshot = (user) => {
 
 const EMPTY_SNAPSHOT = computeSnapshot(null);
 
-export default function FeedSnapshotCard({ onPressOverall }) {
+export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
     const [snapshot, setSnapshot] = useState(() => {
         try {
             return computeSnapshot(global?.userData || null);
@@ -270,9 +270,21 @@ export default function FeedSnapshotCard({ onPressOverall }) {
         [snapshot.durationLabel, snapshot.hexScore, snapshot.recordsLabel, snapshot.volumeLabel]
     );
 
+    const isCardPressable = typeof onPressCard === "function";
+    const CardWrapper = isCardPressable ? TouchableOpacity : View;
+    const cardWrapperProps = isCardPressable
+        ? {
+              onPress: onPressCard,
+              activeOpacity: 0.88,
+              accessibilityRole: "button",
+              accessibilityLabel: "View detailed progress",
+              hitSlop: { top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(8), right: scaleSize(8) },
+          }
+        : {};
+
     return (
         <View style={styles.wrapper}>
-            <View style={styles.card}>
+            <CardWrapper style={styles.card} {...cardWrapperProps}>
                 <View style={styles.headerRow}>
                     <View style={styles.headerLeft}>
                         <Text style={styles.title}>This Week</Text>
@@ -302,7 +314,7 @@ export default function FeedSnapshotCard({ onPressOverall }) {
                                     key={metric.key}
                                     style={metricStyles}
                                     onPress={onPressOverall}
-                                    activeScale={0.96}
+                                    activeScale={0.94}
                                     accessibilityRole="button"
                                     accessibilityLabel="Open detailed hexagon stats"
                                 >
@@ -327,7 +339,7 @@ export default function FeedSnapshotCard({ onPressOverall }) {
                         );
                     })}
                 </View>
-            </View>
+            </CardWrapper>
         </View>
     );
 }
@@ -340,9 +352,9 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: theme.surface,
         width: "100%",
-        paddingHorizontal: scaled(12),
+        paddingHorizontal: scaleSize(18),
         paddingTop: scaleSize(12),
-        paddingBottom: scaleSize(8)
+        paddingBottom: scaleSize(8),
     },
     headerRow: {
         flexDirection: "row",

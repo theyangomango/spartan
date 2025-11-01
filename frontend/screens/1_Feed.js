@@ -22,7 +22,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { useIsFocused, useFocusEffect } from "@react-navigation/native";
+import { useIsFocused, useFocusEffect, StackActions } from "@react-navigation/native";
 import useStableSafeAreaInsets from "../hooks/useStableSafeAreaInsets";
 
 import PostListItem from "../components/1_Feed/PostListItem";
@@ -45,6 +45,7 @@ import readDoc from "../../backend/helper/firebase/readDoc";
 import { strong as hapticStrong } from "../utils/haptics";
 import FeedSnapshotCard from "../components/1_Feed/FeedSnapshotCard";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
+import { navigateOneWay } from "../../navigationRef";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -816,9 +817,41 @@ export default function Feed({ navigation, route }) {
         try { setIsUserStatsBottomSheetVisible(true); } catch { setIsUserStatsBottomSheetVisible(true); }
     }, []);
 
+    const handleNavigateCompetitionProgress = useCallback(() => {
+        try { hapticStrong(); } catch {}
+        try {
+            navigation.dispatch(
+                StackActions.push("Competition", {
+                    focusTab: "progress",
+                    transition: "slide-from-right",
+                })
+            );
+            return;
+        } catch {}
+
+        const didNavigate = navigateOneWay("Competition", {
+            animation: "slide-from-right",
+            params: { focusTab: "progress" },
+        });
+
+        if (!didNavigate) {
+            try {
+                navigation.navigate("Competition", {
+                    focusTab: "progress",
+                    transition: "slide-from-right",
+                });
+            } catch {}
+        }
+    }, [navigation]);
+
     const renderSnapshotCard = useCallback(
-        () => <FeedSnapshotCard onPressOverall={handleOpenUserStats} />,
-        [handleOpenUserStats]
+        () => (
+            <FeedSnapshotCard
+                onPressOverall={handleOpenUserStats}
+                onPressCard={handleNavigateCompetitionProgress}
+            />
+        ),
+        [handleOpenUserStats, handleNavigateCompetitionProgress]
     );
 
     return (

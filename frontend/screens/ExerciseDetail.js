@@ -2173,7 +2173,7 @@ export default function ExerciseDetail() {
                                     <View style={chartCardLayout.deltaGroup}>
                                         <Ionicons
                                             name={latestExerciseVolumeDeltaMeta.icon}
-                                            size={scaleSize(19)}
+                                            size={scaleSize(17)}
                                             color={latestExerciseVolumeDeltaMeta.color}
                                             style={styles.progressDeltaIcon}
                                         />
@@ -2451,7 +2451,7 @@ export default function ExerciseDetail() {
                                     <View style={chartCardLayout.deltaGroup}>
                                         <Ionicons
                                             name={latestExercisePersonalRecordDeltaMeta.icon}
-                                            size={scaleSize(19)}
+                                            size={scaleSize(17)}
                                             color={latestExercisePersonalRecordDeltaMeta.color}
                                             style={styles.progressDeltaIcon}
                                         />
@@ -2732,7 +2732,7 @@ export default function ExerciseDetail() {
                                     <View style={chartCardLayout.deltaGroup}>
                                         <Ionicons
                                             name={latestExerciseRepsDeltaMeta.icon}
-                                            size={scaleSize(19)}
+                                            size={scaleSize(17)}
                                             color={latestExerciseRepsDeltaMeta.color}
                                             style={styles.progressDeltaIcon}
                                         />

@@ -1,5 +1,5 @@
 // screens/Competition.jsx
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View, Text } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
@@ -22,9 +22,31 @@ const VIEW_TABS = [
     { key: "exercises", label: "Exercises" },
 ];
 
-export default function Competition({ navigation }) {
+export default function Competition({ navigation, route }) {
     const insets = useStableSafeAreaInsets();
-    const [activeTab, setActiveTab] = useState("leaderboard");
+    const [activeTab, setActiveTab] = useState(() => {
+        const requested = route?.params?.focusTab;
+        if (
+            typeof requested === "string" &&
+            VIEW_TABS.some((tab) => tab.key === requested)
+        ) {
+            return requested;
+        }
+        return "leaderboard";
+    });
+
+    useEffect(() => {
+        const requested = route?.params?.focusTab;
+        if (
+            typeof requested === "string" &&
+            VIEW_TABS.some((tab) => tab.key === requested)
+        ) {
+            if (requested !== activeTab) {
+                setActiveTab(requested);
+            }
+            navigation?.setParams?.({ focusTab: undefined });
+        }
+    }, [route?.params?.focusTab, activeTab, navigation]);
 
     const handleTabPress = useCallback((key) => {
         setActiveTab(key);

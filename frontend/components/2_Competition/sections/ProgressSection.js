@@ -2180,7 +2180,7 @@ const completedWorkouts = useMemo(
                                 <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
                                     <Ionicons
                                         name={latestVolumeDeltaMeta.icon}
-                                        size={scaleSize(19)}
+                                        size={scaleSize(17)}
                                         color={latestVolumeDeltaMeta.color}
                                         style={styles.deltaIcon}
                                     />
@@ -2457,7 +2457,7 @@ const completedWorkouts = useMemo(
                                 <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
                                     <Ionicons
                                         name={latestRepsDeltaMeta.icon}
-                                        size={scaleSize(19)}
+                                        size={scaleSize(17)}
                                         color={latestRepsDeltaMeta.color}
                                         style={styles.deltaIcon}
                                     />
@@ -2742,7 +2742,7 @@ const completedWorkouts = useMemo(
                                     <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
                                         <Ionicons
                                             name={latestPersonalRecordDeltaMeta.icon}
-                                            size={scaleSize(19)}
+                                            size={scaleSize(17)}
                                             color={latestPersonalRecordDeltaMeta.color}
                                             style={styles.deltaIcon}
                                         />
@@ -3026,7 +3026,7 @@ const completedWorkouts = useMemo(
                                 <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
                                     <Ionicons
                                         name={latestWeightDeltaMeta.icon}
-                                        size={scaleSize(19)}
+                                        size={scaleSize(17)}
                                         color={latestWeightDeltaMeta.color}
                                         style={styles.deltaIcon}
                                     />
@@ -3341,22 +3341,11 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(130),
         backgroundColor: theme.bg,
     },
-    card: {
-        backgroundColor: theme.surface,
-        paddingTop: scaleSize(16),
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.06)",
-    },
+    card: {},
     volumeCard: {
         marginBottom: scaleSize(32),
     },
-    header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginBottom: scaleSize(4),
-    },
+    header: {},
     headerActions: {
         flexDirection: "row",
         alignItems: "center",
@@ -3387,30 +3376,14 @@ const styles = StyleSheet.create({
         fontSize: ts(12),
         color: theme.primary ?? "#2D9EFF",
     },
-    metricsRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginBottom: scaleSize(2),
-    },
-    weightGroup: {
-        flexDirection: "row",
-        alignItems: "flex-end",
-    },
-    weightValue: {
-        color: theme.textPrimary ?? "#F6F8FF",
-    },
+    metricsRow: {},
+    weightGroup: {},
     deltaGroup: {
-        flexDirection: "row",
-        alignItems: "flex-end",
-        marginLeft: scaleSize(10),
-        paddingBottom: scaleSize(3)
+        paddingBottom: scaleSize(3),
     },
     deltaIcon: {
         marginRight: scaleSize(4),
         marginBottom: scaleSize(2),
-    },
-    deltaText: {
-        lineHeight: ts(18),
     },
     weightUnit: {
         color: theme.textPrimary ?? "#F6F8FF",
