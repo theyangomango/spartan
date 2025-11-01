@@ -126,7 +126,7 @@ const ExerciseCard = memo(
             () => `${lastVolumeLabel} lbs`,
             [lastVolumeLabel]
         );
-        const showVolumeStat = usageCount > 0;
+        const showVolumeStat = usageCount > 0 && lastVolume > 0;
 
         const Wrapper = touchable ? TouchableOpacity : Pressable;
         const wrapperProps = touchable ? { activeOpacity: 0.78 } : {};

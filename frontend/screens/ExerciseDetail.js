@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Alert,
     SafeAreaView,
@@ -8,13 +8,17 @@ import {
     Text,
     View,
     Pressable,
+    Animated,
+    PanResponder,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Path, LinearGradient, Stop, Defs, Line, Circle } from 'react-native-svg';
+import dayjs from 'dayjs';
 
 import useStableSafeAreaInsets from '../hooks/useStableSafeAreaInsets';
 import theme from '../theme/mfpDark';
-import scaleSize, { ts } from '../helper/scaleSize';
+import { DEVICE_WIDTH, scaleSize, ts } from '../components/2_Competition/layoutConstants';
 import ExerciseImagePreview from '../components/3_Workout/NewWorkout/SelectExercise/ExerciseImagePreview';
 import { toExerciseSlug } from '../components/common/exerciseImageMap';
 import { withStrongPress } from '../utils/haptics';
@@ -24,9 +28,8 @@ import calculate1RM from '../helper/calculate1RM';
 
 const TABS = [
     { key: 'about', label: 'About' },
+    { key: 'progress', label: 'Progress' },
     { key: 'history', label: 'History' },
-    // Temporarily hiding progress until designs are finalized.
-    // { key: 'progress', label: 'Progress' },
 ];
 
 const STEP_SOURCE_KEYS = ['howToSteps', 'instructions', 'steps', 'howTo'];
@@ -201,6 +204,256 @@ const formatNumberCompact = (value) => {
     return rounded.toFixed(1).replace(/\.0$/, '');
 };
 
+const DEFAULT_X_AXIS_LABEL_COUNT = 5;
+
+const formatXAxisDateLabel = (timestamp, span) => {
+    if (!Number.isFinite(timestamp) || timestamp <= 0) return '';
+    const dateInstance = dayjs(timestamp);
+    if (!dateInstance.isValid()) return '';
+
+    const oneWeek = 7 * 24 * 60 * 60 * 1000;
+    const threeMonths = 90 * 24 * 60 * 60 * 1000;
+
+    if (span <= oneWeek) return dateInstance.format('MMM D');
+    if (span <= threeMonths) return dateInstance.format('MMM D');
+    return dateInstance.format('MMM YYYY');
+};
+
+const buildXAxisLabels = (domain, desiredCount = DEFAULT_X_AXIS_LABEL_COUNT) => {
+    if (!domain || typeof domain !== 'object') return [];
+    const { minX, maxX } = domain;
+    if (!Number.isFinite(minX) || !Number.isFinite(maxX)) return [];
+
+    const span = Math.max(maxX - minX, 0);
+    if (span <= 0) {
+        const label = formatXAxisDateLabel(minX, span);
+        return label ? [{ label, timestamp: minX }] : [];
+    }
+
+    const count = Math.max(2, Number(desiredCount) || DEFAULT_X_AXIS_LABEL_COUNT);
+    const step = span / (count - 1);
+    const labels = [];
+
+    for (let i = 0; i < count; i += 1) {
+        const isLast = i === count - 1;
+        const timestamp = isLast ? maxX : minX + step * i;
+        const formatted = formatXAxisDateLabel(timestamp, span);
+        if (formatted) labels.push({ label: formatted, timestamp });
+    }
+
+    return labels;
+};
+
+const niceNumber = (range, round) => {
+    if (range <= 0 || !Number.isFinite(range)) return 1;
+    const exponent = Math.floor(Math.log10(range));
+    const fraction = range / 10 ** exponent;
+    let niceFraction;
+    if (round) {
+        if (fraction < 1.5) niceFraction = 1;
+        else if (fraction < 3) niceFraction = 2;
+        else if (fraction < 7) niceFraction = 5;
+        else niceFraction = 10;
+    } else {
+        if (fraction <= 1) niceFraction = 1;
+        else if (fraction <= 2) niceFraction = 2;
+        else if (fraction <= 5) niceFraction = 5;
+        else niceFraction = 10;
+    }
+    return niceFraction * 10 ** exponent;
+};
+
+const computeAxisMetrics = (values, sections = 4) => {
+    if (!Array.isArray(values) || values.length === 0) {
+        const defaultStep = 10;
+        return {
+            minValue: 0,
+            maxValue: defaultStep * sections,
+            step: defaultStep,
+            sections,
+        };
+    }
+    let min = Math.min(...values);
+    let max = Math.max(...values);
+    if (!Number.isFinite(min) || !Number.isFinite(max)) {
+        return { minValue: 0, maxValue: sections, step: 1, sections };
+    }
+    if (min === max) {
+        min -= 1;
+        max += 1;
+    }
+    const range = Math.max(max - min, 1);
+    const paddingTop = Math.max(range * 0.1, 0.5);
+    const paddingBottom = Math.max(range * 0.2, 1);
+    let paddedMin = min - paddingBottom;
+    let paddedMax = max + paddingTop;
+    if (paddedMin < 0) paddedMin = 0;
+
+    const niceRange = niceNumber(paddedMax - paddedMin, false);
+    let step = niceNumber(niceRange / sections, true);
+    if (!Number.isFinite(step) || step <= 0) step = 1;
+
+    let niceMin = Math.floor(paddedMin / step) * step;
+    let niceMax = niceMin + step * sections;
+    if (niceMax < paddedMax) niceMax += step;
+    if (niceMin < 0) niceMin = 0;
+
+    return { minValue: niceMin, maxValue: niceMax, step, sections };
+};
+
+const formatAxisValue = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return '';
+    const abs = Math.abs(num);
+    const toScaledString = (scaled) => {
+        if (Math.abs(scaled) >= 100) return Math.round(scaled).toString();
+        const rounded = Math.round(scaled * 10) / 10;
+        return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+    };
+
+    if (abs >= 1_000_000) return `${toScaledString(num / 1_000_000)}m`;
+    if (abs >= 1_000) return `${toScaledString(num / 1_000)}k`;
+    if (Math.abs(num) >= 100) return Math.round(num).toString();
+    const rounded = Math.round(num * 10) / 10;
+    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+};
+
+const buildChartSeries = (chartData, axisMetrics, geometry) => {
+    const { leftMargin, innerWidth, topMargin, innerHeight, baselineY } = geometry;
+
+    if (!Array.isArray(chartData) || chartData.length === 0) {
+        return { points: [], linePath: '', areaPath: '', domain: null };
+    }
+
+    const minY = Number(axisMetrics?.minValue ?? 0);
+    const maxY = Number(axisMetrics?.maxValue ?? minY + 1);
+    const yRange = Math.max(maxY - minY, 1);
+
+    const timestamps = chartData.map((point) => Number(point.recordedAt));
+    let minX = Math.min(...timestamps);
+    let maxX = Math.max(...timestamps);
+
+    if (!Number.isFinite(minX) || !Number.isFinite(maxX)) {
+        const now = Date.now();
+        minX = now - 12 * 60 * 60 * 1000;
+        maxX = now + 12 * 60 * 60 * 1000;
+    }
+
+    if (minX === maxX) {
+        const fallbackSpan = 24 * 60 * 60 * 1000;
+        minX -= fallbackSpan / 2;
+        maxX += fallbackSpan / 2;
+    }
+
+    const roundCoord = (value) => Math.round(value * 100) / 100;
+
+    const points = chartData.map((point) => {
+        const rawXRatio = (Number(point.recordedAt) - minX) / (maxX - minX);
+        const xRatio = Number.isFinite(rawXRatio) ? Math.min(Math.max(rawXRatio, 0), 1) : 0;
+        const x = leftMargin + innerWidth * xRatio;
+
+        const rawYRatio = (Number(point.value) - minY) / yRange;
+        const yRatio = Number.isFinite(rawYRatio) ? Math.min(Math.max(rawYRatio, 0), 1) : 0;
+        const y = topMargin + innerHeight * (1 - yRatio);
+
+        return { ...point, x, y };
+    });
+
+    if (!points.length) {
+        return {
+            points,
+            linePath: '',
+            areaPath: '',
+            domain: { minX, maxX, minY, maxY },
+        };
+    }
+
+    const firstPoint = points[0];
+    const lastPoint = points[points.length - 1];
+
+    const linePath = points
+        .map((point, index) => `${index === 0 ? 'M' : 'L'} ${roundCoord(point.x)} ${roundCoord(point.y)}`)
+        .join(' ');
+
+    let areaPath = `M ${roundCoord(firstPoint.x)} ${roundCoord(baselineY)} L ${roundCoord(firstPoint.x)} ${roundCoord(firstPoint.y)}`;
+    for (let i = 1; i < points.length; i += 1) {
+        const point = points[i];
+        areaPath += ` L ${roundCoord(point.x)} ${roundCoord(point.y)}`;
+    }
+    areaPath += ` L ${roundCoord(lastPoint.x)} ${roundCoord(baselineY)} Z`;
+
+    return {
+        points,
+        linePath,
+        areaPath,
+        domain: { minX, maxX, minY, maxY },
+    };
+};
+
+const ExerciseVolumePointerLabel = React.memo(({ entry, unit, isRightAligned }) => {
+    if (!entry) return null;
+    const totalText = `${formatNumberCompact(entry.value)} ${unit}`;
+    const incrementText = entry.increment ? `+${formatNumberCompact(entry.increment)} ${unit}` : null;
+    const timestampText = dayjs(entry.recordedAt).format('MMM D, h:mm A');
+
+    return (
+        <View
+            pointerEvents="none"
+            style={[
+                styles.progressPointerRoot,
+                isRightAligned ? styles.progressPointerRight : styles.progressPointerLeft,
+            ]}
+        >
+            <View
+                style={[
+                    styles.progressPointerBubbleWrapper,
+                    isRightAligned ? styles.progressPointerRight : styles.progressPointerLeft,
+                ]}
+            >
+                <View style={styles.progressPointerBubble}>
+                    <Text style={styles.progressPointerTitle}>{totalText}</Text>
+                    {incrementText ? (
+                        <Text style={styles.progressPointerSubtitle}>{`${incrementText} this session`}</Text>
+                    ) : null}
+                    <Text style={styles.progressPointerTimestamp}>{timestampText}</Text>
+                </View>
+            </View>
+        </View>
+    );
+});
+
+const ExerciseRepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
+    if (!entry) return null;
+    const totalText = `${formatNumberCompact(entry.value)} reps`;
+    const incrementText = entry.increment ? `+${formatNumberCompact(entry.increment)} reps` : null;
+    const timestampText = dayjs(entry.recordedAt).format('MMM D, h:mm A');
+
+    return (
+        <View
+            pointerEvents="none"
+            style={[
+                styles.progressPointerRoot,
+                isRightAligned ? styles.progressPointerRight : styles.progressPointerLeft,
+            ]}
+        >
+            <View
+                style={[
+                    styles.progressPointerBubbleWrapper,
+                    isRightAligned ? styles.progressPointerRight : styles.progressPointerLeft,
+                ]}
+            >
+                <View style={styles.progressPointerBubble}>
+                    <Text style={styles.progressPointerTitle}>{totalText}</Text>
+                    {incrementText ? (
+                        <Text style={styles.progressPointerSubtitle}>{`${incrementText} this session`}</Text>
+                    ) : null}
+                    <Text style={styles.progressPointerTimestamp}>{timestampText}</Text>
+                </View>
+            </View>
+        </View>
+    );
+});
+
 const formatWeightValue = (weight) => {
     const num = Number(weight);
     if (!Number.isFinite(num) || num <= 0) return '—';
@@ -337,6 +590,27 @@ const resolveWorkoutTimestamp = (workout) => {
     for (const field of WORKOUT_TIMESTAMP_FIELDS) {
         const ms = toMillisSafe(workout?.[field]);
         if (ms) return ms;
+    }
+    return 0;
+};
+
+const resolveSetTimestamp = (set, workoutsByWid) => {
+    if (!set || typeof set !== 'object') return 0;
+    const direct = toMillisSafe(set.timestamp);
+    if (direct) return direct;
+    const wid = set?.wid ? String(set.wid).trim() : '';
+    if (wid && workoutsByWid && workoutsByWid.has(wid)) {
+        const workout = workoutsByWid.get(wid);
+        const workoutTs = resolveWorkoutTimestamp(workout);
+        if (workoutTs) return workoutTs;
+    }
+    if (typeof set.date === 'string' && set.date.trim()) {
+        const parsed = parseDayKeyToDate(set.date.trim());
+        if (parsed) {
+            parsed.setHours(12, 0, 0, 0);
+            const dateTs = parsed.getTime();
+            if (Number.isFinite(dateTs)) return dateTs;
+        }
     }
     return 0;
 };
@@ -591,6 +865,466 @@ export default function ExerciseDetail() {
         }
         return sessions;
     }, [exerciseStatsEntry, completedWorkouts, weightUnit]);
+
+    const workoutsByWid = useMemo(() => {
+        const map = new Map();
+        (Array.isArray(completedWorkouts) ? completedWorkouts : []).forEach((workout) => {
+            const wid = extractWid(workout);
+            if (wid) map.set(wid, workout);
+        });
+        return map;
+    }, [completedWorkouts]);
+
+    const { exerciseVolumeEntries, exerciseRepsEntries } = useMemo(() => {
+        const sets = Array.isArray(exerciseStatsEntry?.sets) ? exerciseStatsEntry.sets : [];
+        if (!sets.length) return { exerciseVolumeEntries: [], exerciseRepsEntries: [] };
+
+        const volumeMap = new Map();
+        const repsMap = new Map();
+
+        sets.forEach((set) => {
+            const recordedAt = resolveSetTimestamp(set, workoutsByWid);
+            if (!recordedAt) return;
+            const weight = Math.max(0, Number(set.weight) || 0);
+            const reps = Math.max(0, Number(set.reps) || 0);
+            if (weight <= 0 && reps <= 0) return;
+
+            const volumeIncrement = weight * reps;
+            if (volumeIncrement > 0) {
+                const key = String(recordedAt);
+                const existing = volumeMap.get(key) || { recordedAt, increment: 0 };
+                existing.increment += volumeIncrement;
+                volumeMap.set(key, existing);
+            }
+            if (reps > 0) {
+                const key = String(recordedAt);
+                const existing = repsMap.get(key) || { recordedAt, increment: 0 };
+                existing.increment += reps;
+                repsMap.set(key, existing);
+            }
+        });
+
+        const volumeEntries = Array.from(volumeMap.values())
+            .filter((entry) => entry.increment > 0)
+            .sort((a, b) => a.recordedAt - b.recordedAt);
+        let runningVolume = 0;
+        volumeEntries.forEach((entry) => {
+            runningVolume += entry.increment;
+            entry.value = runningVolume;
+        });
+
+        const repsEntries = Array.from(repsMap.values())
+            .filter((entry) => entry.increment > 0)
+            .sort((a, b) => a.recordedAt - b.recordedAt);
+        let runningReps = 0;
+        repsEntries.forEach((entry) => {
+            runningReps += entry.increment;
+            entry.value = runningReps;
+        });
+
+        return {
+            exerciseVolumeEntries: volumeEntries,
+            exerciseRepsEntries: repsEntries,
+        };
+    }, [exerciseStatsEntry, workoutsByWid]);
+
+    const progressSectionsCount = 4;
+
+    const progressVolumeValues = useMemo(
+        () => exerciseVolumeEntries.map((entry) => entry.value),
+        [exerciseVolumeEntries]
+    );
+    const progressVolumeAxisMetrics = useMemo(
+        () => computeAxisMetrics(progressVolumeValues, progressSectionsCount),
+        [progressVolumeValues, progressSectionsCount]
+    );
+    const progressVolumeTicks = useMemo(() => {
+        if (!progressVolumeAxisMetrics) return [];
+        const ticks = [];
+        for (let i = 0; i <= progressVolumeAxisMetrics.sections; i += 1) {
+            const value = progressVolumeAxisMetrics.minValue + progressVolumeAxisMetrics.step * i;
+            ticks.push(Math.round((value + Number.EPSILON) * 100) / 100);
+        }
+        return ticks;
+    }, [progressVolumeAxisMetrics]);
+
+    const progressRepsValues = useMemo(
+        () => exerciseRepsEntries.map((entry) => entry.value),
+        [exerciseRepsEntries]
+    );
+    const progressRepsAxisMetrics = useMemo(
+        () => computeAxisMetrics(progressRepsValues, progressSectionsCount),
+        [progressRepsValues, progressSectionsCount]
+    );
+    const progressRepsTicks = useMemo(() => {
+        if (!progressRepsAxisMetrics) return [];
+        const ticks = [];
+        for (let i = 0; i <= progressRepsAxisMetrics.sections; i += 1) {
+            const value = progressRepsAxisMetrics.minValue + progressRepsAxisMetrics.step * i;
+            ticks.push(Math.round((value + Number.EPSILON) * 100) / 100);
+        }
+        return ticks;
+    }, [progressRepsAxisMetrics]);
+
+    const progressCardHorizontalPadding = scaleSize(16);
+    const progressChartHeight = scaleSize(220);
+    const progressChartWidth = Math.max(DEVICE_WIDTH - progressCardHorizontalPadding, scaleSize(200));
+    const progressChartPaddingTop = scaleSize(0);
+    const progressChartPaddingBottom = scaleSize(32);
+    const progressInitialSpacing = scaleSize(12);
+    const progressYAxisLabelWidth = scaleSize(42);
+    const progressPointerStripWidth = scaleSize(2);
+
+    const progressChartGeometry = useMemo(() => {
+        const plotWidth = Math.max(progressChartWidth - progressYAxisLabelWidth, scaleSize(160));
+        const plotHeight = progressChartHeight;
+        const leftMargin = progressInitialSpacing;
+        const rightMargin = progressInitialSpacing;
+        const topMargin = progressChartPaddingTop;
+        const bottomMargin = progressChartPaddingBottom;
+        const innerWidth = Math.max(plotWidth - leftMargin - rightMargin, 1);
+        const innerHeight = Math.max(plotHeight - topMargin - bottomMargin, 1);
+        const baselineY = plotHeight - bottomMargin;
+
+        return {
+            plotWidth,
+            plotHeight,
+            leftMargin,
+            rightMargin,
+            topMargin,
+            bottomMargin,
+            innerWidth,
+            innerHeight,
+            baselineY,
+        };
+    }, [
+        progressChartWidth,
+        progressChartHeight,
+        progressYAxisLabelWidth,
+        progressInitialSpacing,
+        progressChartPaddingTop,
+        progressChartPaddingBottom,
+    ]);
+
+    const progressVolumeSeries = useMemo(
+        () => buildChartSeries(exerciseVolumeEntries, progressVolumeAxisMetrics, progressChartGeometry),
+        [exerciseVolumeEntries, progressVolumeAxisMetrics, progressChartGeometry]
+    );
+
+    const progressRepsSeries = useMemo(
+        () => buildChartSeries(exerciseRepsEntries, progressRepsAxisMetrics, progressChartGeometry),
+        [exerciseRepsEntries, progressRepsAxisMetrics, progressChartGeometry]
+    );
+
+    const progressVolumeXAxisLabels = useMemo(
+        () => buildXAxisLabels(progressVolumeSeries?.domain),
+        [progressVolumeSeries?.domain]
+    );
+
+    const progressRepsXAxisLabels = useMemo(
+        () => buildXAxisLabels(progressRepsSeries?.domain),
+        [progressRepsSeries?.domain]
+    );
+
+    const {
+        plotWidth: progressPlotWidth,
+        leftMargin: progressLeftMargin,
+        rightMargin: progressRightMargin,
+        topMargin: progressTopMargin,
+        bottomMargin: progressBottomMargin,
+        innerWidth: progressInnerWidth,
+        innerHeight: progressInnerHeight,
+        baselineY: progressBaselineY,
+    } = progressChartGeometry;
+
+    const progressVolumePoints = progressVolumeSeries.points;
+    const progressRepsPoints = progressRepsSeries.points;
+
+    const progressVolumeActiveIndexRef = useRef(null);
+    const [progressVolumeActiveIndex, setProgressVolumeActiveIndex] = useState(null);
+    const progressRepsActiveIndexRef = useRef(null);
+    const [progressRepsActiveIndex, setProgressRepsActiveIndex] = useState(null);
+
+    const progressVolumePointerOpacity = useRef(new Animated.Value(0)).current;
+    const progressRepsPointerOpacity = useRef(new Animated.Value(0)).current;
+
+    const progressVolumeHideTimeout = useRef(null);
+    const progressRepsHideTimeout = useRef(null);
+
+    const clearProgressVolumeHideTimeout = useCallback(() => {
+        if (progressVolumeHideTimeout.current) {
+            clearTimeout(progressVolumeHideTimeout.current);
+            progressVolumeHideTimeout.current = null;
+        }
+    }, []);
+
+    const clearProgressRepsHideTimeout = useCallback(() => {
+        if (progressRepsHideTimeout.current) {
+            clearTimeout(progressRepsHideTimeout.current);
+            progressRepsHideTimeout.current = null;
+        }
+    }, []);
+
+    const showProgressVolumePointer = useCallback(() => {
+        clearProgressVolumeHideTimeout();
+        progressVolumePointerOpacity.stopAnimation();
+        Animated.timing(progressVolumePointerOpacity, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+        }).start();
+    }, [clearProgressVolumeHideTimeout, progressVolumePointerOpacity]);
+
+    const showProgressRepsPointer = useCallback(() => {
+        clearProgressRepsHideTimeout();
+        progressRepsPointerOpacity.stopAnimation();
+        Animated.timing(progressRepsPointerOpacity, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+        }).start();
+    }, [clearProgressRepsHideTimeout, progressRepsPointerOpacity]);
+
+    const scheduleProgressVolumeHide = useCallback(() => {
+        clearProgressVolumeHideTimeout();
+        if (progressVolumeActiveIndexRef.current == null) return;
+        progressVolumeHideTimeout.current = setTimeout(() => {
+            progressVolumePointerOpacity.stopAnimation();
+            Animated.timing(progressVolumePointerOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start(() => {
+                progressVolumeActiveIndexRef.current = null;
+                setProgressVolumeActiveIndex(null);
+            });
+            progressVolumeHideTimeout.current = null;
+        }, 2000);
+    }, [clearProgressVolumeHideTimeout, progressVolumePointerOpacity]);
+
+    const scheduleProgressRepsHide = useCallback(() => {
+        clearProgressRepsHideTimeout();
+        if (progressRepsActiveIndexRef.current == null) return;
+        progressRepsHideTimeout.current = setTimeout(() => {
+            progressRepsPointerOpacity.stopAnimation();
+            Animated.timing(progressRepsPointerOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start(() => {
+                progressRepsActiveIndexRef.current = null;
+                setProgressRepsActiveIndex(null);
+            });
+            progressRepsHideTimeout.current = null;
+        }, 2000);
+    }, [clearProgressRepsHideTimeout, progressRepsPointerOpacity]);
+
+    const handleProgressVolumePointerActivate = useCallback(
+        (payload) => {
+            if (!payload) return;
+            const { index } = payload;
+            if (!Number.isFinite(index)) return;
+            progressVolumeActiveIndexRef.current = index;
+            setProgressVolumeActiveIndex((prev) => (prev === index ? prev : index));
+            showProgressVolumePointer();
+        },
+        [showProgressVolumePointer]
+    );
+
+    const handleProgressRepsPointerActivate = useCallback(
+        (payload) => {
+            if (!payload) return;
+            const { index } = payload;
+            if (!Number.isFinite(index)) return;
+            progressRepsActiveIndexRef.current = index;
+            setProgressRepsActiveIndex((prev) => (prev === index ? prev : index));
+            showProgressRepsPointer();
+        },
+        [showProgressRepsPointer]
+    );
+
+    const handleProgressVolumeChartTouch = useCallback(
+        (nativeEvent) => {
+            if (!nativeEvent || !progressVolumePoints.length) return;
+            const { locationX } = nativeEvent;
+            if (!Number.isFinite(locationX)) return;
+
+            const minX = progressLeftMargin;
+            const maxX = progressLeftMargin + progressInnerWidth;
+            const clampedX = Math.max(minX, Math.min(maxX, locationX));
+
+            let closestIndex = 0;
+            let smallestDistance = Math.abs(progressVolumePoints[0].x - clampedX);
+
+            for (let i = 1; i < progressVolumePoints.length; i += 1) {
+                const point = progressVolumePoints[i];
+                const distance = Math.abs(point.x - clampedX);
+                if (distance < smallestDistance) {
+                    smallestDistance = distance;
+                    closestIndex = i;
+                }
+            }
+
+            handleProgressVolumePointerActivate({ index: closestIndex });
+        },
+        [progressVolumePoints, progressLeftMargin, progressInnerWidth, handleProgressVolumePointerActivate]
+    );
+
+    const handleProgressRepsChartTouch = useCallback(
+        (nativeEvent) => {
+            if (!nativeEvent || !progressRepsPoints.length) return;
+            const { locationX } = nativeEvent;
+            if (!Number.isFinite(locationX)) return;
+
+            const minX = progressLeftMargin;
+            const maxX = progressLeftMargin + progressInnerWidth;
+            const clampedX = Math.max(minX, Math.min(maxX, locationX));
+
+            let closestIndex = 0;
+            let smallestDistance = Math.abs(progressRepsPoints[0].x - clampedX);
+
+            for (let i = 1; i < progressRepsPoints.length; i += 1) {
+                const point = progressRepsPoints[i];
+                const distance = Math.abs(point.x - clampedX);
+                if (distance < smallestDistance) {
+                    smallestDistance = distance;
+                    closestIndex = i;
+                }
+            }
+
+            handleProgressRepsPointerActivate({ index: closestIndex });
+        },
+        [progressRepsPoints, progressLeftMargin, progressInnerWidth, handleProgressRepsPointerActivate]
+    );
+
+    const progressVolumePanResponder = useMemo(
+        () =>
+            PanResponder.create({
+                onStartShouldSetPanResponder: () => !!progressVolumePoints.length,
+                onMoveShouldSetPanResponder: () => !!progressVolumePoints.length,
+                onPanResponderGrant: (evt) => handleProgressVolumeChartTouch(evt?.nativeEvent),
+                onPanResponderMove: (evt) => handleProgressVolumeChartTouch(evt?.nativeEvent),
+                onPanResponderRelease: () => scheduleProgressVolumeHide(),
+                onPanResponderTerminate: () => scheduleProgressVolumeHide(),
+            }),
+        [progressVolumePoints.length, handleProgressVolumeChartTouch, scheduleProgressVolumeHide]
+    );
+
+    const progressRepsPanResponder = useMemo(
+        () =>
+            PanResponder.create({
+                onStartShouldSetPanResponder: () => !!progressRepsPoints.length,
+                onMoveShouldSetPanResponder: () => !!progressRepsPoints.length,
+                onPanResponderGrant: (evt) => handleProgressRepsChartTouch(evt?.nativeEvent),
+                onPanResponderMove: (evt) => handleProgressRepsChartTouch(evt?.nativeEvent),
+                onPanResponderRelease: () => scheduleProgressRepsHide(),
+                onPanResponderTerminate: () => scheduleProgressRepsHide(),
+            }),
+        [progressRepsPoints.length, handleProgressRepsChartTouch, scheduleProgressRepsHide]
+    );
+
+    const hasProgressVolumeData = exerciseVolumeEntries.length > 0;
+    const hasProgressRepsData = exerciseRepsEntries.length > 0;
+
+    const progressVolumeActivePoint =
+        progressVolumeActiveIndex != null ? progressVolumePoints[progressVolumeActiveIndex] : null;
+    const progressVolumePointerWidth = scaleSize(184);
+    const progressVolumePointerLeft = useMemo(() => {
+        if (!progressVolumeActivePoint) return progressLeftMargin;
+        const minLeft = progressLeftMargin;
+        const maxLeft = progressPlotWidth - progressRightMargin;
+        const centered = progressVolumeActivePoint.x - progressVolumePointerWidth / 2;
+        return Math.max(minLeft, Math.min(centered, maxLeft - progressVolumePointerWidth));
+    }, [
+        progressVolumeActivePoint,
+        progressLeftMargin,
+        progressPlotWidth,
+        progressRightMargin,
+        progressVolumePointerWidth,
+    ]);
+    const progressVolumePointerRightAligned =
+        progressVolumeActiveIndex != null
+            ? progressVolumeActiveIndex >= Math.ceil(exerciseVolumeEntries.length / 2)
+            : false;
+
+    const progressRepsActivePoint =
+        progressRepsActiveIndex != null ? progressRepsPoints[progressRepsActiveIndex] : null;
+    const progressRepsPointerWidth = scaleSize(184);
+    const progressRepsPointerLeft = useMemo(() => {
+        if (!progressRepsActivePoint) return progressLeftMargin;
+        const minLeft = progressLeftMargin;
+        const maxLeft = progressPlotWidth - progressRightMargin;
+        const centered = progressRepsActivePoint.x - progressRepsPointerWidth / 2;
+        return Math.max(minLeft, Math.min(centered, maxLeft - progressRepsPointerWidth));
+    }, [
+        progressRepsActivePoint,
+        progressLeftMargin,
+        progressPlotWidth,
+        progressRightMargin,
+        progressRepsPointerWidth,
+    ]);
+    const progressRepsPointerRightAligned =
+        progressRepsActiveIndex != null
+            ? progressRepsActiveIndex >= Math.ceil(exerciseRepsEntries.length / 2)
+            : false;
+
+    useEffect(() => {
+        if (hasProgressVolumeData) return;
+        clearProgressVolumeHideTimeout();
+        Animated.timing(progressVolumePointerOpacity, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+        if (progressVolumeActiveIndexRef.current != null) {
+            progressVolumeActiveIndexRef.current = null;
+            setProgressVolumeActiveIndex(null);
+        }
+    }, [hasProgressVolumeData, clearProgressVolumeHideTimeout, progressVolumePointerOpacity]);
+
+    useEffect(() => {
+        if (hasProgressRepsData) return;
+        clearProgressRepsHideTimeout();
+        Animated.timing(progressRepsPointerOpacity, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+        if (progressRepsActiveIndexRef.current != null) {
+            progressRepsActiveIndexRef.current = null;
+            setProgressRepsActiveIndex(null);
+        }
+    }, [hasProgressRepsData, clearProgressRepsHideTimeout, progressRepsPointerOpacity]);
+
+    useEffect(
+        () => () => {
+            clearProgressVolumeHideTimeout();
+            clearProgressRepsHideTimeout();
+        },
+        [clearProgressVolumeHideTimeout, clearProgressRepsHideTimeout]
+    );
+
+    const latestExerciseVolumeEntry = exerciseVolumeEntries.length
+        ? exerciseVolumeEntries[exerciseVolumeEntries.length - 1]
+        : null;
+    const latestExerciseVolumeText = latestExerciseVolumeEntry
+        ? formatNumberCompact(latestExerciseVolumeEntry.value)
+        : '--';
+    const latestExerciseVolumeInfo = latestExerciseVolumeEntry
+        ? dayjs(latestExerciseVolumeEntry.recordedAt).format('MMM D, h:mm A')
+        : 'No data yet';
+    const volumeUnitLabel = weightUnit === 'kg' ? 'kg' : 'lb';
+
+    const latestExerciseRepsEntry = exerciseRepsEntries.length
+        ? exerciseRepsEntries[exerciseRepsEntries.length - 1]
+        : null;
+    const latestExerciseRepsText = latestExerciseRepsEntry
+        ? formatNumberCompact(latestExerciseRepsEntry.value)
+        : '--';
+    const latestExerciseRepsInfo = latestExerciseRepsEntry
+        ? dayjs(latestExerciseRepsEntry.recordedAt).format('MMM D, h:mm A')
+        : 'No data yet';
+
 
     const weightColumnLabel = useMemo(() => {
         const normalized = typeof weightUnit === 'string' ? weightUnit.trim().toLowerCase() : '';
@@ -850,18 +1584,516 @@ export default function ExerciseDetail() {
         );
     };
 
-    // const renderProgress = () => (
-    //     <View style={styles.placeholder}>
-    //         <Text style={styles.placeholderTitle}>Progress coming soon</Text>
-    //         <Text style={styles.placeholderBody}>
-    //             Keep tracking sets for {displayTitle}. We will visualize trends and PRs here shortly.
-    //         </Text>
-    //     </View>
-    // );
+    const renderProgress = () => {
+        const noData = !hasProgressVolumeData && !hasProgressRepsData;
+        if (noData) {
+            return (
+                <View style={styles.placeholder}>
+                    <Text style={styles.placeholderTitle}>No progress yet</Text>
+                    <Text style={styles.placeholderBody}>
+                        Log sets for {displayTitle} to visualize volume and reps trends here.
+                    </Text>
+                </View>
+            );
+        }
+
+        return (
+            <View style={styles.progressSection}>
+                {hasProgressVolumeData ? (
+                    <View style={[styles.progressCard, { paddingHorizontal: progressCardHorizontalPadding }]}>
+                        <View style={styles.progressHeader}>
+                            <Text style={styles.progressSectionTitle}>Volume</Text>
+                            <View style={styles.progressAutoHintWrapper}>
+                                <Text style={styles.progressAutoHint}>Auto-updates from</Text>
+                                <Text style={styles.progressAutoHint}>completed workouts.</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.progressMetricsRow}>
+                            <View style={styles.progressValueGroup}>
+                                <Text style={styles.progressValue}>{latestExerciseVolumeText}</Text>
+                                <Text style={styles.progressUnit}>{volumeUnitLabel}</Text>
+                            </View>
+                            <Text style={styles.progressSummaryText}>{latestExerciseVolumeInfo}</Text>
+                        </View>
+
+                        <View
+                            style={[
+                                styles.progressChartWrapper,
+                                {
+                                    height: progressChartHeight,
+                                    width: progressChartWidth,
+                                    paddingTop: progressChartPaddingTop,
+                                    paddingBottom: progressChartPaddingBottom,
+                                },
+                            ]}
+                        >
+                            <View style={styles.progressChartContent}>
+                                <View
+                                    style={[
+                                        styles.progressYAxisLabels,
+                                        { width: progressYAxisLabelWidth, height: progressChartHeight },
+                                    ]}
+                                    pointerEvents="none"
+                                >
+                                    {progressVolumeTicks.map((value, index) => {
+                                        const range = Math.max(
+                                            (progressVolumeAxisMetrics?.maxValue ?? 0) -
+                                                (progressVolumeAxisMetrics?.minValue ?? 0),
+                                            1
+                                        );
+                                        const ratio =
+                                            (value - (progressVolumeAxisMetrics?.minValue ?? 0)) / range;
+                                        const clampedRatio = Number.isFinite(ratio)
+                                            ? Math.min(Math.max(ratio, 0), 1)
+                                            : 0;
+                                        const yPosition =
+                                            progressTopMargin + progressInnerHeight * (1 - clampedRatio);
+                                        const approxLabelHeight = scaleSize(14);
+                                        const top = Math.min(
+                                            progressChartHeight - progressBottomMargin - approxLabelHeight,
+                                            Math.max(
+                                                progressTopMargin - approxLabelHeight / 2,
+                                                yPosition - approxLabelHeight / 2
+                                            )
+                                        );
+
+                                        return (
+                                            <Text
+                                                key={`exercise-volume-y-label-${value}-${index}`}
+                                                style={[
+                                                    styles.progressAxisLabel,
+                                                    styles.progressYAxisLabel,
+                                                    { top },
+                                                ]}
+                                            >
+                                                {formatAxisValue(value)}
+                                            </Text>
+                                        );
+                                    })}
+                                </View>
+
+                                <View
+                                    style={[
+                                        styles.progressChartCanvas,
+                                        { width: progressPlotWidth, height: progressChartHeight },
+                                    ]}
+                                    {...progressVolumePanResponder.panHandlers}
+                                >
+                                    <Svg width={progressPlotWidth} height={progressChartHeight}>
+                                        <Defs>
+                                            <LinearGradient
+                                                id="exerciseVolumeGradient"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
+                                                <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
+                                            </LinearGradient>
+                                        </Defs>
+
+                                        {progressVolumeTicks.map((value, index) => {
+                                            const range = Math.max(
+                                                (progressVolumeAxisMetrics?.maxValue ?? 0) -
+                                                    (progressVolumeAxisMetrics?.minValue ?? 0),
+                                                1
+                                            );
+                                            const ratio =
+                                                (value - (progressVolumeAxisMetrics?.minValue ?? 0)) / range;
+                                            const clampedRatio = Number.isFinite(ratio)
+                                                ? Math.min(Math.max(ratio, 0), 1)
+                                                : 0;
+                                            const y =
+                                                progressTopMargin + progressInnerHeight * (1 - clampedRatio);
+                                            return (
+                                                <Line
+                                                    key={`exercise-volume-grid-${value}-${index}`}
+                                                    x1={progressLeftMargin}
+                                                    y1={y}
+                                                    x2={progressPlotWidth - progressRightMargin}
+                                                    y2={y}
+                                                    stroke="rgba(255,255,255,0.1)"
+                                                    strokeWidth={StyleSheet.hairlineWidth}
+                                                    strokeDasharray={[6, 6]}
+                                                />
+                                            );
+                                        })}
+
+                                        {progressVolumeSeries.areaPath ? (
+                                            <Path
+                                                d={progressVolumeSeries.areaPath}
+                                                fill="url(#exerciseVolumeGradient)"
+                                                stroke="none"
+                                            />
+                                        ) : null}
+
+                                        {progressVolumeSeries.linePath ? (
+                                            <Path
+                                                d={progressVolumeSeries.linePath}
+                                                fill="none"
+                                                stroke="#7FB7FF"
+                                                strokeWidth={scaleSize(3)}
+                                                strokeLinejoin="round"
+                                                strokeLinecap="round"
+                                            />
+                                        ) : null}
+
+                                        <Line
+                                            x1={progressLeftMargin}
+                                            y1={progressTopMargin}
+                                            x2={progressLeftMargin}
+                                            y2={progressBaselineY}
+                                            stroke="rgba(148, 157, 172, 0.35)"
+                                            strokeWidth={StyleSheet.hairlineWidth}
+                                        />
+                                        <Line
+                                            x1={progressLeftMargin}
+                                            y1={progressBaselineY}
+                                            x2={progressPlotWidth - progressRightMargin}
+                                            y2={progressBaselineY}
+                                            stroke="rgba(148, 157, 172, 0.35)"
+                                            strokeWidth={StyleSheet.hairlineWidth}
+                                        />
+
+                                        {progressVolumeActivePoint ? (
+                                            <Line
+                                                x1={progressVolumeActivePoint.x}
+                                                y1={progressTopMargin}
+                                                x2={progressVolumeActivePoint.x}
+                                                y2={progressBaselineY}
+                                                stroke="rgba(100, 160, 255, 0.45)"
+                                                strokeWidth={progressPointerStripWidth}
+                                            />
+                                        ) : null}
+
+                                        {progressVolumePoints.map((point, index) => {
+                                            const isActive = index === progressVolumeActiveIndex;
+                                            const radius = isActive ? scaleSize(6) : scaleSize(4.2);
+                                            const strokeWidth = isActive ? scaleSize(2) : scaleSize(1);
+                                            const strokeColor = isActive
+                                                ? 'rgba(100, 160, 255, 0.9)'
+                                                : 'rgba(100, 160, 255, 0.45)';
+                                            const fillColor = isActive
+                                                ? '#E1EEFF'
+                                                : 'rgba(225, 238, 255, 0.78)';
+                                            return (
+                                                <Circle
+                                                    key={point.recordedAt || `exercise-volume-point-${index}`}
+                                                    cx={point.x}
+                                                    cy={point.y}
+                                                    r={radius}
+                                                    fill={fillColor}
+                                                    stroke={strokeColor}
+                                                    strokeWidth={strokeWidth}
+                                                />
+                                            );
+                                        })}
+                                    </Svg>
+
+                                    {progressVolumeXAxisLabels.length ? (
+                                        <View
+                                            pointerEvents="none"
+                                            style={[
+                                                styles.progressXAxisOverlay,
+                                                {
+                                                    left: progressLeftMargin,
+                                                    right: progressRightMargin,
+                                                    justifyContent:
+                                                        progressVolumeXAxisLabels.length > 1
+                                                            ? 'space-between'
+                                                            : 'center',
+                                                },
+                                            ]}
+                                        >
+                                            {progressVolumeXAxisLabels.map((item, index) => (
+                                                <Text
+                                                    key={`exercise-volume-x-label-${item.timestamp ?? index}-${index}`}
+                                                    style={[styles.progressAxisLabel, styles.progressXAxisLabel]}
+                                                >
+                                                    {item.label}
+                                                </Text>
+                                            ))}
+                                        </View>
+                                    ) : null}
+
+                                    {progressVolumeActivePoint ? (
+                                        <Animated.View
+                                            pointerEvents="none"
+                                            style={[
+                                                styles.progressPointerContainer,
+                                                {
+                                                    left: progressVolumePointerLeft,
+                                                    top: Math.max(scaleSize(-8), progressTopMargin - scaleSize(72)),
+                                                    width: progressVolumePointerWidth,
+                                                    opacity: progressVolumePointerOpacity,
+                                                },
+                                            ]}
+                                        >
+                                            <ExerciseVolumePointerLabel
+                                                entry={exerciseVolumeEntries[progressVolumeActiveIndex]}
+                                                unit={volumeUnitLabel}
+                                                isRightAligned={progressVolumePointerRightAligned}
+                                            />
+                                        </Animated.View>
+                                    ) : null}
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                ) : null}
+
+                {hasProgressRepsData ? (
+                    <View style={[styles.progressCard, { paddingHorizontal: progressCardHorizontalPadding }]}>
+                        <View style={styles.progressHeader}>
+                            <Text style={styles.progressSectionTitle}>Reps</Text>
+                            <View style={styles.progressAutoHintWrapper}>
+                                <Text style={styles.progressAutoHint}>Auto-updates from</Text>
+                                <Text style={styles.progressAutoHint}>completed workouts.</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.progressMetricsRow}>
+                            <View style={styles.progressValueGroup}>
+                                <Text style={styles.progressValue}>{latestExerciseRepsText}</Text>
+                                <Text style={styles.progressUnit}>reps</Text>
+                            </View>
+                            <Text style={styles.progressSummaryText}>{latestExerciseRepsInfo}</Text>
+                        </View>
+
+                        <View
+                            style={[
+                                styles.progressChartWrapper,
+                                {
+                                    height: progressChartHeight,
+                                    width: progressChartWidth,
+                                    paddingTop: progressChartPaddingTop,
+                                    paddingBottom: progressChartPaddingBottom,
+                                },
+                            ]}
+                        >
+                            <View style={styles.progressChartContent}>
+                                <View
+                                    style={[
+                                        styles.progressYAxisLabels,
+                                        { width: progressYAxisLabelWidth, height: progressChartHeight },
+                                    ]}
+                                    pointerEvents="none"
+                                >
+                                    {progressRepsTicks.map((value, index) => {
+                                        const range = Math.max(
+                                            (progressRepsAxisMetrics?.maxValue ?? 0) -
+                                                (progressRepsAxisMetrics?.minValue ?? 0),
+                                            1
+                                        );
+                                        const ratio =
+                                            (value - (progressRepsAxisMetrics?.minValue ?? 0)) / range;
+                                        const clampedRatio = Number.isFinite(ratio)
+                                            ? Math.min(Math.max(ratio, 0), 1)
+                                            : 0;
+                                        const yPosition =
+                                            progressTopMargin + progressInnerHeight * (1 - clampedRatio);
+                                        const approxLabelHeight = scaleSize(14);
+                                        const top = Math.min(
+                                            progressChartHeight - progressBottomMargin - approxLabelHeight,
+                                            Math.max(
+                                                progressTopMargin - approxLabelHeight / 2,
+                                                yPosition - approxLabelHeight / 2
+                                            )
+                                        );
+
+                                        return (
+                                            <Text
+                                                key={`exercise-reps-y-label-${value}-${index}`}
+                                                style={[
+                                                    styles.progressAxisLabel,
+                                                    styles.progressYAxisLabel,
+                                                    { top },
+                                                ]}
+                                            >
+                                                {formatAxisValue(value)}
+                                            </Text>
+                                        );
+                                    })}
+                                </View>
+
+                                <View
+                                    style={[
+                                        styles.progressChartCanvas,
+                                        { width: progressPlotWidth, height: progressChartHeight },
+                                    ]}
+                                    {...progressRepsPanResponder.panHandlers}
+                                >
+                                    <Svg width={progressPlotWidth} height={progressChartHeight}>
+                                        <Defs>
+                                            <LinearGradient
+                                                id="exerciseRepsGradient"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
+                                                <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
+                                            </LinearGradient>
+                                        </Defs>
+
+                                        {progressRepsTicks.map((value, index) => {
+                                            const range = Math.max(
+                                                (progressRepsAxisMetrics?.maxValue ?? 0) -
+                                                    (progressRepsAxisMetrics?.minValue ?? 0),
+                                                1
+                                            );
+                                            const ratio =
+                                                (value - (progressRepsAxisMetrics?.minValue ?? 0)) / range;
+                                            const clampedRatio = Number.isFinite(ratio)
+                                                ? Math.min(Math.max(ratio, 0), 1)
+                                                : 0;
+                                            const y =
+                                                progressTopMargin + progressInnerHeight * (1 - clampedRatio);
+                                            return (
+                                                <Line
+                                                    key={`exercise-reps-grid-${value}-${index}`}
+                                                    x1={progressLeftMargin}
+                                                    y1={y}
+                                                    x2={progressPlotWidth - progressRightMargin}
+                                                    y2={y}
+                                                    stroke="rgba(255,255,255,0.1)"
+                                                    strokeWidth={StyleSheet.hairlineWidth}
+                                                    strokeDasharray={[6, 6]}
+                                                />
+                                            );
+                                        })}
+
+                                        {progressRepsSeries.areaPath ? (
+                                            <Path
+                                                d={progressRepsSeries.areaPath}
+                                                fill="url(#exerciseRepsGradient)"
+                                                stroke="none"
+                                            />
+                                        ) : null}
+
+                                        {progressRepsSeries.linePath ? (
+                                            <Path
+                                                d={progressRepsSeries.linePath}
+                                                fill="none"
+                                                stroke="#7FB7FF"
+                                                strokeWidth={scaleSize(3)}
+                                                strokeLinejoin="round"
+                                                strokeLinecap="round"
+                                            />
+                                        ) : null}
+
+                                        <Line
+                                            x1={progressLeftMargin}
+                                            y1={progressTopMargin}
+                                            x2={progressLeftMargin}
+                                            y2={progressBaselineY}
+                                            stroke="rgba(148, 157, 172, 0.35)"
+                                            strokeWidth={StyleSheet.hairlineWidth}
+                                        />
+                                        <Line
+                                            x1={progressLeftMargin}
+                                            y1={progressBaselineY}
+                                            x2={progressPlotWidth - progressRightMargin}
+                                            y2={progressBaselineY}
+                                            stroke="rgba(148, 157, 172, 0.35)"
+                                            strokeWidth={StyleSheet.hairlineWidth}
+                                        />
+
+                                        {progressRepsActivePoint ? (
+                                            <Line
+                                                x1={progressRepsActivePoint.x}
+                                                y1={progressTopMargin}
+                                                x2={progressRepsActivePoint.x}
+                                                y2={progressBaselineY}
+                                                stroke="rgba(100, 160, 255, 0.45)"
+                                                strokeWidth={progressPointerStripWidth}
+                                            />
+                                        ) : null}
+
+                                        {progressRepsPoints.map((point, index) => {
+                                            const isActive = index === progressRepsActiveIndex;
+                                            const radius = isActive ? scaleSize(6) : scaleSize(4.2);
+                                            const strokeWidth = isActive ? scaleSize(2) : scaleSize(1);
+                                            const strokeColor = isActive
+                                                ? 'rgba(100, 160, 255, 0.9)'
+                                                : 'rgba(100, 160, 255, 0.45)';
+                                            const fillColor = isActive
+                                                ? '#E1EEFF'
+                                                : 'rgba(225, 238, 255, 0.78)';
+                                            return (
+                                                <Circle
+                                                    key={point.recordedAt || `exercise-reps-point-${index}`}
+                                                    cx={point.x}
+                                                    cy={point.y}
+                                                    r={radius}
+                                                    fill={fillColor}
+                                                    stroke={strokeColor}
+                                                    strokeWidth={strokeWidth}
+                                                />
+                                            );
+                                        })}
+                                    </Svg>
+
+                                    {progressRepsXAxisLabels.length ? (
+                                        <View
+                                            pointerEvents="none"
+                                            style={[
+                                                styles.progressXAxisOverlay,
+                                                {
+                                                    left: progressLeftMargin,
+                                                    right: progressRightMargin,
+                                                    justifyContent:
+                                                        progressRepsXAxisLabels.length > 1
+                                                            ? 'space-between'
+                                                            : 'center',
+                                                },
+                                            ]}
+                                        >
+                                            {progressRepsXAxisLabels.map((item, index) => (
+                                                <Text
+                                                    key={`exercise-reps-x-label-${item.timestamp ?? index}-${index}`}
+                                                    style={[styles.progressAxisLabel, styles.progressXAxisLabel]}
+                                                >
+                                                    {item.label}
+                                                </Text>
+                                            ))}
+                                        </View>
+                                    ) : null}
+
+                                    {progressRepsActivePoint ? (
+                                        <Animated.View
+                                            pointerEvents="none"
+                                            style = {[
+                                                styles.progressPointerContainer,
+                                                {
+                                                    left: progressRepsPointerLeft,
+                                                    top: Math.max(scaleSize(-8), progressTopMargin - scaleSize(72)),
+                                                    width: progressRepsPointerWidth,
+                                                    opacity: progressRepsPointerOpacity,
+                                                },
+                                            ]}
+                                        >
+                                            <ExerciseRepsPointerLabel
+                                                entry={exerciseRepsEntries[progressRepsActiveIndex]}
+                                                isRightAligned={progressRepsPointerRightAligned}
+                                            />
+                                        </Animated.View>
+                                    ) : null}
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                ) : null}
+            </View>
+        );
+    };
 
     let tabContent = null;
     if (activeTab === 'history') tabContent = renderHistory();
-    // else if (activeTab === 'progress') tabContent = renderProgress();
+    else if (activeTab === 'progress') tabContent = renderProgress();
     else tabContent = renderAbout();
 
     return (
@@ -992,10 +2224,11 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: scaleSize(12),
+        paddingHorizontal: 0,
     },
     sectionSpacing: {
         paddingTop: scaleSize(18),
+        paddingHorizontal: scaleSize(12),
     },
     heroCard: {
         backgroundColor: theme.surface,
@@ -1149,8 +2382,157 @@ const styles = StyleSheet.create({
         color: theme.textSecondary,
         lineHeight: ts(18),
     },
+    progressSection: {
+        paddingTop: scaleSize(12),
+    },
+    progressCard: {
+        backgroundColor: theme.surface,
+        paddingTop: scaleSize(16),
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.06)',
+        marginBottom: scaleSize(32),
+    },
+    progressHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: scaleSize(4),
+    },
+    progressSectionTitle: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: ts(15),
+        color: theme.textPrimary,
+    },
+    progressAutoHintWrapper: {
+        alignItems: 'flex-end',
+    },
+    progressAutoHint: {
+        fontFamily: 'Outfit_400Regular',
+        fontSize: ts(11),
+        color: 'rgba(216, 226, 255, 0.55)',
+    },
+    progressMetricsRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: scaleSize(2),
+    },
+    progressValueGroup: {
+        flexDirection: 'row',
+        alignItems: 'flex-end',
+    },
+    progressValue: {
+        fontFamily: 'Outfit_700Bold',
+        fontSize: ts(24),
+        color: theme.textPrimary,
+        lineHeight: ts(25),
+    },
+    progressUnit: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: ts(16),
+        color: theme.textPrimary,
+        marginLeft: scaleSize(6),
+        marginBottom: scaleSize(4),
+        textTransform: 'lowercase',
+    },
+    progressSummaryText: {
+        fontFamily: 'Outfit_400Regular',
+        fontSize: ts(12),
+        color: 'rgba(255,255,255,0.55)',
+        maxWidth: '50%',
+        flexShrink: 1,
+        marginLeft: scaleSize(12),
+        textAlign: 'right',
+        paddingVertical: scaleSize(2),
+    },
+    progressChartWrapper: {
+        justifyContent: 'center',
+        alignSelf: 'center',
+        overflow: 'visible',
+    },
+    progressChartContent: {
+        flexDirection: 'row',
+    },
+    progressYAxisLabels: {
+        position: 'relative',
+        justifyContent: 'center',
+    },
+    progressAxisLabel: {
+        fontFamily: 'Outfit_400Regular',
+        fontSize: ts(11),
+        color: '#aaa',
+    },
+    progressYAxisLabel: {
+        position: 'absolute',
+        right: scaleSize(6),
+        textAlign: 'right',
+        fontSize: ts(12),
+    },
+    progressChartCanvas: {
+        flex: 1,
+        position: 'relative',
+    },
+    progressXAxisOverlay: {
+        position: 'absolute',
+        bottom: 0,
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+    },
+    progressXAxisLabel: {
+        minWidth: scaleSize(40),
+        textAlign: 'center',
+        color: 'rgba(216, 226, 255, 0.65)',
+    },
+    progressPointerContainer: {
+        position: 'absolute',
+    },
+    progressPointerRoot: {
+        width: scaleSize(184),
+        alignItems: 'center',
+        justifyContent: 'flex-end',
+    },
+    progressPointerBubbleWrapper: {
+        width: '100%',
+        marginTop: scaleSize(4),
+        marginBottom: scaleSize(4),
+        paddingHorizontal: scaleSize(8),
+    },
+    progressPointerLeft: {
+        alignItems: 'flex-start',
+    },
+    progressPointerRight: {
+        alignItems: 'flex-end',
+    },
+    progressPointerBubble: {
+        maxWidth: '100%',
+        minWidth: scaleSize(140),
+        paddingHorizontal: scaleSize(14),
+        paddingVertical: scaleSize(10),
+        borderRadius: scaleSize(16),
+        backgroundColor: 'rgba(9, 12, 18, 0.92)',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.12)',
+    },
+    progressPointerTitle: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: ts(16),
+        color: theme.textPrimary,
+    },
+    progressPointerSubtitle: {
+        marginTop: scaleSize(4),
+        fontFamily: 'Outfit_500Medium',
+        fontSize: ts(12),
+        color: 'rgba(216,226,255,0.75)',
+    },
+    progressPointerTimestamp: {
+        marginTop: scaleSize(6),
+        fontFamily: 'Outfit_400Regular',
+        fontSize: ts(11),
+        color: 'rgba(216,226,255,0.55)',
+    },
     historySection: {
         paddingTop: scaleSize(18),
+        paddingHorizontal: scaleSize(12),
     },
     historyCard: {
         backgroundColor: 'rgba(255,255,255,0.05)',

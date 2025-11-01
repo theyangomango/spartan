@@ -40,12 +40,12 @@ const toNumber = (value) => {
     return 0;
 };
 
-const computeExerciseVolume = (exercise) => {
+const computeExerciseStats = (exercise) => {
     const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
-    if (!sets.length) return 0;
+    if (!sets.length) return { volume: 0, setCount: 0 };
 
     let total = 0;
-    let hasMeaningfulSet = false;
+    let setCount = 0;
 
     sets.forEach((set) => {
         if (!set || typeof set !== "object") return;
@@ -71,11 +71,11 @@ const computeExerciseVolume = (exercise) => {
         );
 
         if (reps <= 0 || weight <= 0) return;
-        hasMeaningfulSet = true;
         total += weight * reps;
+        setCount += 1;
     });
 
-    return hasMeaningfulSet ? total : 0;
+    return { volume: total, setCount };
 };
 
 const parseTimestamp = (value) => {
@@ -128,45 +128,59 @@ const ensureUsageMetadata = (completedWorkoutsInput) => {
         return cachedUsageMetadata;
     }
 
+    const annotated = workouts
+        .map((workout, index) => ({
+            workout,
+            index,
+            timestamp: resolveTimestamp(workout, index),
+        }))
+        .filter(
+            ({ workout }) =>
+                workout && typeof workout === "object" && Array.isArray(workout.exercises)
+        )
+        .sort((a, b) => {
+            if (a.timestamp === b.timestamp) return b.index - a.index;
+            return b.timestamp - a.timestamp;
+        });
+
     const counts = Object.create(null);
     const lastVolumes = Object.create(null);
-    const lastTimestamps = Object.create(null);
 
-    workouts.forEach((workout, index) => {
-        if (!workout || typeof workout !== "object" || !Array.isArray(workout.exercises)) return;
-
+    annotated.forEach(({ workout }) => {
         const seenInWorkout = new Set();
-        const volumeTotals = Object.create(null);
-
         workout.exercises.forEach((exercise) => {
             if (!exercise || typeof exercise !== "object") return;
             const nameLc = extractExerciseName(exercise);
             if (!nameLc) return;
-
-            if (!seenInWorkout.has(nameLc)) {
-                seenInWorkout.add(nameLc);
-                counts[nameLc] = (counts[nameLc] || 0) + 1;
-            }
-
-            const computedVolume = computeExerciseVolume(exercise);
-            if (!Number.isFinite(computedVolume)) return;
-            volumeTotals[nameLc] = (volumeTotals[nameLc] || 0) + Math.max(0, computedVolume);
-        });
-
-        const timestamp = resolveTimestamp(workout, index);
-        Object.keys(volumeTotals).forEach((name) => {
-            const volume = volumeTotals[name];
-            if (volume < 0) return;
-            const prevTimestamp = lastTimestamps[name];
-            if (prevTimestamp === undefined || timestamp >= prevTimestamp) {
-                lastTimestamps[name] = timestamp;
-                lastVolumes[name] = volume;
-            }
+            const { setCount } = computeExerciseStats(exercise);
+            if (setCount <= 0) return;
+            if (seenInWorkout.has(nameLc)) return;
+            seenInWorkout.add(nameLc);
+            counts[nameLc] = (counts[nameLc] || 0) + 1;
         });
     });
 
+    const latestEntry = annotated[0];
+    if (latestEntry) {
+        const volumeTotals = Object.create(null);
+        latestEntry.workout.exercises.forEach((exercise) => {
+            if (!exercise || typeof exercise !== "object") return;
+            const nameLc = extractExerciseName(exercise);
+            if (!nameLc) return;
+            const { volume, setCount } = computeExerciseStats(exercise);
+            if (setCount <= 0) return;
+            volumeTotals[nameLc] = (volumeTotals[nameLc] || 0) + Math.max(0, volume);
+        });
+        Object.keys(volumeTotals).forEach((name) => {
+            lastVolumes[name] = volumeTotals[name];
+            if (!counts[name] && volumeTotals[name] > 0) {
+                counts[name] = 1;
+            }
+        });
+    }
+
     cachedWorkoutsRef = workouts;
-    cachedUsageMetadata = { counts, lastVolumes, lastTimestamps };
+    cachedUsageMetadata = { counts, lastVolumes };
     return cachedUsageMetadata;
 };
 
