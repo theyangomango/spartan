@@ -109,6 +109,19 @@ const formatDurationLabel = (hoursInput) => {
     return `${minutes}m`;
 };
 
+const formatShortDate = (timestamp) => {
+    if (!Number.isFinite(timestamp)) return "--/--/----";
+    try {
+        return new Date(timestamp).toLocaleDateString("en-US", {
+            month: "numeric",
+            day: "numeric",
+            year: "2-digit",
+        });
+    } catch {
+        return "--/--/----";
+    }
+};
+
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const computeSnapshot = (user) => {
@@ -122,6 +135,8 @@ const computeSnapshot = (user) => {
 
     const preferredUnit = resolvePreferredWeightUnit(user);
     const displayUnit = toDisplayWeightUnit(preferredUnit);
+
+    const rangeLabel = `${formatShortDate(weekStart)} to ${formatShortDate(now)}`;
 
     let weeklyVolume = 0;
     let weeklyDurationMs = 0;
@@ -198,6 +213,7 @@ const computeSnapshot = (user) => {
         hexScore: formatHexStat(resolvedHex, "0.0"),
         workoutCount,
         workoutCountLabel,
+        rangeLabel,
     };
 };
 
@@ -258,7 +274,7 @@ export default function FeedSnapshotCard() {
                 <View style={styles.headerRow}>
                     <View>
                         <Text style={styles.title}>This Week</Text>
-                        <Text style={styles.subtitle}>{snapshot.workoutCountLabel}</Text>
+                        <Text style={styles.subtitle}>{snapshot.rangeLabel}</Text>
                     </View>
                 </View>
 
@@ -295,8 +311,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.surface,
         width: "100%",
         paddingHorizontal: scaled(18),
-        paddingTop: scaleSize(10),
-        paddingBottom: scaleSize(8)
+        paddingTop: scaleSize(12),
+        paddingBottom: scaleSize(6)
     },
     headerRow: {
         flexDirection: "row",
@@ -306,7 +322,7 @@ const styles = StyleSheet.create({
     },
     title: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaled(14),
+        fontSize: scaled(13),
         color: theme.textPrimary,
         letterSpacing: 0.15,
     },
