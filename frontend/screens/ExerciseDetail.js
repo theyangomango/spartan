@@ -969,7 +969,7 @@ export default function ExerciseDetail() {
     const progressCardHorizontalPadding = scaleSize(16);
     const progressChartHeight = scaleSize(220);
     const progressChartWidth = Math.max(DEVICE_WIDTH - progressCardHorizontalPadding, scaleSize(200));
-    const progressChartPaddingTop = scaleSize(0);
+    const progressChartPaddingTop = scaleSize(24);
     const progressChartPaddingBottom = scaleSize(32);
     const progressInitialSpacing = scaleSize(12);
     const progressYAxisLabelWidth = scaleSize(42);
@@ -2388,6 +2388,7 @@ const styles = StyleSheet.create({
     progressCard: {
         backgroundColor: theme.surface,
         paddingTop: scaleSize(16),
+        paddingBottom: scaleSize(6),
         borderTopWidth: StyleSheet.hairlineWidth,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderColor: 'rgba(255,255,255,0.06)',
