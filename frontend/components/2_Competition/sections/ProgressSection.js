@@ -78,6 +78,149 @@ const sanitizeEntries = (rawEntries) => {
         .sort((a, b) => a.recordedAt - b.recordedAt);
 };
 
+const resolveWorkoutTimestamp = (workout) => {
+    const candidates = [
+        workout?.finishedAt,
+        workout?.completedAt,
+        workout?.endedAt,
+        workout?.timestamp,
+        workout?.loggedAt,
+        workout?.updatedAt,
+        workout?.createdAt,
+        workout?.created,
+    ];
+    for (const candidate of candidates) {
+        if (candidate == null) continue;
+        const direct = Number(candidate);
+        if (Number.isFinite(direct) && direct > 0) return direct;
+        if (typeof candidate === "string" && candidate.trim()) {
+            const parsed = Date.parse(candidate);
+            if (Number.isFinite(parsed)) return parsed;
+        }
+        if (typeof candidate === "object" && candidate?.toDate) {
+            try {
+                const converted = candidate.toDate().getTime();
+                if (Number.isFinite(converted)) return converted;
+            } catch {}
+        }
+    }
+    return null;
+};
+
+const formatVolumeValue = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num) || num <= 0) return "0";
+    if (num >= 1000) {
+        try {
+            return new Intl.NumberFormat("en-US").format(Math.round(num));
+        } catch {}
+    }
+    return Math.round(num).toString();
+};
+
+const sanitizeVolumeEntries = (completedWorkouts) => {
+    if (!Array.isArray(completedWorkouts)) return [];
+    const prelim = completedWorkouts
+        .map((workout) => {
+            if (!workout) return null;
+            const recordedAt = resolveWorkoutTimestamp(workout);
+            const volume = Number(workout?.volume ?? workout?.totalVolume ?? workout?.stats?.volume ?? 0);
+            if (!Number.isFinite(recordedAt) || !Number.isFinite(volume) || volume <= 0) return null;
+            return {
+                id: workout.id || workout.wid || workout.workoutId || workout.sessionId || makeID(),
+                increment: volume,
+                recordedAt,
+                name:
+                    (typeof workout?.name === "string" && workout.name.trim())
+                        ? workout.name.trim()
+                        : workout?.templateName || "Workout",
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.recordedAt - b.recordedAt);
+
+    const result = [];
+    let runningTotal = 0;
+    prelim.forEach((entry) => {
+        runningTotal += entry.increment;
+        result.push({ ...entry, value: runningTotal });
+    });
+
+    return result;
+};
+
+const buildChartSeries = (chartData, axisMetrics, geometry) => {
+    const { leftMargin, innerWidth, topMargin, innerHeight, baselineY } = geometry;
+
+    if (!Array.isArray(chartData) || chartData.length === 0) {
+        return { points: [], linePath: "", areaPath: "", domain: null };
+    }
+
+    const minY = Number(axisMetrics?.minValue ?? 0);
+    const maxY = Number(axisMetrics?.maxValue ?? minY + 1);
+    const yRange = Math.max(maxY - minY, 1);
+
+    const timestamps = chartData.map((point) => Number(point.recordedAt));
+    let minX = Math.min(...timestamps);
+    let maxX = Math.max(...timestamps);
+
+    if (!Number.isFinite(minX) || !Number.isFinite(maxX)) {
+        const now = Date.now();
+        minX = now - 12 * 60 * 60 * 1000;
+        maxX = now + 12 * 60 * 60 * 1000;
+    }
+
+    if (minX === maxX) {
+        const fallbackSpan = 24 * 60 * 60 * 1000;
+        minX -= fallbackSpan / 2;
+        maxX += fallbackSpan / 2;
+    }
+
+    const roundCoord = (value) => Math.round(value * 100) / 100;
+
+    const points = chartData.map((point) => {
+        const rawXRatio = (Number(point.recordedAt) - minX) / (maxX - minX);
+        const xRatio = Number.isFinite(rawXRatio) ? Math.min(Math.max(rawXRatio, 0), 1) : 0;
+        const x = leftMargin + innerWidth * xRatio;
+
+        const rawYRatio = (Number(point.value) - minY) / yRange;
+        const yRatio = Number.isFinite(rawYRatio) ? Math.min(Math.max(rawYRatio, 0), 1) : 0;
+        const y = topMargin + innerHeight * (1 - yRatio);
+
+        return { ...point, x, y };
+    });
+
+    if (!points.length) {
+        return {
+            points,
+            linePath: "",
+            areaPath: "",
+            domain: { minX, maxX, minY, maxY },
+        };
+    }
+
+    const firstPoint = points[0];
+    const lastPoint = points[points.length - 1];
+
+    const linePath = points
+        .map((point, index) => `${index === 0 ? "M" : "L"} ${roundCoord(point.x)} ${roundCoord(point.y)}`)
+        .join(" ");
+
+    let areaPath = `M ${roundCoord(firstPoint.x)} ${roundCoord(baselineY)} L ${roundCoord(firstPoint.x)} ${roundCoord(firstPoint.y)}`;
+    for (let i = 1; i < points.length; i += 1) {
+        const point = points[i];
+        areaPath += ` L ${roundCoord(point.x)} ${roundCoord(point.y)}`;
+    }
+    areaPath += ` L ${roundCoord(lastPoint.x)} ${roundCoord(baselineY)} Z`;
+
+    return {
+        points,
+        linePath,
+        areaPath,
+        domain: { minX, maxX, minY, maxY },
+    };
+};
+
 const niceNumber = (range, round) => {
     if (range <= 0 || !Number.isFinite(range)) return 1;
     const exponent = Math.floor(Math.log10(range));
@@ -171,6 +314,39 @@ const PointerLabelBubble = React.memo(({ entry, unit, isRightAligned }) => {
             >
                 <View style={styles.pointerBubble}>
                     <Text style={styles.pointerBubbleWeight}>{weightText}</Text>
+                    <Text style={styles.pointerBubbleTimestamp}>{timestampText}</Text>
+                </View>
+            </View>
+        </View>
+    );
+});
+
+const VolumePointerLabel = React.memo(({ entry, isRightAligned }) => {
+    if (!entry) return null;
+
+    const totalText = `${formatVolumeValue(entry.value)} lb`; 
+    const incrementText = entry.increment ? `+${formatVolumeValue(entry.increment)} lb` : null;
+    const timestampText = dayjs(entry.recordedAt).format("MMM D, h:mm A");
+
+    return (
+        <View
+            pointerEvents="none"
+            style={[
+                styles.pointerLabelRoot,
+                isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+            ]}
+        >
+            <View
+                style={[
+                    styles.pointerBubbleWrapper,
+                    isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+                ]}
+            >
+                <View style={styles.pointerBubble}>
+                    <Text style={styles.pointerBubbleWeight}>{totalText}</Text>
+                    {incrementText ? (
+                        <Text style={styles.pointerBubbleIncrement}>{incrementText} this workout</Text>
+                    ) : null}
                     <Text style={styles.pointerBubbleTimestamp}>{timestampText}</Text>
                 </View>
             </View>
@@ -469,6 +645,15 @@ export default function ProgressSection() {
     const latestWeightText = formatWeightValue(latestEntry?.weight);
     const latestUnit = (latestEntry?.unit || preferredUnit || "lb").toLowerCase().startsWith("k") ? "kg" : "lb";
     const latestInfoText = latestEntry ? formatTimestamp(latestEntry.recordedAt) : "No entries yet";
+
+    const volumeEntries = useMemo(
+        () => sanitizeVolumeEntries(userData?.completedWorkouts || []),
+        [userData]
+    );
+    const latestVolumeEntry = volumeEntries.length ? volumeEntries[volumeEntries.length - 1] : null;
+    const latestVolumeText = latestVolumeEntry ? formatVolumeValue(latestVolumeEntry.value) : "--";
+    const latestVolumeInfo = latestVolumeEntry ? formatTimestamp(latestVolumeEntry.recordedAt) : "No workouts yet";
+    const latestVolumeUnit = latestVolumeEntry ? "lb" : "";
     const measurementRowSubtitle = useMemo(() => {
         if (!entries.length) return "No measurements yet";
         const count = entries.length;
@@ -489,6 +674,15 @@ export default function ProgressSection() {
             entry,
         }));
     }, [entries]);
+
+    const volumeChartData = useMemo(() => {
+        if (!volumeEntries.length) return [];
+        return volumeEntries.map((entry) => ({
+            value: Number(entry.value) || 0,
+            recordedAt: entry.recordedAt,
+            entry,
+        }));
+    }, [volumeEntries]);
     const sectionsCount = 4;
     const weightValues = useMemo(() => chartData.map((point) => point.value), [chartData]);
     const axisMetrics = useMemo(
@@ -505,12 +699,27 @@ export default function ProgressSection() {
         return ticks;
     }, [axisMetrics]);
 
-    const cardHorizontalPadding = scaleSize(20);
+    const volumeValues = useMemo(() => volumeChartData.map((point) => point.value), [volumeChartData]);
+    const volumeAxisMetrics = useMemo(
+        () => computeAxisMetrics(volumeValues, sectionsCount),
+        [volumeValues]
+    );
+    const volumeYTickValues = useMemo(() => {
+        if (!volumeAxisMetrics) return [];
+        const ticks = [];
+        for (let i = 0; i <= volumeAxisMetrics.sections; i += 1) {
+            const value = volumeAxisMetrics.minValue + volumeAxisMetrics.step * i;
+            ticks.push(Math.round((value + Number.EPSILON) * 100) / 100);
+        }
+        return ticks;
+    }, [volumeAxisMetrics]);
+
+    const cardHorizontalPadding = scaleSize(16);
     const chartHeight = scaleSize(220);
-    const chartWidth = DEVICE_WIDTH;
+    const chartWidth = Math.max(DEVICE_WIDTH - cardHorizontalPadding * 2, scaleSize(200));
     const chartPaddingTop = scaleSize(0);
     const chartPaddingBottom = scaleSize(0);
-    const initialSpacing = scaleSize(15);
+    const initialSpacing = scaleSize(12);
     const pointerStripWidth = scaleSize(2);
     const yAxisLabelWidth = scaleSize(42);
 
@@ -549,85 +758,15 @@ export default function ProgressSection() {
         baselineY: chartBaselineY,
     } = chartGeometry;
 
-    const chartSeries = useMemo(() => {
-        if (!chartData.length) {
-            return {
-                points: [],
-                linePath: "",
-                areaPath: "",
-                domain: null,
-            };
-        }
+    const weightSeries = useMemo(
+        () => buildChartSeries(chartData, axisMetrics, chartGeometry),
+        [chartData, axisMetrics, chartGeometry]
+    );
 
-        const minY = Number(axisMetrics?.minValue ?? 0);
-        const maxY = Number(axisMetrics?.maxValue ?? minY + 1);
-        const yRange = Math.max(maxY - minY, 1);
-
-        const timestamps = chartData.map((point) => Number(point.recordedAt));
-        let minX = Math.min(...timestamps);
-        let maxX = Math.max(...timestamps);
-
-        if (!Number.isFinite(minX) || !Number.isFinite(maxX)) {
-            const now = Date.now();
-            minX = now - 12 * 60 * 60 * 1000;
-            maxX = now + 12 * 60 * 60 * 1000;
-        }
-
-        if (minX === maxX) {
-            const fallbackSpan = 24 * 60 * 60 * 1000;
-            minX -= fallbackSpan / 2;
-            maxX += fallbackSpan / 2;
-        }
-
-        const roundCoord = (value) => Math.round(value * 100) / 100;
-
-        const points = chartData.map((point) => {
-            const rawXRatio = (Number(point.recordedAt) - minX) / (maxX - minX);
-            const xRatio = Number.isFinite(rawXRatio) ? Math.min(Math.max(rawXRatio, 0), 1) : 0;
-            const x = chartLeftMargin + chartInnerWidth * xRatio;
-
-            const rawYRatio = (Number(point.value) - minY) / yRange;
-            const yRatio = Number.isFinite(rawYRatio) ? Math.min(Math.max(rawYRatio, 0), 1) : 0;
-            const y = chartTopMargin + chartInnerHeight * (1 - yRatio);
-
-            return {
-                ...point,
-                x,
-                y,
-            };
-        });
-
-        if (!points.length) {
-            return {
-                points,
-                linePath: "",
-                areaPath: "",
-                domain: { minX, maxX, minY, maxY },
-            };
-        }
-
-        const baseline = chartBaselineY;
-        const firstPoint = points[0];
-        const lastPoint = points[points.length - 1];
-
-        const linePath = points
-            .map((point, index) => `${index === 0 ? "M" : "L"} ${roundCoord(point.x)} ${roundCoord(point.y)}`)
-            .join(" ");
-
-        let areaPath = `M ${roundCoord(firstPoint.x)} ${roundCoord(baseline)} L ${roundCoord(firstPoint.x)} ${roundCoord(firstPoint.y)}`;
-        for (let i = 1; i < points.length; i += 1) {
-            const point = points[i];
-            areaPath += ` L ${roundCoord(point.x)} ${roundCoord(point.y)}`;
-        }
-        areaPath += ` L ${roundCoord(lastPoint.x)} ${roundCoord(baseline)} Z`;
-
-        return {
-            points,
-            linePath,
-            areaPath,
-            domain: { minX, maxX, minY, maxY },
-        };
-    }, [chartData, axisMetrics, chartLeftMargin, chartInnerWidth, chartTopMargin, chartInnerHeight, chartBaselineY]);
+    const volumeSeries = useMemo(
+        () => buildChartSeries(volumeChartData, volumeAxisMetrics, chartGeometry),
+        [volumeChartData, volumeAxisMetrics, chartGeometry]
+    );
 
     const handlePointerActivate = useCallback((payload) => {
         if (!payload) return;
@@ -638,11 +777,12 @@ export default function ProgressSection() {
         setActiveIndex(index);
     }, []);
 
-    const chartPoints = chartSeries.points;
+    const weightChartPoints = weightSeries.points;
+    const volumeChartPoints = volumeSeries.points;
 
     const handleChartTouch = useCallback(
         (nativeEvent) => {
-            if (!nativeEvent || !chartPoints.length) return;
+            if (!nativeEvent || !weightChartPoints.length) return;
             const { locationX } = nativeEvent;
             if (!Number.isFinite(locationX)) return;
 
@@ -651,10 +791,10 @@ export default function ProgressSection() {
             const clampedX = Math.max(minX, Math.min(maxX, locationX));
 
             let closestIndex = 0;
-            let smallestDistance = Math.abs(chartPoints[0].x - clampedX);
+            let smallestDistance = Math.abs(weightChartPoints[0].x - clampedX);
 
-            for (let i = 1; i < chartPoints.length; i += 1) {
-                const point = chartPoints[i];
+            for (let i = 1; i < weightChartPoints.length; i += 1) {
+                const point = weightChartPoints[i];
                 const distance = Math.abs(point.x - clampedX);
                 if (distance < smallestDistance) {
                     smallestDistance = distance;
@@ -664,20 +804,72 @@ export default function ProgressSection() {
 
             handlePointerActivate({ index: closestIndex });
         },
-        [chartPoints, chartLeftMargin, chartInnerWidth, handlePointerActivate]
+        [weightChartPoints, chartLeftMargin, chartInnerWidth, handlePointerActivate]
     );
 
     const chartPanResponder = useMemo(
         () =>
             PanResponder.create({
-                onStartShouldSetPanResponder: () => !!chartPoints.length,
-                onMoveShouldSetPanResponder: () => !!chartPoints.length,
+                onStartShouldSetPanResponder: () => !!weightChartPoints.length,
+                onMoveShouldSetPanResponder: () => !!weightChartPoints.length,
                 onPanResponderGrant: (evt) => handleChartTouch(evt?.nativeEvent),
                 onPanResponderMove: (evt) => handleChartTouch(evt?.nativeEvent),
                 onPanResponderRelease: () => {},
                 onPanResponderTerminate: () => {},
             }),
-        [chartPoints.length, handleChartTouch]
+        [weightChartPoints.length, handleChartTouch]
+    );
+
+    const volumeActiveIndexRef = useRef(null);
+    const [volumeActiveIndex, setVolumeActiveIndex] = useState(null);
+
+    const handleVolumePointerActivate = useCallback((payload) => {
+        if (!payload) return;
+        const { index } = payload;
+        if (!Number.isFinite(index)) return;
+        if (volumeActiveIndexRef.current === index) return;
+        volumeActiveIndexRef.current = index;
+        setVolumeActiveIndex(index);
+    }, []);
+
+    const handleVolumeChartTouch = useCallback(
+        (nativeEvent) => {
+            if (!nativeEvent || !volumeChartPoints.length) return;
+            const { locationX } = nativeEvent;
+            if (!Number.isFinite(locationX)) return;
+
+            const minX = chartLeftMargin;
+            const maxX = chartLeftMargin + chartInnerWidth;
+            const clampedX = Math.max(minX, Math.min(maxX, locationX));
+
+            let closestIndex = 0;
+            let smallestDistance = Math.abs(volumeChartPoints[0].x - clampedX);
+
+            for (let i = 1; i < volumeChartPoints.length; i += 1) {
+                const point = volumeChartPoints[i];
+                const distance = Math.abs(point.x - clampedX);
+                if (distance < smallestDistance) {
+                    smallestDistance = distance;
+                    closestIndex = i;
+                }
+            }
+
+            handleVolumePointerActivate({ index: closestIndex });
+        },
+        [volumeChartPoints, chartLeftMargin, chartInnerWidth, handleVolumePointerActivate]
+    );
+
+    const volumePanResponder = useMemo(
+        () =>
+            PanResponder.create({
+                onStartShouldSetPanResponder: () => !!volumeChartPoints.length,
+                onMoveShouldSetPanResponder: () => !!volumeChartPoints.length,
+                onPanResponderGrant: (evt) => handleVolumeChartTouch(evt?.nativeEvent),
+                onPanResponderMove: (evt) => handleVolumeChartTouch(evt?.nativeEvent),
+                onPanResponderRelease: () => {},
+                onPanResponderTerminate: () => {},
+            }),
+        [volumeChartPoints.length, handleVolumeChartTouch]
     );
 
     const getCurrentSanitizedEntries = useCallback(() => {
@@ -871,19 +1063,34 @@ export default function ProgressSection() {
     }, [isSaving]);
 
     const hasChartData = chartData.length > 0;
+    const hasVolumeChartData = volumeChartData.length > 0;
 
-    const activePoint = activeIndex != null ? chartPoints[activeIndex] : null;
-    const activeEntry = activeIndex != null ? chartData[activeIndex]?.entry : null;
+    const weightActivePoint = activeIndex != null ? weightChartPoints[activeIndex] : null;
+    const weightActiveEntry = activeIndex != null ? chartData[activeIndex]?.entry : null;
     const pointerLabelWidth = scaleSize(184);
     const pointerLabelLeft = useMemo(() => {
-        if (!activePoint) return chartLeftMargin;
+        if (!weightActivePoint) return chartLeftMargin;
         const minLeft = chartLeftMargin;
         const maxLeft = chartPlotWidth - chartRightMargin;
-        const centered = activePoint.x - pointerLabelWidth / 2;
+        const centered = weightActivePoint.x - pointerLabelWidth / 2;
         const clamped = Math.max(minLeft, Math.min(centered, maxLeft - pointerLabelWidth));
         return clamped;
-    }, [activePoint, chartLeftMargin, chartPlotWidth, chartRightMargin, pointerLabelWidth]);
+    }, [weightActivePoint, chartLeftMargin, chartPlotWidth, chartRightMargin, pointerLabelWidth]);
     const isPointerRightAligned = activeIndex != null ? activeIndex >= Math.ceil(chartData.length / 2) : false;
+    const volumeActivePoint = volumeActiveIndex != null ? volumeChartPoints[volumeActiveIndex] : null;
+    const volumeActiveEntry = volumeActiveIndex != null ? volumeChartData[volumeActiveIndex]?.entry : null;
+    const volumePointerLabelWidth = scaleSize(184);
+    const volumePointerLabelLeft = useMemo(() => {
+        if (!volumeActivePoint) return chartLeftMargin;
+        const minLeft = chartLeftMargin;
+        const maxLeft = chartPlotWidth - chartRightMargin;
+        const centered = volumeActivePoint.x - volumePointerLabelWidth / 2;
+        const clamped = Math.max(minLeft, Math.min(centered, maxLeft - volumePointerLabelWidth));
+        return clamped;
+    }, [volumeActivePoint, chartLeftMargin, chartPlotWidth, chartRightMargin, volumePointerLabelWidth]);
+    const volumePointerRightAligned = volumeActiveIndex != null
+        ? volumeActiveIndex >= Math.ceil(volumeChartData.length / 2)
+        : false;
 
     useEffect(() => {
         if (!hasChartData && activeIndex != null) {
@@ -901,6 +1108,20 @@ export default function ProgressSection() {
         });
     }, [hasChartData, chartData, activeIndex, handlePointerActivate]);
 
+    useEffect(() => {
+        if (!hasVolumeChartData && volumeActiveIndex != null) {
+            setVolumeActiveIndex(null);
+            volumeActiveIndexRef.current = null;
+        }
+    }, [hasVolumeChartData, volumeActiveIndex]);
+
+    useEffect(() => {
+        if (!hasVolumeChartData || volumeActiveIndex != null) return;
+        const lastIndex = volumeChartData.length - 1;
+        if (lastIndex < 0) return;
+        handleVolumePointerActivate({ index: lastIndex });
+    }, [hasVolumeChartData, volumeChartData, volumeActiveIndex, handleVolumePointerActivate]);
+
     return (
         <>
             <ScrollView
@@ -908,284 +1129,505 @@ export default function ProgressSection() {
                 contentContainerStyle={styles.container}
                 showsVerticalScrollIndicator={false}
             >
-                <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding }]}>
-                <View style={styles.header}>
-                    <Text style={styles.sectionTitle}>Weight</Text>
-                    <View style={styles.headerActions}>
-                        <RNBounceable
-                            style={styles.addButton}
-                            onPress={handleOpenAddModal}
-                            activeScale={0.97}
-                            disabled={isSaving}
-                            accessibilityRole="button"
-                            accessibilityLabel="Add a new weight measurement"
-                        >
-                            <Text style={styles.addButtonLabel}>+ Add Measurement</Text>
-                        </RNBounceable>
+                <View style={[styles.card, styles.volumeCard, { paddingHorizontal: cardHorizontalPadding }]}>
+                    <View style={styles.header}>
+                        <Text style={styles.sectionTitle}>Total Volume</Text>
+                        <View style={styles.autoUpdateHintWrapper}>
+                            <Text style={styles.autoUpdateHint}>Auto-updates from</Text>
+                            <Text style={styles.autoUpdateHint}>completed workouts.</Text>
+                        </View>
                     </View>
-                </View>
 
-                <View style={styles.metricsRow}>
-                    <View style={styles.weightGroup}>
-                        <Text style={styles.weightValue}>{latestWeightText}</Text>
-                        <Text style={styles.weightUnit}>{latestUnit}</Text>
+                    <View style={styles.metricsRow}>
+                        <View style={styles.weightGroup}>
+                            <Text style={styles.weightValue}>{latestVolumeText}</Text>
+                            <Text style={styles.weightUnit}>{latestVolumeUnit}</Text>
+                        </View>
+                        <Text style={styles.summaryText}>{latestVolumeInfo}</Text>
                     </View>
-                    <Text style={styles.summaryText}>{latestInfoText}</Text>
-                </View>
 
-                <View
-                    style={[
-                        styles.chartWrapper,
-                        {
-                            height: chartHeight,
-                            width: chartWidth,
-                            paddingTop: chartPaddingTop,
-                            paddingBottom: chartPaddingBottom,
-                        },
-                    ]}
-                >
-                    {hasChartData ? (
-                        <View style={styles.chartContent}>
-                            <View
-                                style={[
-                                    styles.yAxisLabelsContainer,
-                                    { width: yAxisLabelWidth, height: chartHeight },
-                                ]}
-                                pointerEvents="none"
-                            >
-                                {yTickValues.map((value, index) => {
-                                    const range = Math.max(
-                                        (axisMetrics?.maxValue ?? 0) - (axisMetrics?.minValue ?? 0),
-                                        1
-                                    );
-                                    const ratio = (value - (axisMetrics?.minValue ?? 0)) / range;
-                                    const clampedRatio = Number.isFinite(ratio)
-                                        ? Math.min(Math.max(ratio, 0), 1)
-                                        : 0;
-                                    const yPosition =
-                                        chartTopMargin + chartInnerHeight * (1 - clampedRatio);
-                                    const approxLabelHeight = scaleSize(14);
-                                    const top = Math.min(
-                                        chartHeight - chartBottomMargin - approxLabelHeight,
-                                        Math.max(
-                                            chartTopMargin - approxLabelHeight / 2,
-                                            yPosition - approxLabelHeight / 2
-                                        )
-                                    );
+                    <View
+                        style={[
+                            styles.chartWrapper,
+                            {
+                                height: chartHeight,
+                                width: chartWidth,
+                                paddingTop: chartPaddingTop,
+                                paddingBottom: chartPaddingBottom,
+                            },
+                        ]}
+                    >
+                        {hasVolumeChartData ? (
+                            <View style={styles.chartContent}>
+                                <View
+                                    style={[
+                                        styles.yAxisLabelsContainer,
+                                        { width: yAxisLabelWidth, height: chartHeight },
+                                    ]}
+                                    pointerEvents="none"
+                                >
+                                    {volumeYTickValues.map((value, index) => {
+                                        const range = Math.max(
+                                            (volumeAxisMetrics?.maxValue ?? 0) -
+                                                (volumeAxisMetrics?.minValue ?? 0),
+                                            1
+                                        );
+                                        const ratio = (value - (volumeAxisMetrics?.minValue ?? 0)) / range;
+                                        const clampedRatio = Number.isFinite(ratio)
+                                            ? Math.min(Math.max(ratio, 0), 1)
+                                            : 0;
+                                        const yPosition =
+                                            chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                        const approxLabelHeight = scaleSize(14);
+                                        const top = Math.min(
+                                            chartHeight - chartBottomMargin - approxLabelHeight,
+                                            Math.max(
+                                                chartTopMargin - approxLabelHeight / 2,
+                                                yPosition - approxLabelHeight / 2
+                                            )
+                                        );
 
-                                    return (
-                                        <Text
-                                            key={`y-axis-label-${value}-${index}`}
+                                        return (
+                                            <Text
+                                                key={`volume-y-axis-label-${value}-${index}`}
+                                                style={[
+                                                    styles.axisLabel,
+                                                    styles.yAxisLabel,
+                                                    { top },
+                                                ]}
+                                            >
+                                                {formatAxisValue(value)}
+                                            </Text>
+                                        );
+                                    })}
+                                </View>
+
+                                <View
+                                    style={[
+                                        styles.chartCanvas,
+                                        { width: chartPlotWidth, height: chartHeight },
+                                    ]}
+                                    {...volumePanResponder.panHandlers}
+                                >
+                                    <Svg width={chartPlotWidth} height={chartHeight}>
+                                        <Defs>
+                                            <LinearGradient
+                                                id="volumeChartGradient"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
+                                                <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
+                                            </LinearGradient>
+                                        </Defs>
+
+                                        {volumeYTickValues.map((value, index) => {
+                                            const range = Math.max(
+                                                (volumeAxisMetrics?.maxValue ?? 0) -
+                                                    (volumeAxisMetrics?.minValue ?? 0),
+                                                1
+                                            );
+                                            const ratio = (value - (volumeAxisMetrics?.minValue ?? 0)) / range;
+                                            const clampedRatio = Number.isFinite(ratio)
+                                                ? Math.min(Math.max(ratio, 0), 1)
+                                                : 0;
+                                            const y =
+                                                chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                            return (
+                                                <Line
+                                                    key={`volume-grid-line-${value}-${index}`}
+                                                    x1={chartLeftMargin}
+                                                    y1={y}
+                                                    x2={chartPlotWidth - chartRightMargin}
+                                                    y2={y}
+                                                    stroke="rgba(255,255,255,0.1)"
+                                                    strokeWidth={StyleSheet.hairlineWidth}
+                                                    strokeDasharray={[6, 6]}
+                                                />
+                                            );
+                                        })}
+
+                                        {volumeSeries.areaPath ? (
+                                            <Path
+                                                d={volumeSeries.areaPath}
+                                                fill="url(#volumeChartGradient)"
+                                                stroke="none"
+                                            />
+                                        ) : null}
+
+                                        {volumeSeries.linePath ? (
+                                            <Path
+                                                d={volumeSeries.linePath}
+                                                fill="none"
+                                                stroke="#7FB7FF"
+                                                strokeWidth={scaleSize(3)}
+                                                strokeLinejoin="round"
+                                                strokeLinecap="round"
+                                            />
+                                        ) : null}
+
+                                        <Line
+                                            x1={chartLeftMargin}
+                                            y1={chartTopMargin}
+                                            x2={chartLeftMargin}
+                                            y2={chartBaselineY}
+                                            stroke="rgba(148, 157, 172, 0.35)"
+                                            strokeWidth={StyleSheet.hairlineWidth}
+                                        />
+                                        <Line
+                                            x1={chartLeftMargin}
+                                            y1={chartBaselineY}
+                                            x2={chartPlotWidth - chartRightMargin}
+                                            y2={chartBaselineY}
+                                            stroke="rgba(148, 157, 172, 0.35)"
+                                            strokeWidth={StyleSheet.hairlineWidth}
+                                        />
+
+                                        {volumeActivePoint ? (
+                                            <Line
+                                                x1={volumeActivePoint.x}
+                                                y1={chartTopMargin}
+                                                x2={volumeActivePoint.x}
+                                                y2={chartBaselineY}
+                                                stroke="rgba(100, 160, 255, 0.45)"
+                                                strokeWidth={pointerStripWidth}
+                                            />
+                                        ) : null}
+
+                                        {volumeChartPoints.map((point, index) => {
+                                            const isActive = index === volumeActiveIndex;
+                                            const radius = isActive ? scaleSize(6) : scaleSize(4.2);
+                                            const strokeWidth = isActive ? scaleSize(2) : scaleSize(1);
+                                            const strokeColor = isActive
+                                                ? "rgba(100, 160, 255, 0.9)"
+                                                : "rgba(100, 160, 255, 0.45)";
+                                            const fillColor = isActive
+                                                ? "#E1EEFF"
+                                                : "rgba(225, 238, 255, 0.78)";
+                                            return (
+                                                <Circle
+                                                    key={point.entry?.id || `volume-point-${index}`}
+                                                    cx={point.x}
+                                                    cy={point.y}
+                                                    r={radius}
+                                                    fill={fillColor}
+                                                    stroke={strokeColor}
+                                                    strokeWidth={strokeWidth}
+                                                />
+                                            );
+                                        })}
+                                    </Svg>
+
+                                    {volumeActiveEntry ? (
+                                        <View
+                                            pointerEvents="none"
                                             style={[
-                                                styles.axisLabel,
-                                                styles.yAxisLabel,
-                                                { top },
+                                                styles.pointerBubbleContainer,
+                                                {
+                                                    left: volumePointerLabelLeft,
+                                                    top: Math.max(
+                                                        scaleSize(-8),
+                                                        chartTopMargin - scaleSize(72)
+                                                    ),
+                                                    width: volumePointerLabelWidth,
+                                                },
                                             ]}
                                         >
-                                            {formatAxisValue(value)}
-                                        </Text>
-                                    );
-                                })}
-                            </View>
-
-                            <View
-                                style={[
-                                    styles.chartCanvas,
-                                    { width: chartPlotWidth, height: chartHeight },
-                                ]}
-                                {...chartPanResponder.panHandlers}
-                            >
-                                <Svg width={chartPlotWidth} height={chartHeight}>
-                                    <Defs>
-                                        <LinearGradient
-                                            id="progressChartGradient"
-                                            x1="0"
-                                            y1="0"
-                                            x2="0"
-                                            y2="1"
-                                        >
-                                            <Stop offset="0%" stopColor="#64A0FF" stopOpacity="0.3" />
-                                            <Stop
-                                                offset="100%"
-                                                stopColor="#2D7BFF"
-                                                stopOpacity="0.08"
+                                            <VolumePointerLabel
+                                                entry={volumeActiveEntry}
+                                                isRightAligned={volumePointerRightAligned}
                                             />
-                                        </LinearGradient>
-                                    </Defs>
+                                        </View>
+                                    ) : null}
+                                </View>
+                            </View>
+                        ) : (
+                            <View style={styles.chartEmptyState}>
+                                <Text style={styles.placeholderText}>Complete workouts to build volume.</Text>
+                            </View>
+                        )}
+                    </View>
+                </View>
+                <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding }]}>
+                    <View style={styles.header}>
+                        <Text style={styles.sectionTitle}>Weight</Text>
+                        <View style={styles.headerActions}>
+                            <RNBounceable
+                                style={styles.addButton}
+                                onPress={handleOpenAddModal}
+                                activeScale={0.97}
+                                disabled={isSaving}
+                                accessibilityRole="button"
+                                accessibilityLabel="Add a new weight measurement"
+                            >
+                                <Text style={styles.addButtonLabel}>+ Add Measurement</Text>
+                            </RNBounceable>
+                        </View>
+                    </View>
 
+                    <View style={styles.metricsRow}>
+                        <View style={styles.weightGroup}>
+                            <Text style={styles.weightValue}>{latestWeightText}</Text>
+                            <Text style={styles.weightUnit}>{latestUnit}</Text>
+                        </View>
+                        <Text style={styles.summaryText}>{latestInfoText}</Text>
+                    </View>
+
+                    <View
+                        style={[
+                            styles.chartWrapper,
+                            {
+                                height: chartHeight,
+                                width: chartWidth,
+                                paddingTop: chartPaddingTop,
+                                paddingBottom: chartPaddingBottom,
+                            },
+                        ]}
+                    >
+                        {hasChartData ? (
+                            <View style={styles.chartContent}>
+                                <View
+                                    style={[
+                                        styles.yAxisLabelsContainer,
+                                        { width: yAxisLabelWidth, height: chartHeight },
+                                    ]}
+                                    pointerEvents="none"
+                                >
                                     {yTickValues.map((value, index) => {
                                         const range = Math.max(
-                                            (axisMetrics?.maxValue ?? 0) -
-                                                (axisMetrics?.minValue ?? 0),
+                                            (axisMetrics?.maxValue ?? 0) - (axisMetrics?.minValue ?? 0),
                                             1
                                         );
                                         const ratio = (value - (axisMetrics?.minValue ?? 0)) / range;
                                         const clampedRatio = Number.isFinite(ratio)
                                             ? Math.min(Math.max(ratio, 0), 1)
                                             : 0;
-                                        const y =
+                                        const yPosition =
                                             chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                        const approxLabelHeight = scaleSize(14);
+                                        const top = Math.min(
+                                            chartHeight - chartBottomMargin - approxLabelHeight,
+                                            Math.max(
+                                                chartTopMargin - approxLabelHeight / 2,
+                                                yPosition - approxLabelHeight / 2
+                                            )
+                                        );
+
                                         return (
-                                            <Line
-                                                key={`grid-line-${value}-${index}`}
-                                                x1={chartLeftMargin}
-                                                y1={y}
-                                                x2={chartPlotWidth - chartRightMargin}
-                                                y2={y}
-                                                stroke="rgba(255,255,255,0.1)"
-                                                strokeWidth={StyleSheet.hairlineWidth}
-                                                strokeDasharray={[6, 6]}
-                                            />
+                                            <Text
+                                                key={`y-axis-label-${value}-${index}`}
+                                                style={[
+                                                    styles.axisLabel,
+                                                    styles.yAxisLabel,
+                                                    { top },
+                                                ]}
+                                            >
+                                                {formatAxisValue(value)}
+                                            </Text>
                                         );
                                     })}
+                                </View>
 
-                                    {chartSeries.areaPath ? (
-                                        <Path
-                                            d={chartSeries.areaPath}
-                                            fill="url(#progressChartGradient)"
-                                            stroke="none"
-                                        />
-                                    ) : null}
+                                <View
+                                    style={[
+                                        styles.chartCanvas,
+                                        { width: chartPlotWidth, height: chartHeight },
+                                    ]}
+                                    {...chartPanResponder.panHandlers}
+                                >
+                                    <Svg width={chartPlotWidth} height={chartHeight}>
+                                        <Defs>
+                                            <LinearGradient
+                                                id="progressChartGradient"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <Stop offset="0%" stopColor="#64A0FF" stopOpacity="0.3" />
+                                                <Stop
+                                                    offset="100%"
+                                                    stopColor="#2D7BFF"
+                                                    stopOpacity="0.08"
+                                                />
+                                            </LinearGradient>
+                                        </Defs>
 
-                                    {chartSeries.linePath ? (
-                                        <Path
-                                            d={chartSeries.linePath}
-                                            fill="none"
-                                            stroke="#7FB7FF"
-                                            strokeWidth={scaleSize(3)}
-                                            strokeLinejoin="round"
-                                            strokeLinecap="round"
-                                        />
-                                    ) : null}
+                                        {yTickValues.map((value, index) => {
+                                            const range = Math.max(
+                                                (axisMetrics?.maxValue ?? 0) -
+                                                    (axisMetrics?.minValue ?? 0),
+                                                1
+                                            );
+                                            const ratio = (value - (axisMetrics?.minValue ?? 0)) / range;
+                                            const clampedRatio = Number.isFinite(ratio)
+                                                ? Math.min(Math.max(ratio, 0), 1)
+                                                : 0;
+                                            const y =
+                                                chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                            return (
+                                                <Line
+                                                    key={`grid-line-${value}-${index}`}
+                                                    x1={chartLeftMargin}
+                                                    y1={y}
+                                                    x2={chartPlotWidth - chartRightMargin}
+                                                    y2={y}
+                                                    stroke="rgba(255,255,255,0.1)"
+                                                    strokeWidth={StyleSheet.hairlineWidth}
+                                                    strokeDasharray={[6, 6]}
+                                                />
+                                            );
+                                        })}
 
-                                    <Line
-                                        x1={chartLeftMargin}
-                                        y1={chartTopMargin}
-                                        x2={chartLeftMargin}
-                                        y2={chartBaselineY}
-                                        stroke="rgba(148, 157, 172, 0.35)"
-                                        strokeWidth={StyleSheet.hairlineWidth}
-                                    />
-                                    <Line
-                                        x1={chartLeftMargin}
-                                        y1={chartBaselineY}
-                                        x2={chartPlotWidth - chartRightMargin}
-                                        y2={chartBaselineY}
-                                        stroke="rgba(148, 157, 172, 0.35)"
-                                        strokeWidth={StyleSheet.hairlineWidth}
-                                    />
+                                        {weightSeries.areaPath ? (
+                                            <Path
+                                                d={weightSeries.areaPath}
+                                                fill="url(#progressChartGradient)"
+                                                stroke="none"
+                                            />
+                                        ) : null}
 
-                                    {activePoint ? (
+                                        {weightSeries.linePath ? (
+                                            <Path
+                                                d={weightSeries.linePath}
+                                                fill="none"
+                                                stroke="#7FB7FF"
+                                                strokeWidth={scaleSize(3)}
+                                                strokeLinejoin="round"
+                                                strokeLinecap="round"
+                                            />
+                                        ) : null}
+
                                         <Line
-                                            x1={activePoint.x}
+                                            x1={chartLeftMargin}
                                             y1={chartTopMargin}
-                                            x2={activePoint.x}
+                                            x2={chartLeftMargin}
                                             y2={chartBaselineY}
-                                            stroke="rgba(45, 158, 255, 0.45)"
-                                            strokeWidth={pointerStripWidth}
+                                            stroke="rgba(148, 157, 172, 0.35)"
+                                            strokeWidth={StyleSheet.hairlineWidth}
                                         />
-                                    ) : null}
+                                        <Line
+                                            x1={chartLeftMargin}
+                                            y1={chartBaselineY}
+                                            x2={chartPlotWidth - chartRightMargin}
+                                            y2={chartBaselineY}
+                                            stroke="rgba(148, 157, 172, 0.35)"
+                                            strokeWidth={StyleSheet.hairlineWidth}
+                                        />
 
-                                    {chartPoints.map((point, index) => {
-                                        const isActive = index === activeIndex;
-                                        const radius = isActive ? scaleSize(6) : scaleSize(4.2);
-                                        const strokeWidth = isActive ? scaleSize(2) : scaleSize(1);
-                                        const strokeColor = isActive
-                                            ? "rgba(45, 158, 255, 0.9)"
-                                            : "rgba(45, 158, 255, 0.45)";
-                                        const fillColor = isActive
-                                            ? "#E1EEFF"
-                                            : "rgba(225, 238, 255, 0.78)";
-                                        return (
-                                            <Circle
-                                                key={point.entry?.id || `point-${index}`}
-                                                cx={point.x}
-                                                cy={point.y}
-                                                r={radius}
-                                                fill={fillColor}
-                                                stroke={strokeColor}
-                                                strokeWidth={strokeWidth}
+                                        {weightActivePoint ? (
+                                            <Line
+                                                x1={weightActivePoint.x}
+                                                y1={chartTopMargin}
+                                                x2={weightActivePoint.x}
+                                                y2={chartBaselineY}
+                                                stroke="rgba(45, 158, 255, 0.45)"
+                                                strokeWidth={pointerStripWidth}
                                             />
-                                        );
-                                    })}
-                                </Svg>
+                                        ) : null}
 
-                                {activeEntry ? (
-                                    <View
-                                        pointerEvents="none"
-                                        style={[
-                                            styles.pointerBubbleContainer,
-                                            {
-                                                left: pointerLabelLeft,
-                                                top: Math.max(
-                                                    scaleSize(-8),
-                                                    chartTopMargin - scaleSize(72)
-                                                ),
-                                                width: pointerLabelWidth,
-                                            },
-                                        ]}
-                                    >
-                                        <PointerLabelBubble
-                                            entry={activeEntry}
-                                            unit={latestUnit}
-                                            isRightAligned={isPointerRightAligned}
-                                        />
-                                    </View>
-                                ) : null}
+                                        {weightChartPoints.map((point, index) => {
+                                            const isActive = index === activeIndex;
+                                            const radius = isActive ? scaleSize(6) : scaleSize(4.2);
+                                            const strokeWidth = isActive ? scaleSize(2) : scaleSize(1);
+                                            const strokeColor = isActive
+                                                ? "rgba(45, 158, 255, 0.9)"
+                                                : "rgba(45, 158, 255, 0.45)";
+                                            const fillColor = isActive
+                                                ? "#E1EEFF"
+                                                : "rgba(225, 238, 255, 0.78)";
+                                            return (
+                                                <Circle
+                                                    key={point.entry?.id || `point-${index}`}
+                                                    cx={point.x}
+                                                    cy={point.y}
+                                                    r={radius}
+                                                    fill={fillColor}
+                                                    stroke={strokeColor}
+                                                    strokeWidth={strokeWidth}
+                                                />
+                                            );
+                                        })}
+                                    </Svg>
+
+                                    {weightActiveEntry ? (
+                                        <View
+                                            pointerEvents="none"
+                                            style={[
+                                                styles.pointerBubbleContainer,
+                                                {
+                                                    left: pointerLabelLeft,
+                                                    top: Math.max(
+                                                        scaleSize(-8),
+                                                        chartTopMargin - scaleSize(72)
+                                                    ),
+                                                    width: pointerLabelWidth,
+                                                },
+                                            ]}
+                                        >
+                                            <PointerLabelBubble
+                                                entry={weightActiveEntry}
+                                                unit={latestUnit}
+                                                isRightAligned={isPointerRightAligned}
+                                            />
+                                        </View>
+                                    ) : null}
+                                </View>
                             </View>
-                        </View>
-                    ) : (
-                        <View style={styles.chartEmptyState}>
-                            <Text style={styles.placeholderText}>
-                                Log a measurement to begin.
-                            </Text>
-                        </View>
-                    )}
-                </View>
+                        ) : (
+                            <View style={styles.chartEmptyState}>
+                                <Text style={styles.placeholderText}>
+                                    Log a measurement to begin.
+                                </Text>
+                            </View>
+                        )}
+                    </View>
 
-                <View style={styles.measurementsRowContainer}>
-                    <Pressable
-                        onPress={() => navigation.navigate("WeightMeasurements")}
-                        accessibilityRole="button"
-                        accessibilityLabel="See weight measurements"
-                        disabled={isSaving}
-                        style={({ pressed }) => [
-                            styles.measurementsRow,
-                            pressed && styles.measurementsRowPressed,
-                        ]}
-                    >
-                        <View style={styles.measurementsIconBadge}>
-                            <Weight size={scaleSize(20)} color="#F6F8FF" />
-                        </View>
-                        <View style={styles.measurementsTextWrap}>
-                            <Text style={styles.measurementsTitle}>See Weight Measurements</Text>
-                            <Text style={styles.measurementsSubtitle} numberOfLines={1}>
-                                {measurementRowSubtitle}
-                            </Text>
-                        </View>
-                        <Ionicons
-                            name="chevron-forward"
-                            size={scaleSize(18)}
-                            color="rgba(198, 206, 222, 0.84)"
-                            style={styles.measurementsChevron}
-                        />
-                    </Pressable>
+                    <View style={styles.measurementsRowContainer}>
+                        <Pressable
+                            onPress={() => navigation.navigate("WeightMeasurements")}
+                            accessibilityRole="button"
+                            accessibilityLabel="See weight measurements"
+                            disabled={isSaving}
+                            style={({ pressed }) => [
+                                styles.measurementsRow,
+                                pressed && styles.measurementsRowPressed,
+                            ]}
+                        >
+                            <View style={styles.measurementsIconBadge}>
+                                <Weight size={scaleSize(20)} color="#F6F8FF" />
+                            </View>
+                            <View style={styles.measurementsTextWrap}>
+                                <Text style={styles.measurementsTitle}>See Weight Measurements</Text>
+                                <Text style={styles.measurementsSubtitle} numberOfLines={1}>
+                                    {measurementRowSubtitle}
+                                </Text>
+                            </View>
+                            <Ionicons
+                                name="chevron-forward"
+                                size={scaleSize(18)}
+                                color="rgba(198, 206, 222, 0.84)"
+                                style={styles.measurementsChevron}
+                            />
+                        </Pressable>
+                    </View>
                 </View>
-            </View>
-        </ScrollView>
+            </ScrollView>
 
         <ManageMeasurementsModal
             isVisible={isManageModalVisible}
             onDismiss={handleCloseManageModal}
-                entries={entries}
-                onEdit={handleEditEntry}
-                onDelete={handleRequestDelete}
-                isSaving={isSaving}
-            />
-            <AddMeasurementModal
-                isVisible={isModalVisible}
-                onDismiss={handleCloseAddModal}
-                onSubmit={handleSubmitMeasurement}
+            entries={entries}
+            onEdit={handleEditEntry}
+            onDelete={handleRequestDelete}
+            isSaving={isSaving}
+        />
+        <AddMeasurementModal
+            isVisible={isModalVisible}
+            onDismiss={handleCloseAddModal}
+            onSubmit={handleSubmitMeasurement}
                 unit={entryToEdit?.unit || latestUnit}
                 isSaving={isSaving}
                 initialEntry={entryToEdit}
@@ -1202,7 +1644,7 @@ const styles = StyleSheet.create({
     },
     container: {
         paddingTop: scaleSize(10),
-        paddingBottom: scaleSize(24),
+        paddingBottom: scaleSize(130),
         backgroundColor: theme.bg,
     },
     card: {
@@ -1212,11 +1654,16 @@ const styles = StyleSheet.create({
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(255,255,255,0.06)",
     },
+    volumeCard: {
+        marginBottom: scaleSize(32),
+        borderTopWidth: 0,
+        paddingBottom: scaleSize(16),
+    },
     header: {
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: scaleSize(8),
+        marginBottom: scaleSize(4),
     },
     headerActions: {
         flexDirection: "row",
@@ -1224,7 +1671,7 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(18),
+        fontSize: ts(15),
         color: theme.textPrimary ?? "#F6F8FF",
     },
     manageButton: {
@@ -1253,6 +1700,7 @@ const styles = StyleSheet.create({
     metricsRow: {
         flexDirection: "row",
         justifyContent: "space-between",
+        marginBottom: scaleSize(2),
     },
     weightGroup: {
         flexDirection: "row",
@@ -1260,9 +1708,9 @@ const styles = StyleSheet.create({
     },
     weightValue: {
         fontFamily: "Outfit_700Bold",
-        fontSize: ts(30),
+        fontSize: ts(24),
         color: theme.textPrimary ?? "#F6F8FF",
-        lineHeight: ts(32),
+        lineHeight: ts(25),
     },
     weightUnit: {
         fontFamily: "Outfit_600SemiBold",
@@ -1281,6 +1729,14 @@ const styles = StyleSheet.create({
         marginLeft: scaleSize(12),
         textAlign: "right",
         paddingVertical: scaleSize(2)
+    },
+    autoUpdateHintWrapper: {
+        alignItems: "flex-end",
+    },
+    autoUpdateHint: {
+        fontFamily: "Outfit_400Regular",
+        fontSize: ts(11),
+        color: "rgba(216, 226, 255, 0.55)",
     },
     chartWrapper: {
         justifyContent: "center",
@@ -1396,6 +1852,12 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
         fontSize: ts(16),
         color: theme.textPrimary ?? "#F6F8FF",
+    },
+    pointerBubbleIncrement: {
+        marginTop: scaleSize(2),
+        fontFamily: "Outfit_500Medium",
+        fontSize: ts(11),
+        color: "rgba(216, 226, 255, 0.82)",
     },
     pointerBubbleTimestamp: {
         marginTop: scaleSize(2),
