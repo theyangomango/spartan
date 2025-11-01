@@ -25,6 +25,7 @@ import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import { emitUserDataUpdate, subscribeUserData } from "../../../utils/userDataEvents";
 import { DEVICE_WIDTH, scaleSize, ts } from "../layoutConstants";
 import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from "react-native-svg";
+import { navigateOneWay } from "../../../../navigationRef";
 
 const resolvePreferredWeightUnit = (user) => {
     const rawUnit =
@@ -158,12 +159,18 @@ const sanitizePersonalRecordEntries = (completedWorkouts) => {
                 (typeof workout?.name === "string" && workout.name.trim()) ||
                 (typeof workout?.templateName === "string" && workout.templateName.trim()) ||
                 "Workout";
+            const wid =
+                (typeof workout?.wid === "string" && workout.wid.trim()) ||
+                (workout?.wid ? String(workout.wid).trim() : '') ||
+                (workout?.workoutId ? String(workout.workoutId).trim() : '') ||
+                (workout?.id ? String(workout.id).trim() : '');
 
             return {
                 id,
                 recordedAt,
                 increment,
                 name,
+                wid,
             };
         })
         .filter(Boolean)
@@ -177,6 +184,33 @@ const sanitizePersonalRecordEntries = (completedWorkouts) => {
             value: runningTotal,
         };
     });
+};
+
+const sanitizeWorkoutForRoute = (workout) => {
+    if (!workout || typeof workout !== "object") return null;
+    const replacer = (_key, value) => (typeof value === "function" ? undefined : value);
+    try {
+        return JSON.parse(JSON.stringify(workout, replacer));
+    } catch {
+        const clone = { ...workout };
+        if (Array.isArray(workout.exercises)) {
+            clone.exercises = workout.exercises.map((exercise) => {
+                if (!exercise || typeof exercise !== "object") return {};
+                const safeExercise = { ...exercise };
+                if (Array.isArray(exercise.sets)) {
+                    safeExercise.sets = exercise.sets.map((set) => {
+                        if (!set || typeof set !== "object") return {};
+                        const safeSet = { ...set };
+                        delete safeSet.onComplete;
+                        delete safeSet.onDelete;
+                        return safeSet;
+                    });
+                }
+                return safeExercise;
+            });
+        }
+        return clone;
+    }
 };
 
 const formatVolumeValue = (value) => {
@@ -206,6 +240,10 @@ const sanitizeVolumeEntries = (completedWorkouts) => {
                     (typeof workout?.name === "string" && workout.name.trim())
                         ? workout.name.trim()
                         : workout?.templateName || "Workout",
+                wid: (typeof workout?.wid === "string" && workout.wid.trim()) ||
+                    (workout?.wid ? String(workout.wid).trim() : '') ||
+                    (workout?.workoutId ? String(workout.workoutId).trim() : '') ||
+                    (workout?.id ? String(workout.id).trim() : ''),
             };
         })
         .filter(Boolean)
@@ -247,6 +285,10 @@ const sanitizeRepsEntries = (completedWorkouts) => {
                     (typeof workout?.name === "string" && workout.name.trim())
                         ? workout.name.trim()
                         : workout?.templateName || "Workout",
+                wid: (typeof workout?.wid === "string" && workout.wid.trim()) ||
+                    (workout?.wid ? String(workout.wid).trim() : '') ||
+                    (workout?.workoutId ? String(workout.workoutId).trim() : '') ||
+                    (workout?.id ? String(workout.id).trim() : ''),
             };
         })
         .filter(Boolean)
@@ -510,7 +552,7 @@ const PointerLabelBubble = React.memo(({ entry, unit, delta, isRightAligned }) =
 
     return (
         <View
-            pointerEvents="none"
+            pointerEvents="box-none"
             style={[
                 styles.pointerLabelRoot,
                 isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
@@ -535,7 +577,7 @@ const PointerLabelBubble = React.memo(({ entry, unit, delta, isRightAligned }) =
     );
 });
 
-const VolumePointerLabel = React.memo(({ entry, unit, isRightAligned }) => {
+const VolumePointerLabel = React.memo(({ entry, unit, isRightAligned, onWorkoutPress }) => {
     if (!entry) return null;
 
     const unitText = toDisplayWeightUnit(unit);
@@ -543,10 +585,11 @@ const VolumePointerLabel = React.memo(({ entry, unit, isRightAligned }) => {
     const incrementText = entry.increment ? `+${formatVolumeValue(entry.increment)} ${unitText}` : null;
     const timestampText = dayjs(entry.recordedAt).format("MMM D, h:mm A");
     const workoutName = (typeof entry.name === "string" && entry.name.trim()) || null;
+    const canNavigate = typeof onWorkoutPress === "function";
 
     return (
         <View
-            pointerEvents="none"
+            pointerEvents="box-none"
             style={[
                 styles.pointerLabelRoot,
                 isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
@@ -564,7 +607,18 @@ const VolumePointerLabel = React.memo(({ entry, unit, isRightAligned }) => {
                         <Text style={styles.pointerBubbleIncrement}>{incrementText} this workout</Text>
                     ) : null}
                     {workoutName ? (
-                        <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                        canNavigate ? (
+                            <Pressable
+                                onPress={() => onWorkoutPress(entry)}
+                                hitSlop={8}
+                                accessibilityRole="link"
+                                accessibilityLabel={`View workout ${workoutName}`}
+                            >
+                                <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                            </Pressable>
+                        ) : (
+                            <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                        )
                     ) : null}
                     <Text style={styles.pointerBubbleTimestamp}>{timestampText}</Text>
                 </View>
@@ -573,17 +627,18 @@ const VolumePointerLabel = React.memo(({ entry, unit, isRightAligned }) => {
     );
 });
 
-const RepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
+const RepsPointerLabel = React.memo(({ entry, isRightAligned, onWorkoutPress }) => {
     if (!entry) return null;
 
     const totalText = `${formatVolumeValue(entry.value)} reps`;
     const incrementText = entry.increment ? `+${formatVolumeValue(entry.increment)} reps` : null;
     const timestampText = dayjs(entry.recordedAt).format("MMM D, h:mm A");
     const workoutName = (typeof entry.name === "string" && entry.name.trim()) || null;
+    const canNavigate = typeof onWorkoutPress === "function";
 
     return (
         <View
-            pointerEvents="none"
+            pointerEvents="box-none"
             style={[
                 styles.pointerLabelRoot,
                 isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
@@ -601,7 +656,18 @@ const RepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
                         <Text style={styles.pointerBubbleIncrement}>{incrementText} this workout</Text>
                     ) : null}
                     {workoutName ? (
-                        <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                        canNavigate ? (
+                            <Pressable
+                                onPress={() => onWorkoutPress(entry)}
+                                hitSlop={8}
+                                accessibilityRole="link"
+                                accessibilityLabel={`View workout ${workoutName}`}
+                            >
+                                <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                            </Pressable>
+                        ) : (
+                            <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                        )
                     ) : null}
                     <Text style={styles.pointerBubbleTimestamp}>{timestampText}</Text>
                 </View>
@@ -610,7 +676,7 @@ const RepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
     );
 });
 
-const PersonalRecordPointerLabel = React.memo(({ entry, isRightAligned }) => {
+const PersonalRecordPointerLabel = React.memo(({ entry, isRightAligned, onWorkoutPress }) => {
     if (!entry) return null;
 
     const totalText = `${formatVolumeValue(entry.value)} PRs`;
@@ -619,10 +685,11 @@ const PersonalRecordPointerLabel = React.memo(({ entry, isRightAligned }) => {
     const workoutName = (typeof entry.name === "string" && entry.name.trim()) || null;
     const noRecordText = incrementValue === 0 ? "No new PRs" : null;
     const timestampText = dayjs(entry.recordedAt).format("MMM D, h:mm A");
+    const canNavigate = typeof onWorkoutPress === "function";
 
     return (
         <View
-            pointerEvents="none"
+            pointerEvents="box-none"
             style={[
                 styles.pointerLabelRoot,
                 isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
@@ -636,11 +703,22 @@ const PersonalRecordPointerLabel = React.memo(({ entry, isRightAligned }) => {
             >
                 <View style={styles.pointerBubble}>
                     <Text style={styles.pointerBubbleWeight}>{totalText}</Text>
-                    {workoutName ? (
-                        <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
-                    ) : null}
                     {incrementText ? (
                         <Text style={styles.pointerBubbleIncrement}>{incrementText} this workout</Text>
+                    ) : null}
+                    {workoutName ? (
+                        canNavigate ? (
+                            <Pressable
+                                onPress={() => onWorkoutPress(entry)}
+                                hitSlop={8}
+                                accessibilityRole="link"
+                                accessibilityLabel={`View workout ${workoutName}`}
+                            >
+                                <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                            </Pressable>
+                        ) : (
+                            <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                        )
                     ) : null}
                     {noRecordText ? (
                         <Text style={styles.pointerBubbleDeltaNeutral}>{noRecordText}</Text>
@@ -931,10 +1009,23 @@ export default function ProgressSection() {
     const preferredUnit = useMemo(() => resolvePreferredWeightUnit(userData), [userData]);
     const displayPreferredUnit = useMemo(() => toDisplayWeightUnit(preferredUnit), [preferredUnit]);
 
-    const completedWorkouts = useMemo(
-        () => sanitizeCompletedWorkouts(userData?.completedWorkouts || []),
-        [userData?.completedWorkouts]
-    );
+const completedWorkouts = useMemo(
+    () => sanitizeCompletedWorkouts(userData?.completedWorkouts || []),
+    [userData?.completedWorkouts]
+);
+
+    const workoutsByWid = useMemo(() => {
+        const map = new Map();
+        completedWorkouts.forEach((workout) => {
+            const widCandidate =
+                (typeof workout?.wid === "string" && workout.wid.trim()) ||
+                (workout?.wid ? String(workout.wid).trim() : '') ||
+                (workout?.workoutId ? String(workout.workoutId).trim() : '') ||
+                (workout?.id ? String(workout.id).trim() : '');
+            if (widCandidate) map.set(widCandidate, workout);
+        });
+        return map;
+    }, [completedWorkouts]);
 
     const entries = useMemo(() => {
         const list =
@@ -1610,6 +1701,48 @@ export default function ProgressSection() {
         setIsManageModalVisible(false);
     }, [isSaving]);
 
+    const handleNavigateToPastWorkout = useCallback(
+        (entry) => {
+            if (!entry) return;
+            const wid = typeof entry?.wid === "string" && entry.wid.trim() ? entry.wid.trim() : "";
+            if (!wid) return;
+            const workout = workoutsByWid.get(wid) || null;
+            if (!workout) return;
+
+            const sanitizedWorkout = sanitizeWorkoutForRoute({ ...workout, wid });
+            if (!sanitizedWorkout) return;
+            if (!sanitizedWorkout.wid) sanitizedWorkout.wid = wid;
+
+            const ownerUid = String(userData?.uid || sanitizedWorkout?.creatorUID || sanitizedWorkout?.creatorUid || "");
+            const ownerHandle = String(userData?.handle || userData?.username || sanitizedWorkout?.handle || "");
+            const ownerName = String(userData?.name || sanitizedWorkout?.ownerName || "");
+            const ownerPfp = String(
+                userData?.image ||
+                    userData?.pfp ||
+                    userData?.photoURL ||
+                    userData?.photo ||
+                    ""
+            );
+            const ownerPfpVersion = Number(userData?.pfpVersion ?? sanitizedWorkout?.pfpVersion ?? 0);
+
+            const params = {
+                workout: sanitizedWorkout,
+                owner: {
+                    uid: ownerUid,
+                    handle: ownerHandle,
+                    name: ownerName,
+                    pfp: ownerPfp,
+                    pfpVersion: ownerPfpVersion,
+                },
+            };
+
+            if (!navigateOneWay("PastWorkout", { animation: "slide-from-right", params })) {
+                navigation.navigate("PastWorkout", params);
+            }
+        },
+        [navigation, userData, workoutsByWid]
+    );
+
     const hasChartData = chartData.length > 0;
     const hasVolumeChartData = volumeChartData.length > 0;
     const hasRepsChartData = repsChartData.length > 0;
@@ -2147,7 +2280,7 @@ export default function ProgressSection() {
 
                                     {volumeActiveEntry ? (
                                         <Animated.View
-                                            pointerEvents="none"
+                                            pointerEvents="box-none"
                                             style={[
                                                 styles.pointerBubbleContainer,
                                                 {
@@ -2165,6 +2298,7 @@ export default function ProgressSection() {
                                                 entry={volumeActiveEntry}
                                                 unit={displayVolumeUnit}
                                                 isRightAligned={volumePointerRightAligned}
+                                                onWorkoutPress={handleNavigateToPastWorkout}
                                             />
                                         </Animated.View>
                                     ) : null}
@@ -2419,7 +2553,7 @@ export default function ProgressSection() {
 
                                     {repsActiveEntry ? (
                                         <Animated.View
-                                            pointerEvents="none"
+                                            pointerEvents="box-none"
                                             style={[
                                                 styles.pointerBubbleContainer,
                                                 {
@@ -2436,6 +2570,7 @@ export default function ProgressSection() {
                                             <RepsPointerLabel
                                                 entry={repsActiveEntry}
                                                 isRightAligned={repsPointerRightAligned}
+                                                onWorkoutPress={handleNavigateToPastWorkout}
                                             />
                                         </Animated.View>
                                     ) : null}
@@ -2684,7 +2819,7 @@ export default function ProgressSection() {
 
                                         {personalRecordActivePoint ? (
                                             <Animated.View
-                                                pointerEvents="none"
+                                                pointerEvents="box-none"
                                                 style={[
                                                     styles.pointerBubbleContainer,
                                                     {
@@ -2698,10 +2833,11 @@ export default function ProgressSection() {
                                                     },
                                                 ]}
                                             >
-                                                <PersonalRecordPointerLabel
-                                                    entry={personalRecordActiveEntry}
-                                                    isRightAligned={personalRecordPointerRightAligned}
-                                                />
+                                            <PersonalRecordPointerLabel
+                                                entry={personalRecordActiveEntry}
+                                                isRightAligned={personalRecordPointerRightAligned}
+                                                onWorkoutPress={handleNavigateToPastWorkout}
+                                            />
                                             </Animated.View>
                                         ) : null}
                                     </View>
