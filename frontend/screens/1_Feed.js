@@ -43,6 +43,7 @@ import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkou
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import { strong as hapticStrong } from "../utils/haptics";
+import FeedSnapshotCard from "../components/1_Feed/FeedSnapshotCard";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -807,6 +808,8 @@ export default function Feed({ navigation, route }) {
         ? listData[activePostIndex] || null
         : null;
 
+    const renderSnapshotCard = useCallback(() => <FeedSnapshotCard />, []);
+
     return (
         <SafeAreaView style={styles.screen} edges={["top"]}>
             <StatusBar style="light" />
@@ -819,6 +822,7 @@ export default function Feed({ navigation, route }) {
                 style={styles.list}
                 ListEmptyComponent={renderEmptyList}
                 ListFooterComponent={listFooter}
+                ListHeaderComponent={renderSnapshotCard}
                 refreshControl={(
                     <RefreshControl
                         refreshing={refreshing}

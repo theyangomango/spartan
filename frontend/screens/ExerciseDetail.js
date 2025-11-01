@@ -19,6 +19,7 @@ import dayjs from 'dayjs';
 import useStableSafeAreaInsets from '../hooks/useStableSafeAreaInsets';
 import theme from '../theme/mfpDark';
 import { DEVICE_WIDTH, scaleSize, ts } from '../components/2_Competition/layoutConstants';
+import { chartPointerStyles, chartTypography } from '../components/charts/chartStyles';
 import ExerciseImagePreview from '../components/3_Workout/NewWorkout/SelectExercise/ExerciseImagePreview';
 import { toExerciseSlug } from '../components/common/exerciseImageMap';
 import { withStrongPress } from '../utils/haptics';
@@ -404,21 +405,25 @@ const ExerciseVolumePointerLabel = React.memo(({ entry, unit, isRightAligned, on
         <View
             pointerEvents="box-none"
             style={[
-                styles.progressPointerRoot,
-                isRightAligned ? styles.progressPointerRight : styles.progressPointerLeft,
+                chartPointerStyles.root,
+                isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
             ]}
         >
             <View
                 style={[
-                    styles.progressPointerBubbleWrapper,
-                    isRightAligned ? styles.progressPointerRight : styles.progressPointerLeft,
+                    chartPointerStyles.bubbleWrapper,
+                    isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
                 ]}
             >
-                <View style={styles.progressPointerBubble}>
-                    <Text style={styles.progressPointerTitle}>{totalText}</Text>
+                <View style={chartPointerStyles.bubble}>
+                    <Text style={chartTypography.pointerTitle}>{totalText}</Text>
                     {incrementText ? (
                         <Text
-                            style={[styles.progressPointerSubtitle, { color: '#65F2B6' }]}
+                            style={[
+                                chartTypography.pointerSubtitle,
+                                styles.progressPointerLineSpacing,
+                                chartTypography.pointerAccentGreen,
+                            ]}
                         >{`${incrementText} this workout`}</Text>
                     ) : null}
                     {workoutName ? (
@@ -430,20 +435,35 @@ const ExerciseVolumePointerLabel = React.memo(({ entry, unit, isRightAligned, on
                                 accessibilityLabel={`View workout ${workoutName}`}
                             >
                                 <Text
-                                    style={[styles.progressPointerSubtitle, { color: '#7FB7FF' }]}
+                                    style={[
+                                        chartTypography.pointerSubtitle,
+                                        styles.progressPointerLineSpacing,
+                                        chartTypography.pointerAccentBlue,
+                                    ]}
                                 >
                                     {workoutName}
                                 </Text>
                             </Pressable>
                         ) : (
                             <Text
-                                style={[styles.progressPointerSubtitle, { color: '#7FB7FF' }]}
+                                style={[
+                                    chartTypography.pointerSubtitle,
+                                    styles.progressPointerLineSpacing,
+                                    chartTypography.pointerAccentBlue,
+                                ]}
                             >
                                 {workoutName}
                             </Text>
                         )
                     ) : null}
-                    <Text style={styles.progressPointerTimestamp}>{timestampText}</Text>
+                    <Text
+                        style={[
+                            chartTypography.pointerTimestamp,
+                            styles.progressPointerTimestampSpacing,
+                        ]}
+                    >
+                        {timestampText}
+                    </Text>
                 </View>
             </View>
         </View>
@@ -462,21 +482,25 @@ const ExerciseRepsPointerLabel = React.memo(({ entry, isRightAligned, onWorkoutP
         <View
             pointerEvents="box-none"
             style={[
-                styles.progressPointerRoot,
-                isRightAligned ? styles.progressPointerRight : styles.progressPointerLeft,
+                chartPointerStyles.root,
+                isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
             ]}
         >
             <View
                 style={[
-                    styles.progressPointerBubbleWrapper,
-                    isRightAligned ? styles.progressPointerRight : styles.progressPointerLeft,
+                    chartPointerStyles.bubbleWrapper,
+                    isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
                 ]}
             >
-                <View style={styles.progressPointerBubble}>
-                    <Text style={styles.progressPointerTitle}>{totalText}</Text>
+                <View style={chartPointerStyles.bubble}>
+                    <Text style={chartTypography.pointerTitle}>{totalText}</Text>
                     {incrementText ? (
                         <Text
-                            style={[styles.progressPointerSubtitle, { color: '#65F2B6' }]}
+                            style={[
+                                chartTypography.pointerSubtitle,
+                                styles.progressPointerLineSpacing,
+                                chartTypography.pointerAccentGreen,
+                            ]}
                         >{`${incrementText} this workout`}</Text>
                     ) : null}
                     {workoutName ? (
@@ -488,20 +512,35 @@ const ExerciseRepsPointerLabel = React.memo(({ entry, isRightAligned, onWorkoutP
                                 accessibilityLabel={`View workout ${workoutName}`}
                             >
                                 <Text
-                                    style={[styles.progressPointerSubtitle, { color: '#7FB7FF' }]}
+                                    style={[
+                                        chartTypography.pointerSubtitle,
+                                        styles.progressPointerLineSpacing,
+                                        chartTypography.pointerAccentBlue,
+                                    ]}
                                 >
                                     {workoutName}
                                 </Text>
                             </Pressable>
                         ) : (
                             <Text
-                                style={[styles.progressPointerSubtitle, { color: '#7FB7FF' }]}
+                                style={[
+                                    chartTypography.pointerSubtitle,
+                                    styles.progressPointerLineSpacing,
+                                    chartTypography.pointerAccentBlue,
+                                ]}
                             >
                                 {workoutName}
                             </Text>
                         )
                     ) : null}
-                    <Text style={styles.progressPointerTimestamp}>{timestampText}</Text>
+                    <Text
+                        style={[
+                            chartTypography.pointerTimestamp,
+                            styles.progressPointerTimestampSpacing,
+                        ]}
+                    >
+                        {timestampText}
+                    </Text>
                 </View>
             </View>
         </View>
@@ -529,23 +568,24 @@ const ExercisePersonalRecordPointerLabel = React.memo(
             <View
                 pointerEvents="box-none"
                 style={[
-                    styles.progressPointerRoot,
-                    isRightAligned ? styles.progressPointerRight : styles.progressPointerLeft,
+                    chartPointerStyles.root,
+                    isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
                 ]}
             >
                 <View
                     style={[
-                        styles.progressPointerBubbleWrapper,
-                        isRightAligned ? styles.progressPointerRight : styles.progressPointerLeft,
+                        chartPointerStyles.bubbleWrapper,
+                        isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
                     ]}
                 >
-                    <View style={styles.progressPointerBubble}>
-                        <Text style={styles.progressPointerTitle}>{totalText}</Text>
+                    <View style={chartPointerStyles.bubble}>
+                        <Text style={chartTypography.pointerTitle}>{totalText}</Text>
                         {incrementText ? (
                             <Text
                                 style={[
-                                    styles.progressPointerSubtitle,
-                                    { color: '#65F2B6' },
+                                    chartTypography.pointerSubtitle,
+                                    styles.progressPointerLineSpacing,
+                                    chartTypography.pointerAccentGreen,
                                 ]}
                             >
                                 {incrementText} this workout
@@ -560,14 +600,22 @@ const ExercisePersonalRecordPointerLabel = React.memo(
                                     accessibilityLabel={`View workout ${workoutName}`}
                                 >
                                     <Text
-                                        style={[styles.progressPointerSubtitle, { color: '#7FB7FF' }]}
+                                        style={[
+                                            chartTypography.pointerSubtitle,
+                                            styles.progressPointerLineSpacing,
+                                            chartTypography.pointerAccentBlue,
+                                        ]}
                                     >
                                         {workoutName}
                                     </Text>
                                 </Pressable>
                             ) : (
                                 <Text
-                                    style={[styles.progressPointerSubtitle, { color: '#7FB7FF' }]}
+                                    style={[
+                                        chartTypography.pointerSubtitle,
+                                        styles.progressPointerLineSpacing,
+                                        chartTypography.pointerAccentBlue,
+                                    ]}
                                 >
                                     {workoutName}
                                 </Text>
@@ -576,14 +624,22 @@ const ExercisePersonalRecordPointerLabel = React.memo(
                         {formattedCombo ? (
                             <Text
                                 style={[
-                                    styles.progressPointerSubtitle,
-                                    { color: '#7FB7FF' },
+                                    chartTypography.pointerSubtitle,
+                                    styles.progressPointerLineSpacing,
+                                    chartTypography.pointerAccentBlue,
                                 ]}
                             >
                                 {formattedCombo}
                             </Text>
                         ) : null}
-                        <Text style={styles.progressPointerTimestamp}>{timestampText}</Text>
+                        <Text
+                            style={[
+                                chartTypography.pointerTimestamp,
+                                styles.progressPointerTimestampSpacing,
+                            ]}
+                        >
+                            {timestampText}
+                        </Text>
                     </View>
                 </View>
             </View>
@@ -2171,7 +2227,7 @@ export default function ExerciseDetail() {
                                             <Text
                                                 key={`exercise-volume-y-label-${value}-${index}`}
                                                 style={[
-                                                    styles.progressAxisLabel,
+                                                    chartTypography.axisLabel,
                                                     styles.progressYAxisLabel,
                                                     { top },
                                                 ]}
@@ -2319,7 +2375,7 @@ export default function ExerciseDetail() {
                                             {progressVolumeXAxisLabels.map((item, index) => (
                                                 <Text
                                                     key={`exercise-volume-x-label-${item.timestamp ?? index}-${index}`}
-                                                    style={[styles.progressAxisLabel, styles.progressXAxisLabel]}
+                                                    style={[chartTypography.axisLabel, styles.progressXAxisLabel]}
                                                 >
                                                     {item.label}
                                                 </Text>
@@ -2331,7 +2387,7 @@ export default function ExerciseDetail() {
                                         <Animated.View
                                             pointerEvents="box-none"
                                             style={[
-                                                styles.progressPointerContainer,
+                                                chartPointerStyles.container,
                                                 {
                                                     left: progressVolumePointerLeft,
                                                     top: Math.max(scaleSize(-8), progressTopMargin - scaleSize(72)),
@@ -2437,7 +2493,7 @@ export default function ExerciseDetail() {
                                             <Text
                                                 key={`exercise-pr-y-label-${value}-${index}`}
                                                 style={[
-                                                    styles.progressAxisLabel,
+                                                    chartTypography.axisLabel,
                                                     styles.progressYAxisLabel,
                                                     { top },
                                                 ]}
@@ -2586,7 +2642,7 @@ export default function ExerciseDetail() {
                                             {progressPersonalRecordXAxisLabels.map((item, index) => (
                                                 <Text
                                                     key={`exercise-pr-x-label-${item.timestamp ?? index}-${index}`}
-                                                    style={[styles.progressAxisLabel, styles.progressXAxisLabel]}
+                                                    style={[chartTypography.axisLabel, styles.progressXAxisLabel]}
                                                 >
                                                     {item.label}
                                                 </Text>
@@ -2598,7 +2654,7 @@ export default function ExerciseDetail() {
                                         <Animated.View
                                             pointerEvents="box-none"
                                             style={[
-                                                styles.progressPointerContainer,
+                                                chartPointerStyles.container,
                                                 {
                                                     left: progressPersonalRecordPointerLeft,
                                                     top: Math.max(
@@ -2702,7 +2758,7 @@ export default function ExerciseDetail() {
                                             <Text
                                                 key={`exercise-reps-y-label-${value}-${index}`}
                                                 style={[
-                                                    styles.progressAxisLabel,
+                                                    chartTypography.axisLabel,
                                                     styles.progressYAxisLabel,
                                                     { top },
                                                 ]}
@@ -2850,7 +2906,7 @@ export default function ExerciseDetail() {
                                             {progressRepsXAxisLabels.map((item, index) => (
                                                 <Text
                                                     key={`exercise-reps-x-label-${item.timestamp ?? index}-${index}`}
-                                                    style={[styles.progressAxisLabel, styles.progressXAxisLabel]}
+                                                    style={[chartTypography.axisLabel, styles.progressXAxisLabel]}
                                                 >
                                                     {item.label}
                                                 </Text>
@@ -2862,7 +2918,7 @@ export default function ExerciseDetail() {
                                         <Animated.View
                                             pointerEvents="box-none"
                                             style = {[
-                                                styles.progressPointerContainer,
+                                                chartPointerStyles.container,
                                                 {
                                                     left: progressRepsPointerLeft,
                                                     top: Math.max(scaleSize(-8), progressTopMargin - scaleSize(72)),
@@ -3268,11 +3324,6 @@ const styles = StyleSheet.create({
         position: 'relative',
         justifyContent: 'center',
     },
-    progressAxisLabel: {
-        fontFamily: 'Outfit_400Regular',
-        fontSize: ts(11),
-        color: '#aaa',
-    },
     progressYAxisLabel: {
         position: 'absolute',
         right: scaleSize(6),
@@ -3292,54 +3343,12 @@ const styles = StyleSheet.create({
     progressXAxisLabel: {
         minWidth: scaleSize(40),
         textAlign: 'center',
-        color: 'rgba(216, 226, 255, 0.65)',
     },
-    progressPointerContainer: {
-        position: 'absolute',
-    },
-    progressPointerRoot: {
-        width: scaleSize(184),
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-    },
-    progressPointerBubbleWrapper: {
-        width: '100%',
+    progressPointerLineSpacing: {
         marginTop: scaleSize(4),
-        marginBottom: scaleSize(4),
-        paddingHorizontal: scaleSize(8),
     },
-    progressPointerLeft: {
-        alignItems: 'flex-start',
-    },
-    progressPointerRight: {
-        alignItems: 'flex-end',
-    },
-    progressPointerBubble: {
-        maxWidth: '100%',
-        minWidth: scaleSize(140),
-        paddingHorizontal: scaleSize(14),
-        paddingVertical: scaleSize(10),
-        borderRadius: scaleSize(16),
-        backgroundColor: 'rgba(9, 12, 18, 0.92)',
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,255,255,0.12)',
-    },
-    progressPointerTitle: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: ts(16),
-        color: theme.textPrimary,
-    },
-    progressPointerSubtitle: {
-        marginTop: scaleSize(4),
-        fontFamily: 'Outfit_500Medium',
-        fontSize: ts(12),
-        color: 'rgba(216,226,255,0.75)',
-    },
-    progressPointerTimestamp: {
+    progressPointerTimestampSpacing: {
         marginTop: scaleSize(6),
-        fontFamily: 'Outfit_400Regular',
-        fontSize: ts(11),
-        color: 'rgba(216,226,255,0.55)',
     },
     historySection: {
         paddingTop: scaleSize(18),

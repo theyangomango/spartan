@@ -24,6 +24,7 @@ import makeID from "../../../../backend/helper/makeID";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import { emitUserDataUpdate, subscribeUserData } from "../../../utils/userDataEvents";
 import { DEVICE_WIDTH, scaleSize, ts } from "../layoutConstants";
+import { chartPointerStyles, chartTypography } from "../../charts/chartStyles";
 import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from "react-native-svg";
 import { navigateOneWay } from "../../../../navigationRef";
 
@@ -542,20 +543,21 @@ const PointerLabelBubble = React.memo(({ entry, unit, delta, isRightAligned }) =
     const isPositiveDelta = typeof delta === "number" && delta > 0;
     const isNegativeDelta = typeof delta === "number" && delta < 0;
     const deltaStyle = [
-        styles.pointerBubbleDelta,
+        chartTypography.pointerBody,
+        styles.pointerBubbleLineSpacing,
         isPositiveDelta
-            ? styles.pointerBubbleDeltaPositive
+            ? chartTypography.pointerAccentGreen
             : isNegativeDelta
-                ? styles.pointerBubbleDeltaNegative
-                : styles.pointerBubbleDeltaNeutral,
+                ? chartTypography.pointerDeltaNegative
+                : chartTypography.pointerDeltaNeutral,
     ];
 
     return (
         <View
             pointerEvents="box-none"
             style={[
-                styles.pointerLabelRoot,
-                isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+                chartPointerStyles.root,
+                isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
             ]}
             accessible
             accessibilityRole="summary"
@@ -563,14 +565,21 @@ const PointerLabelBubble = React.memo(({ entry, unit, delta, isRightAligned }) =
         >
             <View
                 style={[
-                    styles.pointerBubbleWrapper,
-                    isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+                    chartPointerStyles.bubbleWrapper,
+                    isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
                 ]}
             >
-                <View style={styles.pointerBubble}>
-                    <Text style={styles.pointerBubbleWeight}>{weightText}</Text>
+                <View style={chartPointerStyles.bubble}>
+                    <Text style={chartTypography.pointerTitle}>{weightText}</Text>
                     {deltaText ? <Text style={deltaStyle}>{deltaText}</Text> : null}
-                    <Text style={styles.pointerBubbleTimestamp}>{timestampText}</Text>
+                    <Text
+                        style={[
+                            chartTypography.pointerTimestamp,
+                            styles.pointerBubbleTimestampSpacing,
+                        ]}
+                    >
+                        {timestampText}
+                    </Text>
                 </View>
             </View>
         </View>
@@ -591,20 +600,28 @@ const VolumePointerLabel = React.memo(({ entry, unit, isRightAligned, onWorkoutP
         <View
             pointerEvents="box-none"
             style={[
-                styles.pointerLabelRoot,
-                isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+                chartPointerStyles.root,
+                isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
             ]}
         >
             <View
                 style={[
-                    styles.pointerBubbleWrapper,
-                    isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+                    chartPointerStyles.bubbleWrapper,
+                    isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
                 ]}
             >
-                <View style={styles.pointerBubble}>
-                    <Text style={styles.pointerBubbleWeight}>{totalText}</Text>
+                <View style={chartPointerStyles.bubble}>
+                    <Text style={chartTypography.pointerTitle}>{totalText}</Text>
                     {incrementText ? (
-                        <Text style={styles.pointerBubbleIncrement}>{incrementText} this workout</Text>
+                        <Text
+                            style={[
+                                chartTypography.pointerBody,
+                                styles.pointerBubbleLineSpacing,
+                                chartTypography.pointerAccentGreen,
+                            ]}
+                        >
+                            {incrementText} this workout
+                        </Text>
                     ) : null}
                     {workoutName ? (
                         canNavigate ? (
@@ -614,13 +631,36 @@ const VolumePointerLabel = React.memo(({ entry, unit, isRightAligned, onWorkoutP
                                 accessibilityRole="link"
                                 accessibilityLabel={`View workout ${workoutName}`}
                             >
-                                <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                                <Text
+                                    style={[
+                                        chartTypography.pointerBody,
+                                        styles.pointerBubbleLineSpacing,
+                                        chartTypography.pointerAccentBlue,
+                                    ]}
+                                >
+                                    {workoutName}
+                                </Text>
                             </Pressable>
                         ) : (
-                            <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                            <Text
+                                style={[
+                                    chartTypography.pointerBody,
+                                    styles.pointerBubbleLineSpacing,
+                                    chartTypography.pointerAccentBlue,
+                                ]}
+                            >
+                                {workoutName}
+                            </Text>
                         )
                     ) : null}
-                    <Text style={styles.pointerBubbleTimestamp}>{timestampText}</Text>
+                    <Text
+                        style={[
+                            chartTypography.pointerTimestamp,
+                            styles.pointerBubbleTimestampSpacing,
+                        ]}
+                    >
+                        {timestampText}
+                    </Text>
                 </View>
             </View>
         </View>
@@ -640,20 +680,28 @@ const RepsPointerLabel = React.memo(({ entry, isRightAligned, onWorkoutPress }) 
         <View
             pointerEvents="box-none"
             style={[
-                styles.pointerLabelRoot,
-                isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+                chartPointerStyles.root,
+                isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
             ]}
         >
             <View
                 style={[
-                    styles.pointerBubbleWrapper,
-                    isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+                    chartPointerStyles.bubbleWrapper,
+                    isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
                 ]}
             >
-                <View style={styles.pointerBubble}>
-                    <Text style={styles.pointerBubbleWeight}>{totalText}</Text>
+                <View style={chartPointerStyles.bubble}>
+                    <Text style={chartTypography.pointerTitle}>{totalText}</Text>
                     {incrementText ? (
-                        <Text style={styles.pointerBubbleIncrement}>{incrementText} this workout</Text>
+                        <Text
+                            style={[
+                                chartTypography.pointerBody,
+                                styles.pointerBubbleLineSpacing,
+                                chartTypography.pointerAccentGreen,
+                            ]}
+                        >
+                            {incrementText} this workout
+                        </Text>
                     ) : null}
                     {workoutName ? (
                         canNavigate ? (
@@ -663,13 +711,36 @@ const RepsPointerLabel = React.memo(({ entry, isRightAligned, onWorkoutPress }) 
                                 accessibilityRole="link"
                                 accessibilityLabel={`View workout ${workoutName}`}
                             >
-                                <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                                <Text
+                                    style={[
+                                        chartTypography.pointerBody,
+                                        styles.pointerBubbleLineSpacing,
+                                        chartTypography.pointerAccentBlue,
+                                    ]}
+                                >
+                                    {workoutName}
+                                </Text>
                             </Pressable>
                         ) : (
-                            <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                            <Text
+                                style={[
+                                    chartTypography.pointerBody,
+                                    styles.pointerBubbleLineSpacing,
+                                    chartTypography.pointerAccentBlue,
+                                ]}
+                            >
+                                {workoutName}
+                            </Text>
                         )
                     ) : null}
-                    <Text style={styles.pointerBubbleTimestamp}>{timestampText}</Text>
+                    <Text
+                        style={[
+                            chartTypography.pointerTimestamp,
+                            styles.pointerBubbleTimestampSpacing,
+                        ]}
+                    >
+                        {timestampText}
+                    </Text>
                 </View>
             </View>
         </View>
@@ -691,20 +762,28 @@ const PersonalRecordPointerLabel = React.memo(({ entry, isRightAligned, onWorkou
         <View
             pointerEvents="box-none"
             style={[
-                styles.pointerLabelRoot,
-                isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+                chartPointerStyles.root,
+                isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
             ]}
         >
             <View
                 style={[
-                    styles.pointerBubbleWrapper,
-                    isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+                    chartPointerStyles.bubbleWrapper,
+                    isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
                 ]}
             >
-                <View style={styles.pointerBubble}>
-                    <Text style={styles.pointerBubbleWeight}>{totalText}</Text>
+                <View style={chartPointerStyles.bubble}>
+                    <Text style={chartTypography.pointerTitle}>{totalText}</Text>
                     {incrementText ? (
-                        <Text style={styles.pointerBubbleIncrement}>{incrementText} this workout</Text>
+                        <Text
+                            style={[
+                                chartTypography.pointerBody,
+                                styles.pointerBubbleLineSpacing,
+                                chartTypography.pointerAccentGreen,
+                            ]}
+                        >
+                            {incrementText} this workout
+                        </Text>
                     ) : null}
                     {workoutName ? (
                         canNavigate ? (
@@ -714,16 +793,47 @@ const PersonalRecordPointerLabel = React.memo(({ entry, isRightAligned, onWorkou
                                 accessibilityRole="link"
                                 accessibilityLabel={`View workout ${workoutName}`}
                             >
-                                <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                                <Text
+                                    style={[
+                                        chartTypography.pointerBody,
+                                        styles.pointerBubbleLineSpacing,
+                                        chartTypography.pointerAccentBlue,
+                                    ]}
+                                >
+                                    {workoutName}
+                                </Text>
                             </Pressable>
                         ) : (
-                            <Text style={[styles.pointerBubbleIncrement, { color: "#7FB7FF" }]}>{workoutName}</Text>
+                            <Text
+                                style={[
+                                    chartTypography.pointerBody,
+                                    styles.pointerBubbleLineSpacing,
+                                    chartTypography.pointerAccentBlue,
+                                ]}
+                            >
+                                {workoutName}
+                            </Text>
                         )
                     ) : null}
                     {noRecordText ? (
-                        <Text style={styles.pointerBubbleDeltaNeutral}>{noRecordText}</Text>
+                        <Text
+                            style={[
+                                chartTypography.pointerBody,
+                                styles.pointerBubbleLineSpacing,
+                                chartTypography.pointerDeltaNeutral,
+                            ]}
+                        >
+                            {noRecordText}
+                        </Text>
                     ) : null}
-                    <Text style={styles.pointerBubbleTimestamp}>{timestampText}</Text>
+                    <Text
+                        style={[
+                            chartTypography.pointerTimestamp,
+                            styles.pointerBubbleTimestampSpacing,
+                        ]}
+                    >
+                        {timestampText}
+                    </Text>
                 </View>
             </View>
         </View>
@@ -2123,7 +2233,7 @@ const completedWorkouts = useMemo(
                                             <Text
                                                 key={`volume-y-axis-label-${value}-${index}`}
                                                 style={[
-                                                    styles.axisLabel,
+                                                    chartTypography.axisLabel,
                                                     styles.yAxisLabel,
                                                     { top },
                                                 ]}
@@ -2270,7 +2380,7 @@ const completedWorkouts = useMemo(
                                             {volumeXAxisLabels.map((item, index) => (
                                                 <Text
                                                     key={`volume-x-axis-label-${item.timestamp ?? index}-${index}`}
-                                                    style={[styles.axisLabel, styles.xAxisLabel]}
+                                                    style={[chartTypography.axisLabel, styles.xAxisLabel]}
                                                 >
                                                     {item.label}
                                                 </Text>
@@ -2282,7 +2392,7 @@ const completedWorkouts = useMemo(
                                         <Animated.View
                                             pointerEvents="box-none"
                                             style={[
-                                                styles.pointerBubbleContainer,
+                                                chartPointerStyles.container,
                                                 {
                                                     left: volumePointerLabelLeft,
                                                     top: Math.max(
@@ -2396,7 +2506,7 @@ const completedWorkouts = useMemo(
                                             <Text
                                                 key={`reps-y-axis-label-${value}-${index}`}
                                                 style={[
-                                                    styles.axisLabel,
+                                                    chartTypography.axisLabel,
                                                     styles.yAxisLabel,
                                                     { top },
                                                 ]}
@@ -2543,7 +2653,7 @@ const completedWorkouts = useMemo(
                                             {repsXAxisLabels.map((item, index) => (
                                                 <Text
                                                     key={`reps-x-axis-label-${item.timestamp ?? index}-${index}`}
-                                                    style={[styles.axisLabel, styles.xAxisLabel]}
+                                                    style={[chartTypography.axisLabel, styles.xAxisLabel]}
                                                 >
                                                     {item.label}
                                                 </Text>
@@ -2555,7 +2665,7 @@ const completedWorkouts = useMemo(
                                         <Animated.View
                                             pointerEvents="box-none"
                                             style={[
-                                                styles.pointerBubbleContainer,
+                                                chartPointerStyles.container,
                                                 {
                                                     left: repsPointerLabelLeft,
                                                     top: Math.max(
@@ -2661,10 +2771,10 @@ const completedWorkouts = useMemo(
                                             );
 
                                             return (
-                                                <Text
-                                                    key={`personal-record-y-axis-label-${value}-${index}`}
-                                                    style={[styles.axisLabel, styles.yAxisLabel, { top }]}
-                                                >
+                                            <Text
+                                                key={`personal-record-y-axis-label-${value}-${index}`}
+                                                style={[chartTypography.axisLabel, styles.yAxisLabel, { top }]}
+                                            >
                                                     {formatAxisValue(value)}
                                                 </Text>
                                             );
@@ -2809,7 +2919,7 @@ const completedWorkouts = useMemo(
                                                 {personalRecordXAxisLabels.map((item, index) => (
                                                     <Text
                                                         key={`personal-record-x-axis-label-${item.timestamp ?? index}-${index}`}
-                                                        style={[styles.axisLabel, styles.xAxisLabel]}
+                                                        style={[chartTypography.axisLabel, styles.xAxisLabel]}
                                                     >
                                                         {item.label}
                                                     </Text>
@@ -2821,7 +2931,7 @@ const completedWorkouts = useMemo(
                                             <Animated.View
                                                 pointerEvents="box-none"
                                                 style={[
-                                                    styles.pointerBubbleContainer,
+                                                    chartPointerStyles.container,
                                                     {
                                                         left: personalRecordPointerLabelLeft,
                                                         top: Math.max(
@@ -2934,7 +3044,7 @@ const completedWorkouts = useMemo(
                                             <Text
                                                 key={`y-axis-label-${value}-${index}`}
                                                 style={[
-                                                    styles.axisLabel,
+                                                    chartTypography.axisLabel,
                                                     styles.yAxisLabel,
                                                     { top },
                                                 ]}
@@ -3085,7 +3195,7 @@ const completedWorkouts = useMemo(
                                             {weightXAxisLabels.map((item, index) => (
                                                 <Text
                                                     key={`weight-x-axis-label-${item.timestamp ?? index}-${index}`}
-                                                    style={[styles.axisLabel, styles.xAxisLabel]}
+                                                    style={[chartTypography.axisLabel, styles.xAxisLabel]}
                                                 >
                                                     {item.label}
                                                 </Text>
@@ -3097,7 +3207,7 @@ const completedWorkouts = useMemo(
                                         <Animated.View
                                             pointerEvents="none"
                                             style={[
-                                                styles.pointerBubbleContainer,
+                                                chartPointerStyles.container,
                                                 {
                                                     left: pointerLabelLeft,
                                                     top: Math.max(
@@ -3318,7 +3428,6 @@ const styles = StyleSheet.create({
     xAxisLabel: {
         minWidth: scaleSize(40),
         textAlign: "center",
-        color: "rgba(216, 226, 255, 0.65)",
     },
     chartCanvas: {
         flex: 1,
@@ -3367,71 +3476,11 @@ const styles = StyleSheet.create({
         fontSize: ts(13),
         color: "rgba(255,255,255,0.55)",
     },
-    axisLabel: {
-        fontFamily: "Outfit_400Regular",
-        fontSize: ts(11),
-        color: '#aaa',
-    },
-    pointerBubbleContainer: {
-        position: "absolute",
-    },
-    pointerLabelRoot: {
-        width: scaleSize(184),
-        alignItems: "center",
-        justifyContent: "flex-end",
-    },
-    pointerBubbleWrapper: {
-        width: "100%",
-        marginTop: scaleSize(4),
-        marginBottom: scaleSize(4),
-        paddingHorizontal: scaleSize(8),
-    },
-    pointerBubbleWrapperLeft: {
-        alignItems: "flex-start",
-    },
-    pointerBubbleWrapperRight: {
-        alignItems: "flex-end",
-    },
-    pointerBubble: {
-        maxWidth: "100%",
-        minWidth: scaleSize(140),
-        paddingHorizontal: scaleSize(14),
-        paddingVertical: scaleSize(10),
-        borderRadius: scaleSize(16),
-        backgroundColor: "rgba(9, 12, 18, 0.92)",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.12)",
-    },
-    pointerBubbleWeight: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(16),
-        color: theme.textPrimary ?? "#F6F8FF",
-    },
-    pointerBubbleDelta: {
+    pointerBubbleLineSpacing: {
         marginTop: scaleSize(2),
-        fontFamily: "Outfit_500Medium",
-        fontSize: ts(11),
     },
-    pointerBubbleDeltaPositive: {
-        color: "#65F2B6",
-    },
-    pointerBubbleDeltaNegative: {
-        color: "#FF6B6B",
-    },
-    pointerBubbleDeltaNeutral: {
-        color: "rgba(216, 226, 255, 0.82)",
-    },
-    pointerBubbleIncrement: {
+    pointerBubbleTimestampSpacing: {
         marginTop: scaleSize(2),
-        fontFamily: "Outfit_500Medium",
-        fontSize: ts(11),
-        color: "#65F2B6",
-    },
-    pointerBubbleTimestamp: {
-        marginTop: scaleSize(2),
-        fontFamily: "Outfit_400Regular",
-        fontSize: ts(11),
-        color: "rgba(255,255,255,0.72)",
     },
     modalRoot: {
         flex: 1,
