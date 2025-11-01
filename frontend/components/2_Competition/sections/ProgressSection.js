@@ -1863,7 +1863,7 @@ const styles = StyleSheet.create({
         marginTop: scaleSize(2),
         fontFamily: "Outfit_500Medium",
         fontSize: ts(11),
-        color: "rgba(216, 226, 255, 0.82)",
+        color: "#65F2B6",
     },
     pointerBubbleTimestamp: {
         marginTop: scaleSize(2),
