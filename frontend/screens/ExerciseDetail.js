@@ -459,6 +459,42 @@ const ExerciseRepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
     );
 });
 
+const ExercisePersonalRecordPointerLabel = React.memo(({ entry, unit, isRightAligned }) => {
+    if (!entry) return null;
+    const totalText = `${formatNumberCompact(entry.value)} records`;
+    const recordWeightText = entry.weight ? formatWeightValue(entry.weight) : null;
+    const repsText = Number.isFinite(entry.reps) && entry.reps > 0 ? `${Math.round(entry.reps)} reps` : null;
+    const detailLine = recordWeightText
+        ? `${recordWeightText}${unit ? ` ${unit}` : ''}${repsText ? ` • ${repsText}` : ''}`
+        : repsText;
+    const timestampText = dayjs(entry.recordedAt).format('MMM D, h:mm A');
+
+    return (
+        <View
+            pointerEvents="none"
+            style={[
+                styles.progressPointerRoot,
+                isRightAligned ? styles.progressPointerRight : styles.progressPointerLeft,
+            ]}
+        >
+            <View
+                style={[
+                    styles.progressPointerBubbleWrapper,
+                    isRightAligned ? styles.progressPointerRight : styles.progressPointerLeft,
+                ]}
+            >
+                <View style={styles.progressPointerBubble}>
+                    <Text style={styles.progressPointerTitle}>{totalText}</Text>
+                    {detailLine ? (
+                        <Text style={styles.progressPointerSubtitle}>{detailLine}</Text>
+                    ) : null}
+                    <Text style={styles.progressPointerTimestamp}>{timestampText}</Text>
+                </View>
+            </View>
+        </View>
+    );
+});
+
 const formatWeightValue = (weight) => {
     const num = Number(weight);
     if (!Number.isFinite(num) || num <= 0) return '—';
@@ -909,12 +945,22 @@ export default function ExerciseDetail() {
         return map;
     }, [completedWorkouts]);
 
-    const { exerciseVolumeEntries, exerciseRepsEntries } = useMemo(() => {
+    const {
+        exerciseVolumeEntries: rawExerciseVolumeEntries,
+        exerciseRepsEntries: rawExerciseRepsEntries,
+        exercisePersonalRecordEntries: rawExercisePersonalRecordEntries,
+    } = useMemo(() => {
         const sets = Array.isArray(exerciseStatsEntry?.sets) ? exerciseStatsEntry.sets : [];
-        if (!sets.length) return { exerciseVolumeEntries: [], exerciseRepsEntries: [] };
+        if (!sets.length)
+            return {
+                exerciseVolumeEntries: [],
+                exerciseRepsEntries: [],
+                exercisePersonalRecordEntries: [],
+            };
 
         const volumeMap = new Map();
         const repsMap = new Map();
+        const personalRecordCandidates = [];
 
         sets.forEach((set) => {
             const recordedAt = resolveSetTimestamp(set, workoutsByWid);
@@ -922,6 +968,14 @@ export default function ExerciseDetail() {
             const weight = Math.max(0, Number(set.weight) || 0);
             const reps = Math.max(0, Number(set.reps) || 0);
             if (weight <= 0 && reps <= 0) return;
+
+            if (weight > 0) {
+                personalRecordCandidates.push({
+                    recordedAt,
+                    weight,
+                    reps,
+                });
+            }
 
             const volumeIncrement = weight * reps;
             if (volumeIncrement > 0) {
@@ -956,11 +1010,36 @@ export default function ExerciseDetail() {
             entry.value = runningReps;
         });
 
+        personalRecordCandidates.sort((a, b) => a.recordedAt - b.recordedAt);
+        let bestWeight = 0;
+        let recordCount = 0;
+        const personalRecordEntries = [];
+        personalRecordCandidates.forEach((candidate) => {
+            if (candidate.weight > bestWeight) {
+                recordCount += 1;
+                personalRecordEntries.push({
+                    recordedAt: candidate.recordedAt,
+                    value: recordCount,
+                    increment: 1,
+                    weight: candidate.weight,
+                    reps: candidate.reps,
+                });
+                bestWeight = candidate.weight;
+            }
+        });
+
         return {
             exerciseVolumeEntries: volumeEntries,
             exerciseRepsEntries: repsEntries,
+            exercisePersonalRecordEntries: personalRecordEntries,
         };
     }, [exerciseStatsEntry, workoutsByWid]);
+
+    const exerciseVolumeEntries = Array.isArray(rawExerciseVolumeEntries) ? rawExerciseVolumeEntries : [];
+    const exerciseRepsEntries = Array.isArray(rawExerciseRepsEntries) ? rawExerciseRepsEntries : [];
+    const exercisePersonalRecordEntries = Array.isArray(rawExercisePersonalRecordEntries)
+        ? rawExercisePersonalRecordEntries.filter((entry) => entry && Number.isFinite(entry.value))
+        : [];
 
     const progressSectionsCount = 4;
 
@@ -999,6 +1078,26 @@ export default function ExerciseDetail() {
         }
         return ticks;
     }, [progressRepsAxisMetrics]);
+
+    const progressPersonalRecordValues = useMemo(
+        () => exercisePersonalRecordEntries.map((entry) => entry.value),
+        [exercisePersonalRecordEntries]
+    );
+    const progressPersonalRecordAxisMetrics = useMemo(
+        () => computeAxisMetrics(progressPersonalRecordValues, progressSectionsCount),
+        [progressPersonalRecordValues, progressSectionsCount]
+    );
+    const progressPersonalRecordTicks = useMemo(() => {
+        if (!progressPersonalRecordAxisMetrics) return [];
+        const ticks = [];
+        for (let i = 0; i <= progressPersonalRecordAxisMetrics.sections; i += 1) {
+            const value =
+                progressPersonalRecordAxisMetrics.minValue +
+                progressPersonalRecordAxisMetrics.step * i;
+            ticks.push(Math.round((value + Number.EPSILON) * 100) / 100);
+        }
+        return ticks;
+    }, [progressPersonalRecordAxisMetrics]);
 
     const progressCardHorizontalPadding = scaleSize(16);
     const progressChartHeight = scaleSize(220);
@@ -1050,6 +1149,16 @@ export default function ExerciseDetail() {
         [exerciseRepsEntries, progressRepsAxisMetrics, progressChartGeometry]
     );
 
+    const progressPersonalRecordSeries = useMemo(
+        () =>
+            buildChartSeries(
+                exercisePersonalRecordEntries,
+                progressPersonalRecordAxisMetrics,
+                progressChartGeometry
+            ),
+        [exercisePersonalRecordEntries, progressPersonalRecordAxisMetrics, progressChartGeometry]
+    );
+
     const progressVolumeXAxisLabels = useMemo(
         () => buildXAxisLabels(progressVolumeSeries?.domain),
         [progressVolumeSeries?.domain]
@@ -1058,6 +1167,11 @@ export default function ExerciseDetail() {
     const progressRepsXAxisLabels = useMemo(
         () => buildXAxisLabels(progressRepsSeries?.domain),
         [progressRepsSeries?.domain]
+    );
+
+    const progressPersonalRecordXAxisLabels = useMemo(
+        () => buildXAxisLabels(progressPersonalRecordSeries?.domain),
+        [progressPersonalRecordSeries?.domain]
     );
 
     const {
@@ -1073,17 +1187,22 @@ export default function ExerciseDetail() {
 
     const progressVolumePoints = progressVolumeSeries.points;
     const progressRepsPoints = progressRepsSeries.points;
+    const progressPersonalRecordPoints = progressPersonalRecordSeries.points;
 
     const progressVolumeActiveIndexRef = useRef(null);
     const [progressVolumeActiveIndex, setProgressVolumeActiveIndex] = useState(null);
     const progressRepsActiveIndexRef = useRef(null);
     const [progressRepsActiveIndex, setProgressRepsActiveIndex] = useState(null);
+    const progressPersonalRecordActiveIndexRef = useRef(null);
+    const [progressPersonalRecordActiveIndex, setProgressPersonalRecordActiveIndex] = useState(null);
 
     const progressVolumePointerOpacity = useRef(new Animated.Value(0)).current;
     const progressRepsPointerOpacity = useRef(new Animated.Value(0)).current;
+    const progressPersonalRecordPointerOpacity = useRef(new Animated.Value(0)).current;
 
     const progressVolumeHideTimeout = useRef(null);
     const progressRepsHideTimeout = useRef(null);
+    const progressPersonalRecordHideTimeout = useRef(null);
 
     const clearProgressVolumeHideTimeout = useCallback(() => {
         if (progressVolumeHideTimeout.current) {
@@ -1096,6 +1215,13 @@ export default function ExerciseDetail() {
         if (progressRepsHideTimeout.current) {
             clearTimeout(progressRepsHideTimeout.current);
             progressRepsHideTimeout.current = null;
+        }
+    }, []);
+
+    const clearProgressPersonalRecordHideTimeout = useCallback(() => {
+        if (progressPersonalRecordHideTimeout.current) {
+            clearTimeout(progressPersonalRecordHideTimeout.current);
+            progressPersonalRecordHideTimeout.current = null;
         }
     }, []);
 
@@ -1118,6 +1244,16 @@ export default function ExerciseDetail() {
             useNativeDriver: true,
         }).start();
     }, [clearProgressRepsHideTimeout, progressRepsPointerOpacity]);
+
+    const showProgressPersonalRecordPointer = useCallback(() => {
+        clearProgressPersonalRecordHideTimeout();
+        progressPersonalRecordPointerOpacity.stopAnimation();
+        Animated.timing(progressPersonalRecordPointerOpacity, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+        }).start();
+    }, [clearProgressPersonalRecordHideTimeout, progressPersonalRecordPointerOpacity]);
 
     const scheduleProgressVolumeHide = useCallback(() => {
         clearProgressVolumeHideTimeout();
@@ -1153,6 +1289,23 @@ export default function ExerciseDetail() {
         }, 2000);
     }, [clearProgressRepsHideTimeout, progressRepsPointerOpacity]);
 
+    const scheduleProgressPersonalRecordHide = useCallback(() => {
+        clearProgressPersonalRecordHideTimeout();
+        if (progressPersonalRecordActiveIndexRef.current == null) return;
+        progressPersonalRecordHideTimeout.current = setTimeout(() => {
+            progressPersonalRecordPointerOpacity.stopAnimation();
+            Animated.timing(progressPersonalRecordPointerOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start(() => {
+                progressPersonalRecordActiveIndexRef.current = null;
+                setProgressPersonalRecordActiveIndex(null);
+            });
+            progressPersonalRecordHideTimeout.current = null;
+        }, 2000);
+    }, [clearProgressPersonalRecordHideTimeout, progressPersonalRecordPointerOpacity]);
+
     const handleProgressVolumePointerActivate = useCallback(
         (payload) => {
             if (!payload) return;
@@ -1175,6 +1328,18 @@ export default function ExerciseDetail() {
             showProgressRepsPointer();
         },
         [showProgressRepsPointer]
+    );
+
+    const handleProgressPersonalRecordPointerActivate = useCallback(
+        (payload) => {
+            if (!payload) return;
+            const { index } = payload;
+            if (!Number.isFinite(index)) return;
+            progressPersonalRecordActiveIndexRef.current = index;
+            setProgressPersonalRecordActiveIndex((prev) => (prev === index ? prev : index));
+            showProgressPersonalRecordPointer();
+        },
+        [showProgressPersonalRecordPointer]
     );
 
     const handleProgressVolumeChartTouch = useCallback(
@@ -1231,6 +1396,38 @@ export default function ExerciseDetail() {
         [progressRepsPoints, progressLeftMargin, progressInnerWidth, handleProgressRepsPointerActivate]
     );
 
+    const handleProgressPersonalRecordChartTouch = useCallback(
+        (nativeEvent) => {
+            if (!nativeEvent || !progressPersonalRecordPoints.length) return;
+            const { locationX } = nativeEvent;
+            if (!Number.isFinite(locationX)) return;
+
+            const minX = progressLeftMargin;
+            const maxX = progressLeftMargin + progressInnerWidth;
+            const clampedX = Math.max(minX, Math.min(maxX, locationX));
+
+            let closestIndex = 0;
+            let smallestDistance = Math.abs(progressPersonalRecordPoints[0].x - clampedX);
+
+            for (let i = 1; i < progressPersonalRecordPoints.length; i += 1) {
+                const point = progressPersonalRecordPoints[i];
+                const distance = Math.abs(point.x - clampedX);
+                if (distance < smallestDistance) {
+                    smallestDistance = distance;
+                    closestIndex = i;
+                }
+            }
+
+            handleProgressPersonalRecordPointerActivate({ index: closestIndex });
+        },
+        [
+            progressPersonalRecordPoints,
+            progressLeftMargin,
+            progressInnerWidth,
+            handleProgressPersonalRecordPointerActivate,
+        ]
+    );
+
     const progressVolumePanResponder = useMemo(
         () =>
             PanResponder.create({
@@ -1257,8 +1454,26 @@ export default function ExerciseDetail() {
         [progressRepsPoints.length, handleProgressRepsChartTouch, scheduleProgressRepsHide]
     );
 
+    const progressPersonalRecordPanResponder = useMemo(
+        () =>
+            PanResponder.create({
+                onStartShouldSetPanResponder: () => !!progressPersonalRecordPoints.length,
+                onMoveShouldSetPanResponder: () => !!progressPersonalRecordPoints.length,
+                onPanResponderGrant: (evt) => handleProgressPersonalRecordChartTouch(evt?.nativeEvent),
+                onPanResponderMove: (evt) => handleProgressPersonalRecordChartTouch(evt?.nativeEvent),
+                onPanResponderRelease: () => scheduleProgressPersonalRecordHide(),
+                onPanResponderTerminate: () => scheduleProgressPersonalRecordHide(),
+            }),
+        [
+            progressPersonalRecordPoints.length,
+            handleProgressPersonalRecordChartTouch,
+            scheduleProgressPersonalRecordHide,
+        ]
+    );
+
     const hasProgressVolumeData = exerciseVolumeEntries.length > 0;
     const hasProgressRepsData = exerciseRepsEntries.length > 0;
+    const hasProgressPersonalRecordData = exercisePersonalRecordEntries.length > 0;
 
     const progressVolumeActivePoint =
         progressVolumeActiveIndex != null ? progressVolumePoints[progressVolumeActiveIndex] : null;
@@ -1302,6 +1517,30 @@ export default function ExerciseDetail() {
             ? progressRepsActiveIndex >= Math.ceil(exerciseRepsEntries.length / 2)
             : false;
 
+    const progressPersonalRecordActivePoint =
+        progressPersonalRecordActiveIndex != null
+            ? progressPersonalRecordPoints[progressPersonalRecordActiveIndex]
+            : null;
+    const progressPersonalRecordPointerWidth = scaleSize(184);
+    const progressPersonalRecordPointerLeft = useMemo(() => {
+        if (!progressPersonalRecordActivePoint) return progressLeftMargin;
+        const minLeft = progressLeftMargin;
+        const maxLeft = progressPlotWidth - progressRightMargin;
+        const centered =
+            progressPersonalRecordActivePoint.x - progressPersonalRecordPointerWidth / 2;
+        return Math.max(minLeft, Math.min(centered, maxLeft - progressPersonalRecordPointerWidth));
+    }, [
+        progressPersonalRecordActivePoint,
+        progressLeftMargin,
+        progressPlotWidth,
+        progressRightMargin,
+        progressPersonalRecordPointerWidth,
+    ]);
+    const progressPersonalRecordPointerRightAligned =
+        progressPersonalRecordActiveIndex != null
+            ? progressPersonalRecordActiveIndex >= Math.ceil(exercisePersonalRecordEntries.length / 2)
+            : false;
+
     useEffect(() => {
         if (hasProgressVolumeData) return;
         clearProgressVolumeHideTimeout();
@@ -1330,12 +1569,31 @@ export default function ExerciseDetail() {
         }
     }, [hasProgressRepsData, clearProgressRepsHideTimeout, progressRepsPointerOpacity]);
 
+    useEffect(() => {
+        if (hasProgressPersonalRecordData) return;
+        clearProgressPersonalRecordHideTimeout();
+        Animated.timing(progressPersonalRecordPointerOpacity, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+        if (progressPersonalRecordActiveIndexRef.current != null) {
+            progressPersonalRecordActiveIndexRef.current = null;
+            setProgressPersonalRecordActiveIndex(null);
+        }
+    }, [
+        hasProgressPersonalRecordData,
+        clearProgressPersonalRecordHideTimeout,
+        progressPersonalRecordPointerOpacity,
+    ]);
+
     useEffect(
         () => () => {
             clearProgressVolumeHideTimeout();
             clearProgressRepsHideTimeout();
+            clearProgressPersonalRecordHideTimeout();
         },
-        [clearProgressVolumeHideTimeout, clearProgressRepsHideTimeout]
+        [clearProgressVolumeHideTimeout, clearProgressRepsHideTimeout, clearProgressPersonalRecordHideTimeout]
     );
 
     const latestExerciseVolumeEntry = exerciseVolumeEntries.length
@@ -1363,6 +1621,19 @@ export default function ExerciseDetail() {
         : 'No data yet';
     const latestExerciseRepsDeltaMeta = latestExerciseRepsEntry
         ? buildMetricDeltaDisplay(latestExerciseRepsEntry.increment, 'reps', formatNumberCompact)
+        : null;
+
+    const latestExercisePersonalRecordEntry = exercisePersonalRecordEntries.length
+        ? exercisePersonalRecordEntries[exercisePersonalRecordEntries.length - 1]
+        : null;
+    const latestExercisePersonalRecordText = latestExercisePersonalRecordEntry
+        ? formatNumberCompact(latestExercisePersonalRecordEntry.value)
+        : '--';
+    const latestExercisePersonalRecordInfo = latestExercisePersonalRecordEntry
+        ? dayjs(latestExercisePersonalRecordEntry.recordedAt).format('MMM D, h:mm A')
+        : 'No data yet';
+    const latestExercisePersonalRecordDeltaMeta = latestExercisePersonalRecordEntry
+        ? buildMetricDeltaDisplay(latestExercisePersonalRecordEntry.increment, 'records', formatNumberCompact)
         : null;
 
 
@@ -1625,13 +1896,13 @@ export default function ExerciseDetail() {
     };
 
     const renderProgress = () => {
-        const noData = !hasProgressVolumeData && !hasProgressRepsData;
+        const noData = !hasProgressVolumeData && !hasProgressRepsData && !hasProgressPersonalRecordData;
         if (noData) {
             return (
                 <View style={styles.placeholder}>
                     <Text style={styles.placeholderTitle}>No progress yet</Text>
                     <Text style={styles.placeholderBody}>
-                        Log sets for {displayTitle} to visualize volume and reps trends here.
+                        Log sets for {displayTitle} to visualize volume, reps, and records trends here.
                     </Text>
                 </View>
             );
@@ -1890,6 +2161,275 @@ export default function ExerciseDetail() {
                                                 entry={exerciseVolumeEntries[progressVolumeActiveIndex]}
                                                 unit={volumeUnitLabel}
                                                 isRightAligned={progressVolumePointerRightAligned}
+                                            />
+                                        </Animated.View>
+                                    ) : null}
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                ) : null}
+
+                {hasProgressPersonalRecordData ? (
+                    <View style={[styles.progressCard, { paddingHorizontal: progressCardHorizontalPadding }]}> 
+                        <View style={styles.progressHeader}>
+                            <Text style={styles.progressSectionTitle}>Personal Records</Text>
+                            <View style={styles.progressAutoHintWrapper}>
+                                <Text style={styles.progressAutoHint}>Auto-updates when you</Text>
+                                <Text style={styles.progressAutoHint}>set a new PR.</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.progressMetricsRow}>
+                            <View style={styles.progressValueGroup}>
+                                <Text style={styles.progressValue}>{latestExercisePersonalRecordText}</Text>
+                                <Text style={styles.progressUnit}>records</Text>
+                                {latestExercisePersonalRecordDeltaMeta ? (
+                                    <View style={styles.progressDeltaGroup}>
+                                        <Ionicons
+                                            name={latestExercisePersonalRecordDeltaMeta.icon}
+                                            size={scaleSize(19)}
+                                            color={latestExercisePersonalRecordDeltaMeta.color}
+                                            style={styles.progressDeltaIcon}
+                                        />
+                                        <Text
+                                            style={[
+                                                styles.progressValue,
+                                                styles.progressDeltaText,
+                                                { color: latestExercisePersonalRecordDeltaMeta.color },
+                                            ]}
+                                        >
+                                            {latestExercisePersonalRecordDeltaMeta.text}
+                                        </Text>
+                                    </View>
+                                ) : null}
+                            </View>
+                            <Text style={styles.progressSummaryText}>{latestExercisePersonalRecordInfo}</Text>
+                        </View>
+
+                        <View
+                            style={[
+                                styles.progressChartWrapper,
+                                {
+                                    height: progressChartHeight,
+                                    width: progressChartWidth,
+                                    paddingTop: progressChartPaddingTop,
+                                    paddingBottom: progressChartPaddingBottom,
+                                },
+                            ]}
+                        >
+                            <View style={styles.progressChartContent}>
+                                <View
+                                    style={[
+                                        styles.progressYAxisLabels,
+                                        { width: progressYAxisLabelWidth, height: progressChartHeight },
+                                    ]}
+                                    pointerEvents="none"
+                                >
+                                    {progressPersonalRecordTicks.map((value, index) => {
+                                        const range = Math.max(
+                                            (progressPersonalRecordAxisMetrics?.maxValue ?? 0) -
+                                                (progressPersonalRecordAxisMetrics?.minValue ?? 0),
+                                            1
+                                        );
+                                        const ratio =
+                                            (value - (progressPersonalRecordAxisMetrics?.minValue ?? 0)) /
+                                            range;
+                                        const clampedRatio = Number.isFinite(ratio)
+                                            ? Math.min(Math.max(ratio, 0), 1)
+                                            : 0;
+                                        const yPosition =
+                                            progressTopMargin + progressInnerHeight * (1 - clampedRatio);
+                                        const approxLabelHeight = scaleSize(14);
+                                        const top = Math.min(
+                                            progressChartHeight - progressBottomMargin - approxLabelHeight,
+                                            Math.max(
+                                                progressTopMargin - approxLabelHeight / 2,
+                                                yPosition - approxLabelHeight / 2
+                                            )
+                                        );
+
+                                        return (
+                                            <Text
+                                                key={`exercise-pr-y-label-${value}-${index}`}
+                                                style={[
+                                                    styles.progressAxisLabel,
+                                                    styles.progressYAxisLabel,
+                                                    { top },
+                                                ]}
+                                            >
+                                                {formatAxisValue(value)}
+                                            </Text>
+                                        );
+                                    })}
+                                </View>
+
+                                <View
+                                    style={[
+                                        styles.progressChartCanvas,
+                                        { width: progressPlotWidth, height: progressChartHeight },
+                                    ]}
+                                    {...progressPersonalRecordPanResponder.panHandlers}
+                                >
+                                    <Svg width={progressPlotWidth} height={progressChartHeight}>
+                                        <Defs>
+                                            <LinearGradient
+                                                id="exercisePersonalRecordGradient"
+                                                x1="0"
+                                                y1="0"
+                                                x2="0"
+                                                y2="1"
+                                            >
+                                                <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
+                                                <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
+                                            </LinearGradient>
+                                        </Defs>
+
+                                        {progressPersonalRecordTicks.map((value, index) => {
+                                            const range = Math.max(
+                                                (progressPersonalRecordAxisMetrics?.maxValue ?? 0) -
+                                                    (progressPersonalRecordAxisMetrics?.minValue ?? 0),
+                                                1
+                                            );
+                                            const ratio =
+                                                (value - (progressPersonalRecordAxisMetrics?.minValue ?? 0)) /
+                                                range;
+                                            const clampedRatio = Number.isFinite(ratio)
+                                                ? Math.min(Math.max(ratio, 0), 1)
+                                                : 0;
+                                            const y =
+                                                progressTopMargin + progressInnerHeight * (1 - clampedRatio);
+                                            return (
+                                                <Line
+                                                    key={`exercise-pr-grid-${value}-${index}`}
+                                                    x1={progressLeftMargin}
+                                                    y1={y}
+                                                    x2={progressPlotWidth - progressRightMargin}
+                                                    y2={y}
+                                                    stroke="rgba(255,255,255,0.1)"
+                                                    strokeWidth={StyleSheet.hairlineWidth}
+                                                    strokeDasharray={[6, 6]}
+                                                />
+                                            );
+                                        })}
+
+                                        {progressPersonalRecordSeries.areaPath ? (
+                                            <Path
+                                                d={progressPersonalRecordSeries.areaPath}
+                                                fill="url(#exercisePersonalRecordGradient)"
+                                                stroke="none"
+                                            />
+                                        ) : null}
+
+                                        {progressPersonalRecordSeries.linePath ? (
+                                            <Path
+                                                d={progressPersonalRecordSeries.linePath}
+                                                fill="none"
+                                                stroke="#7FB7FF"
+                                                strokeWidth={scaleSize(3)}
+                                                strokeLinejoin="round"
+                                                strokeLinecap="round"
+                                            />
+                                        ) : null}
+
+                                        <Line
+                                            x1={progressLeftMargin}
+                                            y1={progressTopMargin}
+                                            x2={progressLeftMargin}
+                                            y2={progressBaselineY}
+                                            stroke="rgba(148, 157, 172, 0.35)"
+                                            strokeWidth={StyleSheet.hairlineWidth}
+                                        />
+                                        <Line
+                                            x1={progressLeftMargin}
+                                            y1={progressBaselineY}
+                                            x2={progressPlotWidth - progressRightMargin}
+                                            y2={progressBaselineY}
+                                            stroke="rgba(148, 157, 172, 0.35)"
+                                            strokeWidth={StyleSheet.hairlineWidth}
+                                        />
+
+                                        {progressPersonalRecordActivePoint ? (
+                                            <Line
+                                                x1={progressPersonalRecordActivePoint.x}
+                                                y1={progressTopMargin}
+                                                x2={progressPersonalRecordActivePoint.x}
+                                                y2={progressBaselineY}
+                                                stroke="rgba(100, 160, 255, 0.45)"
+                                                strokeWidth={progressPointerStripWidth}
+                                            />
+                                        ) : null}
+
+                                        {progressPersonalRecordPoints.map((point, index) => {
+                                            const isActive = index === progressPersonalRecordActiveIndex;
+                                            const radius = isActive ? scaleSize(6) : scaleSize(4.2);
+                                            const strokeWidth = isActive ? scaleSize(2) : scaleSize(1);
+                                            const strokeColor = isActive
+                                                ? 'rgba(100, 160, 255, 0.9)'
+                                                : 'rgba(100, 160, 255, 0.45)';
+                                            const fillColor = isActive
+                                                ? '#E1EEFF'
+                                                : 'rgba(225, 238, 255, 0.78)';
+                                            return (
+                                                <Circle
+                                                    key={`exercise-pr-point-${index}`}
+                                                    cx={point.x}
+                                                    cy={point.y}
+                                                    r={radius}
+                                                    fill={fillColor}
+                                                    stroke={strokeColor}
+                                                    strokeWidth={strokeWidth}
+                                                />
+                                            );
+                                        })}
+                                    </Svg>
+
+                                    {progressPersonalRecordXAxisLabels.length ? (
+                                        <View
+                                            pointerEvents="none"
+                                            style={[
+                                                styles.progressXAxisOverlay,
+                                                {
+                                                    left: progressLeftMargin,
+                                                    right: progressRightMargin,
+                                                    justifyContent:
+                                                        progressPersonalRecordXAxisLabels.length > 1
+                                                            ? 'space-between'
+                                                            : 'center',
+                                                },
+                                            ]}
+                                        >
+                                            {progressPersonalRecordXAxisLabels.map((item, index) => (
+                                                <Text
+                                                    key={`exercise-pr-x-label-${item.timestamp ?? index}-${index}`}
+                                                    style={[styles.progressAxisLabel, styles.progressXAxisLabel]}
+                                                >
+                                                    {item.label}
+                                                </Text>
+                                            ))}
+                                        </View>
+                                    ) : null}
+
+                                    {progressPersonalRecordActivePoint ? (
+                                        <Animated.View
+                                            pointerEvents="none"
+                                            style={[
+                                                styles.progressPointerContainer,
+                                                {
+                                                    left: progressPersonalRecordPointerLeft,
+                                                    top: Math.max(
+                                                        scaleSize(-8),
+                                                        progressTopMargin - scaleSize(72)
+                                                    ),
+                                                    width: progressPersonalRecordPointerWidth,
+                                                    opacity: progressPersonalRecordPointerOpacity,
+                                                },
+                                            ]}
+                                        >
+                                            <ExercisePersonalRecordPointerLabel
+                                                entry={exercisePersonalRecordEntries[progressPersonalRecordActiveIndex]}
+                                                unit={volumeUnitLabel}
+                                                isRightAligned={progressPersonalRecordPointerRightAligned}
                                             />
                                         </Animated.View>
                                     ) : null}

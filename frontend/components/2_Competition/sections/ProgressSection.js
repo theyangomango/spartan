@@ -137,6 +137,48 @@ const resolveWorkoutTimestamp = (workout) => {
     return null;
 };
 
+const sanitizeCompletedWorkouts = (raw) => {
+    if (!Array.isArray(raw)) return [];
+    return raw.filter(Boolean);
+};
+
+const sanitizePersonalRecordEntries = (completedWorkouts) => {
+    if (!Array.isArray(completedWorkouts)) return [];
+
+    const prelim = completedWorkouts
+        .map((workout) => {
+            const recordedAt = resolveWorkoutTimestamp(workout);
+            if (!Number.isFinite(recordedAt)) return null;
+
+            const rawIncrement = Number(workout?.PBs ?? workout?.pbs ?? 0);
+            const increment = Number.isFinite(rawIncrement) && rawIncrement > 0 ? rawIncrement : 0;
+
+            const id = workout?.id || workout?.wid || workout?.workoutId || makeID();
+            const name =
+                (typeof workout?.name === "string" && workout.name.trim()) ||
+                (typeof workout?.templateName === "string" && workout.templateName.trim()) ||
+                "Workout";
+
+            return {
+                id,
+                recordedAt,
+                increment,
+                name,
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.recordedAt - b.recordedAt);
+
+    let runningTotal = 0;
+    return prelim.map((entry) => {
+        runningTotal += entry.increment;
+        return {
+            ...entry,
+            value: runningTotal,
+        };
+    });
+};
+
 const formatVolumeValue = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num) || num <= 0) return "0";
@@ -560,6 +602,48 @@ const RepsPointerLabel = React.memo(({ entry, isRightAligned }) => {
     );
 });
 
+const PersonalRecordPointerLabel = React.memo(({ entry, isRightAligned }) => {
+    if (!entry) return null;
+
+    const totalText = `${formatVolumeValue(entry.value)} records`;
+    const incrementValue = Number(entry.increment) || 0;
+    const incrementText = incrementValue > 0 ? `+${formatVolumeValue(incrementValue)} records` : null;
+    const workoutName = (typeof entry.name === "string" && entry.name.trim()) || null;
+    const noRecordText = incrementValue === 0 ? "No new records" : null;
+    const timestampText = dayjs(entry.recordedAt).format("MMM D, h:mm A");
+
+    return (
+        <View
+            pointerEvents="none"
+            style={[
+                styles.pointerLabelRoot,
+                isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+            ]}
+        >
+            <View
+                style={[
+                    styles.pointerBubbleWrapper,
+                    isRightAligned ? styles.pointerBubbleWrapperRight : styles.pointerBubbleWrapperLeft,
+                ]}
+            >
+                <View style={styles.pointerBubble}>
+                    <Text style={styles.pointerBubbleWeight}>{totalText}</Text>
+                    {workoutName ? (
+                        <Text style={styles.pointerBubbleDeltaNeutral}>{workoutName}</Text>
+                    ) : null}
+                    {incrementText ? (
+                        <Text style={styles.pointerBubbleIncrement}>{incrementText}</Text>
+                    ) : null}
+                    {noRecordText ? (
+                        <Text style={styles.pointerBubbleDeltaNeutral}>{noRecordText}</Text>
+                    ) : null}
+                    <Text style={styles.pointerBubbleTimestamp}>{timestampText}</Text>
+                </View>
+            </View>
+        </View>
+    );
+});
+
 const AddMeasurementModal = ({
     isVisible,
     onDismiss,
@@ -839,6 +923,11 @@ export default function ProgressSection() {
     const preferredUnit = useMemo(() => resolvePreferredWeightUnit(userData), [userData]);
     const displayPreferredUnit = useMemo(() => toDisplayWeightUnit(preferredUnit), [preferredUnit]);
 
+    const completedWorkouts = useMemo(
+        () => sanitizeCompletedWorkouts(userData?.completedWorkouts || []),
+        [userData?.completedWorkouts]
+    );
+
     const entries = useMemo(() => {
         const list =
             userData?.progress?.weightEntries ||
@@ -856,8 +945,8 @@ export default function ProgressSection() {
     const latestInfoText = latestEntry ? formatTimestamp(latestEntry.recordedAt) : "No entries yet";
 
     const volumeEntries = useMemo(
-        () => sanitizeVolumeEntries(userData?.completedWorkouts || []),
-        [userData]
+        () => sanitizeVolumeEntries(completedWorkouts),
+        [completedWorkouts]
     );
     const latestVolumeEntry = volumeEntries.length ? volumeEntries[volumeEntries.length - 1] : null;
     const latestVolumeText = latestVolumeEntry ? formatVolumeValue(latestVolumeEntry.value) : "--";
@@ -868,8 +957,12 @@ export default function ProgressSection() {
         ? buildMetricDeltaDisplay(latestVolumeEntry.increment, displayVolumeUnit, formatVolumeValue)
         : null;
     const repsEntries = useMemo(
-        () => sanitizeRepsEntries(userData?.completedWorkouts || []),
-        [userData]
+        () => sanitizeRepsEntries(completedWorkouts),
+        [completedWorkouts]
+    );
+    const personalRecordEntries = useMemo(
+        () => sanitizePersonalRecordEntries(completedWorkouts),
+        [completedWorkouts]
     );
     const latestRepsEntry = repsEntries.length ? repsEntries[repsEntries.length - 1] : null;
     const latestRepsText = latestRepsEntry ? formatVolumeValue(latestRepsEntry.value) : "--";
@@ -877,6 +970,19 @@ export default function ProgressSection() {
     const latestRepsUnit = latestRepsEntry ? "reps" : "";
     const latestRepsDeltaMeta = latestRepsEntry
         ? buildMetricDeltaDisplay(latestRepsEntry.increment, "reps", formatVolumeValue)
+        : null;
+    const latestPersonalRecordEntry = personalRecordEntries.length
+        ? personalRecordEntries[personalRecordEntries.length - 1]
+        : null;
+    const latestPersonalRecordText = latestPersonalRecordEntry
+        ? formatVolumeValue(latestPersonalRecordEntry.value)
+        : "--";
+    const latestPersonalRecordInfo = latestPersonalRecordEntry
+        ? formatTimestamp(latestPersonalRecordEntry.recordedAt)
+        : "No PRs yet";
+    const latestPersonalRecordUnit = latestPersonalRecordEntry ? "records" : "";
+    const latestPersonalRecordDeltaMeta = latestPersonalRecordEntry
+        ? buildMetricDeltaDisplay(latestPersonalRecordEntry.increment, "records", formatVolumeValue)
         : null;
     const measurementRowSubtitle = useMemo(() => {
         if (!entries.length) return "No measurements yet";
@@ -972,10 +1078,28 @@ export default function ProgressSection() {
         return ticks;
     }, [repsAxisMetrics]);
 
+    const personalRecordValues = useMemo(
+        () => personalRecordEntries.map((entry) => entry.value),
+        [personalRecordEntries]
+    );
+    const personalRecordAxisMetrics = useMemo(
+        () => computeAxisMetrics(personalRecordValues, sectionsCount),
+        [personalRecordValues]
+    );
+    const personalRecordYTickValues = useMemo(() => {
+        if (!personalRecordAxisMetrics) return [];
+        const ticks = [];
+        for (let i = 0; i <= personalRecordAxisMetrics.sections; i += 1) {
+            const value = personalRecordAxisMetrics.minValue + personalRecordAxisMetrics.step * i;
+            ticks.push(Math.round((value + Number.EPSILON) * 100) / 100);
+        }
+        return ticks;
+    }, [personalRecordAxisMetrics]);
+
     const cardHorizontalPadding = scaleSize(16);
     const chartHeight = scaleSize(220);
     const chartWidth = Math.max(DEVICE_WIDTH - cardHorizontalPadding, scaleSize(200));
-    const chartPaddingTop = scaleSize(0);
+    const chartPaddingTop = scaleSize(24);
     const chartPaddingBottom = scaleSize(32);
     const initialSpacing = scaleSize(12);
     const pointerStripWidth = scaleSize(2);
@@ -1031,6 +1155,11 @@ export default function ProgressSection() {
         [repsChartData, repsAxisMetrics, chartGeometry]
     );
 
+    const personalRecordSeries = useMemo(
+        () => buildChartSeries(personalRecordEntries, personalRecordAxisMetrics, chartGeometry),
+        [personalRecordEntries, personalRecordAxisMetrics, chartGeometry]
+    );
+
     const weightXAxisLabels = useMemo(
         () => buildXAxisLabels(weightSeries?.domain),
         [weightSeries?.domain]
@@ -1045,6 +1174,11 @@ export default function ProgressSection() {
         () => buildXAxisLabels(repsSeries?.domain),
         [repsSeries?.domain]
     );
+
+    const personalRecordXAxisLabels = useMemo(
+        () => buildXAxisLabels(personalRecordSeries?.domain),
+        [personalRecordSeries?.domain]
+    ) || [];
 
     const handlePointerActivate = useCallback(
         (payload) => {
@@ -1061,6 +1195,9 @@ export default function ProgressSection() {
     const weightChartPoints = weightSeries.points;
     const volumeChartPoints = volumeSeries.points;
     const repsChartPoints = repsSeries.points;
+    const personalRecordChartPoints = Array.isArray(personalRecordSeries?.points)
+        ? personalRecordSeries.points
+        : [];
 
     const handleChartTouch = useCallback(
         (nativeEvent) => {
@@ -1199,6 +1336,48 @@ export default function ProgressSection() {
         [repsChartPoints, chartLeftMargin, chartInnerWidth, handleRepsPointerActivate]
     );
 
+    const personalRecordActiveIndexRef = useRef(null);
+    const [personalRecordActiveIndex, setPersonalRecordActiveIndex] = useState(null);
+
+    const handlePersonalRecordPointerActivate = useCallback(
+        (payload) => {
+            if (!payload) return;
+            const { index } = payload;
+            if (!Number.isFinite(index)) return;
+            personalRecordActiveIndexRef.current = index;
+            setPersonalRecordActiveIndex((prev) => (prev === index ? prev : index));
+            showPersonalRecordPointer();
+        },
+        [showPersonalRecordPointer]
+    );
+
+    const handlePersonalRecordChartTouch = useCallback(
+        (nativeEvent) => {
+            if (!nativeEvent || !personalRecordChartPoints.length) return;
+            const { locationX } = nativeEvent;
+            if (!Number.isFinite(locationX)) return;
+
+            const minX = chartLeftMargin;
+            const maxX = chartLeftMargin + chartInnerWidth;
+            const clampedX = Math.max(minX, Math.min(maxX, locationX));
+
+            let closestIndex = 0;
+            let smallestDistance = Math.abs(personalRecordChartPoints[0].x - clampedX);
+
+            for (let i = 1; i < personalRecordChartPoints.length; i += 1) {
+                const point = personalRecordChartPoints[i];
+                const distance = Math.abs(point.x - clampedX);
+                if (distance < smallestDistance) {
+                    smallestDistance = distance;
+                    closestIndex = i;
+                }
+            }
+
+            handlePersonalRecordPointerActivate({ index: closestIndex });
+        },
+        [personalRecordChartPoints, chartLeftMargin, chartInnerWidth, handlePersonalRecordPointerActivate]
+    );
+
     const repsPanResponder = useMemo(
         () =>
             PanResponder.create({
@@ -1210,6 +1389,23 @@ export default function ProgressSection() {
                 onPanResponderTerminate: () => scheduleRepsHide(),
             }),
         [repsChartPoints.length, handleRepsChartTouch, scheduleRepsHide]
+    );
+
+    const personalRecordPanResponder = useMemo(
+        () =>
+            PanResponder.create({
+                onStartShouldSetPanResponder: () => !!personalRecordChartPoints.length,
+                onMoveShouldSetPanResponder: () => !!personalRecordChartPoints.length,
+                onPanResponderGrant: (evt) => handlePersonalRecordChartTouch(evt?.nativeEvent),
+                onPanResponderMove: (evt) => handlePersonalRecordChartTouch(evt?.nativeEvent),
+                onPanResponderRelease: () => schedulePersonalRecordHide(),
+                onPanResponderTerminate: () => schedulePersonalRecordHide(),
+            }),
+        [
+            personalRecordChartPoints.length,
+            handlePersonalRecordChartTouch,
+            schedulePersonalRecordHide,
+        ]
     );
 
     const getCurrentSanitizedEntries = useCallback(() => {
@@ -1405,6 +1601,7 @@ export default function ProgressSection() {
     const hasChartData = chartData.length > 0;
     const hasVolumeChartData = volumeChartData.length > 0;
     const hasRepsChartData = repsChartData.length > 0;
+    const hasPersonalRecordChartData = personalRecordEntries.length > 0;
 
     const weightActivePoint = activeIndex != null ? weightChartPoints[activeIndex] : null;
     const weightActiveEntry = activeIndex != null ? chartData[activeIndex]?.entry : null;
@@ -1448,12 +1645,40 @@ export default function ProgressSection() {
         ? repsActiveIndex >= Math.ceil(repsChartData.length / 2)
         : false;
 
+    const personalRecordActivePoint =
+        personalRecordActiveIndex != null
+            ? personalRecordChartPoints[personalRecordActiveIndex]
+            : null;
+    const personalRecordActiveEntry = personalRecordActiveIndex != null
+        ? personalRecordEntries[personalRecordActiveIndex] || null
+        : null;
+    const personalRecordPointerLabelWidth = scaleSize(184);
+    const personalRecordPointerLabelLeft = useMemo(() => {
+        if (!personalRecordActivePoint) return chartLeftMargin;
+        const minLeft = chartLeftMargin;
+        const maxLeft = chartPlotWidth - chartRightMargin;
+        const centered = personalRecordActivePoint.x - personalRecordPointerLabelWidth / 2;
+        const clamped = Math.max(minLeft, Math.min(centered, maxLeft - personalRecordPointerLabelWidth));
+        return clamped;
+    }, [
+        personalRecordActivePoint,
+        chartLeftMargin,
+        chartPlotWidth,
+        chartRightMargin,
+        personalRecordPointerLabelWidth,
+    ]);
+    const personalRecordPointerRightAligned = personalRecordActiveIndex != null
+        ? personalRecordActiveIndex >= Math.ceil(personalRecordEntries.length / 2)
+        : false;
+
     const weightPointerOpacity = useRef(new Animated.Value(0)).current;
     const volumePointerOpacity = useRef(new Animated.Value(0)).current;
     const repsPointerOpacity = useRef(new Animated.Value(0)).current;
+    const personalRecordPointerOpacity = useRef(new Animated.Value(0)).current;
     const weightHideTimeout = useRef(null);
     const volumeHideTimeout = useRef(null);
     const repsHideTimeout = useRef(null);
+    const personalRecordHideTimeout = useRef(null);
 
     const clearWeightHideTimeout = useCallback(() => {
         if (weightHideTimeout.current) {
@@ -1473,6 +1698,13 @@ export default function ProgressSection() {
         if (repsHideTimeout.current) {
             clearTimeout(repsHideTimeout.current);
             repsHideTimeout.current = null;
+        }
+    }, []);
+
+    const clearPersonalRecordHideTimeout = useCallback(() => {
+        if (personalRecordHideTimeout.current) {
+            clearTimeout(personalRecordHideTimeout.current);
+            personalRecordHideTimeout.current = null;
         }
     }, []);
 
@@ -1505,6 +1737,16 @@ export default function ProgressSection() {
             useNativeDriver: true,
         }).start();
     }, [clearRepsHideTimeout, repsPointerOpacity]);
+
+    const showPersonalRecordPointer = useCallback(() => {
+        clearPersonalRecordHideTimeout();
+        personalRecordPointerOpacity.stopAnimation();
+        Animated.timing(personalRecordPointerOpacity, {
+            toValue: 1,
+            duration: 150,
+            useNativeDriver: true,
+        }).start();
+    }, [clearPersonalRecordHideTimeout, personalRecordPointerOpacity]);
 
     const scheduleWeightHide = useCallback(() => {
         clearWeightHideTimeout();
@@ -1563,6 +1805,25 @@ export default function ProgressSection() {
         }, 2000);
     }, [clearRepsHideTimeout, repsPointerOpacity]);
 
+    const schedulePersonalRecordHide = useCallback(() => {
+        clearPersonalRecordHideTimeout();
+        if (personalRecordActiveIndexRef.current == null) {
+            return;
+        }
+        personalRecordHideTimeout.current = setTimeout(() => {
+            personalRecordPointerOpacity.stopAnimation();
+            Animated.timing(personalRecordPointerOpacity, {
+                toValue: 0,
+                duration: 200,
+                useNativeDriver: true,
+            }).start(() => {
+                personalRecordActiveIndexRef.current = null;
+                setPersonalRecordActiveIndex(null);
+            });
+            personalRecordHideTimeout.current = null;
+        }, 2000);
+    }, [clearPersonalRecordHideTimeout, personalRecordPointerOpacity]);
+
     useEffect(() => {
         if (hasChartData) return;
         clearWeightHideTimeout();
@@ -1605,13 +1866,32 @@ export default function ProgressSection() {
         }
     }, [hasRepsChartData, clearRepsHideTimeout, repsPointerOpacity]);
 
+    useEffect(() => {
+        if (hasPersonalRecordChartData) return;
+        clearPersonalRecordHideTimeout();
+        Animated.timing(personalRecordPointerOpacity, {
+            toValue: 0,
+            duration: 100,
+            useNativeDriver: true,
+        }).start();
+        if (personalRecordActiveIndexRef.current != null) {
+            personalRecordActiveIndexRef.current = null;
+            setPersonalRecordActiveIndex(null);
+        }
+    }, [
+        hasPersonalRecordChartData,
+        clearPersonalRecordHideTimeout,
+        personalRecordPointerOpacity,
+    ]);
+
     useEffect(
         () => () => {
             clearWeightHideTimeout();
             clearVolumeHideTimeout();
             clearRepsHideTimeout();
+            clearPersonalRecordHideTimeout();
         },
-        [clearWeightHideTimeout, clearVolumeHideTimeout, clearRepsHideTimeout]
+        [clearWeightHideTimeout, clearVolumeHideTimeout, clearRepsHideTimeout, clearPersonalRecordHideTimeout]
     );
 
     return (
@@ -2156,7 +2436,273 @@ export default function ProgressSection() {
                         )}
                     </View>
                 </View>
-                <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding }]}>
+
+                {hasPersonalRecordChartData ? (
+                    <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding, marginBottom: scaleSize(32) }]}> 
+                        <View style={styles.header}>
+                            <Text style={styles.sectionTitle}>Total Personal Records</Text>
+                            <View style={styles.autoUpdateHintWrapper}>
+                                <Text style={styles.autoUpdateHint}>Auto-updates when you</Text>
+                                <Text style={styles.autoUpdateHint}>hit new PRs.</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.metricsRow}>
+                            <View style={styles.weightGroup}>
+                                <Text style={styles.weightValue}>{latestPersonalRecordText}</Text>
+                                <Text style={styles.weightUnit}>{latestPersonalRecordUnit}</Text>
+                                {latestPersonalRecordDeltaMeta ? (
+                                    <View style={styles.deltaGroup}>
+                                        <Ionicons
+                                            name={latestPersonalRecordDeltaMeta.icon}
+                                            size={scaleSize(19)}
+                                            color={latestPersonalRecordDeltaMeta.color}
+                                            style={styles.deltaIcon}
+                                        />
+                                        <Text
+                                            style={[styles.weightValue, styles.deltaText, { color: latestPersonalRecordDeltaMeta.color }]}
+                                        >
+                                            {latestPersonalRecordDeltaMeta.text}
+                                        </Text>
+                                    </View>
+                                ) : null}
+                            </View>
+                            <Text style={styles.summaryText}>{latestPersonalRecordInfo}</Text>
+                        </View>
+
+                        <View
+                            style={[
+                                styles.chartWrapper,
+                                {
+                                    height: chartHeight,
+                                    width: chartWidth,
+                                    paddingTop: chartPaddingTop,
+                                    paddingBottom: chartPaddingBottom,
+                                },
+                            ]}
+                        >
+                            {personalRecordChartPoints.length ? (
+                                <View style={styles.chartContent}>
+                                    <View
+                                        style={[
+                                            styles.yAxisLabelsContainer,
+                                            { width: yAxisLabelWidth, height: chartHeight },
+                                        ]}
+                                        pointerEvents="none"
+                                    >
+                                        {personalRecordYTickValues.map((value, index) => {
+                                            const range = Math.max(
+                                                (personalRecordAxisMetrics?.maxValue ?? 0) -
+                                                    (personalRecordAxisMetrics?.minValue ?? 0),
+                                                1
+                                            );
+                                            const ratio =
+                                                (value - (personalRecordAxisMetrics?.minValue ?? 0)) /
+                                                range;
+                                            const clampedRatio = Number.isFinite(ratio)
+                                                ? Math.min(Math.max(ratio, 0), 1)
+                                                : 0;
+                                            const yPosition =
+                                                chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                            const approxLabelHeight = scaleSize(14);
+                                            const top = Math.min(
+                                                chartHeight - chartBottomMargin - approxLabelHeight,
+                                                Math.max(
+                                                    chartTopMargin - approxLabelHeight / 2,
+                                                    yPosition - approxLabelHeight / 2
+                                                )
+                                            );
+
+                                            return (
+                                                <Text
+                                                    key={`personal-record-y-axis-label-${value}-${index}`}
+                                                    style={[styles.axisLabel, styles.yAxisLabel, { top }]}
+                                                >
+                                                    {formatAxisValue(value)}
+                                                </Text>
+                                            );
+                                        })}
+                                    </View>
+
+                                    <View
+                                        style={[
+                                            styles.chartCanvas,
+                                            { width: chartPlotWidth, height: chartHeight },
+                                        ]}
+                                        {...personalRecordPanResponder.panHandlers}
+                                    >
+                                        <Svg width={chartPlotWidth} height={chartHeight}>
+                                            <Defs>
+                                                <LinearGradient
+                                                    id="totalPersonalRecordsGradient"
+                                                    x1="0"
+                                                    y1="0"
+                                                    x2="0"
+                                                    y2="1"
+                                                >
+                                                    <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
+                                                    <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
+                                                </LinearGradient>
+                                            </Defs>
+
+                                            {personalRecordYTickValues.map((value, index) => {
+                                                const range = Math.max(
+                                                    (personalRecordAxisMetrics?.maxValue ?? 0) -
+                                                        (personalRecordAxisMetrics?.minValue ?? 0),
+                                                    1
+                                                );
+                                                const ratio =
+                                                    (value - (personalRecordAxisMetrics?.minValue ?? 0)) /
+                                                    range;
+                                                const clampedRatio = Number.isFinite(ratio)
+                                                    ? Math.min(Math.max(ratio, 0), 1)
+                                                    : 0;
+                                                const y =
+                                                    chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                                return (
+                                                    <Line
+                                                        key={`personal-record-grid-${value}-${index}`}
+                                                        x1={chartLeftMargin}
+                                                        y1={y}
+                                                        x2={chartPlotWidth - chartRightMargin}
+                                                        y2={y}
+                                                        stroke="rgba(255,255,255,0.1)"
+                                                        strokeWidth={StyleSheet.hairlineWidth}
+                                                        strokeDasharray={[6, 6]}
+                                                    />
+                                                );
+                                            })}
+
+                                            {personalRecordSeries.areaPath ? (
+                                                <Path
+                                                    d={personalRecordSeries.areaPath}
+                                                    fill="url(#totalPersonalRecordsGradient)"
+                                                    stroke="none"
+                                                />
+                                            ) : null}
+
+                                            {personalRecordSeries.linePath ? (
+                                                <Path
+                                                    d={personalRecordSeries.linePath}
+                                                    fill="none"
+                                                    stroke="#7FB7FF"
+                                                    strokeWidth={scaleSize(3)}
+                                                    strokeLinejoin="round"
+                                                    strokeLinecap="round"
+                                                />
+                                            ) : null}
+
+                                            <Line
+                                                x1={chartLeftMargin}
+                                                y1={chartTopMargin}
+                                                x2={chartLeftMargin}
+                                                y2={chartBaselineY}
+                                                stroke="rgba(148, 157, 172, 0.35)"
+                                                strokeWidth={StyleSheet.hairlineWidth}
+                                            />
+                                            <Line
+                                                x1={chartLeftMargin}
+                                                y1={chartBaselineY}
+                                                x2={chartPlotWidth - chartRightMargin}
+                                                y2={chartBaselineY}
+                                                stroke="rgba(148, 157, 172, 0.35)"
+                                                strokeWidth={StyleSheet.hairlineWidth}
+                                            />
+
+                                            {personalRecordActivePoint ? (
+                                                <Line
+                                                    x1={personalRecordActivePoint.x}
+                                                    y1={chartTopMargin}
+                                                    x2={personalRecordActivePoint.x}
+                                                    y2={chartBaselineY}
+                                                    stroke="rgba(100, 160, 255, 0.45)"
+                                                    strokeWidth={pointerStripWidth}
+                                                />
+                                            ) : null}
+
+                                            {personalRecordChartPoints.map((point, index) => {
+                                                const isActive = index === personalRecordActiveIndex;
+                                                const radius = isActive ? scaleSize(6) : scaleSize(4.2);
+                                                const strokeWidth = isActive ? scaleSize(2) : scaleSize(1);
+                                                const strokeColor = isActive
+                                                    ? 'rgba(100, 160, 255, 0.9)'
+                                                    : 'rgba(100, 160, 255, 0.45)';
+                                                const fillColor = isActive
+                                                    ? '#E1EEFF'
+                                                    : 'rgba(225, 238, 255, 0.78)';
+                                                return (
+                                                    <Circle
+                                                        key={`personal-record-point-${index}`}
+                                                        cx={point.x}
+                                                        cy={point.y}
+                                                        r={radius}
+                                                        fill={fillColor}
+                                                        stroke={strokeColor}
+                                                        strokeWidth={strokeWidth}
+                                                    />
+                                                );
+                                            })}
+                                        </Svg>
+
+                                        {personalRecordXAxisLabels.length ? (
+                                            <View
+                                                pointerEvents="none"
+                                                style={[
+                                                    styles.xAxisLabelsOverlay,
+                                                    {
+                                                        left: chartLeftMargin,
+                                                        right: chartRightMargin,
+                                                        justifyContent:
+                                                            personalRecordXAxisLabels.length > 1
+                                                                ? "space-between"
+                                                                : "center",
+                                                    },
+                                                ]}
+                                            >
+                                                {personalRecordXAxisLabels.map((item, index) => (
+                                                    <Text
+                                                        key={`personal-record-x-axis-label-${item.timestamp ?? index}-${index}`}
+                                                        style={[styles.axisLabel, styles.xAxisLabel]}
+                                                    >
+                                                        {item.label}
+                                                    </Text>
+                                                ))}
+                                            </View>
+                                        ) : null}
+
+                                        {personalRecordActivePoint ? (
+                                            <Animated.View
+                                                pointerEvents="none"
+                                                style={[
+                                                    styles.pointerBubbleContainer,
+                                                    {
+                                                        left: personalRecordPointerLabelLeft,
+                                                        top: Math.max(
+                                                            scaleSize(-8),
+                                                            chartTopMargin - scaleSize(72)
+                                                        ),
+                                                        width: personalRecordPointerLabelWidth,
+                                                        opacity: personalRecordPointerOpacity,
+                                                    },
+                                                ]}
+                                            >
+                                                <PersonalRecordPointerLabel
+                                                    entry={personalRecordActiveEntry}
+                                                    isRightAligned={personalRecordPointerRightAligned}
+                                                />
+                                            </Animated.View>
+                                        ) : null}
+                                    </View>
+                                </View>
+                            ) : (
+                                <View style={styles.chartEmptyState}>
+                                    <Text style={styles.placeholderText}>Log workouts to set new PRs.</Text>
+                                </View>
+                            )}
+                        </View>
+                    </View>
+                ) : null}
+                <View style={[styles.card, { paddingHorizontal: cardHorizontalPadding }]}> 
                     <View style={styles.header}>
                         <Text style={styles.sectionTitle}>Body Weight</Text>
                         <View style={styles.headerActions}>
@@ -2560,6 +3106,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "flex-end",
         marginLeft: scaleSize(10),
+        paddingBottom: scaleSize(3)
     },
     deltaIcon: {
         marginRight: scaleSize(4),
