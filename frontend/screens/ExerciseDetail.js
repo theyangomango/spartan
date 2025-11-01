@@ -392,8 +392,9 @@ const buildChartSeries = (chartData, axisMetrics, geometry) => {
 
 const ExerciseVolumePointerLabel = React.memo(({ entry, unit, isRightAligned }) => {
     if (!entry) return null;
-    const totalText = `${formatNumberCompact(entry.value)} ${unit}`;
-    const incrementText = entry.increment ? `+${formatNumberCompact(entry.increment)} ${unit}` : null;
+    const unitText = toDisplayWeightUnit(unit);
+    const totalText = `${formatNumberCompact(entry.value)} ${unitText}`;
+    const incrementText = entry.increment ? `+${formatNumberCompact(entry.increment)} ${unitText}` : null;
     const timestampText = dayjs(entry.recordedAt).format('MMM D, h:mm A');
 
     return (
@@ -687,6 +688,19 @@ const resolvePreferredWeightUnit = (payload) => {
     } catch {
         return 'lb';
     }
+};
+
+const toDisplayWeightUnit = (unit, fallback = 'lbs') => {
+    if (typeof unit === 'string') {
+        const trimmed = unit.trim();
+        const normalized = trimmed.toLowerCase();
+        if (normalized) {
+            if (normalized.startsWith('kg')) return 'kg';
+            if (normalized === 'lb' || normalized === 'lbs' || normalized.startsWith('lb')) return 'lbs';
+            return trimmed;
+        }
+    }
+    return fallback;
 };
 
 const findStatsEntry = (statsMap, exerciseName) => {
@@ -1317,7 +1331,7 @@ export default function ExerciseDetail() {
     const latestExerciseVolumeInfo = latestExerciseVolumeEntry
         ? dayjs(latestExerciseVolumeEntry.recordedAt).format('MMM D, h:mm A')
         : 'No data yet';
-    const volumeUnitLabel = weightUnit === 'kg' ? 'kg' : 'lb';
+    const volumeUnitLabel = toDisplayWeightUnit(weightUnit);
 
     const latestExerciseRepsEntry = exerciseRepsEntries.length
         ? exerciseRepsEntries[exerciseRepsEntries.length - 1]

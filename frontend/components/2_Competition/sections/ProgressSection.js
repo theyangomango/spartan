@@ -40,6 +40,19 @@ const resolvePreferredWeightUnit = (user) => {
     return "lb";
 };
 
+const toDisplayWeightUnit = (unit, fallback = "lbs") => {
+    if (typeof unit === "string") {
+        const trimmed = unit.trim();
+        const normalized = trimmed.toLowerCase();
+        if (normalized) {
+            if (normalized.startsWith("kg")) return "kg";
+            if (normalized === "lb" || normalized === "lbs" || normalized.startsWith("lb")) return "lbs";
+            return trimmed;
+        }
+    }
+    return fallback;
+};
+
 const formatWeightValue = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num) || num <= 0) return "00";
@@ -411,12 +424,15 @@ const PointerLabelBubble = React.memo(({ entry, unit, delta, isRightAligned }) =
         const formattedValue = formatDeltaValue(absValue);
         if (formattedValue == null) return null;
 
-        const unitLabel =
-            unit === "lb"
-                ? absValue === 1
-                    ? "lb"
-                    : "lbs"
-                : unit;
+        const unitLabel = (() => {
+            if (typeof unit === "string") {
+                const normalized = unit.toLowerCase();
+                if (normalized === "lb" || normalized === "lbs" || normalized.startsWith("lb")) {
+                    return absValue === 1 ? "lb" : "lbs";
+                }
+            }
+            return unit;
+        })();
 
         const prefix = delta > 0 ? "+" : delta < 0 ? "-" : "+";
         return `${prefix}${formattedValue} ${unitLabel}`;
@@ -461,11 +477,12 @@ const PointerLabelBubble = React.memo(({ entry, unit, delta, isRightAligned }) =
     );
 });
 
-const VolumePointerLabel = React.memo(({ entry, isRightAligned }) => {
+const VolumePointerLabel = React.memo(({ entry, unit, isRightAligned }) => {
     if (!entry) return null;
 
-    const totalText = `${formatVolumeValue(entry.value)} lb`; 
-    const incrementText = entry.increment ? `+${formatVolumeValue(entry.increment)} lb` : null;
+    const unitText = toDisplayWeightUnit(unit);
+    const totalText = `${formatVolumeValue(entry.value)} ${unitText}`;
+    const incrementText = entry.increment ? `+${formatVolumeValue(entry.increment)} ${unitText}` : null;
     const timestampText = dayjs(entry.recordedAt).format("MMM D, h:mm A");
 
     return (
@@ -566,7 +583,7 @@ const AddMeasurementModal = ({
         onSubmit({ weightInput, dateInput, timeInput, entryId: initialEntry?.id });
     }, [dateInput, timeInput, weightInput, onSubmit, isSaving, initialEntry?.id]);
 
-    const weightUnitLabel = (initialEntry?.unit || unit) ?? unit;
+    const weightUnitLabel = toDisplayWeightUnit(initialEntry?.unit || unit);
     const isEditMode = mode === "edit";
 
     return (
@@ -804,6 +821,7 @@ export default function ProgressSection() {
     }, []);
 
     const preferredUnit = useMemo(() => resolvePreferredWeightUnit(userData), [userData]);
+    const displayPreferredUnit = useMemo(() => toDisplayWeightUnit(preferredUnit), [preferredUnit]);
 
     const entries = useMemo(() => {
         const list =
@@ -816,7 +834,9 @@ export default function ProgressSection() {
 
     const latestEntry = entries.length ? entries[entries.length - 1] : null;
     const latestWeightText = formatWeightValue(latestEntry?.weight);
-    const latestUnit = (latestEntry?.unit || preferredUnit || "lb").toLowerCase().startsWith("k") ? "kg" : "lb";
+    const latestUnit = latestEntry
+        ? toDisplayWeightUnit(latestEntry?.unit, displayPreferredUnit)
+        : displayPreferredUnit;
     const latestInfoText = latestEntry ? formatTimestamp(latestEntry.recordedAt) : "No entries yet";
 
     const volumeEntries = useMemo(
@@ -826,7 +846,8 @@ export default function ProgressSection() {
     const latestVolumeEntry = volumeEntries.length ? volumeEntries[volumeEntries.length - 1] : null;
     const latestVolumeText = latestVolumeEntry ? formatVolumeValue(latestVolumeEntry.value) : "--";
     const latestVolumeInfo = latestVolumeEntry ? formatTimestamp(latestVolumeEntry.recordedAt) : "No workouts yet";
-    const latestVolumeUnit = latestVolumeEntry ? "lb" : "";
+    const displayVolumeUnit = displayPreferredUnit;
+    const latestVolumeUnit = displayVolumeUnit;
     const repsEntries = useMemo(
         () => sanitizeRepsEntries(userData?.completedWorkouts || []),
         [userData]
@@ -1810,6 +1831,7 @@ export default function ProgressSection() {
                                         >
                                             <VolumePointerLabel
                                                 entry={volumeActiveEntry}
+                                                unit={displayVolumeUnit}
                                                 isRightAligned={volumePointerRightAligned}
                                             />
                                         </Animated.View>
