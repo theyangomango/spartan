@@ -97,15 +97,19 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
                         data.likeCount = likeCount + 1;
                         updateDoc('posts', data.pid, { likeCount: data.likeCount, likes: updatedLikes });
 
-                        sendNotification(data.uid, {
-                            uid: user.uid,
-                            pfp: user.image,
-                            handle: user.handle,
-                            name: user.name,
-                            type: 'liked-post',
-                            pid: data.pid,
-                            timestamp: Date.now(),
-                        });
+                        const actorUid = String(user.uid || '');
+                        const ownerUid = String(data.uid || '');
+                        if (actorUid && ownerUid && actorUid !== ownerUid) {
+                            sendNotification(data.uid, {
+                                uid: user.uid,
+                                pfp: user.image,
+                                handle: user.handle,
+                                name: user.name,
+                                type: 'liked-post',
+                                pid: data.pid,
+                                timestamp: Date.now(),
+                            });
+                        }
                     }
                 } else {
                     const likesArray = Array.isArray(data.likes) ? data.likes : [];

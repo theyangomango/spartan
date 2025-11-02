@@ -29,6 +29,7 @@ import { db } from './firebase.config';
 import { doc, onSnapshot, collection, query, where, getDoc, getDocFromCache } from 'firebase/firestore';
 import { initCommunityStats, refreshCommunityStats } from './frontend/logic/communityStats';
 import { ensureAuthBackgroundAsync } from './frontend/utils/authBackground';
+import { emitUserDataUpdate } from './frontend/utils/userDataEvents';
 
 /* Screens */
 import SignUp from './frontend/screens/0.0_SignUp';
@@ -394,7 +395,10 @@ export default function App() {
                 try { logoutCleanupRef.current?.(); } catch { }
                 uidRef.current = null;
                 setUserReady(false);
-                try { global.userData = {}; } catch { }
+                try {
+                    global.userData = {};
+                    emitUserDataUpdate();
+                } catch { }
                 try { delete global.__userDocHydrated; } catch { }
                 prevMessagesSigRef.current = '';
                 resetMessagesState();
@@ -438,6 +442,9 @@ export default function App() {
     const pendingChatCidRef = useRef(null);
     const pendingNavTimerRef = useRef(null);
     const pendingChatDataRef = useRef(Object.create(null));
+    const pendingFeedTargetRef = useRef(null);
+    const pendingFeedNavTimerRef = useRef(null);
+    const pendingFeedValidationTokenRef = useRef(0);
     useEffect(() => {
         let mounted = true;
         try {
@@ -570,6 +577,83 @@ export default function App() {
         return false;
     }, [hasShownAppOnce, isAuthenticated]);
 
+    const tryNavigateToPendingFeedTarget = useCallback(() => {
+        const target = pendingFeedTargetRef.current;
+        if (!target) return false;
+        if (!isAuthenticated) return false;
+        const pid = target?.pid ? String(target.pid) : '';
+        if (!pid) {
+            pendingFeedTargetRef.current = null;
+            return false;
+        }
+        try {
+            const { jumpToTab, navigateRoot } = require('./navigationRef');
+            const params = { focusPid: pid, _pushTs: Date.now() };
+            if (jumpToTab && jumpToTab('Feed', params)) {
+                pendingFeedTargetRef.current = null;
+                return true;
+            }
+            if (navigateRoot && navigateRoot('Feed', { ...params })) {
+                pendingFeedTargetRef.current = null;
+                return true;
+            }
+        } catch { }
+        return false;
+    }, [isAuthenticated]);
+
+    const schedulePendingFeedNavigation = useCallback(() => {
+        if (!pendingFeedTargetRef.current) return;
+        if (pendingFeedNavTimerRef.current) {
+            try { clearTimeout(pendingFeedNavTimerRef.current); } catch { }
+            pendingFeedNavTimerRef.current = null;
+        }
+        const attempt = () => {
+            if (tryNavigateToPendingFeedTarget()) {
+                if (pendingFeedNavTimerRef.current) {
+                    try { clearTimeout(pendingFeedNavTimerRef.current); } catch { }
+                    pendingFeedNavTimerRef.current = null;
+                }
+                return;
+            }
+            pendingFeedNavTimerRef.current = setTimeout(attempt, 300);
+        };
+        attempt();
+    }, [tryNavigateToPendingFeedTarget]);
+
+    const processFeedNotificationTarget = useCallback((target) => {
+        if (!target || !target.pid) return;
+        const pid = String(target.pid);
+        pendingFeedTargetRef.current = null;
+        const token = Date.now();
+        pendingFeedValidationTokenRef.current = token;
+        (async () => {
+            let exists = null;
+            try {
+                const ref = doc(db, 'posts', pid);
+                let snap = null;
+                try { snap = await getDocFromCache(ref); } catch { }
+                if (!snap || !snap.exists()) {
+                    snap = await getDoc(ref);
+                }
+                exists = snap?.exists() || false;
+            } catch {
+                exists = null; // unknown, proceed defensively
+            }
+            if (pendingFeedValidationTokenRef.current !== token) return;
+            if (exists === false) {
+                try {
+                    const { jumpToTab, navigateRoot } = require('./navigationRef');
+                    if (!jumpToTab || !jumpToTab('Feed')) {
+                        navigateRoot?.('Feed');
+                    }
+                } catch { }
+                return;
+            }
+            pendingFeedTargetRef.current = { pid, nidType: target?.nidType || null };
+            schedulePendingFeedNavigation();
+        })();
+    }, [schedulePendingFeedNavigation]);
+
     useEffect(() => {
         // If a pending deep link exists and auth just became ready, attempt navigation
         if (pendingChatCidRef.current) {
@@ -609,6 +693,10 @@ export default function App() {
                         // Navigation not ready yet; a separate effect will retry
                     }
                 }
+                const nidType = data?.nidType ? String(data.nidType) : '';
+                if ((nidType === 'liked-post' || nidType === 'liked-comment') && data?.pid) {
+                    processFeedNotificationTarget({ pid: data.pid, nidType });
+                }
                 if (id) lastHandledNotifIdRef.current = id;
             } catch { }
         };
@@ -628,7 +716,14 @@ export default function App() {
             } catch { }
             notifResponseSubRef.current = null;
         };
-    }, [notificationsRef.current, prefetchChatData, tryNavigateToPendingChat]);
+    }, [notificationsRef.current, prefetchChatData, tryNavigateToPendingChat, processFeedNotificationTarget]);
+
+    useEffect(() => () => {
+        if (pendingFeedNavTimerRef.current) {
+            try { clearTimeout(pendingFeedNavTimerRef.current); } catch { }
+            pendingFeedNavTimerRef.current = null;
+        }
+    }, []);
 
     // Request push permissions and register token on login
     useEffect(() => {
@@ -641,7 +736,11 @@ export default function App() {
         try { delete global.__userDocHydrated; } catch { }
         const ref = doc(db, 'users', uid);
         unsubRef.current = onSnapshot(ref, async (snap) => {
-            try { global.userData = { uid, ...(snap.data() || {}) }; } catch { }
+            const data = snap.data() || {};
+            try {
+                global.userData = { uid, ...data };
+                emitUserDataUpdate();
+            } catch { }
             setUserReady(true);
             try { global.__userDocHydrated = true; } catch { }
             ensureNotificationsListener(uid);
@@ -652,7 +751,6 @@ export default function App() {
                 }
             } catch { }
 
-            const data = snap.data() || {};
             const messagesArr = Array.isArray(data.messages) ? data.messages : [];
             const sig = (() => {
                 if (!messagesArr.length) return 'len:0';
@@ -729,7 +827,11 @@ export default function App() {
         if (!isAuthenticated || userReady) return;
         const id = setTimeout(() => {
             if (!userReady) {
-                try { const uid = uidRef.current; global.userData = { ...(global.userData || {}), uid, id: uid }; } catch { }
+                try {
+                    const uid = uidRef.current;
+                    global.userData = { ...(global.userData || {}), uid, id: uid };
+                    emitUserDataUpdate();
+                } catch { }
                 setUserReady(true);
                 try { global.__userDocHydrated = true; } catch { }
             }
@@ -780,6 +882,12 @@ export default function App() {
                 try { clearTimeout(pendingNavTimerRef.current); } catch { }
                 pendingNavTimerRef.current = null;
             }
+            if (pendingFeedNavTimerRef.current) {
+                try { clearTimeout(pendingFeedNavTimerRef.current); } catch { }
+                pendingFeedNavTimerRef.current = null;
+            }
+            pendingFeedTargetRef.current = null;
+            pendingFeedValidationTokenRef.current = 0;
             if (logoutResetTimerRef.current) {
                 try { clearTimeout(logoutResetTimerRef.current); } catch { }
                 logoutResetTimerRef.current = null;

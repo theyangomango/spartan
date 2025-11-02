@@ -77,18 +77,22 @@ export default function CommentsModal({
 
         updateDoc("posts", postData.pid, { comments });
 
-        const notif = {
-            uid: currentUser.uid,
-            pfp: likeEntry.pfp,
-            handle: likeEntry.handle,
-            name: likeEntry.name,
-            type: "liked-comment",
-            content: target.content,
-            pid: postData.pid,
-            timestamp: Date.now()
-        };
+        const actorUid = String(currentUser.uid || "");
+        const targetUid = String(target.uid || "");
+        if (actorUid && targetUid && actorUid !== targetUid) {
+            const notif = {
+                uid: currentUser.uid,
+                pfp: likeEntry.pfp,
+                handle: likeEntry.handle,
+                name: likeEntry.name,
+                type: "liked-comment",
+                content: target.content,
+                pid: postData.pid,
+                timestamp: Date.now()
+            };
 
-        sendNotification(target.uid, notif);
+            sendNotification(target.uid, notif);
+        }
     };
 
     /**
