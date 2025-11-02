@@ -11,6 +11,7 @@ import {
     Dimensions,
     Text,
     Vibration,
+    Alert,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -152,23 +153,36 @@ export default function Chat({ navigation, route }) {
 
     const openPicker = async () => {
         if (!chatCid) return;
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== "granted") return;
-        const res = await ImagePicker.launchImageLibraryAsync({
-            allowsMultipleSelection: true,
-            mediaTypes: ImagePicker.MediaTypeOptions.All,
-            selectionLimit: 8,
-            quality: 0.9,
-            videoMaxDuration: 60,
-        });
-        if (res.canceled) return;
         try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== "granted") {
+                Alert.alert(
+                    "Permission needed",
+                    "We need access to your photo library to share media in chat."
+                );
+                return;
+            }
+            const res = await ImagePicker.launchImageLibraryAsync({
+                allowsMultipleSelection: true,
+                mediaTypes: ImagePicker.MediaTypeOptions.All,
+                selectionLimit: 8,
+                quality: 0.9,
+                videoMaxDuration: 60,
+            });
+            if (res.canceled) return;
+
             setUploading(true);
             const uploaded = await uploadMediaAssets({
                 cid: chatCid,
                 uid: currentUid,
                 assets: res.assets || [],
             });
+
+            if (!uploaded.length) {
+                Alert.alert("Nothing to send", "We couldn't attach that selection. Please try again.");
+                return;
+            }
+
             await sendMessageV2({
                 cid: chatCid,
                 sender: {
@@ -181,10 +195,21 @@ export default function Chat({ navigation, route }) {
                 media: uploaded,
             });
             scrollToLatest();
+        } catch (err) {
+            console.error("Chat media upload failed", err);
+            const code = err?.code || err?.message || "";
+            let message = "Something went wrong while uploading media. Please try again.";
+            if (code === "UNRESOLVED_ASSET_URI") {
+                message = "We couldn't access that item. Download it to your device first, then try again.";
+            } else if (code === "ASSET_READ_FAILED") {
+                message = "We couldn't read the selected file. Please choose a different one.";
+            } else if (code === "ASSET_EMPTY") {
+                message = "The selected file appears to be empty. Please pick a different one.";
+            }
+            Alert.alert("Upload failed", message);
         } finally {
             setUploading(false);
         }
-
     };
 
     // Reaction/Reply sheet
