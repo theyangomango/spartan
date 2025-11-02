@@ -22,7 +22,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { useIsFocused, useFocusEffect, StackActions } from "@react-navigation/native";
+import { useIsFocused, useFocusEffect } from "@react-navigation/native";
 import useStableSafeAreaInsets from "../hooks/useStableSafeAreaInsets";
 
 import PostListItem from "../components/1_Feed/PostListItem";
@@ -46,7 +46,7 @@ import { strong as hapticStrong } from "../utils/haptics";
 import FeedSnapshotCard from "../components/1_Feed/FeedSnapshotCard";
 import FeedLoadingSkeleton from "../components/1_Feed/FeedLoadingSkeleton";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
-import { navigateOneWay } from "../../navigationRef";
+import { navigateOneWay, jumpToTab } from "../../navigationRef";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -829,29 +829,22 @@ export default function Feed({ navigation, route }) {
 
     const handleNavigateCompetitionProgress = useCallback(() => {
         try { hapticStrong(); } catch {}
+        const tabParams = { focusTab: "progress" };
+        const routeParams = { ...tabParams, transition: "slide-from-right" };
+
+        if (jumpToTab("Competition", tabParams)) {
+            return;
+        }
+
         try {
-            navigation.dispatch(
-                StackActions.push("Competition", {
-                    focusTab: "progress",
-                    transition: "slide-from-right",
-                })
-            );
+            navigation.navigate("Competition", routeParams);
             return;
         } catch {}
 
-        const didNavigate = navigateOneWay("Competition", {
+        navigateOneWay("Competition", {
             animation: "slide-from-right",
-            params: { focusTab: "progress" },
+            params: tabParams,
         });
-
-        if (!didNavigate) {
-            try {
-                navigation.navigate("Competition", {
-                    focusTab: "progress",
-                    transition: "slide-from-right",
-                });
-            } catch {}
-        }
     }, [navigation]);
 
     const renderSnapshotCard = useCallback(
