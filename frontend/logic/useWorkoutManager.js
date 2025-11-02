@@ -28,6 +28,7 @@ import computeHexagonStats from "./computeHexagonStats"; // retained for local f
 // Cloud Functions disabled: compute hex locally and write directly
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
 import { coercePrivacyMode } from "../utils/workoutPrivacy";
+import { emitUserDataUpdate } from "../utils/userDataEvents";
 
 /* ---------------- helpers ---------------- */
 const toMillis = (v) => {
@@ -958,6 +959,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                             const dd = new Date(completed.created || Date.now()); dd.setHours(0, 0, 0, 0);
                             const dk = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")}`;
                             global.userData.workoutsByDate = { ...(global.userData.workoutsByDate || {}), [dk]: true };
+                            emitUserDataUpdate();
                         }
                     } catch { }
 
