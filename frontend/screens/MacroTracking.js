@@ -29,6 +29,7 @@ import { toDayKey } from '../utils/date';
 import { buildFromGlobal } from '../logic/macroLogsIndexer';
 import { doc, onSnapshot, updateDoc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { touchRecentFood } from '../utils/recentFoods';
+import { parseMacrosFromDescription, scaleMacros } from '../utils/nutrition';
 
 // scaleSize primarily used for floating controls; child components handle their own scaling
 
@@ -346,19 +347,63 @@ export default function MacroTracking({ navigation, route }) {
         setSelectedMeal(null);
     }, []);
     const onSelectResult = useCallback(async (food) => {
-        if (!selectedMeal) return;
+        if (!food) return;
         const uid = global?.userData?.uid || global?.userData?.id;
         const dk = toDayKey(focusedDate);
-        const factor = food?.__portionMultiplier ?? 1;
-        const macros = parseMacrosFromDescription(food.food_description || '', factor);
+        const mealKey = String(selectedMeal || 'Snacks');
+        const factorRaw = Number(food?.__portionMultiplier ?? 1);
+        const factor = Number.isFinite(factorRaw) && factorRaw > 0 ? factorRaw : 1;
+
+        const baseDesc = String(
+            food?.food_description ??
+            food?.description ??
+            food?.desc ??
+            ''
+        );
+        const resolvedName = String(
+            food?.food_name ??
+            food?.name ??
+            food?.foodName ??
+            ''
+        );
+        const resolvedBrand = String(
+            food?.brand_name ??
+            food?.brand ??
+            food?.brandName ??
+            ''
+        );
+        const resolvedFoodId = String(
+            food?.food_id ??
+            food?.foodId ??
+            food?.id ??
+            ''
+        );
+
+        const coerceMacros = (src = {}) => ({
+            calories: Number(src?.calories) || 0,
+            protein: Number(src?.protein) || 0,
+            carbs: Number(src?.carbs) || 0,
+            fat: Number(src?.fat) || 0,
+        });
+
+        const perServingMacros =
+            (food && typeof food === 'object' && (
+                (food.macrosPerServing && typeof food.macrosPerServing === 'object' && food.macrosPerServing) ||
+                (food.macrosPS && typeof food.macrosPS === 'object' && food.macrosPS)
+            )) || null;
+
+        const macros = perServingMacros
+            ? coerceMacros(scaleMacros(perServingMacros, factor))
+            : coerceMacros(parseMacrosFromDescription(baseDesc, factor));
+
         const makeRand = () => Math.random().toString(36).slice(2, 10);
         const newId = `${Date.now().toString(36)}${makeRand()}`;
         const entry = {
             key: newId,
-            food_id: String(food.food_id ?? ''),
-            name: food.food_name || '',
-            brand: food.brand_name || '',
-            desc: food.food_description || '',
+            food_id: resolvedFoodId,
+            name: resolvedName,
+            brand: resolvedBrand,
+            desc: baseDesc,
             macros,
             quantity: factor,
         };
@@ -368,7 +413,7 @@ export default function MacroTracking({ navigation, route }) {
             global.userData.loggedFoods[dk] = global.userData.loggedFoods[dk] || {};
             global.userData.loggedFoods[dk][newId] = {
                 dayKey: dk,
-                meal: String(selectedMeal),
+                meal: mealKey,
                 name: entry.name,
                 brand: entry.brand,
                 desc: entry.desc,
@@ -379,7 +424,7 @@ export default function MacroTracking({ navigation, route }) {
             };
             try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
         } catch { }
-        setMeals((prev) => ({ ...prev, [selectedMeal]: [...(prev[selectedMeal] || []), entry] }));
+        setMeals((prev) => ({ ...prev, [mealKey]: [...(prev[mealKey] || []), entry] }));
         setTotals((prev) => ({
             calories: Math.round((prev.calories || 0) + (macros.calories || 0)),
             protein: Math.round((prev.protein || 0) + (macros.protein || 0)),
@@ -392,7 +437,7 @@ export default function MacroTracking({ navigation, route }) {
                 const fieldPath = `loggedFoods.${dk}.${newId}`;
                 const flat = {
                     dayKey: dk,
-                    meal: String(selectedMeal),
+                    meal: mealKey,
                     name: entry.name,
                     brand: entry.brand,
                     desc: entry.desc,

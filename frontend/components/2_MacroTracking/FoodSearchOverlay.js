@@ -617,15 +617,22 @@ export default function FoodSearchOverlay({
 const RecentHistoryItem = ({ item, COLORS, styles, openPortion, goToDetails, onDelete }) => {
     const swipeRef = useRef(null);
 
-    const mapped = useMemo(
-        () => ({
-            food_id: item?.foodId || item?.id,
-            food_name: item?.name || '',
-            brand_name: item?.brand || '',
-            food_description: item?.description || '',
-        }),
-        [item]
-    );
+    const mapped = useMemo(() => {
+        const fallbackDesc = item?.description ?? item?.desc ?? item?.food_description ?? '';
+        const foodIdRaw = item?.foodId ?? item?.id ?? item?.food_id ?? '';
+        return {
+            food_id: foodIdRaw ? String(foodIdRaw) : '',
+            food_name: item?.name || item?.food_name || '',
+            brand_name: item?.brand || item?.brand_name || '',
+            food_description: fallbackDesc || '',
+            description: fallbackDesc || '',
+            name: item?.name || item?.food_name || '',
+            brand: item?.brand || item?.brand_name || '',
+            macrosPerServing: item?.macrosPerServing || item?.macrosPS || null,
+            microsPS: item?.microsPS || null,
+            macros: item?.macros || null,
+        };
+    }, [item]);
 
     const handleDeletePress = useCallback(() => {
         try { haptic(); } catch {}
