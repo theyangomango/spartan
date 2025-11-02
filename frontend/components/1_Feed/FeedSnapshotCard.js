@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: theme.surface,
         width: "100%",
-        paddingHorizontal: scaleSize(18),
+        paddingHorizontal: scaleSize(10),
         paddingTop: scaleSize(14),
         paddingBottom: scaleSize(8),
     },
@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: scaleSize(16),
+        paddingHorizontal: scaleSize(24),
     },
     headerLeft: {
         flexShrink: 1,
