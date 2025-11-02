@@ -1416,7 +1416,7 @@ const styles = StyleSheet.create({
     },
     cheerButton: {
         paddingHorizontal: scaleSize(12),
-        paddingVertical: scaleSize(4),
+        paddingVertical: scaleSize(5),
         borderRadius: scaleSize(12),
         backgroundColor: "rgba(255,77,103,0.18)",
         marginRight: scaleSize(8),
