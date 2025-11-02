@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { collection, doc, getDocs, limit, onSnapshot, orderBy, query, where } from "firebase/firestore";
 import { db } from "../../firebase.config";
+import { coerceUid, normalizeUserRef } from "../utils/userRefs";
 
 /**
  * Header search users data source shared by Feed and Workout screens.
@@ -17,13 +18,14 @@ export default function useHeaderSearchUsers({ following = [], enablePrefetch = 
     if (!Array.isArray(arr) || arr.length === 0) return;
     const map = new Map((allUsersRef.current || []).map((u) => [u.uid, u]));
     for (const u of arr) {
-      if (!u?.uid) continue;
-      const cur = map.get(u.uid) || {};
-      map.set(u.uid, {
-        uid: String(u.uid),
-        handle: u.handle ?? cur.handle ?? "",
-        name: u.name ?? cur.name ?? "",
-        pfp: u.pfp ?? cur.pfp ?? "",
+      const normalized = normalizeUserRef(u);
+      if (!normalized) continue;
+      const cur = map.get(normalized.uid) || {};
+      map.set(normalized.uid, {
+        uid: normalized.uid,
+        handle: normalized.handle ?? cur.handle ?? "",
+        name: normalized.name ?? cur.name ?? "",
+        pfp: normalized.pfp ?? cur.pfp ?? "",
       });
     }
     allUsersRef.current = Array.from(map.values());
@@ -36,13 +38,8 @@ export default function useHeaderSearchUsers({ following = [], enablePrefetch = 
       const data = snap.data() || {};
       const arr = Array.isArray(data?.all) ? data.all : [];
       const mapped = arr
-        .map((u) => ({
-          uid: String(u?.uid || u?.id || ""),
-          handle: u?.handle || "",
-          name: u?.name || "",
-          pfp: u?.pfp || u?.photoURL || u?.image || "",
-        }))
-        .filter((u) => !!u.uid);
+        .map((u) => normalizeUserRef(u))
+        .filter(Boolean);
       allUsersRef.current = mapped;
     });
     return () => unsub();
@@ -53,7 +50,7 @@ export default function useHeaderSearchUsers({ following = [], enablePrefetch = 
     const run = async () => {
       const list = Array.isArray(following) ? following : [];
       // Normalize to array of uid strings
-      const uids = list.map((x) => (typeof x === 'string' ? x : x?.uid)).filter(Boolean);
+      const uids = list.map((x) => coerceUid(x)).filter(Boolean);
       if (!uids.length) return;
       const existing = new Set((allUsersRef.current || []).map((u) => String(u.uid)));
       const missing = uids.filter((id) => id && !existing.has(String(id)));

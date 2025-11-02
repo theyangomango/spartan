@@ -27,6 +27,7 @@ import scaleSize, { ts } from "../../helper/scaleSize";
 import { withStrongPress, strong as hapticStrong } from "../../utils/haptics";
 import DismissableTextInput from "../common/DismissableTextInput";
 import isThisUser from "../../helper/isThisUser";
+import { coerceUid, ensureUidArray } from "../../utils/userRefs";
 // Single root navigator; no need for StackActions/nested refs here
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -249,10 +250,14 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
     const [usersCacheTick, setUsersCacheTick] = useState(0);
 
     const suggestions = useMemo(() => {
-        const blockedBySet = new Set((Array.isArray(global?.userData?.blockedBy) ? global.userData.blockedBy : []).map((x) => String(x?.uid || x)));
+        const blockedBySet = new Set(ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy));
         const arr = (allUsersRef?.current || [])
-            .filter((u) => u?.uid && u.uid !== global?.userData?.uid)
-            .filter((u) => !blockedBySet.has(String(u.uid)))
+            .filter((u) => {
+                const uid = coerceUid(u);
+                if (!uid) return false;
+                if (uid === coerceUid(global?.userData)) return false;
+                return !blockedBySet.has(uid);
+            })
             .slice(0, 10);
         return arr;
     }, [allUsersRef?.current, usersCacheTick]);
@@ -296,10 +301,14 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
     const localFilter = (text) => {
         const all = allUsersRef?.current || [];
         const needle = (text || "").toLowerCase();
-        const blockedBySet = new Set((Array.isArray(global?.userData?.blockedBy) ? global.userData.blockedBy : []).map((x) => String(x?.uid || x)));
+        const blockedBySet = new Set(ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy));
         const out = all
-            .filter((u) => u?.uid !== global?.userData?.uid)
-            .filter((u) => !blockedBySet.has(String(u?.uid || '')))
+            .filter((u) => {
+                const uid = coerceUid(u);
+                if (!uid) return false;
+                if (uid === coerceUid(global?.userData)) return false;
+                return !blockedBySet.has(uid);
+            })
             .filter(
                 (u) =>
                     (u?.handle || "").toLowerCase().includes(needle) ||
@@ -335,7 +344,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
         nSnap.forEach((d) => map.set(d.id, d.data()));
 
         const me = global?.userData?.uid;
-        const blockedBySet = new Set((Array.isArray(global?.userData?.blockedBy) ? global.userData.blockedBy : []).map((x) => String(x?.uid || x)));
+        const blockedBySet = new Set(ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy));
         const merged = Array.from(map.entries())
             .map(([uid, data]) => ({
                 uid,
@@ -343,7 +352,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                 name: data?.name ?? "",
                 pfp: data?.pfp || data?.photoURL || data?.image || "",
             }))
-            .filter((u) => u.uid !== me && !blockedBySet.has(String(u.uid)));
+            .filter((u) => u.uid !== me && !blockedBySet.has(u.uid));
 
         return merged;
     };

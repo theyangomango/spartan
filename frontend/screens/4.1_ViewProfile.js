@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { SafeAreaView, StyleSheet, View, StatusBar, ScrollView } from "react-native";
+import { SafeAreaView, StyleSheet, View, StatusBar, ScrollView, Alert } from "react-native";
 import Footer from "../components/Footer";
 import ProfileContentCards from "../components/5_Profile/ProfileBottom/ProfileContentCards";
 import ViewProfileRowButtons from "../components/ViewProfile/ViewProfileRowButtons";
@@ -23,6 +23,8 @@ import { clearFooterSuppression } from "../state/footerSuppressionStore";
 import { countLoggedFoods } from "../utils/loggedFoods";
 
 import scaleSize from "../helper/scaleSize";
+import { coerceUid, ensureUidArray, normalizeUserRef } from "../utils/userRefs";
+import useReportContentSheet from "../hooks/useReportContentSheet";
 
 export default function ViewProfile({ navigation, route }) {
     const user = route.params.user;
@@ -35,6 +37,23 @@ export default function ViewProfile({ navigation, route }) {
     const [viewerToggle, setViewerToggle] = useState(false);
     const [isOptionsVisible, setIsOptionsVisible] = useState(false);
     const [isBlocked, setIsBlocked] = useState(false);
+    const { openReportSheet, reportSheetNode } = useReportContentSheet();
+
+    const reportProfileUid = useMemo(
+        () => coerceUid(profileUserData) || coerceUid(user) || '',
+        [profileUserData, user]
+    );
+
+    const profileDisplayName = useMemo(() => {
+        const candidates = [
+            profileUserData?.name,
+            user?.name,
+            profileUserData?.handle,
+            user?.handle,
+        ];
+        const found = candidates.find((val) => typeof val === 'string' && val.trim());
+        return found ? String(found).trim() : '';
+    }, [profileUserData?.handle, profileUserData?.name, user?.handle, user?.name]);
 
     useFocusEffect(
         useCallback(() => {
@@ -71,13 +90,12 @@ export default function ViewProfile({ navigation, route }) {
         setProfileUserData(data);
         try {
             const meUid = String(global?.userData?.uid || '');
-            const theirBlocked = Array.isArray(data?.blocked) ? data.blocked : [];
-            const theyBlockedMe = theirBlocked.some((x) => String(x?.uid || x?.id || x) === meUid);
-            // Also respect my derived blockedBy list if available
-            const myBlockedBy = Array.isArray(global?.userData?.blockedBy) ? global.userData.blockedBy : [];
-            const uid = String(data?.uid || user?.uid || '');
-            const inMyBlockedBy = myBlockedBy.some((x) => String(x?.uid || x) === uid);
-            setBlockedFromViewing(!!theyBlockedMe || !!inMyBlockedBy);
+            const theirBlockedUids = ensureUidArray(data?.blockedUidList || data?.blocked);
+            const theyBlockedMe = theirBlockedUids.includes(meUid);
+            const myBlockedBy = ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy);
+            const uid = coerceUid(data) || coerceUid(user);
+            const inMyBlockedBy = uid ? myBlockedBy.includes(uid) : false;
+            setBlockedFromViewing(Boolean(theyBlockedMe || inMyBlockedBy));
         } catch {
             setBlockedFromViewing(false);
         }
@@ -86,13 +104,17 @@ export default function ViewProfile({ navigation, route }) {
     useEffect(() => {
         // derive blocked status from global cache
         try {
-            const list = Array.isArray(global?.userData?.blocked) ? global.userData.blocked : [];
-            const targetUid = String(user?.uid || profileUserData?.uid || '');
-            setIsBlocked(list.some((x) => String(x?.uid) === targetUid));
+            const blockedList = ensureUidArray(global?.userData?.blockedUidList || global?.userData?.blocked);
+            const targetUid = coerceUid(profileUserData) || coerceUid(user);
+            if (!targetUid) {
+                setIsBlocked(false);
+                return;
+            }
+            setIsBlocked(blockedList.includes(targetUid));
         } catch {
             setIsBlocked(false);
         }
-    }, [profileUserData, user, (global?.userData?.blocked || []).length]);
+    }, [profileUserData, user, (global?.userData?.blockedUidList || global?.userData?.blocked || []).length]);
     async function toMessages() {
         // Normalize to avoid undefined fields in Firestore arrayUnion
         const normalizeRef = (u) => ({
@@ -136,6 +158,9 @@ export default function ViewProfile({ navigation, route }) {
     }
 
     const headerHandle = profileUserData?.handle || user?.handle || user?.username || '';
+    const profileHandleNormalized = useMemo(() => (
+        headerHandle ? String(headerHandle).replace(/^@+/, '') : ''
+    ), [headerHandle]);
     const isVerifiedProfile = Boolean(
         profileUserData?.isVerified ??
         profileUserData?.verified ??
@@ -144,6 +169,18 @@ export default function ViewProfile({ navigation, route }) {
         false
     );
     function handleOpenViewStats() { setIsViewStatsBottomSheetVisible(true); }
+
+    const handleReportProfile = useCallback(() => {
+        openReportSheet({
+            targetType: "profile",
+            targetId: reportProfileUid || `profile-${Date.now()}`,
+            ownerUid: reportProfileUid,
+            ownerHandle: profileHandleNormalized,
+            metadata: {
+                displayName: profileDisplayName,
+            },
+        });
+    }, [openReportSheet, profileDisplayName, profileHandleNormalized, reportProfileUid]);
 
     if (blockedFromViewing) {
         return (
@@ -192,7 +229,12 @@ export default function ViewProfile({ navigation, route }) {
                         onPressFollowers={() => { setFollowListMode('followers'); setIsFollowListVisible(true); }}
                         onPressFollowing={() => { setFollowListMode('following'); setIsFollowListVisible(true); }}
                     />
-                    <ViewProfileRowButtons handleOpenViewStats={handleOpenViewStats} user={profileUserData || user} />
+                    <ViewProfileRowButtons
+                        handleOpenViewStats={handleOpenViewStats}
+                        user={profileUserData || user}
+                        isBlocked={isBlocked}
+                        onBlockedPress={() => setIsOptionsVisible(true)}
+                    />
                     <WorkoutStats userData={profileUserData} />
                 </View>
 
@@ -260,43 +302,93 @@ export default function ViewProfile({ navigation, route }) {
                 setIsVisible={setIsOptionsVisible}
                 handle={headerHandle}
                 isBlocked={isBlocked}
+                onReport={handleReportProfile}
                 onBlock={async () => {
+                    const me = global?.userData || {};
+                    const other = profileUserData || user || {};
+
+                    const hadBlockedArray = Array.isArray(global?.userData?.blocked);
+                    const prevBlocked = hadBlockedArray ? [...global.userData.blocked] : [];
+                    const hadBlockedUidList = Array.isArray(global?.userData?.blockedUidList);
+                    const prevBlockedUidList = ensureUidArray(global?.userData?.blockedUidList);
+                    const prevFollowing = Array.isArray(global?.userData?.following) ? [...global.userData.following] : [];
+                    const prevFollowers = Array.isArray(global?.userData?.followers) ? [...global.userData.followers] : [];
+
+                    const normalized = normalizeUserRef(other);
+                    const targetUid = normalized?.uid || coerceUid(other);
+
+                    setIsOptionsVisible(false);
+                    setIsBlocked(true);
+
+                    if (normalized) {
+                        const alreadyTracked = prevBlocked.some((entry) => coerceUid(entry) === normalized.uid);
+                        global.userData.blocked = alreadyTracked ? [...prevBlocked] : [...prevBlocked, normalized];
+                    } else if (hadBlockedArray) {
+                        global.userData.blocked = [...prevBlocked];
+                    }
+
+                    if (targetUid) {
+                        const nextBlockedUidList = prevBlockedUidList.includes(targetUid)
+                            ? [...prevBlockedUidList]
+                            : [...prevBlockedUidList, targetUid];
+                        global.userData.blockedUidList = nextBlockedUidList;
+                        global.userData.following = prevFollowing.filter((entry) => coerceUid(entry) !== targetUid);
+                        global.userData.followers = prevFollowers.filter((entry) => coerceUid(entry) !== targetUid);
+                    } else {
+                        global.userData.blockedUidList = [...prevBlockedUidList];
+                        global.userData.following = [...prevFollowing];
+                        global.userData.followers = [...prevFollowers];
+                    }
+
+                    Alert.alert(
+                        "User blocked",
+                        "This user can no longer view your profile, message you, or appear in shared leaderboards and tribes."
+                    );
+
                     try {
-                        const me = global?.userData || {};
-                        const other = profileUserData || user || {};
                         await blockUser(me, other);
-                        try {
-                            // Update local cache for consistency
-                            const normalized = ({ uid: String(other?.uid||other?.id||''), handle: other?.handle||other?.username||'', name: other?.name||other?.displayName||'', pfp: other?.pfp||other?.image||other?.photoURL||'' });
-                            const list = Array.isArray(global?.userData?.blocked) ? [...global.userData.blocked] : [];
-                            if (!list.some(x => String(x?.uid) === normalized.uid)) list.push(normalized);
-                            global.userData.blocked = list;
-                            // Also update local follow/follower arrays to reflect removal
-                            try {
-                                const meFollowing = Array.isArray(global?.userData?.following) ? [...global.userData.following] : [];
-                                global.userData.following = meFollowing.filter((x) => String(x?.uid) !== normalized.uid);
-                                const meFollowers = Array.isArray(global?.userData?.followers) ? [...global.userData.followers] : [];
-                                global.userData.followers = meFollowers.filter((x) => String(x?.uid) !== normalized.uid);
-                            } catch {}
-                        } catch {}
-                        setIsBlocked(true);
-                    } catch {}
+                    } catch (err) {
+                        console.log("block user failed", err?.message || err);
+                        setIsBlocked(false);
+                        if (hadBlockedArray) global.userData.blocked = prevBlocked; else delete global.userData.blocked;
+                        if (hadBlockedUidList) global.userData.blockedUidList = prevBlockedUidList; else delete global.userData.blockedUidList;
+                        global.userData.following = prevFollowing;
+                        global.userData.followers = prevFollowers;
+                        Alert.alert("Block failed", "We couldn't block this user. Please try again.");
+                    }
                 }}
                 onUnblock={async () => {
+                    const me = global?.userData || {};
+                    const other = profileUserData || user || {};
+
+                    const hadBlockedArray = Array.isArray(global?.userData?.blocked);
+                    const prevBlocked = hadBlockedArray ? [...global.userData.blocked] : [];
+                    const hadBlockedUidList = Array.isArray(global?.userData?.blockedUidList);
+                    const prevBlockedUidList = ensureUidArray(global?.userData?.blockedUidList);
+                    const targetUid = coerceUid(other);
+
+                    setIsOptionsVisible(false);
+                    setIsBlocked(false);
+
+                    if (hadBlockedArray) {
+                        global.userData.blocked = prevBlocked.filter((entry) => coerceUid(entry) !== targetUid);
+                    }
+                    if (hadBlockedUidList) {
+                        global.userData.blockedUidList = prevBlockedUidList.filter((uid) => uid !== targetUid);
+                    }
+
                     try {
-                        const me = global?.userData || {};
-                        const other = profileUserData || user || {};
                         await unblockUser(me, other);
-                        try {
-                            // Update local cache for consistency
-                            const targetUid = String(other?.uid||other?.id||'');
-                            const list = Array.isArray(global?.userData?.blocked) ? [...global.userData.blocked] : [];
-                            global.userData.blocked = list.filter((x) => String(x?.uid) !== targetUid);
-                        } catch {}
-                        setIsBlocked(false);
-                    } catch {}
+                    } catch (err) {
+                        console.log("unblock user failed", err?.message || err);
+                        setIsBlocked(true);
+                        if (hadBlockedArray) global.userData.blocked = prevBlocked; else delete global.userData.blocked;
+                        if (hadBlockedUidList) global.userData.blockedUidList = prevBlockedUidList; else delete global.userData.blockedUidList;
+                        Alert.alert("Unblock failed", "We couldn't unblock this user. Please try again.");
+                    }
                 }}
             />
+            {reportSheetNode}
         </SafeAreaView>
     );
 }

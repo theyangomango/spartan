@@ -16,7 +16,7 @@ function scaleSize(size) {
     return Math.round(size * scale);
 }
 
-export default function ViewProfileRowButtons({ handleOpenViewStats, user }) {
+export default function ViewProfileRowButtons({ handleOpenViewStats, user, isBlocked = false, onBlockedPress }) {
     const targetIsPrivate = Boolean(
         user?.settings?.profilePrivate ??
         user?.profilePrivate ??
@@ -143,13 +143,24 @@ export default function ViewProfileRowButtons({ handleOpenViewStats, user }) {
 
     return (
         <View style={styles.row}>
-            <RNBounceable style={styles.flex} onPress={withStrongPress(toggleFollow)} disabled={busy}>
-                <View style={[styles.flex, buttonStyle]}>
-                    <Text style={textStyle}>
-                        {buttonLabel}
-                    </Text>
-                </View>
-            </RNBounceable>
+            {isBlocked ? (
+                <RNBounceable
+                    style={styles.flex}
+                    onPress={withStrongPress(() => {
+                        if (typeof onBlockedPress === "function") onBlockedPress();
+                    })}
+                >
+                    <View style={[styles.flex, styles.blocked_button]}>
+                        <Text style={styles.blocked_button_text}>Blocked</Text>
+                    </View>
+                </RNBounceable>
+            ) : (
+                <RNBounceable style={styles.flex} onPress={withStrongPress(toggleFollow)} disabled={busy}>
+                    <View style={[styles.flex, buttonStyle]}>
+                        <Text style={textStyle}>{buttonLabel}</Text>
+                    </View>
+                </RNBounceable>
+            )}
             <RNBounceable style={styles.flex} onPress={withStrongPress(handleOpenViewStats)}>
                 <View style={[styles.view_stats_button, styles.flex]}>
                     <Text style={styles.view_stats_button_text}>View Stats</Text>
@@ -227,6 +238,19 @@ const styles = StyleSheet.create({
         fontFamily: 'Poppins_600SemiBold',
         fontSize: scaleSizeGlobal(12.5),
         color: theme.primary,
+    },
+    blocked_button: {
+        paddingHorizontal: scaleSize(20),
+        borderRadius: scaleSize(10),
+        backgroundColor: '#ef4444',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginHorizontal: scaleSize(3),
+    },
+    blocked_button_text: {
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: scaleSizeGlobal(12.5),
+        color: '#FFE4E6',
     },
     view_stats_button_text: {
         fontFamily: 'Poppins_600SemiBold',

@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import useChatMessages from "../helper/useChatMessages";
+import useReportContentSheet from "../hooks/useReportContentSheet";
 
 import ChatHeader from "../components/1.2_Chat/ChatHeader";
 import MessageItem from "../components/1.2_Chat/MessageItem";
@@ -35,6 +36,7 @@ import theme from "../theme/mfpDark";
 import Animated, { runOnJS, useSharedValue, withTiming } from "react-native-reanimated";
 
 import scaleSize from "../helper/scaleSize";
+import { ensureUidArray, coerceUid } from "../utils/userRefs";
 
 const { width: W } = Dimensions.get("window");
 const MAX_REVEAL = 72;
@@ -96,10 +98,19 @@ export default function Chat({ navigation, route }) {
     const [replyDraft, setReplyDraft] = useState(null); // { mid, senderHandle, text, hasMedia }
     const [viewer, setViewer] = useState(null);         // { uri, type, anchor }
     const [sheet, setSheet] = useState({ visible: false, anchor: null, msg: null });
+    const { openReportSheet, reportSheetNode } = useReportContentSheet();
 
     const flatRef = useRef(null);
     const messagesRaw = useChatMessages(chatCid);
     const currentUid = global?.userData?.uid || null;
+    const blockedSet = useMemo(
+        () => new Set(ensureUidArray(global?.userData?.blockedUidList || global?.userData?.blocked)),
+        [global?.userData?.blockedUidList, global?.userData?.blocked]
+    );
+    const blockedBySet = useMemo(
+        () => new Set(ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy)),
+        [global?.userData?.blockedByUidList, global?.userData?.blockedBy]
+    );
 
     // Derive header participants when opened via push (route usersExcludingSelf may be empty)
     const headerUsersExcludingSelf = useMemo(() => {
@@ -152,6 +163,21 @@ export default function Chat({ navigation, route }) {
     const latestSeenIdRef = useRef(null);
     const firstMessageSeenRef = useRef(false);
 
+    const participantUids = useMemo(() => {
+        const headerUids = Array.isArray(headerUsersExcludingSelf)
+            ? headerUsersExcludingSelf.map((u) => coerceUid(u)).filter(Boolean)
+            : [];
+        const memberUids = Array.isArray(data?.memberUids) ? data.memberUids.map((uid) => String(uid || "")).filter(Boolean) : [];
+        return Array.from(new Set([...headerUids, ...memberUids]));
+    }, [headerUsersExcludingSelf, data?.memberUids]);
+
+    const isThreadBlocked = useMemo(() => {
+        if (!currentUid) return false;
+        if (Array.isArray(data?.hiddenFor) && data.hiddenFor.includes(currentUid)) return true;
+        if (data?.isBlockedThread) return true;
+        return participantUids.some((uid) => blockedSet.has(uid) || blockedBySet.has(uid));
+    }, [currentUid, data?.hiddenFor, data?.isBlockedThread, participantUids, blockedSet, blockedBySet]);
+
     // keep outer chat doc up-to-date
     useEffect(() => {
         if (!chatCid) return () => {};
@@ -173,6 +199,11 @@ export default function Chat({ navigation, route }) {
         const messageText = (text || "").trim();
         const mediaToSend = pendingMedia;
         if (!messageText && mediaToSend.length === 0) return;
+
+        if (isThreadBlocked) {
+            Alert.alert("Messaging Disabled", "You cannot send messages in this conversation.");
+            return;
+        }
 
         setUploading(true);
         try {
@@ -219,6 +250,10 @@ export default function Chat({ navigation, route }) {
 
     const openPicker = async () => {
         if (!chatCid) return;
+        if (isThreadBlocked) {
+            Alert.alert("Messaging Disabled", "You cannot share media in this conversation.");
+            return;
+        }
         if (pendingMedia.length >= MAX_ATTACHMENTS) {
             Alert.alert("Attachment limit reached", "You can attach up to 8 items per message.");
             return;
@@ -279,6 +314,33 @@ export default function Chat({ navigation, route }) {
     const openActions = (msg, anchorRect) => setSheet({ visible: true, anchor: anchorRect, msg });
     const closeActions = () => setSheet((s) => ({ ...s, visible: false }));
 
+    const sheetSenderUid = useMemo(() => {
+        if (!sheet?.msg) return '';
+        const msg = sheet.msg;
+        return (
+            msg?.sender?.uid ??
+            msg?.senderUid ??
+            msg?.fromUid ??
+            msg?.uid ??
+            msg?.userId ??
+            msg?.authorId ??
+            msg?.from?.uid ??
+            msg?.author?.uid ??
+            ''
+        );
+    }, [sheet?.msg]);
+
+    const sheetActions = useMemo(() => {
+        const base = [
+            { key: "reply", label: "Reply" },
+            { key: "copy", label: "Copy" },
+        ];
+        if (sheet?.msg && sheetSenderUid && sheetSenderUid !== currentUid) {
+            base.push({ key: "report", label: "Report" });
+        }
+        return base;
+    }, [currentUid, sheet?.msg, sheetSenderUid]);
+
     const handleReaction = async (key) => {
         if (!sheet.msg || !chatCid) return;
         await toggleReactionV2({
@@ -310,6 +372,29 @@ export default function Chat({ navigation, route }) {
                     setStringAsync(txt);
                 } catch { }
             }
+        }
+        if (key === "report") {
+            const message = sheet.msg;
+            closeActions();
+            if (!message) return;
+            const senderHandle =
+                message?.sender?.handle ||
+                message?.senderHandle ||
+                message?.sender_name ||
+                message?.handle ||
+                "";
+            const messageId = message.id || message.mid || message.clientId || `msg-${Date.now()}`;
+            openReportSheet({
+                targetType: "message",
+                targetId: `${chatCid || "chat"}:${messageId}`,
+                ownerUid: sheetSenderUid ? String(sheetSenderUid) : "",
+                ownerHandle: senderHandle,
+                metadata: {
+                    chatId: chatCid || "",
+                    text: message?.text || "",
+                    hasMedia: Array.isArray(message?.media) && message.media.length > 0,
+                },
+            });
         }
     };
 
@@ -587,6 +672,13 @@ export default function Chat({ navigation, route }) {
                         </View>
 
                         {/* input row w/ integrated media button + reply preview */}
+                        {isThreadBlocked && (
+                            <View style={styles.blockedBanner}>
+                                <Text style={styles.blockedBannerText}>
+                                    You can no longer message participants in this conversation.
+                                </Text>
+                            </View>
+                        )}
                         <MessageInput
                             text={text}
                             setText={setText}
@@ -599,8 +691,9 @@ export default function Chat({ navigation, route }) {
                             clearReply={() => setReplyDraft(null)}
                             attachments={pendingMedia}
                             onRemoveAttachment={removePendingMedia}
-                            canSend={!!text.trim() || pendingMedia.length > 0}
+                            canSend={!isThreadBlocked && (!!text.trim() || pendingMedia.length > 0)}
                             isSending={isUploading}
+                            isBlocked={isThreadBlocked}
                         />
 
                         {isUploading && (
@@ -619,13 +712,12 @@ export default function Chat({ navigation, route }) {
                                 { key: "😂", emoji: "😂" },
                                 { key: "😮", emoji: "😮" },
                             ]}
-                            actions={[
-                                { key: "reply", label: "Reply" },
-                                { key: "copy", label: "Copy" },
-                            ]}
+                            actions={sheetActions}
                             onReaction={handleReaction}
                             onAction={handleAction}
                         />
+
+                        {reportSheetNode}
 
                         <MediaViewerModal visible={!!viewer} payload={viewer} onClose={closeViewer} />
                     </Animated.View>
@@ -654,6 +746,20 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(12),
         // dim using a tone close to theme.bg, with alpha
         backgroundColor: "rgba(24,27,40,0.75)",
+    },
+    blockedBanner: {
+        paddingHorizontal: scaleSize(16),
+        paddingVertical: scaleSize(8),
+        backgroundColor: "rgba(255, 95, 95, 0.15)",
+        borderRadius: scaleSize(10),
+        marginHorizontal: scaleSize(12),
+        marginBottom: scaleSize(6),
+    },
+    blockedBannerText: {
+        color: COLORS.subtext,
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(12),
+        textAlign: "center",
     },
 
     // date chip styles (same sleek vibe)

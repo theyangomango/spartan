@@ -6,7 +6,7 @@ import theme from '../../theme/mfpDark';
 import scaleSize from '../../helper/scaleSize';
 import { withStrongPress } from "../../utils/haptics";
 
-const ViewProfileOptionsSheet = ({ isVisible, setIsVisible, handle = '', isBlocked = false, onBlock, onUnblock }) => {
+const ViewProfileOptionsSheet = ({ isVisible, setIsVisible, handle = '', isBlocked = false, onBlock, onUnblock, onReport }) => {
   const bottomSheetRef = useRef(null);
   const snapPoints = useMemo(() => ['28%'], []);
 
@@ -50,6 +50,15 @@ const ViewProfileOptionsSheet = ({ isVisible, setIsVisible, handle = '', isBlock
       <View style={styles.content}>
         <Text style={styles.headerText}>Options</Text>
 
+        <Pressable style={styles.row} onPress={withStrongPress(() => { onReport && onReport(); close(); })}>
+          <View style={styles.rowLeft}>
+            <Feather name="flag" size={scaleSize(22)} color="#F87171" />
+          </View>
+          <Text style={[styles.rowText, styles.reportText]}>
+            Report {handle ? `@${handle}` : 'user'}
+          </Text>
+        </Pressable>
+
         {isBlocked ? (
           <Pressable style={styles.row} onPress={withStrongPress(() => { onUnblock && onUnblock(); close(); })}>
             <View style={styles.rowLeft}>
@@ -60,7 +69,7 @@ const ViewProfileOptionsSheet = ({ isVisible, setIsVisible, handle = '', isBlock
             </Text>
           </Pressable>
         ) : (
-          <Pressable style={styles.row} onPress={withStrongPress(() => { onBlock && onBlock(); close(); })}>
+          <Pressable style={styles.row} onPress={withStrongPress(() => { onBlock && onBlock(); })}>
             <View style={styles.rowLeft}>
               <Feather name="user-x" size={scaleSize(22)} color={theme.danger || '#ef4444'} />
             </View>
@@ -109,5 +118,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Outfit_600SemiBold',
     fontSize: scaleSize(14.5),
     color: theme.textPrimary,
+  },
+  reportText: {
+    color: '#F87171',
   },
 });

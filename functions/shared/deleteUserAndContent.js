@@ -338,6 +338,23 @@ function filterMessagesArray(arr, targetUid) {
   return { changed: filtered.length !== arr.length, value: filtered };
 }
 
+function filterUidArray(arr, targetUid) {
+  if (!Array.isArray(arr) || arr.length === 0) {
+    return { changed: false, value: arr || [] };
+  }
+  const filtered = arr.filter((entry) => String(entry || "") !== targetUid);
+  return { changed: filtered.length !== arr.length, value: filtered };
+}
+
+function filterUidMap(map, targetUid) {
+  if (!map || typeof map !== "object" || !Object.prototype.hasOwnProperty.call(map, targetUid)) {
+    return { changed: false, value: map || {} };
+  }
+  const next = { ...map };
+  delete next[targetUid];
+  return { changed: true, value: next };
+}
+
 async function scrubUserReferences(uid, removedPostIds) {
   const pidSet = new Set((removedPostIds || []).map(toStringSafe));
   let processed = 0;
@@ -395,6 +412,30 @@ async function scrubUserReferences(uid, removedPostIds) {
       const blockedBy = filterUserRefArray(data?.blockedBy, uid);
       if (blockedBy.changed) {
         updates.blockedBy = blockedBy.value;
+        touched = true;
+      }
+
+      const blockedUidList = filterUidArray(data?.blockedUidList, uid);
+      if (blockedUidList.changed) {
+        updates.blockedUidList = blockedUidList.value;
+        touched = true;
+      }
+
+      const blockedByUidList = filterUidArray(data?.blockedByUidList, uid);
+      if (blockedByUidList.changed) {
+        updates.blockedByUidList = blockedByUidList.value;
+        touched = true;
+      }
+
+      const blockedTimestamps = filterUidMap(data?.blockedTimestamps, uid);
+      if (blockedTimestamps.changed) {
+        updates.blockedTimestamps = blockedTimestamps.value;
+        touched = true;
+      }
+
+      const blockedByTimestamps = filterUidMap(data?.blockedByTimestamps, uid);
+      if (blockedByTimestamps.changed) {
+        updates.blockedByTimestamps = blockedByTimestamps.value;
         touched = true;
       }
 

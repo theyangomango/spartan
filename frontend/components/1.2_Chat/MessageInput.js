@@ -19,8 +19,9 @@ export default function MessageInput({
     onRemoveAttachment,
     canSend = false,
     isSending = false,
+    isBlocked = false,
 }) {
-    const disabled = isSending || !canSend;
+    const disabled = isSending || isBlocked || !canSend;
     const handleSend = () => {
         if (disabled) return;
         onSend?.();
@@ -33,6 +34,12 @@ export default function MessageInput({
 
     return (
         <View style={[styles.wrap, { marginBottom: isFocused ? 4 : 22 }]}>
+            {isBlocked && (
+                <View style={styles.blockedNotice}>
+                    <Ionicons name="lock-closed" size={scaleSize(12)} color={theme.textSecondary} style={{ marginRight: scaleSize(6) }} />
+                    <Text style={styles.blockedNoticeText}>Messaging disabled for this conversation.</Text>
+                </View>
+            )}
             {!!replyDraft && (
                 <View style={styles.replyRow}>
                     <View style={styles.replyBar} />
@@ -104,7 +111,7 @@ export default function MessageInput({
                     onBlur={onBlur}
                     returnKeyType="send"
                     onSubmitEditing={handleSubmit}
-                    editable={!isSending}
+                    editable={!isSending && !isBlocked}
                     hitSlop={{ top: scaleSize(10), bottom: scaleSize(10) }}
                 />
 
@@ -213,6 +220,21 @@ const styles = StyleSheet.create({
     },
     sendBtnDisabled: {
         opacity: 0.4,
+    },
+
+    blockedNotice: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "rgba(255, 95, 95, 0.12)",
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(6),
+        borderRadius: scaleSize(10),
+        marginBottom: scaleSize(8),
+    },
+    blockedNoticeText: {
+        color: theme.textSecondary,
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(12),
     },
 
     // reply preview chip

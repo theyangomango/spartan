@@ -1,28 +1,32 @@
 import arrayAppend from "../helper/firebase/arrayAppend";
 import arrayErase from "../helper/firebase/arrayErase";
-import incrementDocValue from '../helper/firebase/incrementDocValue'
+import incrementDocValue from "../helper/firebase/incrementDocValue";
 import sendNotification from "../sendNotification";
 import readDoc from "../helper/firebase/readDoc";
-
-// Normalize objects stored inside arrays so arrayUnion/arrayRemove match reliably
-const normalizeRef = (u) => ({
-    uid: String(u?.uid || u?.id || ''),
-    handle: u?.handle || '',
-    name: u?.name || '',
-    pfp: u?.pfp || u?.image || u?.photoURL || '',
-});
+import { normalizeUserRef, ensureUidArray } from "../helper/userRefs";
 
 export default async function followUser(this_user, user) {
-    const meRef = normalizeRef(this_user);
-    const otherRef = normalizeRef(user);
+    const meRef = normalizeUserRef(this_user);
+    const otherRef = normalizeUserRef(user);
 
     if (!meRef.uid || !otherRef.uid) {
         return { status: 'error', reason: 'missing-uid' };
     }
 
     let targetDoc = null;
+    let meDoc = null;
     try { targetDoc = await readDoc('users', otherRef.uid); }
     catch { targetDoc = null; }
+    try { meDoc = await readDoc('users', meRef.uid); }
+    catch { meDoc = null; }
+
+    const targetBlocked = ensureUidArray(targetDoc?.blockedUidList || targetDoc?.blocked);
+    const meBlocked = ensureUidArray(meDoc?.blockedUidList || meDoc?.blocked);
+    const targetBlockedBy = ensureUidArray(targetDoc?.blockedByUidList || targetDoc?.blockedBy);
+
+    if (targetBlocked.includes(meRef.uid) || meBlocked.includes(otherRef.uid) || targetBlockedBy.includes(meRef.uid)) {
+        return { status: "error", reason: "blocked" };
+    }
 
     const isPrivate = !!targetDoc?.settings?.profilePrivate;
     const alreadyFollower = Array.isArray(targetDoc?.followers)

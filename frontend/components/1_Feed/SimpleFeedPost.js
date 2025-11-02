@@ -30,6 +30,7 @@ import useUserVerified from "../../hooks/useUserVerified";
 import { strong as hapticStrong } from "../../utils/haptics";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../../firebase.config";
+import useReportContentSheet from "../../hooks/useReportContentSheet";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -390,7 +391,10 @@ const SimpleFeedPost = ({
     const [contentReady, setContentReady] = useState(mediaList.length === 0);
     const [isOptionsSheetVisible, setOptionsSheetVisible] = useState(false);
     const optionsSheetAnim = useRef(new Animated.Value(0)).current;
+    const [isReportOptionsVisible, setReportOptionsVisible] = useState(false);
+    const reportOptionsAnim = useRef(new Animated.Value(0)).current;
     const [pendingDeletePid, setPendingDeletePid] = useState(null);
+    const { openReportSheet, reportSheetNode } = useReportContentSheet();
 
     const mediaFingerprint = useMemo(() => {
         if (mediaList.length === 0) return "empty";
@@ -465,6 +469,52 @@ const SimpleFeedPost = ({
         fireConfetti();
         sendCheerEvent();
     }, [fireConfetti, sendCheerEvent]);
+
+    const openReportOptions = useCallback(() => {
+        if (isViewerOwner) return;
+        setReportOptionsVisible(true);
+    }, [isViewerOwner]);
+
+    const closeReportOptions = useCallback((afterClose) => {
+        if (!isReportOptionsVisible) {
+            if (typeof afterClose === 'function') afterClose();
+            return;
+        }
+        Animated.timing(reportOptionsAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+        }).start(() => {
+            setReportOptionsVisible(false);
+            if (typeof afterClose === 'function') afterClose();
+        });
+    }, [isReportOptionsVisible, reportOptionsAnim]);
+
+    const handleReportOptionsBackdrop = useCallback(() => {
+        closeReportOptions();
+    }, [closeReportOptions]);
+
+    const handleReportPost = useCallback(() => {
+        try { hapticStrong(); } catch { }
+        const fallbackId = data?.id ? String(data.id).trim() : "";
+        const targetId = postPid || fallbackId || `post-${Date.now()}`;
+        openReportSheet({
+            targetType: "post",
+            targetId,
+            ownerUid: postOwnerUid,
+            ownerHandle: reportHandle,
+            metadata: {
+                caption,
+                workoutTitle: workoutName,
+            },
+        });
+    }, [caption, data?.id, openReportSheet, postOwnerUid, postPid, reportHandle, workoutName]);
+
+    const handleSelectReport = useCallback(() => {
+        closeReportOptions(() => {
+            handleReportPost();
+        });
+    }, [closeReportOptions, handleReportPost]);
 
     const renderMediaItem = useCallback(({ item }) => {
         const containerStyle = [
@@ -617,6 +667,10 @@ const SimpleFeedPost = ({
         }
         return rawHandle;
     }, [data?.handle, isLivePost]);
+    const reportHandle = useMemo(() => {
+        const source = data?.handle || displayName || "";
+        return String(source || "").replace(/^@+/, "");
+    }, [data?.handle, displayName]);
 
     const likeColor = isLiked ? "#FE5555" : theme.textPrimary;
     const keyExtractor = useCallback((item, idx) => `${item?.uri || 'media'}-${idx}`, []);
@@ -749,6 +803,23 @@ const SimpleFeedPost = ({
     useEffect(() => () => {
         optionsSheetAnim.stopAnimation();
     }, [optionsSheetAnim]);
+
+    useEffect(() => {
+        if (!isReportOptionsVisible) return;
+        reportOptionsAnim.stopAnimation();
+        reportOptionsAnim.setValue(0);
+        requestAnimationFrame(() => {
+            Animated.timing(reportOptionsAnim, {
+                toValue: 1,
+                duration: 220,
+                useNativeDriver: true,
+            }).start();
+        });
+    }, [isReportOptionsVisible, reportOptionsAnim]);
+
+    useEffect(() => () => {
+        reportOptionsAnim.stopAnimation();
+    }, [reportOptionsAnim]);
 
     const handlePressWorkout = useCallback(() => {
         if (!workout) return;
@@ -910,6 +981,20 @@ const SimpleFeedPost = ({
         })
     ), [optionsSheetAnim]);
 
+    const reportOptionsBackdropOpacity = useMemo(() => (
+        reportOptionsAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 0.45],
+        })
+    ), [reportOptionsAnim]);
+
+    const reportOptionsTranslateY = useMemo(() => (
+        reportOptionsAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [scaleSize(200), 0],
+        })
+    ), [reportOptionsAnim]);
+
     return (
         <View style={styles.wrapper}>
             <View style={[
@@ -985,7 +1070,15 @@ const SimpleFeedPost = ({
                                 >
                                     <MaterialCommunityIcons name="dots-vertical" size={scaleSize(20)} color={theme.textPrimary} />
                                 </Pressable>
-                            ) : null}
+                            ) : (
+                                <Pressable
+                                    style={styles.moreButton}
+                                    onPress={openReportOptions}
+                                    hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                                >
+                                    <MaterialCommunityIcons name="dots-vertical" size={scaleSize(20)} color={theme.textPrimary} />
+                                </Pressable>
+                            )}
                         </View>
                     </View>
 
@@ -1319,7 +1412,70 @@ const SimpleFeedPost = ({
                         </Animated.View>
                     </View>
                 </Modal>
-            ) : null}
+            ) : (
+                <Modal
+                    transparent
+                    animationType="none"
+                    visible={isReportOptionsVisible}
+                    onRequestClose={handleReportOptionsBackdrop}
+                >
+                    <View style={styles.optionsModalRoot}>
+                        <AnimatedPressable
+                            style={[styles.optionsBackdrop, { opacity: reportOptionsBackdropOpacity }]}
+                            onPress={handleReportOptionsBackdrop}
+                        />
+                        <Animated.View
+                            style={[styles.optionsSheet, { transform: [{ translateY: reportOptionsTranslateY }] }]}
+                        >
+                            <Pressable
+                                style={({ pressed }) => [
+                                    styles.optionsItem,
+                                    pressed ? styles.optionsItemPressed : null,
+                                ]}
+                                onPress={handleSelectReport}
+                            >
+                                <View style={styles.optionsItemRow}>
+                                    <View style={styles.optionsItemLeft}>
+                                        <MaterialCommunityIcons
+                                            name="flag-outline"
+                                            size={scaleSize(20)}
+                                            color="#EF4444"
+                                            style={styles.optionsItemIcon}
+                                        />
+                                        <Text style={[styles.optionsItemText, styles.optionsItemDeleteText]}>Report</Text>
+                                    </View>
+                                    <MaterialCommunityIcons
+                                        name="chevron-right"
+                                        size={scaleSize(20)}
+                                        color="rgba(255,107,107,0.5)"
+                                    />
+                                </View>
+                            </Pressable>
+                            <View style={styles.optionsDivider} />
+                            <Pressable
+                                style={({ pressed }) => [
+                                    styles.optionsItem,
+                                    pressed ? styles.optionsItemPressed : null,
+                                ]}
+                                onPress={handleReportOptionsBackdrop}
+                            >
+                                <View style={styles.optionsItemRow}>
+                                    <View style={styles.optionsItemLeft}>
+                                        <MaterialCommunityIcons
+                                            name="close"
+                                            size={scaleSize(20)}
+                                            color={theme.textSecondary}
+                                            style={styles.optionsItemIcon}
+                                        />
+                                        <Text style={styles.optionsItemText}>Cancel</Text>
+                                    </View>
+                                </View>
+                            </Pressable>
+                        </Animated.View>
+                    </View>
+                </Modal>
+            )}
+            {reportSheetNode}
         </View>
     );
 };

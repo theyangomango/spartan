@@ -11,17 +11,14 @@ import {
     doc,
 } from 'firebase/firestore';
 import { db } from '../../firebase.config';
+import { coerceUid, ensureUidArray } from '../utils/userRefs';
 
 const PAGE_SIZE_DEFAULT = 50;
 const FEED_CACHE_PREFIX = 'feed-cache:v2:';
 const FEED_CACHE_LIMIT = 30;
 const CACHE_WRITE_DELAY = 600;
 
-const toStringUid = (value) => {
-    if (value == null) return '';
-    if (typeof value === 'object' && value?.uid) return String(value.uid).trim();
-    return String(value).trim();
-};
+const toStringUid = (value) => coerceUid(value);
 
 const toStringPid = (value, fallback = '') => {
     if (value === undefined || value === null) return fallback;
@@ -304,13 +301,10 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
         );
         if (myUid) allowed.add(myUid);
 
-        const myBlocked = Array.isArray(global?.userData?.blocked) ? global.userData.blocked : [];
-        const myBlockedBy = Array.isArray(global?.userData?.blockedBy) ? global.userData.blockedBy : [];
+        const myBlocked = ensureUidArray(global?.userData?.blockedUidList || global?.userData?.blocked);
+        const myBlockedBy = ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy);
         const excluded = new Set(
-            [
-                ...myBlocked.map(toStringUid),
-                ...myBlockedBy.map(toStringUid),
-            ].filter(Boolean)
+            [...myBlocked, ...myBlockedBy].filter(Boolean)
         );
 
         filtersRef.current = { allowed, excluded };

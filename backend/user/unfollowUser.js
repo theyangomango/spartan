@@ -1,19 +1,14 @@
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../firebase.config';
-import arrayErase from '../helper/firebase/arrayErase'
-import incrementDocValue from '../helper/firebase/incrementDocValue'
-
-// Normalize objects stored inside arrays so arrayUnion/arrayRemove match reliably
-const normalizeRef = (u) => ({
-    uid: String(u?.uid || u?.id || ''),
-    handle: u?.handle || '',
-    name: u?.name || '',
-    pfp: u?.pfp || u?.image || u?.photoURL || '',
-});
+import arrayErase from '../helper/firebase/arrayErase';
+import incrementDocValue from '../helper/firebase/incrementDocValue';
+import { normalizeUserRef } from '../helper/userRefs';
 
 export default async function unfollowUser(this_user, user) {
-    const meRef = normalizeRef(this_user);
-    const otherRef = normalizeRef(user);
+    const meRef = normalizeUserRef(this_user);
+    const otherRef = normalizeUserRef(user);
+
+    if (!meRef || !otherRef) return;
 
     // Clear any lingering follow requests in either direction
     try { await arrayErase('users', meRef.uid, 'followRequestsOut', otherRef); } catch {}

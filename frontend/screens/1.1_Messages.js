@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { View, StyleSheet, ScrollView, Text, ActivityIndicator } from "react-native";
+import { View, StyleSheet, ScrollView, Text, ActivityIndicator, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MessageCard from "../components/1.1_Messages/MessageCard";
 import MessagesHeader from "../components/1.1_Messages/MessagesHeader";
@@ -22,6 +22,7 @@ import {
 } from "../state/messagesCache";
 import { ensureMessageListener, syncMessageListeners, preloadMessagesForUid } from "../logic/messagesPreloader";
 import { openActiveWorkout } from "../workout/workoutActions";
+import { ensureUidArray, coerceUid } from "../utils/userRefs";
 
 export default function Messages({ navigation, route }) {
     const userData = global.userData;
@@ -313,6 +314,18 @@ export default function Messages({ navigation, route }) {
         });
 
         if (!selfUser.uid || dedupedUsers.length === 0) return;
+
+        const blockedSet = new Set(ensureUidArray(global?.userData?.blockedUidList || global?.userData?.blocked));
+        const blockedBySet = new Set(ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy));
+        const blockedParticipant = dedupedUsers.find((participant) => {
+            const uid = coerceUid(participant);
+            if (!uid) return false;
+            return blockedSet.has(uid) || blockedBySet.has(uid);
+        });
+        if (blockedParticipant) {
+            Alert.alert("Cannot Message", "Direct messages are disabled because one of the participants is blocked.");
+            return;
+        }
 
         const buildParticipantKey = (uids) => (
             Array.from(new Set((uids || []).map((id) => String(id || "")).filter(Boolean)))

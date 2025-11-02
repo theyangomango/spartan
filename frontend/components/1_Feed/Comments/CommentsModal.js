@@ -5,7 +5,7 @@
  * TODO standardize component for backend functionality
  */
 
-import React, { useRef } from "react";
+import React, { useCallback, useRef } from "react";
 import {
     View,
     FlatList,
@@ -19,6 +19,7 @@ import CommentCard from "./CommentCard";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import sendNotification from "../../../../backend/sendNotification";
 import scaleSize from "../../../helper/scaleSize"; // Import the scaleSize utility
+import useReportContentSheet from "../../../hooks/useReportContentSheet";
 
 export default function CommentsModal({
     postData,
@@ -31,6 +32,7 @@ export default function CommentsModal({
 }) {
     const comments = postData.comments;
     const flatListRef = useRef(null);
+    const { openReportSheet, reportSheetNode } = useReportContentSheet();
 
     // Ensure the list is scrolled to top whenever the sheet opens
     React.useEffect(() => {
@@ -127,6 +129,28 @@ export default function CommentsModal({
         onShowLikesSheet(normalized, label);
     };
 
+    const handleReportComment = useCallback((comment, meta = {}) => {
+        if (!comment) return;
+        const baseId =
+            comment?.id ??
+            comment?.commentId ??
+            comment?.timestamp ??
+            `${meta.index ?? 0}-${meta.replyIndex ?? -1}`;
+        const targetId = `${postData?.pid || 'post'}:${baseId}`;
+        openReportSheet({
+            targetType: meta.isReply ? 'comment-reply' : 'comment',
+            targetId,
+            ownerUid: comment?.uid ? String(comment.uid) : '',
+            ownerHandle: comment?.handle || '',
+            metadata: {
+                postId: postData?.pid || '',
+                commentIndex: meta.index ?? -1,
+                replyIndex: meta.replyIndex ?? -1,
+                text: comment?.content || '',
+            },
+        });
+    }, [openReportSheet, postData?.pid]);
+
     return (
         <KeyboardAvoidingView
             style={styles.container}
@@ -156,6 +180,7 @@ export default function CommentsModal({
                             toViewProfile={toViewProfile}
                             isFirst={index === 0}
                             onOpenLikesList={() => handleOpenLikesList(item?.likedUsers, 'Liked this comment')}
+                            onReport={handleReportComment}
                         />
 
                         {/* Render Replies if any */}
@@ -171,6 +196,7 @@ export default function CommentsModal({
                                 replyIndex={replyIndex}
                                 toViewProfile={toViewProfile}
                                 onOpenLikesList={() => handleOpenLikesList(reply?.likedUsers, 'Liked this reply')}
+                                onReport={handleReportComment}
                             />
                         ))}
                     </View>
@@ -178,6 +204,7 @@ export default function CommentsModal({
                 contentContainerStyle={[styles.commentsListContainer, { paddingBottom: bottomPadding }]}
                 ListHeaderComponent={<View style={{ height: 0 }} />}
             />
+            {reportSheetNode}
         </KeyboardAvoidingView>
     );
 }

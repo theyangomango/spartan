@@ -8,6 +8,7 @@ import {
     Text,
     Pressable,
     ScrollView,
+    Alert,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -37,6 +38,7 @@ import { subscribeUserData, emitUserDataUpdate } from "../../../utils/userDataEv
 import { canViewerAccessProfile } from "../../../utils/workoutPrivacy";
 import { withStrongPress } from "../../../utils/haptics";
 import { getLeaderboardValue } from "../../../helper/getLeaderboardValue";
+import { coerceUid, ensureUidArray } from "../../../utils/userRefs";
 
 import Podium, { PODIUM_HEIGHT } from "../Podium";
 import LeaderboardPanel from "../LeaderboardPanel";
@@ -133,7 +135,7 @@ function buildRankMap(entries) {
     const map = new Map();
     if (!Array.isArray(entries)) return map;
     entries.forEach((entry) => {
-        const uid = String(entry?.uid || "");
+        const uid = coerceUid(entry);
         const rank = Number(entry?.rank);
         if (!uid || !Number.isFinite(rank) || rank <= 0) return;
         if (!map.has(uid)) map.set(uid, rank);
@@ -142,12 +144,8 @@ function buildRankMap(entries) {
 }
 
 function membershipListsMatch(previousEntries, currentIds) {
-    const prev = Array.isArray(previousEntries)
-        ? previousEntries.map((entry) => String(entry?.uid || "")).filter((id) => !!id)
-        : [];
-    const current = Array.isArray(currentIds)
-        ? currentIds.map((id) => String(id || "")).filter((id) => !!id)
-        : [];
+    const prev = ensureUidArray(previousEntries);
+    const current = ensureUidArray(currentIds);
     if (prev.length !== current.length) return false;
     prev.sort();
     current.sort();
@@ -162,7 +160,7 @@ function attachGlobalRanks(list, entries, snapshotValid) {
     if (!snapshotValid) return list.map((user) => ({ ...user, lastRank: null }));
     const rankMap = buildRankMap(entries);
     return list.map((user) => {
-        const uid = String(user?.uid || "");
+        const uid = coerceUid(user);
         return { ...user, lastRank: rankMap.get(uid) ?? null };
     });
 }
@@ -175,7 +173,7 @@ function attachScopedRanks(list, entries, currentIds, snapshotValid) {
     }
     const rankMap = buildRankMap(entries);
     return list.map((user) => {
-        const uid = String(user?.uid || "");
+        const uid = coerceUid(user);
         return { ...user, lastRank: rankMap.get(uid) ?? null };
     });
 }
@@ -193,10 +191,8 @@ function filterBlockedVisibility(list, options = {}) {
     try {
         const meUid = String(global?.userData?.uid || "");
         if (!meUid) return list;
-        const myBlocked = Array.isArray(global?.userData?.blocked) ? global.userData.blocked : [];
-        const myBlockedSet = new Set(
-            myBlocked.map((x) => String((x && (x.uid || x.id)) || x || ""))
-        );
+        const myBlocked = ensureUidArray(global?.userData?.blockedUidList || global?.userData?.blocked);
+        const myBlockedSet = new Set(myBlocked);
         const viewerData = (() => {
             try {
                 return global?.userData || null;
@@ -206,16 +202,11 @@ function filterBlockedVisibility(list, options = {}) {
         })();
         const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
         const theyBlockedMe = (u) => {
-            const arr = Array.isArray(u?.blocked) ? u.blocked : [];
-            for (let i = 0; i < arr.length; i++) {
-                const item = arr[i];
-                const uid = String((item && (item.uid || item.id)) || item || "");
-                if (uid === meUid) return true;
-            }
-            return false;
+            const theirs = ensureUidArray(u?.blockedUidList || u?.blocked);
+            return theirs.includes(meUid);
         };
         return (Array.isArray(list) ? list : []).filter((u) => {
-            const uid = String(u?.uid || "");
+            const uid = coerceUid(u);
             if (!uid) return false;
             if (uid === meUid) return true;
             if (myBlockedSet.has(uid)) return false;
@@ -680,11 +671,10 @@ export default function LeaderboardsSection({ navigation }) {
             }
         })();
         followingArr.forEach((entry) => {
-            const id = entry?.uid ?? entry?.id ?? entry;
-            const str = String(id || "");
-            if (str) followingSet.add(str);
+            const uid = coerceUid(entry);
+            if (uid) followingSet.add(uid);
         });
-        const followingIdsArray = Array.from(followingSet).map((id) => String(id));
+        const followingIdsArray = Array.from(followingSet);
 
         const viewerLastRanks =
             global && global.userData && typeof global.userData.lastRanks === "object"
@@ -700,19 +690,18 @@ export default function LeaderboardsSection({ navigation }) {
 
             const memberSet = new Set();
             (currentTribe.members || []).forEach((member) => {
-                const id = member?.uid ?? member?.id ?? member;
-                const str = String(id || "");
-                if (str) memberSet.add(str);
+                const uid = coerceUid(member);
+                if (uid) memberSet.add(uid);
             });
             if (!memberSet.has(viewerUid) && viewerUid) memberSet.add(viewerUid);
 
-            const tribeUsers = all.filter((u) => memberSet.has(String(u?.uid || "")));
+            const tribeUsers = all.filter((u) => memberSet.has(coerceUid(u)));
             const visible = filterBlockedVisibility(tribeUsers, { respectPrivacy: false });
             const tribeScopeKey = String(currentTribe?.id || selectedTribeId || "");
             const tribeSnapshot = tribeSnapshots?.[tribeScopeKey] || {};
             const tribeExerciseSnapshots = tribeSnapshot?.exercises || {};
             const tribeHexSnapshots = tribeSnapshot?.hex || {};
-            const memberIdsArray = Array.from(memberSet).map((id) => String(id));
+            const memberIdsArray = Array.from(memberSet);
 
             if (activeComparison) {
                 const ranked = computeTribeRanking(visible, activeComparison);
@@ -906,14 +895,13 @@ export default function LeaderboardsSection({ navigation }) {
 
             const memberSet = new Set();
             (currentTribe.members || []).forEach((member) => {
-                const id = member?.uid ?? member?.id ?? member;
-                const str = String(id || "");
-                if (str) memberSet.add(str);
+                const uid = coerceUid(member);
+                if (uid) memberSet.add(uid);
             });
             if (viewerUid && !memberSet.has(viewerUid)) memberSet.add(viewerUid);
-            const memberIdsArray = Array.from(memberSet).map((id) => String(id));
+            const memberIdsArray = Array.from(memberSet);
 
-            const tribeUsers = all.filter((x) => memberSet.has(String(x?.uid || "")));
+            const tribeUsers = all.filter((x) => memberSet.has(coerceUid(x)));
             const visible = filterBlockedVisibility(tribeUsers, { respectPrivacy: false });
             const ranked = computeTribeRanking(visible, comp);
 
@@ -1038,6 +1026,18 @@ export default function LeaderboardsSection({ navigation }) {
         if (snap.empty) return;
         const d = snap.docs[0];
         const target = { id: d.id, ...d.data() };
+
+        const myBlocked = new Set(ensureUidArray(global?.userData?.blockedUidList || global?.userData?.blocked));
+        const myBlockedBy = new Set(ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy));
+        const targetMembers = ensureUidArray(target?.members);
+        const conflict = targetMembers.some((memberUid) => myBlocked.has(memberUid) || myBlockedBy.has(memberUid));
+        if (conflict) {
+            Alert.alert(
+                "Cannot Join Tribe",
+                "You cannot join this tribe because it contains someone you have blocked or who has blocked you."
+            );
+            return;
+        }
 
         await updateDoc(doc(db, "tribes", target.id), {
             members: arrayUnion(uid),

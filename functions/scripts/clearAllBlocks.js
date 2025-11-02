@@ -12,7 +12,9 @@ try {
 const db = getFirestore();
 
 function hasEntries(value) {
-  return Array.isArray(value) ? value.some(Boolean) : !!value;
+  if (Array.isArray(value)) return value.some(Boolean);
+  if (value && typeof value === "object") return Object.keys(value).length > 0;
+  return !!value;
 }
 
 async function clearBlocksForAllUsers() {
@@ -37,15 +39,23 @@ async function clearBlocksForAllUsers() {
       const data = docSnap.data() || {};
       const blocked = data.blocked;
       const blockedBy = data.blockedBy;
+      const blockedUidList = data.blockedUidList;
+      const blockedByUidList = data.blockedByUidList;
+      const blockedTimestamps = data.blockedTimestamps;
+      const blockedByTimestamps = data.blockedByTimestamps;
 
-      const hasBlocked = hasEntries(blocked);
-      const hasBlockedBy = hasEntries(blockedBy);
+      const hasBlocked = hasEntries(blocked) || hasEntries(blockedUidList) || hasEntries(blockedTimestamps);
+      const hasBlockedBy = hasEntries(blockedBy) || hasEntries(blockedByUidList) || hasEntries(blockedByTimestamps);
 
       if (!hasBlocked && !hasBlockedBy) return;
 
       batch.update(docSnap.ref, {
         blocked: FieldValue.delete(),
         blockedBy: FieldValue.delete(),
+        blockedUidList: FieldValue.delete(),
+        blockedByUidList: FieldValue.delete(),
+        blockedTimestamps: FieldValue.delete(),
+        blockedByTimestamps: FieldValue.delete(),
       });
 
       writesInBatch += 1;

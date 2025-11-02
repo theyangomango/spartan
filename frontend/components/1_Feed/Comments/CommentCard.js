@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Svg, { Path } from "react-native-svg";
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -11,6 +11,8 @@ import { useNavigation } from '@react-navigation/native';
 import scaleSize from "../../../helper/scaleSize";
 import { strong as hapticStrong } from "../../../utils/haptics";
 import VerifiedHandle from "../../common/VerifiedHandle";
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import theme from "../../../theme/mfpDark";
 
 const dynamicStyles = getCommentCardStyles();
 
@@ -43,6 +45,7 @@ export default function CommentCard({
     toViewProfile,
     isFirst = false,
     onOpenLikesList,
+    onReport,
 }) {
     const navigation = useNavigation();
     const viewerUid = global?.userData?.uid;
@@ -84,6 +87,15 @@ export default function CommentCard({
     }
 
     const hasLikes = !data.isCaption && Number(data.likeCount) > 0;
+    const isViewerAuthor = String(data?.uid || '') === String(viewerUid || '');
+
+    const handlePressReport = useCallback(() => {
+        if (isViewerAuthor) return;
+        try { hapticStrong(); } catch {}
+        if (typeof onReport === 'function') {
+            onReport(data, { index, replyIndex, isReply });
+        }
+    }, [data, index, isReply, isViewerAuthor, onReport, replyIndex]);
 
     const handlePressLikeCount = () => {
         if (!hasLikes) return;
@@ -113,17 +125,28 @@ export default function CommentCard({
             </Pressable>
 
             <View style={styles.card_texts_ctnr}>
-                <View style={styles.card_header}>
-                    <VerifiedHandle
-                        handle={data.handle}
-                        isVerified={Boolean(data?.isVerified ?? data?.verified)}
-                        textStyle={styles.handle_text}
-                        numberOfLines={1}
-                        containerStyle={styles.handle_row}
-                    />
-                    <Text style={styles.time_text}>
-                        · {getDisplayTimeDifference(data.timestamp, Date.now())}
-                    </Text>
+        <View style={styles.card_header}>
+                    <View style={styles.headerLeft}>
+                        <VerifiedHandle
+                            handle={data.handle}
+                            isVerified={Boolean(data?.isVerified ?? data?.verified)}
+                            textStyle={styles.handle_text}
+                            numberOfLines={1}
+                            containerStyle={styles.handle_row}
+                        />
+                        <Text style={styles.time_text}>
+                            · {getDisplayTimeDifference(data.timestamp, Date.now())}
+                        </Text>
+                    </View>
+                    {!isViewerAuthor && (
+                        <Pressable
+                            onPress={handlePressReport}
+                            hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                            style={styles.reportButton}
+                        >
+                            <MaterialCommunityIcons name="dots-horizontal" size={scaleSize(18)} color={theme.textSecondary} />
+                        </Pressable>
+                    )}
                 </View>
                 <View style={styles.content_text_ctnr}>
                     <Text style={styles.content_text}>{data.content}</Text>
@@ -218,6 +241,13 @@ const styles = StyleSheet.create({
     card_header: {
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+        marginRight: scaleSize(8),
     },
     handle_row: {
         marginRight: scaleSize(6),
@@ -232,6 +262,9 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_500Medium',
         color: '#A1A7B3',
         marginLeft: scaleSize(6),
+    },
+    reportButton: {
+        padding: scaleSize(4),
     },
     content_text_ctnr: {
         flexDirection: 'row',
