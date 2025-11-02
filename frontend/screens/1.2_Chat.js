@@ -121,6 +121,32 @@ export default function Chat({ navigation, route }) {
         return out;
     }, [usersExcludingSelf, data?.users, currentUid]);
 
+    const toHeaderProfile = useCallback(() => {
+        if (!Array.isArray(headerUsersExcludingSelf) || headerUsersExcludingSelf.length !== 1) return;
+        const target = headerUsersExcludingSelf[0];
+        if (!target || !target.uid) return;
+
+        const targetUid = String(target.uid);
+        const selfUid = currentUid ? String(currentUid) : null;
+        const rootNav = navigation?.getParent?.("ROOT");
+
+        if (selfUid && selfUid === targetUid) {
+            if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
+            else navigation.navigate("Profile", { transition: "slide-from-right" });
+            return;
+        }
+
+        const userPayload = {
+            uid: targetUid,
+            handle: typeof target.handle === "string" ? target.handle : "",
+            name: typeof target.name === "string" ? target.name : "",
+            pfp: target?.pfp || target?.pfpUrl || target?.image || target?.photoURL || target?.avatar || "",
+        };
+
+        if (rootNav?.navigate) rootNav.navigate("ViewProfile", { user: userPayload });
+        else navigation.navigate("ViewProfile", { user: userPayload });
+    }, [headerUsersExcludingSelf, navigation, currentUid]);
+
     // Track whether user is near the latest message (bottom of inverted list)
     const isNearBottomRef = useRef(true);
     const latestSeenIdRef = useRef(null);
@@ -519,6 +545,7 @@ export default function Chat({ navigation, route }) {
                     usersExcludingSelf={headerUsersExcludingSelf}
                     // toMessages={() => navigation.navigate("Messages", { message: data, index })}
                     toMessages={() => navigation.goBack()}
+                    onPressParticipant={toHeaderProfile}
                 />
 
                 <GestureDetector gesture={pan}>

@@ -13,6 +13,7 @@ import CommentsBottomSheet from '../../1_Feed/Comments/CommentsBottomSheet';
 import { navigateOneWay } from '../../../../navigationRef';
 import isThisUser from '../../../helper/isThisUser';
 import FollowListBottomSheet from '../../FollowListBottomSheet';
+import readDoc from '../../../../backend/helper/firebase/readDoc';
 
 const TIMESTAMP_FIELDS = ['created', 'createdAt', 'completedAt', 'finishedAt', 'startedAt', 'updatedAt'];
 
@@ -422,7 +423,7 @@ export default function UserStatsExerciseDetailScreen({
         return `workout-${wid || index}`;
     }, []);
 
-    const handleOpenWorkout = useCallback((item) => {
+    const handleOpenWorkout = useCallback((item, options = {}) => {
         if (!item?.workout) return;
 
         const workoutInput = item.workout;
@@ -494,6 +495,10 @@ export default function UserStatsExerciseDetailScreen({
             },
         };
 
+        if (options.startEditing) {
+            params.startEditing = true;
+        }
+
         navigateOneWay('PastWorkout', { animation: 'slide-from-right', params });
     }, []);
 
@@ -551,6 +556,81 @@ export default function UserStatsExerciseDetailScreen({
         setLikesSheetVisible(true);
     }, []);
 
+    const handleEditWorkout = useCallback((item) => {
+        if (!item) return;
+        handleOpenWorkout(item, { startEditing: true });
+    }, [handleOpenWorkout]);
+
+    const handleEditPost = useCallback(async (item) => {
+        if (!item) return;
+
+        const pid = String(item?.pid || item?.id || '').trim();
+        if (!pid) return;
+
+        let latest = item;
+        try {
+            const fetched = await readDoc('posts', pid);
+            if (fetched) {
+                latest = { ...item, ...fetched };
+            }
+        } catch (error) {
+            console.warn('UserStatsExerciseDetailScreen: handleEditPost failed to fetch latest post', { pid, error });
+        }
+
+        const resolvedCaption = (() => {
+            if (typeof latest.caption === 'string' && latest.caption.trim()) {
+                return latest.caption;
+            }
+            const captionComment = Array.isArray(latest.comments)
+                ? latest.comments.find((comment) => comment?.isCaption && typeof comment?.content === 'string')
+                : null;
+            return captionComment?.content || '';
+        })();
+
+        const mediaEntries = [];
+        const seen = new Set();
+
+        if (Array.isArray(latest.media)) {
+            latest.media.forEach((entry) => {
+                const uri = typeof entry === 'string' ? entry : entry?.uri;
+                if (!uri || seen.has(uri)) return;
+                seen.add(uri);
+                const type = typeof entry === 'string' ? undefined : entry?.type;
+                mediaEntries.push({ uri, type: type === 'video' ? 'video' : 'image' });
+            });
+        }
+
+        if (Array.isArray(latest.images)) {
+            latest.images.forEach((entry) => {
+                const uri = typeof entry === 'string' ? entry : entry?.uri;
+                if (!uri || seen.has(uri)) return;
+                seen.add(uri);
+                mediaEntries.push({ uri, type: 'image' });
+            });
+        }
+
+        const uniqueMedia = mediaEntries.map((entry) => entry.uri);
+        const workoutName = (() => {
+            const source = latest.workout || item.workout || null;
+            if (!source || typeof source !== 'object') return '';
+            const candidate = source.templateName || source.template?.name || source.name || source.workoutName || '';
+            return candidate ? String(candidate).trim() : '';
+        })();
+
+        navigateOneWay('PostOptions', {
+            animation: 'slide-from-right',
+            params: {
+                images: uniqueMedia,
+                editingPost: {
+                    pid,
+                    caption: resolvedCaption,
+                    mediaEntries,
+                    workoutName,
+                },
+            },
+        });
+    }, []);
+
     const navigationProxy = useMemo(() => ({
         getParent: () => ({
             navigate: (route, params) => {
@@ -592,8 +672,10 @@ export default function UserStatsExerciseDetailScreen({
             onPressWorkout={(_, data) => handleOpenWorkout(data)}
             onPressComments={(_, data) => openComments(data)}
             onPressLikes={handleShowLikesSheet}
+            onPressEditPost={(_, data) => handleEditPost(data || item)}
+            onPressEditWorkout={(_, data) => handleEditWorkout(data || item)}
         />
-    ), [handleOpenProfile, handleOpenWorkout, openComments, handleShowLikesSheet]);
+    ), [handleEditPost, handleEditWorkout, handleOpenProfile, handleOpenWorkout, openComments, handleShowLikesSheet]);
 
     const footerComponent = useMemo(() => (
         (loading || postsLoading) ? (

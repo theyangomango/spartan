@@ -641,7 +641,7 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         return postsByPid.get(pidKey) || workoutPostsState.byPid[pidKey] || item;
     }, [postsByPid, workoutPostsState]);
 
-    const openPastWorkout = useCallback((feedItemInput) => {
+    const openPastWorkout = useCallback((feedItemInput, options = {}) => {
         const feedItem = resolveFeedItem(feedItemInput);
         if (!feedItem || !feedItem.workout) return;
 
@@ -682,7 +682,12 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
             tagged: Array.isArray(feedItem.tagged) ? feedItem.tagged : [],
         };
 
-        navigation.navigate('PastWorkout', { workout, owner, postMeta });
+        const params = { workout, owner, postMeta };
+        if (options.startEditing) {
+            params.startEditing = true;
+        }
+
+        navigation.navigate('PastWorkout', params);
     }, [navigation, resolveFeedItem, targetUid, userData?.uid]);
 
     const handlePostWorkout = useCallback((post) => {
@@ -691,6 +696,87 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         setActiveFeedItem(resolved);
         openPastWorkout(resolved);
     }, [openPastWorkout, resolveFeedItem]);
+
+    const handleEditWorkout = useCallback((post) => {
+        const resolved = resolveFeedItem(post);
+        if (!resolved) return;
+        try {
+            shouldRefreshOnFocusRef.current = true;
+        } catch { }
+        openPastWorkout(resolved, { startEditing: true });
+    }, [openPastWorkout, resolveFeedItem]);
+
+    const handleEditPost = useCallback(async (post) => {
+        const resolved = resolveFeedItem(post);
+        if (!resolved) return;
+
+        const pid = String(resolved?.pid || resolved?.id || '').trim();
+        if (!pid) return;
+
+        let latest = resolved;
+        try {
+            const fetched = await readDoc('posts', pid);
+            if (fetched) {
+                latest = { ...resolved, ...fetched };
+            }
+        } catch (error) {
+            console.warn('ProfileWorkoutsAndPostsScreen: handleEditPost failed to fetch latest post', { pid, error });
+        }
+
+        const resolvedCaption = (() => {
+            if (typeof latest.caption === 'string' && latest.caption.trim()) {
+                return latest.caption;
+            }
+            const captionComment = Array.isArray(latest.comments)
+                ? latest.comments.find((comment) => comment?.isCaption && typeof comment?.content === 'string')
+                : null;
+            return captionComment?.content || '';
+        })();
+
+        const mediaEntries = [];
+        const seen = new Set();
+
+        if (Array.isArray(latest.media)) {
+            latest.media.forEach((entry) => {
+                const uri = typeof entry === 'string' ? entry : entry?.uri;
+                if (!uri || seen.has(uri)) return;
+                seen.add(uri);
+                const type = typeof entry === 'string' ? undefined : entry?.type;
+                mediaEntries.push({ uri, type: type === 'video' ? 'video' : 'image' });
+            });
+        }
+
+        if (Array.isArray(latest.images)) {
+            latest.images.forEach((entry) => {
+                const uri = typeof entry === 'string' ? entry : entry?.uri;
+                if (!uri || seen.has(uri)) return;
+                seen.add(uri);
+                mediaEntries.push({ uri, type: 'image' });
+            });
+        }
+
+        const uniqueMedia = mediaEntries.map((entry) => entry.uri);
+        const workoutName = (() => {
+            const source = latest.workout || resolved.workout || null;
+            if (!source || typeof source !== 'object') return '';
+            const candidate = source.templateName || source.template?.name || source.name || source.workoutName || '';
+            return candidate ? String(candidate).trim() : '';
+        })();
+
+        try {
+            shouldRefreshOnFocusRef.current = true;
+        } catch { }
+
+        navigation.navigate('PostOptions', {
+            images: uniqueMedia,
+            editingPost: {
+                pid,
+                caption: resolvedCaption,
+                mediaEntries,
+                workoutName,
+            },
+        });
+    }, [navigation, resolveFeedItem]);
 
     const showLikesSheet = useCallback((users, title = 'Liked by') => {
         const processed = Array.isArray(users)
@@ -802,9 +888,11 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
                 onPressComments={(_, data) => handlePressComments(data || item)}
                 onPressShare={() => { }}
                 onPressLikes={(_, data) => handlePressLikes(data || item)}
+                onPressEditPost={(_, data) => handleEditPost(data || item)}
+                onPressEditWorkout={(_, data) => handleEditWorkout(data || item)}
             />
         </View>
-    ), [handlePostWorkout, handlePressProfile, handlePressComments, handlePressLikes]);
+    ), [handleEditPost, handleEditWorkout, handlePostWorkout, handlePressProfile, handlePressComments, handlePressLikes]);
 
     const keyExtractor = useCallback((item, index) => {
         const pid = item?.pid ?? item?.id;

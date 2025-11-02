@@ -22,7 +22,7 @@ const STACKED_PFP_RADIUS = Math.round(STACKED_PFP_SIZE / 2);
 const STACKED_OFFSET = scaleSize(4);
 const AVATAR_BORDER = Math.max(1, scaleSize(1));
 
-const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
+const ChatHeader = ({ usersExcludingSelf = [], toMessages, onPressParticipant }) => {
     const navigation = useNavigation();
     const sanitizedHandles = usersExcludingSelf
         .map((u) => {
@@ -62,50 +62,68 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages }) => {
     const firstUid = firstUser?.uid ? String(firstUser.uid) : '';
     const isFirstVerified = useUserVerified(firstUid, fallbackVerified);
     const showSingleVerified = usersExcludingSelf.length === 1 && sanitizedHandles[0];
+    const canOpenProfile = usersExcludingSelf.length === 1 && typeof onPressParticipant === 'function';
+
+    const headerContent = (
+        <>
+            <View style={styles.pfpContainer}>
+                {usersExcludingSelf.length > 1 ? (
+                    <>
+                        {p0 ? (
+                            <FastImage source={{ uri: p0 }} style={[styles.pfp, styles.pfpTL]} />
+                        ) : (
+                            <View style={[styles.pfp, styles.pfpTL, styles.pfpPh]} />
+                        )}
+                        {p1 ? (
+                            <FastImage source={{ uri: p1 }} style={[styles.pfp, styles.pfpBR]} />
+                        ) : (
+                            <View style={[styles.pfp, styles.pfpBR, styles.pfpPh]} />
+                        )}
+                    </>
+                ) : p0 ? (
+                    <FastImage source={{ uri: p0 }} style={styles.pfpSingle} />
+                ) : (
+                    <View style={[styles.pfpSingle, styles.pfpPh]} />
+                )}
+            </View>
+
+            <View style={styles.textWrap}>
+                {showSingleVerified ? (
+                    <VerifiedHandle
+                        handle={sanitizedHandles[0]}
+                        isVerified={isFirstVerified}
+                        textStyle={styles.nameText}
+                        numberOfLines={1}
+                        iconSize={scaleSize(19)}
+                        ellipsizeMode="tail"
+                        preserveTextAlignment
+                        containerStyle={styles.nameRow}
+                    />
+                ) : (
+                    <Text numberOfLines={1} style={styles.nameText}>
+                        {primaryLabel}
+                    </Text>
+                )}
+            </View>
+        </>
+    );
 
     return (
         <View style={styles.header}>
             {/* Scooted content so it never overlaps the back icon hit area */}
             <View style={styles.centerRow} pointerEvents="box-none">
-                <View style={styles.pfpContainer}>
-                    {usersExcludingSelf.length > 1 ? (
-                        <>
-                            {p0 ? (
-                                <FastImage source={{ uri: p0 }} style={[styles.pfp, styles.pfpTL]} />
-                            ) : (
-                                <View style={[styles.pfp, styles.pfpTL, styles.pfpPh]} />
-                            )}
-                            {p1 ? (
-                                <FastImage source={{ uri: p1 }} style={[styles.pfp, styles.pfpBR]} />
-                            ) : (
-                                <View style={[styles.pfp, styles.pfpBR, styles.pfpPh]} />
-                            )}
-                        </>
-                    ) : p0 ? (
-                        <FastImage source={{ uri: p0 }} style={styles.pfpSingle} />
-                    ) : (
-                        <View style={[styles.pfpSingle, styles.pfpPh]} />
-                    )}
-                </View>
-
-                <View style={styles.textWrap}>
-                    {showSingleVerified ? (
-                        <VerifiedHandle
-                            handle={sanitizedHandles[0]}
-                            isVerified={isFirstVerified}
-                            textStyle={styles.nameText}
-                            numberOfLines={1}
-                            iconSize={scaleSize(19)}
-                            ellipsizeMode="tail"
-                            preserveTextAlignment
-                            containerStyle={styles.nameRow}
-                        />
-                    ) : (
-                        <Text numberOfLines={1} style={styles.nameText}>
-                            {primaryLabel}
-                        </Text>
-                    )}
-                </View>
+                {canOpenProfile ? (
+                    <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={onPressParticipant}
+                        style={styles.centerContent}
+                        hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                    >
+                        {headerContent}
+                    </TouchableOpacity>
+                ) : (
+                    <View style={styles.centerContent}>{headerContent}</View>
+                )}
             </View>
             {/* Back icon mirrors Notifications styling */}
             <TouchableOpacity
@@ -149,6 +167,11 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: scaleSize(14),
         paddingLeft: scaleSize(20 + 36 + BACK_GUTTER),
+    },
+    centerContent: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
     },
     pfpContainer: {
         width: SINGLE_PFP_SIZE,
