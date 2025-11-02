@@ -11,6 +11,7 @@ import {
     TextInput,
     View,
 } from "react-native";
+import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { Swipeable } from "react-native-gesture-handler";
@@ -68,6 +69,27 @@ const sanitizeEntries = (rawEntries) => {
         .sort((a, b) => a.recordedAt - b.recordedAt);
 };
 
+const normalizeToMinute = (value) => dayjs(value).second(0).millisecond(0).toDate();
+
+const mergeDateByMode = (base, next, mode) => {
+    const baseDay = dayjs(base);
+    const nextDay = dayjs(next);
+    if (mode === "date") {
+        return baseDay
+            .year(nextDay.year())
+            .month(nextDay.month())
+            .date(nextDay.date())
+            .toDate();
+    }
+
+    return baseDay
+        .hour(nextDay.hour())
+        .minute(nextDay.minute())
+        .second(0)
+        .millisecond(0)
+        .toDate();
+};
+
 const AddMeasurementModal = ({
     isVisible,
     onDismiss,
@@ -78,34 +100,98 @@ const AddMeasurementModal = ({
     mode = "create",
 }) => {
     const [weightInput, setWeightInput] = useState("");
-    const [dateInput, setDateInput] = useState(() => dayjs().format("YYYY-MM-DD"));
-    const [timeInput, setTimeInput] = useState(() => dayjs().format("HH:mm"));
+    const [selectedDate, setSelectedDate] = useState(() => normalizeToMinute(new Date()));
+    const [pickerMode, setPickerMode] = useState("date");
+    const [isIOSPickerVisible, setIsIOSPickerVisible] = useState(false);
+    const [iosDraftDate, setIosDraftDate] = useState(() => normalizeToMinute(new Date()));
 
     useEffect(() => {
         if (!isVisible) return;
         if (mode === "edit" && initialEntry) {
             setWeightInput(String(initialEntry.weight ?? ""));
             const entryDay = dayjs(initialEntry.recordedAt);
-            setDateInput(entryDay.isValid() ? entryDay.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"));
-            setTimeInput(entryDay.isValid() ? entryDay.format("HH:mm") : dayjs().format("HH:mm"));
+            const nextDate = entryDay.isValid() ? normalizeToMinute(entryDay.toDate()) : normalizeToMinute(new Date());
+            setSelectedDate(nextDate);
+            setIosDraftDate(nextDate);
         } else {
-            const current = dayjs();
+            const current = normalizeToMinute(new Date());
             setWeightInput("");
-            setDateInput(current.format("YYYY-MM-DD"));
-            setTimeInput(current.format("HH:mm"));
+            setSelectedDate(current);
+            setIosDraftDate(current);
         }
+        setIsIOSPickerVisible(false);
+        setPickerMode("date");
     }, [isVisible, initialEntry, mode]);
 
     const handleSetNow = useCallback(() => {
-        const current = dayjs();
-        setDateInput(current.format("YYYY-MM-DD"));
-        setTimeInput(current.format("HH:mm"));
+        const current = normalizeToMinute(new Date());
+        setSelectedDate(current);
+        setIosDraftDate(current);
     }, []);
 
     const handleSave = useCallback(() => {
         if (isSaving) return;
-        onSubmit({ weightInput, dateInput, timeInput, entryId: initialEntry?.id });
-    }, [dateInput, timeInput, weightInput, onSubmit, isSaving, initialEntry?.id]);
+        const timestamp = dayjs(selectedDate);
+        onSubmit({
+            weightInput,
+            dateInput: timestamp.format("YYYY-MM-DD"),
+            timeInput: timestamp.format("HH:mm"),
+            entryId: initialEntry?.id,
+        });
+    }, [selectedDate, weightInput, onSubmit, isSaving, initialEntry?.id]);
+
+    const openPicker = useCallback(
+        (mode) => {
+            const safeMode = mode === "time" ? "time" : "date";
+            if (Platform.OS === "android") {
+                DateTimePickerAndroid.open({
+                    mode: safeMode,
+                    value: selectedDate,
+                    is24Hour: false,
+                    onChange: (event, nextDate) => {
+                        if (event.type !== "set" || !nextDate) return;
+                        setSelectedDate((prev) => {
+                            const updated = mergeDateByMode(prev, nextDate, safeMode);
+                            setIosDraftDate(updated);
+                            return updated;
+                        });
+                    },
+                });
+            } else {
+                setPickerMode(safeMode);
+                setIosDraftDate(selectedDate);
+                setIsIOSPickerVisible(true);
+            }
+        },
+        [selectedDate]
+    );
+
+    const handleIOSPickerChange = useCallback(
+        (_, nextDate) => {
+            if (!nextDate) return;
+            setIosDraftDate((prev) => mergeDateByMode(prev, nextDate, pickerMode));
+        },
+        [pickerMode]
+    );
+
+    const handleIOSPickerCancel = useCallback(() => {
+        setIsIOSPickerVisible(false);
+        setIosDraftDate(selectedDate);
+    }, [selectedDate]);
+
+    const handleIOSPickerConfirm = useCallback(() => {
+        setSelectedDate(iosDraftDate);
+        setIsIOSPickerVisible(false);
+    }, [iosDraftDate]);
+
+    const formattedDateDisplay = useMemo(
+        () => dayjs(selectedDate).format("MMM D, YYYY"),
+        [selectedDate]
+    );
+    const formattedTimeDisplay = useMemo(
+        () => dayjs(selectedDate).format("h:mm A"),
+        [selectedDate]
+    );
 
     const weightUnitLabel = (initialEntry?.unit || unit) ?? unit;
     const isEditMode = mode === "edit";
@@ -153,27 +239,27 @@ const AddMeasurementModal = ({
                         <View style={styles.datetimeRow}>
                             <View style={[styles.modalField, styles.datetimeColumn, styles.datetimeColumnLeft]}>
                                 <Text style={styles.modalLabel}>Date</Text>
-                                <TextInput
-                                    value={dateInput}
-                                    onChangeText={setDateInput}
-                                    placeholder="YYYY-MM-DD"
-                                    placeholderTextColor="rgba(255,255,255,0.4)"
-                                    keyboardType="numbers-and-punctuation"
-                                    autoCapitalize="none"
-                                    style={styles.modalInput}
-                                />
+                                <Pressable
+                                    style={[styles.selectorButton, isSaving && styles.selectorButtonDisabled]}
+                                    onPress={() => openPicker("date")}
+                                    disabled={isSaving}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Choose measurement date"
+                                >
+                                    <Text style={styles.selectorButtonText}>{formattedDateDisplay}</Text>
+                                </Pressable>
                             </View>
                             <View style={[styles.modalField, styles.datetimeColumn]}>
                                 <Text style={styles.modalLabel}>Time</Text>
-                                <TextInput
-                                    value={timeInput}
-                                    onChangeText={setTimeInput}
-                                    placeholder="HH:mm"
-                                    placeholderTextColor="rgba(255,255,255,0.4)"
-                                    keyboardType="numbers-and-punctuation"
-                                    autoCapitalize="none"
-                                    style={styles.modalInput}
-                                />
+                                <Pressable
+                                    style={[styles.selectorButton, isSaving && styles.selectorButtonDisabled]}
+                                    onPress={() => openPicker("time")}
+                                    disabled={isSaving}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Choose measurement time"
+                                >
+                                    <Text style={styles.selectorButtonText}>{formattedTimeDisplay}</Text>
+                                </Pressable>
                             </View>
                         </View>
 
@@ -214,6 +300,41 @@ const AddMeasurementModal = ({
                         </View>
                     </View>
                 </KeyboardAvoidingView>
+                {Platform.OS === "ios" && isIOSPickerVisible && (
+                    <View style={styles.pickerOverlay} pointerEvents="box-none">
+                        <Pressable style={styles.pickerBackdrop} onPress={handleIOSPickerCancel} />
+                        <View style={styles.pickerSheet}>
+                            <View style={styles.pickerToolbar}>
+                                <RNBounceable
+                                    onPress={handleIOSPickerCancel}
+                                    style={styles.pickerToolbarButton}
+                                    activeScale={0.97}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Cancel date or time selection"
+                                >
+                                    <Text style={styles.pickerToolbarButtonText}>Cancel</Text>
+                                </RNBounceable>
+                                <RNBounceable
+                                    onPress={handleIOSPickerConfirm}
+                                    style={styles.pickerToolbarButton}
+                                    activeScale={0.97}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Confirm date or time selection"
+                                >
+                                    <Text style={styles.pickerToolbarButtonText}>Done</Text>
+                                </RNBounceable>
+                            </View>
+                            <DateTimePicker
+                                mode={pickerMode}
+                                display="spinner"
+                                value={iosDraftDate}
+                                onChange={handleIOSPickerChange}
+                                themeVariant="dark"
+                                style={styles.iosPicker}
+                            />
+                        </View>
+                    </View>
+                )}
             </View>
         </Modal>
     );
@@ -811,5 +932,57 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
         fontSize: ts(13),
         color: "#0B1017",
+    },
+    selectorButton: {
+        backgroundColor: "rgba(9, 12, 18, 0.72)",
+        borderRadius: scaleSize(12),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.12)",
+        paddingHorizontal: scaleSize(14),
+        minHeight: Platform.select({ ios: scaleSize(44), default: scaleSize(42) }),
+        justifyContent: "center",
+    },
+    selectorButtonDisabled: {
+        opacity: 0.6,
+    },
+    selectorButtonText: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: ts(13),
+        color: theme.textPrimary ?? "#F6F8FF",
+    },
+    pickerOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: "flex-end",
+    },
+    pickerBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: "rgba(0,0,0,0.25)",
+    },
+    pickerSheet: {
+        backgroundColor: theme.fieldDeep,
+        paddingBottom: Platform.OS === "ios" ? scaleSize(16) : 0,
+        borderTopLeftRadius: scaleSize(16),
+        borderTopRightRadius: scaleSize(16),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.08)",
+    },
+    pickerToolbar: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        paddingHorizontal: scaleSize(18),
+        paddingTop: scaleSize(14),
+        paddingBottom: scaleSize(10),
+    },
+    pickerToolbarButton: {
+        paddingVertical: scaleSize(6),
+        paddingHorizontal: scaleSize(4),
+    },
+    pickerToolbarButtonText: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(14),
+        color: theme.primary ?? "#2D9EFF",
+    },
+    iosPicker: {
+        backgroundColor: "transparent",
     },
 });

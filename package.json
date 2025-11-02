@@ -33,6 +33,7 @@
     "@freakycoder/react-native-bounceable": "^1.0.3",
     "@gorhom/bottom-sheet": "^4.6.3",
     "@react-native-async-storage/async-storage": "^1.24.0",
+    "@react-native-community/datetimepicker": "7.7.0",
     "@react-native-community/slider": "^4.5.7",
     "@react-native-masked-view/masked-view": "0.3.0",
     "@react-native-seoul/masonry-list": "^1.4.2",
