@@ -136,13 +136,29 @@ const formatTimestamp = (value) => {
     }
 };
 
+const resolveEntryRecordedAt = (entry) => {
+    if (!entry || typeof entry !== "object") return 0;
+    const candidates = [
+        entry.recordedAt,
+        entry.createdAt,
+        entry.created,
+        entry.timestamp,
+        entry.loggedAt,
+    ];
+    for (const candidate of candidates) {
+        const ms = toMillisSafe(candidate);
+        if (Number.isFinite(ms) && ms > 0) return ms;
+    }
+    return 0;
+};
+
 const sanitizeEntries = (rawEntries) => {
     if (!Array.isArray(rawEntries)) return [];
     return rawEntries
         .map((entry) => {
             if (!entry) return null;
             const weight = Number(entry.weight);
-            const recordedAt = toMillisSafe(entry.created);
+            const recordedAt = resolveEntryRecordedAt(entry);
             if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(recordedAt) || recordedAt <= 0) return null;
             const unit = (entry.unit || "").toString().toLowerCase().startsWith("k") ? "kg" : "lb";
             return {
@@ -151,6 +167,7 @@ const sanitizeEntries = (rawEntries) => {
                 unit,
                 recordedAt,
                 createdAt: recordedAt,
+                created: recordedAt,
             };
         })
         .filter(Boolean)
