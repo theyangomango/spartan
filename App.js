@@ -16,18 +16,17 @@ import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from '@
 import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions, Vibration, TextInput, LogBox } from 'react-native';
 import { rs, ts } from './frontend/helper/scaleSize';
 import { useSharedValue, runOnUI, withTiming, Easing } from 'react-native-reanimated';
-import { Entypo, FontAwesome, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Entypo, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import * as Network from 'expo-network';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { enableScreens, enableFreeze } from 'react-native-screens';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFonts } from 'expo-font';
-import { customFonts } from './fonts';
+import { ensureFontsLoaded } from './fonts';
 import { db } from './firebase.config';
 import { doc, onSnapshot, collection, query, where, getDoc, getDocFromCache } from 'firebase/firestore';
-import { initCommunityStats, refreshCommunityStats } from './frontend/logic/communityStats';
+import { refreshCommunityStats } from './frontend/logic/communityStats';
 import { ensureAuthBackgroundAsync } from './frontend/utils/authBackground';
 
 /* Screens */
@@ -73,11 +72,25 @@ import { ensureNotificationsListener, stopNotificationsListener } from './fronte
 import WorkoutInviteOverlay from './frontend/components/WorkoutInviteOverlay';
 import { openActiveWorkout } from './frontend/workout/workoutActions';
 
-const PRELOADED_FONTS = {
-    ...customFonts,
-    ...Entypo.font,
-    ...FontAwesome.font,
+const bootstrapTimers = Object.create(null);
+const markTimeStart = (label) => {
+    bootstrapTimers[label] = Date.now();
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`[bootstrap] start ${label}`);
+    }
 };
+const markTimeEnd = (label) => {
+    const start = bootstrapTimers[label];
+    if (start == null) return;
+    const elapsed = Date.now() - start;
+    delete bootstrapTimers[label];
+    if (process.env.NODE_ENV !== 'production') {
+        console.log(`[bootstrap] ${label} +${elapsed}ms`);
+    }
+};
+
+markTimeStart('bootstrap:fonts');
+const fontsWarmupPromise = ensureFontsLoaded().finally(() => markTimeEnd('bootstrap:fonts'));
 
 // Ensure a defined global.userData early so screens can read without crashing
 try { global.userData = global.userData || {}; } catch { }
@@ -129,7 +142,16 @@ const getActiveTabNameFromState = (state) => {
 
 export default function App() {
     // Load every registered font (frontend/fonts.js) before hiding the splash screen
-    const [fontsReady] = useFonts(PRELOADED_FONTS);
+    const [fontsReady, setFontsReady] = useState(false);
+    useEffect(() => {
+        let cancelled = false;
+        fontsWarmupPromise.then(() => {
+            if (!cancelled) setFontsReady(true);
+        }).catch(() => {
+            if (!cancelled) setFontsReady(true);
+        });
+        return () => { cancelled = true; };
+    }, []);
     const [authChecked, setAuthChecked] = useState(false);
     const [currentTabName, setCurrentTabName] = useState('Feed');
     const [isFooterNavEligible, setIsFooterNavEligible] = useState(false);
@@ -137,13 +159,16 @@ export default function App() {
     const [isFeedPostFocused, setIsFeedPostFocused] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userReady, setUserReady] = useState(false);
-    const [communityStatsReady, setCommunityStatsReady] = useState(false);
     const [authBackgroundReady, setAuthBackgroundReady] = useState(false);
     const [isOffline, setIsOffline] = useState(false);
     const [networkType, setNetworkType] = useState(null);
     const [lastNetworkCheck, setLastNetworkCheck] = useState(0);
     const [pendingChatGate, setPendingChatGate] = useState({ cid: null, ready: true });
     const [hasShownAppOnce, setHasShownAppOnce] = useState(false);
+    useEffect(() => {
+        markTimeStart('bootstrap:pendingChat');
+        return () => markTimeEnd('bootstrap:pendingChat');
+    }, []);
     const authBackgroundReadyRef = useRef(false);
     const feedOverlayProgressSV = useSharedValue(1);
     const footerVisibilitySV = useSharedValue(0);
@@ -230,6 +255,7 @@ export default function App() {
     }, [currentTabName, isFeedPostFocused, feedOverlayProgressSV, setIsFooterNavEligible]);
 
     useEffect(() => {
+        markTimeStart('bootstrap:authCheck');
         let mounted = true;
         Network.getNetworkStateAsync()
             .then((state) => { if (mounted) evaluateNetworkState(state); })
@@ -245,6 +271,7 @@ export default function App() {
             if (subscription && typeof subscription.remove === 'function') {
                 subscription.remove();
             }
+            markTimeEnd('bootstrap:authCheck');
         };
     }, [evaluateNetworkState]);
 
@@ -270,21 +297,27 @@ export default function App() {
         let cancelled = false;
         authBackgroundReadyRef.current = false;
         setAuthBackgroundReady(false);
+        markTimeStart('bootstrap:authBackground');
 
         ensureAuthBackgroundAsync()
             .then(() => {
                 if (!cancelled) {
                     markAuthBackgroundReady();
+                    markTimeEnd('bootstrap:authBackground');
                 }
             })
             .catch(() => {
                 if (!cancelled) {
                     markAuthBackgroundReady();
+                    markTimeEnd('bootstrap:authBackground');
                 }
             });
 
         return () => {
             cancelled = true;
+            if (!authBackgroundReadyRef.current) {
+                markTimeEnd('bootstrap:authBackground');
+            }
         };
     }, [isAuthenticated, markAuthBackgroundReady]);
 
@@ -408,13 +441,17 @@ export default function App() {
             try { global.setAuthUid?.(null); } catch { }
         };
 
+        markTimeStart('bootstrap:authResolve');
         (async () => {
             try {
                 const uid = await AsyncStorage.getItem('uid');
                 if (uid) { uidRef.current = uid; setIsAuthenticated(true); }
                 else { setIsAuthenticated(false); setUserReady(false); }
             } catch (err) { console.error(err); }
-            finally { setAuthChecked(true); }
+            finally {
+                setAuthChecked(true);
+                markTimeEnd('bootstrap:authResolve');
+            }
         })();
         return () => {
             try { delete global.setAuthUid; delete global.logout; } catch { }
@@ -769,6 +806,8 @@ export default function App() {
             pendingChatDataRef.current = Object.create(null);
             setPendingChatGate({ cid: null, ready: true });
             setHasShownAppOnce(false);
+            initialNavAppliedRef.current = false;
+            pendingTimerMarkedRef.current = false;
             if (pendingNavTimerRef.current) {
                 try { clearTimeout(pendingNavTimerRef.current); } catch { }
                 pendingNavTimerRef.current = null;
@@ -826,22 +865,8 @@ export default function App() {
     }, [setRestReminderVisible]);
 
     useEffect(() => {
-        let cancelled = false;
-        if (!isAuthenticated) {
-            setCommunityStatsReady(true);
-            return () => { cancelled = true; };
-        }
-        if (!userReady) {
-            setCommunityStatsReady(false);
-            return () => { cancelled = true; };
-        }
-        setCommunityStatsReady(false);
-        initCommunityStats().then(() => {
-            if (!cancelled) setCommunityStatsReady(true);
-        }).catch(() => {
-            if (!cancelled) setCommunityStatsReady(true);
-        });
-        return () => { cancelled = true; };
+        if (!isAuthenticated || !userReady) return;
+        refreshCommunityStats({ force: false }).catch(() => { /* ignore */ });
     }, [isAuthenticated, userReady]);
 
     // Unified buzz helper with simple throttle
@@ -907,6 +932,7 @@ export default function App() {
     useEffect(() => {
         const uid = global?.userData?.uid;
         if (!uid) return;
+        markTimeStart('bootstrap:userReady');
         try {
             const notificationsRefFs = collection(db, 'users', uid, 'notifications');
             const q = query(notificationsRefFs, where('read', '==', false));
@@ -929,8 +955,11 @@ export default function App() {
                     prevUnreadNotifRef.current = count;
                 } catch { }
             });
-        } catch { }
-        return () => { if (notifUnsubRef.current) { try { notifUnsubRef.current(); } catch { } notifUnsubRef.current = null; } };
+        } catch { markTimeEnd('bootstrap:userReady'); }
+        return () => {
+            if (notifUnsubRef.current) { try { notifUnsubRef.current(); } catch { } notifUnsubRef.current = null; }
+            markTimeEnd('bootstrap:userReady');
+        };
     }, [global?.userData?.uid]);
 
     const [appForceReady, setAppForceReady] = useState(false);
@@ -939,52 +968,64 @@ export default function App() {
         const id = setTimeout(() => setAppForceReady(true), 4500);
         return () => clearTimeout(id);
     }, [appForceReady]);
-    const hasUserData = authChecked && (!isAuthenticated || userReady);
-    const shouldWaitForAuthBackground = !isAuthenticated;
-    const baseAppReady = fontsReady
-        && (hasUserData || appForceReady)
-        && (communityStatsReady || appForceReady);
     const shouldBlockPendingChat = !hasShownAppOnce
         && !appForceReady
         && !!(pendingChatGate?.cid)
         && !pendingChatGate.ready;
-    const appReady = baseAppReady && !shouldBlockPendingChat;
+
+    const navReadyRef = useRef(false);
+    const initialNavAppliedRef = useRef(false);
+    const pendingTimerMarkedRef = useRef(false);
+    const readyForInitialNav = fontsReady && authChecked && (isAuthenticated ? (userReady || appForceReady) : true);
 
     useEffect(() => {
-        if (appReady && !hasShownAppOnce) {
+        if (!navReadyRef.current) return;
+        if (!readyForInitialNav) return;
+        if (shouldBlockPendingChat) return;
+        const target = isAuthenticated ? 'Tabs' : 'SignUp';
+        const current = navigationRef.current?.getCurrentRoute?.()?.name;
+        if (!initialNavAppliedRef.current || current !== target) {
+            try {
+                navigationRef.current?.reset({ index: 0, routes: [{ name: target }] });
+            } catch {}
+        }
+        if (!initialNavAppliedRef.current) {
+            initialNavAppliedRef.current = true;
+        }
+        if (!hasShownAppOnce) {
             setHasShownAppOnce(true);
         }
-    }, [appReady, hasShownAppOnce]);
+        if (!pendingTimerMarkedRef.current) {
+            markTimeEnd('bootstrap:pendingChat');
+            pendingTimerMarkedRef.current = true;
+        }
+        tryHideSplash();
+    }, [readyForInitialNav, isAuthenticated, shouldBlockPendingChat, hasShownAppOnce, tryHideSplash]);
 
-    // Hide splash only after the first layout to avoid white flash
+    const hideSplashRef = useRef(false);
     const [hasLaidOut, setHasLaidOut] = useState(false);
+    const tryHideSplash = useCallback(() => {
+        if (hideSplashRef.current) return;
+        if (!fontsReady || !hasLaidOut) return;
+        if (!navReadyRef.current) return;
+        if (!readyForInitialNav) return;
+        if (shouldBlockPendingChat) return;
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                SplashScreen.hideAsync().catch(() => { });
+                hideSplashRef.current = true;
+            });
+        });
+    }, [fontsReady, hasLaidOut, readyForInitialNav, shouldBlockPendingChat]);
+
     const onLayoutRootView = React.useCallback(() => {
         setHasLaidOut(true);
-        if (appReady
-            && (!shouldWaitForAuthBackground || authBackgroundReadyRef.current)) {
-            // Wait a frame after layout so content can paint before hiding splash
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    SplashScreen.hideAsync().catch(() => { });
-                });
-            });
-        }
-    }, [appReady, shouldWaitForAuthBackground]);
+    }, []);
 
-    // Safety: if readiness flips after initial layout, still hide splash
     useEffect(() => {
-        if (appReady
-            && hasLaidOut
-            && (!shouldWaitForAuthBackground || authBackgroundReadyRef.current)) {
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    SplashScreen.hideAsync().catch(() => { });
-                });
-            });
-        }
-    }, [appReady, hasLaidOut, shouldWaitForAuthBackground]);
+        tryHideSplash();
+    }, [tryHideSplash]);
 
-    // Absolute fallback: ensure splash hides even if layout event didn't fire
     useEffect(() => {
         if (appForceReady) {
             if (!authBackgroundReadyRef.current) {
@@ -992,18 +1033,9 @@ export default function App() {
                 setAuthBackgroundReady(true);
             }
             setPendingChatGate({ cid: null, ready: true });
-            SplashScreen.hideAsync().catch(() => { });
+            tryHideSplash();
         }
-    }, [appForceReady]);
-
-    // While loading, keep a minimal root mounted for onLayout, but don't render UI
-    if (!appReady) {
-        return (
-            <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-                <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#ffffff' }} onLayout={onLayoutRootView} />
-            </SafeAreaProvider>
-        );
-    }
+    }, [appForceReady, tryHideSplash]);
 
     // Tabs is a stable component defined outside App to avoid remounts and extra hooks
     // No global suppression by default; handled within target screens only
@@ -1022,17 +1054,20 @@ export default function App() {
 return (
     <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.bg }} onLayout={onLayoutRootView}>
-            {authChecked && (
-                <NavigationContainer
-                    ref={navigationRef}
-                    onReady={handleNavigationStateUpdate}
-                    onStateChange={handleNavigationStateUpdate}
-                >
+            <NavigationContainer
+                ref={navigationRef}
+                onReady={() => {
+                    navReadyRef.current = true;
+                    handleNavigationStateUpdate();
+                    tryHideSplash();
+                }}
+                onStateChange={handleNavigationStateUpdate}
+            >
                     {/* Single root navigator with all screens */}
                     <RootStack.Navigator
                         id="ROOT"
-                        key={isAuthenticated ? 'auth' : 'guest'}
-                        initialRouteName={isAuthenticated ? 'Tabs' : 'SignUp'}
+                        key="ROOT_STACK"
+                        initialRouteName="Boot"
                         screenOptions={({ route }) => {
                             const transition = route?.params?.transition; // 'slide-from-left' | 'slide-from-right' | 'fade' | 'none'
                             const isFade = transition === 'fade';
@@ -1070,6 +1105,11 @@ return (
                             });
                         }}
                     >
+                        <RootStack.Screen
+                            name="Boot"
+                            component={BootScreen}
+                            options={{ headerShown: false }}
+                        />
                         {/* Auth screens */}
                         <RootStack.Screen name="SignUp" component={SignUp} />
                         <RootStack.Screen name="LogIn" component={LogIn} />
@@ -1245,8 +1285,7 @@ return (
                         {/* Nutrition */}
                         <RootStack.Screen name="FoodDetail" component={FoodDetail} />
                     </RootStack.Navigator>
-                </NavigationContainer>
-            )}
+            </NavigationContainer>
             <WorkoutInviteOverlay enabled={authChecked && isAuthenticated} />
             {authChecked && isAuthenticated && (
                 <WorkoutExperiencePortal uid={uidRef.current} enabled />
@@ -1312,6 +1351,17 @@ return (
     </SafeAreaProvider>
 );
 }
+
+const BootScreen = () => (
+    <View style={bootStyles.container} />
+);
+
+const bootStyles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: theme.bg,
+    },
+});
 
 const restStyles = StyleSheet.create({
     overlay: {

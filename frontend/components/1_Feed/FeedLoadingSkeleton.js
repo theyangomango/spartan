@@ -27,11 +27,11 @@ const FeedLoadingSkeleton = ({ count = 3 }) => (
 
 const styles = StyleSheet.create({
     container: {
-        paddingHorizontal: scaleSize(12),
+        paddingHorizontal: 0,
         paddingVertical: scaleSize(8),
     },
     card: {
-        borderRadius: scaleSize(18),
+        borderRadius: 0,
         backgroundColor: ALT_TINT,
         padding: scaleSize(16),
         marginBottom: scaleSize(14),
@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
     media: {
         width: '100%',
         height: scaleSize(190),
-        borderRadius: scaleSize(16),
+        borderRadius: 0,
         backgroundColor: BASE_TINT,
         marginBottom: scaleSize(12),
     },

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { View, StyleSheet, ScrollView, Text } from "react-native";
+import { View, StyleSheet, ScrollView, Text, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MessageCard from "../components/1.1_Messages/MessageCard";
 import MessagesHeader from "../components/1.1_Messages/MessagesHeader";
@@ -20,7 +20,7 @@ import {
     mergeLatestBatchIntoCache,
     subscribeMessagesCache,
 } from "../state/messagesCache";
-import { ensureMessageListener, syncMessageListeners } from "../logic/messagesPreloader";
+import { ensureMessageListener, syncMessageListeners, preloadMessagesForUid } from "../logic/messagesPreloader";
 import { openActiveWorkout } from "../workout/workoutActions";
 
 export default function Messages({ navigation, route }) {
@@ -30,6 +30,8 @@ export default function Messages({ navigation, route }) {
     const [latestByCid, setLatestByCid] = useState(() => getLatestByCidCache());
     const [scope, setScope] = useState("All");
     const [isCreateGroupChatBottomSheetVisible, setIsCreateGroupChatBottomSheetVisible] = useState(false);
+    const [messagesLoading, setMessagesLoading] = useState(false);
+    const hydrationAttemptedRef = useRef(false);
 
     useEffect(() => {
         const unsubscribe = subscribeMessagesCache((messages, latest) => {
@@ -38,6 +40,46 @@ export default function Messages({ navigation, route }) {
         });
         return unsubscribe;
     }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            const uid = global?.userData?.uid;
+            if (!uid) {
+                setMessagesLoading(false);
+                return undefined;
+            }
+            hydrationAttemptedRef.current = true;
+            let mounted = true;
+            const start = Date.now();
+            setMessagesLoading(true);
+            preloadMessagesForUid(uid, { userDoc: global?.userData })
+                .then((result) => {
+                    if (!mounted) return;
+                    if (__DEV__) {
+                        const count = Array.isArray(result) ? result.length : 0;
+                        console.log(`[messages] preload hydrated ${count} chats in ${Date.now() - start}ms`);
+                        if (count === 0) {
+                            console.warn('[messages] Preload completed with zero chats');
+                        }
+                    }
+                })
+                .catch((error) => {
+                    if (__DEV__) console.warn('[messages] preload failed', error);
+                })
+                .finally(() => {
+                    if (mounted) setMessagesLoading(false);
+                });
+            return () => {
+                mounted = false;
+            };
+        }, [])
+    );
+
+    useEffect(() => {
+        if (__DEV__ && hydrationAttemptedRef.current && !messagesLoading && chats.length === 0) {
+            console.warn('[messages] Chat list empty after hydration cycle');
+        }
+    }, [messagesLoading, chats.length]);
 
     // Load from route.params once (initial chat metadata)
     useEffect(() => {
@@ -370,7 +412,7 @@ export default function Messages({ navigation, route }) {
         navigation.navigate("Chat", { data: chatObj, usersExcludingSelf: dedupedUsers });
     };
 
-    if (!userData || !chats) return null;
+    if (!userData) return null;
 
     // ---- Sort newest first (by latest message timestamp) ----
     const getEpoch = (chat) => {
@@ -421,10 +463,19 @@ export default function Messages({ navigation, route }) {
                 >
                     {filteredMessages.length === 0 ? (
                         <View style={styles.emptyStateContainer}>
-                            <Text style={styles.emptyStateTitle}>No messages yet</Text>
-                            <Text style={styles.emptyStateSubtitle}>
-                                Send a DM to connect with your friends.
-                            </Text>
+                            {messagesLoading ? (
+                                <>
+                                    <ActivityIndicator size="small" color={theme.textSecondary} />
+                                    <Text style={styles.emptyStateLoadingLabel}>Fetching your conversations…</Text>
+                                </>
+                            ) : (
+                                <>
+                                    <Text style={styles.emptyStateTitle}>No messages yet</Text>
+                                    <Text style={styles.emptyStateSubtitle}>
+                                        Send a DM to connect with your friends.
+                                    </Text>
+                                </>
+                            )}
                         </View>
                     ) : (
                         filteredMessages.map((msg, listIndex) => {
@@ -480,6 +531,7 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(60),
         paddingHorizontal: scaleSize(24),
         alignItems: "center",
+        gap: scaleSize(10),
     },
     emptyStateTitle: {
         color: theme.textPrimary,
@@ -491,6 +543,12 @@ const styles = StyleSheet.create({
     emptyStateSubtitle: {
         color: theme.textSecondary,
         fontSize: scaleSize(14),
+        fontFamily: "Outfit_400Regular",
+        textAlign: "center",
+    },
+    emptyStateLoadingLabel: {
+        color: theme.textSecondary,
+        fontSize: scaleSize(13),
         fontFamily: "Outfit_400Regular",
         textAlign: "center",
     },
