@@ -384,6 +384,13 @@ export default function App() {
                 }
             } catch { }
             if (!normalizedUid) {
+                const prevUid = uidRef.current;
+                if (prevUid) {
+                    try {
+                        const updateDoc = require('./backend/helper/firebase/updateDoc').default;
+                        updateDoc('users', prevUid, { expoPushToken: '' }).catch(() => { });
+                    } catch { }
+                }
                 try { logoutCleanupRef.current?.(); } catch { }
                 uidRef.current = null;
                 setUserReady(false);
