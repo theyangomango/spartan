@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Modal, View, Text, Pressable, StyleSheet, Platform } from "react-native";
+import { Modal, View, Text, Pressable, StyleSheet, Platform, AppState, Linking } from "react-native";
 import { Camera } from "expo-camera";
 import { CameraView } from "expo-camera/next";
 import { Ionicons } from "@expo/vector-icons";
@@ -12,11 +12,35 @@ import { strong as haptic } from "../../utils/haptics";
 const SCAN_RETRY_DELAY_MS = 500;
 
 const WorkoutBarcodeScannerModal = ({ visible, onClose, onResult }) => {
-    const [permission, requestPermission] = Camera.useCameraPermissions();
+    const [permission, requestPermission, getPermission] = Camera.useCameraPermissions();
     const [scanLocked, setScanLocked] = useState(false);
     const [scanBusy, setScanBusy] = useState(false);
     const [scanError, setScanError] = useState("");
     const retryTimerRef = useRef(null);
+
+    const refreshPermission = useCallback(async () => {
+        try {
+            if (typeof getPermission === "function") {
+                await getPermission();
+            } else {
+                await requestPermission();
+            }
+        } catch {
+            // ignore refresh errors
+        }
+    }, [getPermission, requestPermission]);
+
+    const openSystemSettings = useCallback(() => {
+        if (Platform.OS === "ios") {
+            Linking.openURL("app-settings:").catch(() => {
+                requestPermission().catch(() => {});
+            });
+        } else {
+            Linking.openSettings().catch(() => {
+                requestPermission().catch(() => {});
+            });
+        }
+    }, [requestPermission]);
 
     const clearRetry = useCallback(() => {
         if (retryTimerRef.current) {
@@ -45,6 +69,17 @@ const WorkoutBarcodeScannerModal = ({ visible, onClose, onResult }) => {
             clearRetry();
         }
     }, [visible, permission?.granted, requestPermission, clearRetry]);
+
+    useEffect(() => {
+        if (!visible) return undefined;
+        const handleStateChange = (state) => {
+            if (state === "active") {
+                refreshPermission();
+            }
+        };
+        const subscription = AppState.addEventListener("change", handleStateChange);
+        return () => subscription?.remove?.();
+    }, [visible, refreshPermission]);
 
     useEffect(() => () => clearRetry(), [clearRetry]);
 
@@ -96,7 +131,7 @@ const WorkoutBarcodeScannerModal = ({ visible, onClose, onResult }) => {
                 <View style={styles.permissionWrap}>
                     <Text style={styles.permissionText}>Camera access is required to scan barcodes.</Text>
                     <Pressable
-                        onPress={() => requestPermission().catch(() => {})}
+                        onPress={openSystemSettings}
                         style={styles.permissionButton}
                     >
                         <Text style={styles.permissionButtonText}>Grant Permission</Text>

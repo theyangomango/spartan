@@ -455,7 +455,7 @@ async function main() {
 
   await processGlobalDocs();
 
-  const additionalCollections = ["posts", "stories", "workouts", "workoutInvites", "tribes"];
+  const additionalCollections = ["posts", "workouts", "workoutInvites", "tribes"];
   for (const collectionName of additionalCollections) {
     await processCollection(collectionName, { label: collectionName, limit: GENERIC_BATCH_SIZE });
   }
@@ -471,7 +471,6 @@ async function main() {
   }
 
   await processUserSubcollection(userIds, "notifications");
-  await processUserSubcollection(userIds, "pulse");
 
   console.log("✅ Handle switch complete.");
 }

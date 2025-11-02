@@ -1,4 +1,4 @@
-import { getUserStories, getUserMessages } from '../../backend/getUserFeed';
+import { getUserMessages } from '../../backend/getUserFeed';
 import retrieveUserExploreFeed from '../../backend/retrieveUserExploreFeed';
 import readDoc from '../../backend/helper/firebase/readDoc';
 import FastImage from 'react-native-fast-image';
@@ -27,15 +27,11 @@ export async function initUserFeed(UID) {
             ...(userDoc || {}),
             messages: Array.isArray(userDoc?.messages) ? userDoc.messages : [],
             following: Array.isArray(userDoc?.following) ? userDoc.following : [],
-            feedStories: Array.isArray(userDoc?.feedStories) ? userDoc.feedStories : [],
         };
         userDataRef.current = saneUser;
         try { global.userData = { ...(global.userData || {}), ...saneUser }; } catch {}
 
-        // ✅ 1. Prioritize stories (blocking)
-        // await initUserStories(userDoc);
-
-        // ✅ 2. Load the rest in parallel (no posts here!)
+        // ✅ Load the rest in parallel (no posts here!)
         await Promise.all([
             initUserMessages(saneUser),
             initExploreFeedImages(saneUser)
@@ -49,21 +45,7 @@ export async function initUserFeed(UID) {
     }
 }
 
-// // 1️⃣ Stories
-// async function initUserStories(userData) {
-//     const stories = await getUserStories(userData);
-//     setStoriesFn(stories);
-
-//     const preloadImages = stories.storiesData.map(story => ({
-//         uri: story.image,
-//         priority: FastImage.priority.high,
-//         cache: FastImage.cacheControl.immutable,
-//     }));
-
-//     FastImage.preload(preloadImages);
-// }
-
-// 2️⃣ Messages
+// 1️⃣ Messages
 async function initUserMessages(userData) {
     const cached = getMessagesCache();
     if (cached.length > 0) {
@@ -94,7 +76,7 @@ async function initUserMessages(userData) {
     return hydrated;
 }
 
-// 3️⃣ Explore Feed (global.exploreFeedPosts + preload)
+// 2️⃣ Explore Feed (global.exploreFeedPosts + preload)
 async function initExploreFeedImages(userData) {
     const explorePosts = await retrieveUserExploreFeed(userData);
     global.exploreFeedPosts = explorePosts;
@@ -107,7 +89,7 @@ async function initExploreFeedImages(userData) {
     FastImage.preload(preloadImages);
 }
 
-// 4️⃣ Workout UI state
+// 3️⃣ Workout UI state
 function initWorkoutState(userData) {
     if (userData.currentWorkout) {
         global.isCurrentlyWorkingOut = true;

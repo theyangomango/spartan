@@ -398,18 +398,6 @@ async function scrubUserReferences(uid, removedPostIds) {
         touched = true;
       }
 
-      const feedStories = filterUserRefArray(data?.feedStories, uid);
-      if (feedStories.changed) {
-        updates.feedStories = feedStories.value;
-        touched = true;
-      }
-
-      const stories = filterUserRefArray(data?.stories, uid);
-      if (stories.changed) {
-        updates.stories = stories.value;
-        touched = true;
-      }
-
       const messages = filterMessagesArray(data?.messages, uid);
       if (messages.changed) {
         updates.messages = messages.value;

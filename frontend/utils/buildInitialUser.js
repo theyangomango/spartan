@@ -70,15 +70,6 @@ export default function buildInitialUser({
     phoneNumber,
     exploreFeedPosts: [],
     feedPosts: [],
-    feedStories: [
-      {
-        handle,
-        name,
-        pfp: safeImage,
-        stories: [],
-        uid,
-      },
-    ],
     followerCount: 0,
     followers: [],
     following: [],

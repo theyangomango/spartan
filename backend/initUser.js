@@ -18,10 +18,8 @@ export default async function initUser(handle, name = null, phoneNumber) {
         followRequestsIn: [],
         followRequestsOut: [],
         feedPosts: [],
-        feedStories: [],
         progressPhotos: [],
         posts: [],
-        stories: [],
         workouts: [],
         messages: [],
         stats: {

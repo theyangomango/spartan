@@ -12,6 +12,8 @@ import {
     Keyboard,
     InteractionManager,
     ActivityIndicator,
+    AppState,
+    Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
@@ -93,7 +95,7 @@ export default function FoodSearchOverlay({
 
     // ---- Barcode scanner state
     const [scannerVisible, setScannerVisible] = useState(false);
-    const [permission, requestPermission] = Camera.useCameraPermissions();
+    const [permission, requestPermission, getPermission] = Camera.useCameraPermissions();
     const [scanBusy, setScanBusy] = useState(false);
     const [scanError, setScanError] = useState('');
     const [scanLocked, setScanLocked] = useState(false); // throttle duplicate scans
@@ -141,6 +143,45 @@ export default function FoodSearchOverlay({
             return false;
         }
     }, [permission, requestPermission, clearScanRetry]);
+
+    const refreshPermission = useCallback(async () => {
+        try {
+            if (typeof getPermission === 'function') {
+                await getPermission();
+            } else {
+                await requestPermission();
+            }
+        } catch {
+            // ignore refresh errors
+        }
+    }, [getPermission, requestPermission]);
+
+    const openSystemSettings = useCallback(() => {
+        if (Platform.OS === 'ios') {
+            Linking.openURL('app-settings:')
+                .catch(() => {
+                    requestPermission();
+                });
+        } else {
+            Linking.openSettings()
+                .catch(() => {
+                    requestPermission();
+                });
+        }
+    }, [requestPermission]);
+
+    useEffect(() => {
+        if (!scannerVisible) return undefined;
+        const handleAppStateChange = (state) => {
+            if (state === 'active') {
+                refreshPermission();
+            }
+        };
+        const subscription = AppState.addEventListener('change', handleAppStateChange);
+        return () => {
+            subscription?.remove?.();
+        };
+    }, [scannerVisible, refreshPermission]);
 
     useEffect(() => {
         if (!scannerVisible) {
@@ -600,7 +641,7 @@ export default function FoodSearchOverlay({
                             <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'black' }}>
                                 <Text style={{ color: 'white', marginBottom: scaleSize(12), fontSize: scaleSize(14) }}>Camera permission is required</Text>
                                 <Pressable
-                                    onPress={requestPermission}
+                                    onPress={openSystemSettings}
                                     style={{ paddingHorizontal: scaleSize(16), paddingVertical: scaleSize(10), backgroundColor: '#2D92FF', borderRadius: scaleSize(8) }}
                                 >
                                     <Text style={{ color: 'white', fontWeight: '600', fontSize: scaleSize(14) }}>Grant Permission</Text>

@@ -162,33 +162,15 @@ const CreateUsername = ({ navigation, route }) => {
         }
 
         const userDoc = userSnapshot || await readDoc('users', uid).catch(() => ({}));
-        const existingFeedStories = Array.isArray(userDoc?.feedStories) ? userDoc.feedStories : [];
-        const updatedFeedStories = existingFeedStories.length > 0
-          ? existingFeedStories.map((story) => {
-              if (!story || typeof story !== 'object') return story;
-              if (!story.uid || story.uid === uid) {
-                return { ...story, handle: normalized };
-              }
-              return story;
-            })
-          : [{
-              handle: normalized,
-              name: userDoc?.name || 'New Spartan',
-              pfp: userDoc?.pfp || userDoc?.image || '',
-              stories: [],
-              uid,
-            }];
 
         mergedUser = {
           ...(userDoc || {}),
           uid,
           handle: normalized,
-          feedStories: updatedFeedStories,
         };
 
         await updateDoc('users', uid, {
           handle: normalized,
-          feedStories: updatedFeedStories,
         });
 
         const rewrittenAll = (() => {
