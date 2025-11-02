@@ -1,11 +1,77 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
 import scaleSize, { ts } from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../../firebase.config';
 
 export default function DeleteAccount({ navigation }) {
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
+
+  const deleteCallableRef = useRef(null);
+  const deleteInFlightRef = useRef(false);
+
+  const logoutAndReset = useCallback(() => {
+    try {
+      if (global?.logout) {
+        global.logout();
+      } else if (typeof global?.setAuthUid === 'function') {
+        global.setAuthUid(null);
+      }
+    } catch (err) {
+      console.warn('delete-account: local logout failed', err?.message || err);
+    }
+    try {
+      navigation.reset({ index: 0, routes: [{ name: 'SignUp' }] });
+    } catch (err) {
+      console.warn('delete-account: navigation reset failed', err?.message || err);
+    }
+  }, [navigation]);
+
+  const triggerDeletion = useCallback(() => {
+    if (deleteInFlightRef.current) return;
+    deleteInFlightRef.current = true;
+
+    const uid = typeof global?.userData?.uid === 'string' ? global.userData.uid : '';
+    if (!uid) {
+      Alert.alert(
+        'Account unavailable',
+        'We could not determine your account. Please log in again and retry account deletion.'
+      );
+      return;
+    }
+
+    if (!deleteCallableRef.current) {
+      deleteCallableRef.current = httpsCallable(functions, 'deleteOwnAccount');
+    }
+
+    const handleHint = typeof global?.userData?.handle === 'string' ? global.userData.handle : '';
+
+    deleteCallableRef.current({ uid, handle: handleHint })
+      .catch((error) => {
+        console.error('delete-account: remote deletion failed', error);
+        const errorCode = typeof error?.code === 'string' ? error.code : '';
+        if (errorCode.includes('not-found')) {
+          // Treat missing account as already removed; no user alert necessary.
+          return null;
+        }
+        Alert.alert(
+          'Account deletion issue',
+          'We were unable to remove your account automatically. Please contact support so we can finish the deletion.',
+          [
+            { text: 'Contact support', onPress: () => Linking.openURL('mailto:support@thespartan.app?subject=Account%20Deletion%20Issue') },
+            { text: 'OK' },
+          ]
+        );
+        return null;
+      })
+      .finally(() => {
+        deleteInFlightRef.current = false;
+      });
+
+    logoutAndReset();
+  }, [logoutAndReset]);
 
   const confirmDelete = useCallback(() => {
     Alert.alert(
@@ -16,21 +82,11 @@ export default function DeleteAccount({ navigation }) {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => {
-            // Placeholder only — not wired to backend yet
-            Alert.alert(
-              'Not yet available',
-              "Account deletion isn't connected yet. Please check back soon or contact support.",
-              [
-                { text: 'Contact support', onPress: () => Linking.openURL('mailto:support@spartan.app?subject=Account%20Deletion%20Request') },
-                { text: 'OK' },
-              ]
-            );
-          },
+          onPress: triggerDeletion,
         },
       ]
     );
-  }, []);
+  }, [triggerDeletion]);
 
   return (
     <SafeAreaView style={styles.root}>
@@ -67,4 +123,3 @@ const styles = StyleSheet.create({
   deleteBtn: { marginTop: scaleSize(14), backgroundColor: 'rgba(185,28,28,0.18)', borderRadius: scaleSize(12), alignItems: 'center', justifyContent: 'center', paddingVertical: scaleSize(12), borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(185,28,28,0.35)' },
   deleteText: { fontFamily: 'Outfit_700Bold', color: '#FCA5A5' },
 });
-

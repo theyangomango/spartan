@@ -6,6 +6,7 @@ import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
+import { deleteUserAndContentByUid } from "./shared/deleteUserAndContent.js";
 
 setGlobalOptions({
     region: "us-central1",
@@ -1727,4 +1728,59 @@ export const appendWorkoutSets = onCall({ region: "us-central1" }, async (reques
     }
 
     return { ok: true, appended: Object.keys(patch.statsExercises).length };
+});
+
+export const deleteOwnAccount = onCall({ region: "us-central1" }, async (request) => {
+    const uidFromAuth = request.auth?.uid ? String(request.auth.uid).trim() : "";
+    const uidFromPayload = typeof request.data?.uid === "string" ? request.data.uid.trim() : "";
+    const uid = uidFromAuth || uidFromPayload;
+
+    if (!uid) {
+        throw new HttpsError("invalid-argument", "Missing user identifier.");
+    }
+
+    const handleHint = typeof request.data?.handle === "string" ? request.data.handle : "";
+
+    const normalizeHandle = (value) => {
+        if (value === null || value === undefined) return "";
+        const trimmed = String(value).trim();
+        if (!trimmed) return "";
+        const withoutAt = trimmed.startsWith("@") ? trimmed.slice(1) : trimmed;
+        return withoutAt.trim().toLowerCase();
+    };
+
+    let userDocSnap = null;
+
+    if (!uidFromAuth) {
+        if (!handleHint) {
+            throw new HttpsError("invalid-argument", "Handle confirmation required.");
+        }
+
+        try {
+            userDocSnap = await adminDb.doc(`users/${uid}`).get();
+        } catch (error) {
+            logger.error("deleteOwnAccount: failed to load user doc", { uid, error: error?.message || error });
+            throw new HttpsError("internal", "Unable to verify account. Please try again.");
+        }
+
+        if (!userDocSnap.exists) {
+            throw new HttpsError("not-found", "Account not found.");
+        }
+
+        const data = userDocSnap.data() || {};
+        const docHandle = normalizeHandle(data.handle || data.username || data.tag || "");
+        const providedHandle = normalizeHandle(handleHint);
+
+        if (docHandle && providedHandle && docHandle !== providedHandle) {
+            throw new HttpsError("permission-denied", "Handle confirmation failed.");
+        }
+    }
+
+    try {
+        const summary = await deleteUserAndContentByUid(uid, { handleHint, userDocSnap });
+        return { success: true, summary };
+    } catch (error) {
+        logger.error("deleteOwnAccount failure", { uid, error: error?.message || error });
+        throw new HttpsError("internal", "Unable to delete account. Please contact support.");
+    }
 });

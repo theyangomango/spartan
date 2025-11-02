@@ -188,7 +188,8 @@ const summaryOf = (c) => {
     return parts.join(" • ");
 };
 
-function filterBlockedVisibility(list) {
+function filterBlockedVisibility(list, options = {}) {
+    const { respectPrivacy = true } = options || {};
     try {
         const meUid = String(global?.userData?.uid || "");
         if (!meUid) return list;
@@ -219,7 +220,7 @@ function filterBlockedVisibility(list) {
             if (uid === meUid) return true;
             if (myBlockedSet.has(uid)) return false;
             if (theyBlockedMe(u)) return false;
-            if (!canViewerAccessProfile(u, viewerUid, viewerData)) return false;
+            if (respectPrivacy && !canViewerAccessProfile(u, viewerUid, viewerData)) return false;
             return true;
         });
     } catch {
@@ -706,7 +707,7 @@ export default function LeaderboardsSection({ navigation }) {
             if (!memberSet.has(viewerUid) && viewerUid) memberSet.add(viewerUid);
 
             const tribeUsers = all.filter((u) => memberSet.has(String(u?.uid || "")));
-            const visible = filterBlockedVisibility(tribeUsers);
+            const visible = filterBlockedVisibility(tribeUsers, { respectPrivacy: false });
             const tribeScopeKey = String(currentTribe?.id || selectedTribeId || "");
             const tribeSnapshot = tribeSnapshots?.[tribeScopeKey] || {};
             const tribeExerciseSnapshots = tribeSnapshot?.exercises || {};
@@ -913,7 +914,7 @@ export default function LeaderboardsSection({ navigation }) {
             const memberIdsArray = Array.from(memberSet).map((id) => String(id));
 
             const tribeUsers = all.filter((x) => memberSet.has(String(x?.uid || "")));
-            const visible = filterBlockedVisibility(tribeUsers);
+            const visible = filterBlockedVisibility(tribeUsers, { respectPrivacy: false });
             const ranked = computeTribeRanking(visible, comp);
 
             const tribeScopeKey = String(currentTribe?.id || selectedTribeId || "");

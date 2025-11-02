@@ -26,6 +26,7 @@ import theme from "../../theme/mfpDark";
 import scaleSize, { ts } from "../../helper/scaleSize";
 import { withStrongPress, strong as hapticStrong } from "../../utils/haptics";
 import DismissableTextInput from "../common/DismissableTextInput";
+import isThisUser from "../../helper/isThisUser";
 // Single root navigator; no need for StackActions/nested refs here
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -260,10 +261,15 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
     const navigateToUser = useCallback((item) => {
         if (!item) return;
         hapticStrong();
-        navigation?.navigate('ViewProfile', {
-            user: { uid: item.uid, handle: item.handle, name: item.name, pfp: item.pfp },
-            transition: 'slide-from-right',
-        });
+        const rootNav = navigation?.getParent?.("ROOT");
+        const userPayload = { uid: item.uid, handle: item.handle, name: item.name, pfp: item.pfp };
+        if (isThisUser(item)) {
+            if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
+            else navigation?.navigate?.("Profile", { transition: "slide-from-right" });
+            return;
+        }
+        if (rootNav?.navigate) rootNav.navigate("ViewProfile", { user: userPayload, transition: "slide-from-right" });
+        else navigation?.navigate?.("ViewProfile", { user: userPayload, transition: "slide-from-right" });
     }, [navigation]);
 
     const iconRef = useRef(null);

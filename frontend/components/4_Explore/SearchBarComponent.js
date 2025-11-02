@@ -17,6 +17,7 @@ import { debounce } from 'lodash'; // Install lodash if not already installed
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import scaleSize from '../../helper/scaleSize';
 import { strong as hapticStrong } from '../../utils/haptics';
+import isThisUser from '../../helper/isThisUser';
 
 const { width: screenWidth } = Dimensions.get('window');
 // Centralized scaling utility
@@ -82,8 +83,16 @@ const SearchBarComponent = ({ navigation, allUsers, onSearchExpandChange }) => {
     };
 
     const toViewProfile = (user) => {
+        if (!user) return;
         hapticStrong();
-        navigation.navigate('ViewProfile', { user });
+        const rootNav = navigation?.getParent?.('ROOT');
+        if (isThisUser(user)) {
+            if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
+            else navigation.navigate('Profile', { transition: 'slide-from-right' });
+            return;
+        }
+        if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user });
+        else navigation.navigate('ViewProfile', { user });
     };
 
     // Unified handler for the rightmost "X" button

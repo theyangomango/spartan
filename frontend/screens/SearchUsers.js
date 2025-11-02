@@ -9,6 +9,7 @@ import { db } from '../../firebase.config';
 import getAllUsers from '../helper/getAllUsers';
 import theme from '../theme/mfpDark';
 import { strong as hapticStrong } from '../utils/haptics';
+import isThisUser from '../helper/isThisUser';
 
 export default function SearchUsers({ navigation }) {
   const insets = useSafeAreaInsets();
@@ -74,13 +75,13 @@ export default function SearchUsers({ navigation }) {
     if (!item) return;
     hapticStrong();
     const rootNav = navigation?.getParent?.('ROOT');
-    if (item.uid === global?.userData?.uid) {
+    if (isThisUser(item)) {
       if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });
       else navigation.navigate('Profile', { transition: 'slide-from-right' });
-    } else {
-      if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: item });
-      else navigation.navigate('ViewProfile', { user: item });
+      return;
     }
+    if (rootNav?.navigate) rootNav.navigate('ViewProfile', { user: item });
+    else navigation.navigate('ViewProfile', { user: item });
   };
 
   return (

@@ -9,6 +9,7 @@ import { strong as hapticStrong } from "../../../utils/haptics";
 
 import { onHexagonUpdate } from "../../../utils/hexagonEvents";
 import { coercePrivacyMode } from "../../../utils/workoutPrivacy";
+import isThisUser from "../../../helper/isThisUser";
 
 const toDayKey = (d) => {
     try {
@@ -92,14 +93,23 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
         const u = user || global?.userData;
         if (!u) return;
         hapticStrong();
-        navigation.navigate('ViewProfile', {
+        const rootNav = navigation?.getParent?.("ROOT");
+        if (isThisUser(u)) {
+            if (rootNav?.navigate) rootNav.navigate("Profile", { transition: "slide-from-right" });
+            else navigation.navigate("Profile", { transition: "slide-from-right" });
+            return;
+        }
+
+        const payload = {
             user: {
                 handle: u.handle,
                 name: u.name,
                 pfp: u.pfp || u.image,
                 uid: u.uid,
             },
-        });
+        };
+        if (rootNav?.navigate) rootNav.navigate("ViewProfile", payload);
+        else navigation.navigate("ViewProfile", payload);
     }
 
     const effectiveUser = useMemo(() => {
