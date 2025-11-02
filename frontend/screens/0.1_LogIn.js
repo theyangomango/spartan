@@ -92,14 +92,14 @@ const LogIn = ({ navigation }) => {
                     <View style={styles.actions}>
                         {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
                         <GoogleAuthButton
-                            label="Log in with Google"
+                            label="Continue with Google"
                             busyText="Logging in…"
                             onSuccess={handleGoogleSuccess}
                             onError={setErrorMsg}
                             style={styles.googleButton}
                         />
                         <AppleAuthButton
-                            label="Log in with Apple"
+                            label="Continue with Apple"
                             busyText="Logging in…"
                             onSuccess={handleGoogleSuccess}
                             onError={setErrorMsg}

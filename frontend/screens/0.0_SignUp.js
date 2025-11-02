@@ -76,13 +76,13 @@ const SignUp = ({ navigation }) => {
 
                     <View style={styles.actions}>
                         <GoogleAuthButton
-                            label="Sign up with Google"
+                            label="Continue with Google"
                             busyText="Signing up…"
                             onSuccess={handleProviderSuccess}
                             style={styles.googleButton}
                         />
                         <AppleAuthButton
-                            label="Sign up with Apple"
+                            label="Continue with Apple"
                             busyText="Signing up…"
                             onSuccess={handleProviderSuccess}
                             style={styles.appleButton}
