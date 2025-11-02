@@ -41,6 +41,29 @@ const MAX_REVEAL = 72;
 const BACK_START_WIDTH = W * 0.1; // capture left-edge pan for back gesture
 const BACK_COMPLETE_DISTANCE = W * 0.33; // require ~33% drag to pop
 const BACK_COMPLETE_VELOCITY = 1100; // px/s fling threshold
+const MAX_ATTACHMENTS = 8;
+
+const UPLOAD_ERROR_COPY = {
+    UNRESOLVED_ASSET_URI: "We couldn't access that item. Download it to your device first, then try again.",
+    ASSET_READ_FAILED: "We couldn't read the selected file. Please choose a different one.",
+    ASSET_EMPTY: "The selected file appears to be empty. Please pick a different one.",
+};
+
+const resolveUploadErrorMessage = (error) => {
+    const code = typeof error?.code === "string" ? error.code : "";
+    if (code && UPLOAD_ERROR_COPY[code]) return UPLOAD_ERROR_COPY[code];
+    if (typeof error?.message === "string") {
+        const directMessage = Object.entries(UPLOAD_ERROR_COPY).find(([, msg]) => msg === error.message);
+        if (directMessage) return directMessage[1];
+    }
+    if (code && code.startsWith("storage/unauthorized")) {
+        return "You don't have permission to upload to this chat right now.";
+    }
+    if (code && code.startsWith("storage/quota-exceeded")) {
+        return "You've hit the upload limit for now. Please wait a bit and retry.";
+    }
+    return "Something went wrong while sending your message. Please try again.";
+};
 
 const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAvoidingView);
 
@@ -68,6 +91,7 @@ export default function Chat({ navigation, route }) {
     const [text, setText] = useState("");
     const [isFocused, setFocused] = useState(false);
     const [isUploading, setUploading] = useState(false);
+    const [pendingMedia, setPendingMedia] = useState([]);
 
     const [replyDraft, setReplyDraft] = useState(null); // { mid, senderHandle, text, hasMedia }
     const [viewer, setViewer] = useState(null);         // { uri, type, anchor }
@@ -118,69 +142,21 @@ export default function Chat({ navigation, route }) {
         } catch { }
     };
 
-    const sendText = async () => {
-        const t = (text || "").trim();
-        if (!t) return;
+    const sendMessage = async () => {
         if (!chatCid) return;
-        // Clear input immediately and prep UI
-        setText("");
-        setReplyDraft(null);
-        scrollToLatest();
+        const messageText = (text || "").trim();
+        const mediaToSend = pendingMedia;
+        if (!messageText && mediaToSend.length === 0) return;
 
-        await sendMessageV2({
-            cid: chatCid,
-            sender: {
-                uid: currentUid,
-                handle: global.userData.handle,
-                pfp: global.userData.image,
-                name: global.userData.name,
-            },
-            text: t,
-            media: [],
-            replyTo: replyDraft?.mid || null,
-            replyPreview: replyDraft
-                ? {
-                    senderHandle: replyDraft.senderHandle,
-                    text: replyDraft.text || "",
-                    hasMedia: !!replyDraft.hasMedia,
-                }
-                : null,
-        });
-        // Ensure view stays at latest in case list grew
-        scrollToLatest();
-
-    };
-
-    const openPicker = async () => {
-        if (!chatCid) return;
+        setUploading(true);
         try {
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status !== "granted") {
-                Alert.alert(
-                    "Permission needed",
-                    "We need access to your photo library to share media in chat."
-                );
-                return;
-            }
-            const res = await ImagePicker.launchImageLibraryAsync({
-                allowsMultipleSelection: true,
-                mediaTypes: ImagePicker.MediaTypeOptions.All,
-                selectionLimit: 8,
-                quality: 0.9,
-                videoMaxDuration: 60,
-            });
-            if (res.canceled) return;
-
-            setUploading(true);
-            const uploaded = await uploadMediaAssets({
-                cid: chatCid,
-                uid: currentUid,
-                assets: res.assets || [],
-            });
-
-            if (!uploaded.length) {
-                Alert.alert("Nothing to send", "We couldn't attach that selection. Please try again.");
-                return;
+            let uploaded = [];
+            if (mediaToSend.length) {
+                uploaded = await uploadMediaAssets({
+                    cid: chatCid,
+                    uid: currentUid,
+                    assets: mediaToSend,
+                });
             }
 
             await sendMessageV2({
@@ -191,26 +167,87 @@ export default function Chat({ navigation, route }) {
                     pfp: global.userData.image,
                     name: global.userData.name,
                 },
-                text: "",
+                text: messageText,
                 media: uploaded,
+                replyTo: replyDraft?.mid || null,
+                replyPreview: replyDraft
+                    ? {
+                        senderHandle: replyDraft.senderHandle,
+                        text: replyDraft.text || "",
+                        hasMedia: !!replyDraft.hasMedia,
+                    }
+                    : null,
             });
+
+            setText("");
+            setReplyDraft(null);
+            setPendingMedia([]);
             scrollToLatest();
         } catch (err) {
-            console.error("Chat media upload failed", err);
-            const code = err?.code || err?.message || "";
-            let message = "Something went wrong while uploading media. Please try again.";
-            if (code === "UNRESOLVED_ASSET_URI") {
-                message = "We couldn't access that item. Download it to your device first, then try again.";
-            } else if (code === "ASSET_READ_FAILED") {
-                message = "We couldn't read the selected file. Please choose a different one.";
-            } else if (code === "ASSET_EMPTY") {
-                message = "The selected file appears to be empty. Please pick a different one.";
-            }
-            Alert.alert("Upload failed", message);
+            console.error("Chat send failed", err);
+            Alert.alert("Send failed", resolveUploadErrorMessage(err));
         } finally {
             setUploading(false);
         }
     };
+
+    const openPicker = async () => {
+        if (!chatCid) return;
+        if (pendingMedia.length >= MAX_ATTACHMENTS) {
+            Alert.alert("Attachment limit reached", "You can attach up to 8 items per message.");
+            return;
+        }
+
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+            Alert.alert(
+                "Permission needed",
+                "We need access to your photo library to share media in chat."
+            );
+            return;
+        }
+        const res = await ImagePicker.launchImageLibraryAsync({
+            allowsMultipleSelection: true,
+            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            selectionLimit: MAX_ATTACHMENTS,
+            quality: 0.9,
+            videoMaxDuration: 60,
+        });
+        if (res.canceled) return;
+
+        const normalized = (res.assets || []).map((asset, idx) => ({
+            ...asset,
+            localId: `${asset.assetId || asset.id || asset.uri || "asset"}-${Date.now()}-${idx}`,
+        }));
+        if (!normalized.length) return;
+
+        const existingKeys = new Set(
+            pendingMedia.map((item) => item.assetId || item.id || item.uri || item.localId)
+        );
+        const next = [...pendingMedia];
+        let added = 0;
+        for (const asset of normalized) {
+            const key = asset.assetId || asset.id || asset.uri || asset.localId;
+            if (existingKeys.has(key)) continue;
+            if (next.length >= MAX_ATTACHMENTS) break;
+            next.push(asset);
+            existingKeys.add(key);
+            added += 1;
+        }
+
+        if (!added) {
+            Alert.alert("Already added", "Those attachments are already queued or exceed the limit.");
+            return;
+        }
+        if (added < normalized.length) {
+            Alert.alert("Attachment limit", "Some items were skipped because they were duplicates or exceeded the 8 item limit.");
+        }
+        setPendingMedia(next);
+    };
+
+    const removePendingMedia = useCallback((localId) => {
+        setPendingMedia((prev) => prev.filter((item) => item.localId !== localId));
+    }, []);
 
     // Reaction/Reply sheet
     const openActions = (msg, anchorRect) => setSheet({ visible: true, anchor: anchorRect, msg });
@@ -526,13 +563,17 @@ export default function Chat({ navigation, route }) {
                         <MessageInput
                             text={text}
                             setText={setText}
-                            onSend={sendText}
+                            onSend={sendMessage}
                             onOpenPicker={openPicker}
                             isFocused={isFocused}
                             onFocus={() => setFocused(true)}
                             onBlur={() => setFocused(false)}
                             replyDraft={replyDraft}
                             clearReply={() => setReplyDraft(null)}
+                            attachments={pendingMedia}
+                            onRemoveAttachment={removePendingMedia}
+                            canSend={!!text.trim() || pendingMedia.length > 0}
+                            isSending={isUploading}
                         />
 
                         {isUploading && (

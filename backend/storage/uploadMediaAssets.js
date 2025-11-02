@@ -14,13 +14,21 @@ const GLOBAL_OBJ =
         : {};
 
 const FETCHABLE_SCHEMES = ["file://", "content://", "http://", "https://"];
+const DEFAULTS = {
+    imageExt: "jpg",
+    videoExt: "mp4",
+    imageMime: "image/jpeg",
+    videoMime: "video/mp4",
+};
+
+const sanitizeAssets = (assets) =>
+    Array.isArray(assets) ? assets.filter((item) => item && (item.uri || item.assetId || item.id)) : [];
 
 const isFetchableUri = (uri = "") => {
     if (typeof uri !== "string" || !uri) return false;
     return FETCHABLE_SCHEMES.some((scheme) => uri.startsWith(scheme));
 };
 
-// util: extract filename ext from uri
 const extFromUri = (uri = "") => {
     if (typeof uri !== "string" || !uri) return "";
     const q = uri.split("?")[0];
@@ -64,9 +72,7 @@ async function resolveAssetUri(asset) {
 
     for (const candidate of candidates) {
         try {
-            const info = await MediaLibrary.getAssetInfoAsync(candidate, {
-                shouldDownloadFromNetwork: true,
-            });
+            const info = await MediaLibrary.getAssetInfoAsync(candidate, { shouldDownloadFromNetwork: true });
             const localUri = info?.localUri || info?.uri;
             if (isFetchableUri(localUri)) return localUri;
         } catch (error) {
@@ -83,10 +89,10 @@ const guessExtension = (asset, resolvedUri) => {
     const fromName = extFromUri(asset?.fileName);
     const fromResolved = extFromUri(resolvedUri);
     const fromOriginal = extFromUri(asset?.uri);
-    return fromName || fromResolved || fromOriginal || "dat";
+    return fromName || fromResolved || fromOriginal || "";
 };
 
-const base64ToUint8Array = (base64) => {
+const decodeBase64ToUint8 = (base64) => {
     if (typeof GLOBAL_OBJ.atob === "function") {
         const binary = GLOBAL_OBJ.atob(base64);
         const len = binary.length;
@@ -118,7 +124,7 @@ const readAssetBytes = async (uri) => {
             const base64 = await FileSystem.readAsStringAsync(uri, {
                 encoding: FileSystem.EncodingType.Base64,
             });
-            return base64ToUint8Array(base64);
+            return decodeBase64ToUint8(base64);
         } catch (fsError) {
             const err = new Error("Failed to load asset bytes");
             err.code = "ASSET_READ_FAILED";
@@ -128,6 +134,51 @@ const readAssetBytes = async (uri) => {
     }
 };
 
+const safeContentType = (explicit, kind, fileExt) => {
+    if (typeof explicit === "string" && explicit.trim()) return explicit;
+    if (kind === "video") {
+        return fileExt && fileExt !== "mp4" ? `video/${fileExt}` : DEFAULTS.videoMime;
+    }
+    return fileExt && fileExt !== "jpg" ? `image/${fileExt}` : DEFAULTS.imageMime;
+};
+
+const buildStoragePath = ({ cid, uid, timestamp, index, ext }) =>
+    `messages/${cid}/${uid}/${timestamp}_${index}.${ext}`;
+
+async function uploadSingleAsset({ asset, cid, uid, index, timestamp }) {
+    const { type, mimeType, width, height, duration } = asset || {};
+    const resolvedUri = await resolveAssetUri(asset);
+    const kind = type === "video" ? "video" : "image";
+    const extGuess = guessExtension(asset, resolvedUri);
+    const fileExt = extGuess || (kind === "video" ? DEFAULTS.videoExt : DEFAULTS.imageExt);
+    const contentType = safeContentType(mimeType, kind, fileExt);
+    const storagePath = buildStoragePath({ cid, uid, timestamp, index, ext: fileExt });
+
+    const bytes = await readAssetBytes(resolvedUri);
+    if (!bytes || bytes.length === 0) {
+        const err = new Error("Asset payload is empty");
+        err.code = "ASSET_EMPTY";
+        throw err;
+    }
+
+    const storageRef = ref(storage, storagePath);
+    await new Promise((resolve, reject) => {
+        const task = uploadBytesResumable(storageRef, bytes, { contentType });
+        task.on("state_changed", undefined, (error) => reject(error), () => resolve(task.snapshot));
+    });
+
+    const url = await getDownloadURL(storageRef);
+    return {
+        url,
+        storagePath,
+        mimeType: contentType,
+        width: width || null,
+        height: height || null,
+        duration: duration || null,
+        type: kind,
+    };
+}
+
 /**
  * Upload an array of expo-image-picker assets to Firebase Storage.
  * Returns array of media objects:
@@ -136,71 +187,19 @@ const readAssetBytes = async (uri) => {
  *  }
  */
 export default async function uploadMediaAssets({ cid, uid, assets }) {
-    const now = Date.now();
-    const list = Array.isArray(assets) ? assets.filter((a) => a && (a.uri || a.assetId || a.id)) : [];
+    const list = sanitizeAssets(assets);
+    if (!list.length) return [];
 
-    const uploaded = await Promise.all(
-        list.map(async (asset, i) => {
-            const { type, mimeType, width, height, duration } = asset || {};
-            const resolvedUri = await resolveAssetUri(asset);
-            const ext = guessExtension(asset, resolvedUri);
-            const kind = type === "video" ? "video" : "image";
-            const defaultExt = kind === "video" ? "mp4" : "jpg";
-            const fileExt = ext && ext !== "dat" ? ext : defaultExt;
-            const contentType =
-                mimeType ||
-                (kind === "video"
-                    ? `video/${fileExt === "jpg" ? "mp4" : fileExt}`
-                    : `image/${fileExt === "jpg" ? "jpeg" : fileExt}`);
-            const path = `messages/${cid}/${uid}/${now}_${i}.${fileExt}`;
-
-            const fallbackContentType = kind === "video" ? "video/mp4" : "image/jpeg";
-            const safeContentType =
-                typeof contentType === "string" && contentType.trim()
-                    ? contentType
-                    : fallbackContentType;
-            let bytes;
-            try {
-                bytes = await readAssetBytes(resolvedUri);
-            } catch (error) {
-                const err = new Error("Unable to read media file");
-                err.code = "ASSET_READ_FAILED";
-                err.cause = error;
-                throw err;
-            }
-
-            if (!bytes || bytes.length === 0) {
-                const err = new Error("Asset payload is empty");
-                err.code = "ASSET_EMPTY";
-                throw err;
-            }
-
-            const metadata = { contentType: safeContentType };
-            const storageRef = ref(storage, path);
-            await new Promise((resolve, reject) => {
-                const task = uploadBytesResumable(storageRef, bytes, metadata);
-                task.on(
-                    "state_changed",
-                    undefined,
-                    (error) => reject(error),
-                    () => resolve(task.snapshot)
-                );
-            });
-            bytes = null;
-            const url = await getDownloadURL(storageRef);
-
-            return {
-                url,
-                storagePath: path,
-                mimeType: safeContentType,
-                width: width || null,
-                height: height || null,
-                duration: duration || null,
-                type: kind, // 'image' | 'video'
-                // thumbnailUrl: ... // optional: generate via Cloud Function or client-side later
-            };
-        })
+    const timestamp = Date.now();
+    return Promise.all(
+        list.map((asset, index) =>
+            uploadSingleAsset({
+                asset,
+                cid,
+                uid,
+                index,
+                timestamp,
+            })
+        )
     );
-
-    return uploaded;
 }
