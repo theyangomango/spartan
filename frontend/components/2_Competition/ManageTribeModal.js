@@ -1,5 +1,5 @@
 // components/2_Competition/ManageTribeModal.jsx
-import React, { memo } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Modal, View, StyleSheet, Pressable, Text, TextInput } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
@@ -16,6 +16,54 @@ function ManageTribeModal({
     onRename,
     onLeave,
 }) {
+    const [copyFeedback, setCopyFeedback] = useState(false);
+    const copyFeedbackTimeoutRef = useRef(null);
+
+    const clearCopyFeedback = useCallback(() => {
+        if (copyFeedbackTimeoutRef.current) {
+            clearTimeout(copyFeedbackTimeoutRef.current);
+            copyFeedbackTimeoutRef.current = null;
+        }
+    }, []);
+
+    const handleCopyCode = useCallback(() => {
+        const code = (() => {
+            if (!tribe?.code && tribe?.code !== 0) return "";
+            if (typeof tribe.code === "string") return tribe.code.trim();
+            return String(tribe.code ?? "").trim();
+        })();
+
+        if (!code) return;
+
+        try {
+            const { setStringAsync } = require("expo-clipboard");
+            setStringAsync(code).catch(() => {});
+        } catch { }
+
+        setCopyFeedback(true);
+        clearCopyFeedback();
+        copyFeedbackTimeoutRef.current = setTimeout(() => {
+            setCopyFeedback(false);
+            copyFeedbackTimeoutRef.current = null;
+        }, 2000);
+    }, [tribe?.code, clearCopyFeedback]);
+
+    useEffect(() => {
+        if (!visible) {
+            setCopyFeedback(false);
+            clearCopyFeedback();
+        }
+    }, [visible, clearCopyFeedback]);
+
+    useEffect(() => {
+        setCopyFeedback(false);
+        clearCopyFeedback();
+    }, [tribe?.code, clearCopyFeedback]);
+
+    useEffect(() => () => {
+        clearCopyFeedback();
+    }, [clearCopyFeedback]);
+
     return (
         <Modal
             visible={visible}
@@ -34,9 +82,20 @@ function ManageTribeModal({
                             <Text style={styles.metaText}>
                                 Name: <Text style={{ fontFamily: "Outfit_600SemiBold" }}>{tribe.name}</Text>
                             </Text>
-                            <Text style={styles.metaText}>
-                                Code: <Text style={{ fontFamily: "Outfit_600SemiBold" }}>{tribe.code}</Text>
-                            </Text>
+                            <View style={styles.codeRow}>
+                                <Text style={[styles.metaText, styles.codeLabel]}>
+                                    Code: <Text style={styles.codeValue}>{tribe.code}</Text>
+                                </Text>
+                                <RNBounceable
+                                    style={styles.copyButton}
+                                    onPress={withStrongPress(handleCopyCode)}
+                                >
+                                    <Text style={styles.copyButtonText}>{copyFeedback ? "Copied!" : "Copy"}</Text>
+                                </RNBounceable>
+                            </View>
+                            {copyFeedback ? (
+                                <Text style={styles.copyHint}>Code copied to clipboard</Text>
+                            ) : null}
                             <View style={{ height: scaleSize(10) }} />
                             {isOwner && (
                                 <>
@@ -94,6 +153,38 @@ const styles = StyleSheet.create({
     metaText: {
         fontFamily: "Outfit_500Medium",
         color: "#EAEAEA",
+        marginBottom: scaleSize(6),
+    },
+    codeRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: scaleSize(6),
+    },
+    codeLabel: {
+        marginBottom: 0,
+        marginRight: scaleSize(10),
+        flexShrink: 1,
+    },
+    codeValue: {
+        fontFamily: "Outfit_600SemiBold",
+    },
+    copyButton: {
+        backgroundColor: "#2D9EFF",
+        paddingVertical: scaleSize(6),
+        paddingHorizontal: scaleSize(12),
+        borderRadius: scaleSize(8),
+        marginLeft: scaleSize(8),
+        flexShrink: 0,
+    },
+    copyButtonText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(12),
+        color: "#fff",
+    },
+    copyHint: {
+        fontFamily: "Outfit_500Medium",
+        color: "#A5AEC0",
+        fontSize: scaleSize(12),
         marginBottom: scaleSize(6),
     },
     input: {

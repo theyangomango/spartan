@@ -1,0 +1,31 @@
+diff --git a/node_modules/@react-native-async-storage/async-storage/ios/RNCAsyncStorage.mm b/node_modules/@react-native-async-storage/async-storage/ios/RNCAsyncStorage.mm
+index 6b81187..ef18e58 100644
+--- a/node_modules/@react-native-async-storage/async-storage/ios/RNCAsyncStorage.mm
++++ b/node_modules/@react-native-async-storage/async-storage/ios/RNCAsyncStorage.mm
+@@ -563,10 +563,25 @@ - (NSDictionary *)_writeManifest:(NSMutableArray<NSDictionary *> **)errors
+ {
+     NSError *error;
+     NSString *serialized = RCTJSONStringify(_manifest, &error);
+-    [serialized writeToFile:RCTCreateStorageDirectoryPath(RCTGetManifestFilePath())
++    NSString *manifestPath = RCTCreateStorageDirectoryPath(RCTGetManifestFilePath());
++    [serialized writeToFile:manifestPath
+                  atomically:YES
+                    encoding:NSUTF8StringEncoding
+                       error:&error];
++    if (error && error.domain == NSCocoaErrorDomain && error.code == NSFileNoSuchFileError) {
++        // Directory tree is missing (can happen on fresh installs), recreate it and retry.
++        NSError *directoryError = nil;
++        _createStorageDirectory(RCTGetStorageDirectory(), &directoryError);
++        if (!directoryError) {
++            error = nil;
++            [serialized writeToFile:manifestPath
++                         atomically:YES
++                           encoding:NSUTF8StringEncoding
++                              error:&error];
++        } else {
++            error = directoryError;
++        }
++    }
+     NSDictionary *errorOut;
+     if (error) {
+         errorOut = RCTMakeError(@"Failed to write manifest file.", error, nil);
