@@ -110,11 +110,10 @@ const buildMetricDeltaDisplay = (delta, unitLabel, formatter = formatVolumeValue
     const sign = numericDelta > 0 ? "+" : "-";
     const icon = numericDelta > 0 ? "arrow-up" : "arrow-down";
     const color = numericDelta > 0 ? "#65F2B6" : "#FF6B6B";
-    const suffix = unitLabel ? ` ${unitLabel}` : "";
     return {
         icon,
         color,
-        text: `${sign}${formattedValue}${suffix}`,
+        text: `${sign}${formattedValue}`,
     };
 };
 
