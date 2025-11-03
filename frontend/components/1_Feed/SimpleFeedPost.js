@@ -503,6 +503,7 @@ const SimpleFeedPost = ({
             targetId,
             ownerUid: postOwnerUid,
             ownerHandle: reportHandle,
+            source: "feed-post",
             metadata: {
                 caption,
                 workoutTitle: workoutName,

@@ -176,6 +176,7 @@ export default function ViewProfile({ navigation, route }) {
             targetId: reportProfileUid || `profile-${Date.now()}`,
             ownerUid: reportProfileUid,
             ownerHandle: profileHandleNormalized,
+            source: "profile-view",
             metadata: {
                 displayName: profileDisplayName,
             },

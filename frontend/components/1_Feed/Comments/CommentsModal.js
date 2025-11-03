@@ -142,6 +142,7 @@ export default function CommentsModal({
             targetId,
             ownerUid: comment?.uid ? String(comment.uid) : '',
             ownerHandle: comment?.handle || '',
+            source: 'feed-comment',
             metadata: {
                 postId: postData?.pid || '',
                 commentIndex: meta.index ?? -1,

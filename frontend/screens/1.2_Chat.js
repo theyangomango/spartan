@@ -389,6 +389,7 @@ export default function Chat({ navigation, route }) {
                 targetId: `${chatCid || "chat"}:${messageId}`,
                 ownerUid: sheetSenderUid ? String(sheetSenderUid) : "",
                 ownerHandle: senderHandle,
+                source: "direct-message",
                 metadata: {
                     chatId: chatCid || "",
                     text: message?.text || "",

@@ -1671,6 +1671,71 @@ function toDayKey(input) {
     }
 }
 
+const ALLOWED_REPORT_REASONS = new Set([
+    "spam",
+    "harassment",
+    "nudity",
+    "self-harm",
+    "misinformation",
+    "other",
+]);
+
+const REPORT_DETAILS_MAX_LENGTH = 1000;
+const REPORT_METADATA_VALUE_MAX = 300;
+
+function sanitizeString(value, max = 255) {
+    if (value === null || value === undefined) return "";
+    const trimmed = String(value).trim();
+    if (!trimmed) return "";
+    if (trimmed.length <= max) return trimmed;
+    return trimmed.slice(0, max);
+}
+
+function coerceReason(reasonRaw) {
+    const sanitized = sanitizeString(reasonRaw, 60).toLowerCase();
+    if (!sanitized) return "";
+    if (ALLOWED_REPORT_REASONS.has(sanitized)) return sanitized;
+    return sanitized.slice(0, 60);
+}
+
+function sanitizeMetadata(metadataRaw) {
+    if (!metadataRaw || typeof metadataRaw !== "object") return {};
+    const out = {};
+    const entries = Object.entries(metadataRaw).slice(0, 12);
+    entries.forEach(([key, value], index) => {
+        if (!key) return;
+        const safeKeyBase = sanitizeString(key, 40) || `field_${index}`;
+        const safeKey = safeKeyBase.replace(/[^a-zA-Z0-9_.-]/g, "_");
+        if (value === null || value === undefined) return;
+        if (typeof value === "string") {
+            out[safeKey] = sanitizeString(value, REPORT_METADATA_VALUE_MAX);
+        } else if (typeof value === "number" || typeof value === "boolean") {
+            out[safeKey] = value;
+        } else {
+            try {
+                const serialized = JSON.stringify(value);
+                out[safeKey] = sanitizeString(serialized, REPORT_METADATA_VALUE_MAX);
+            } catch {
+                // ignore non-serializable entries
+            }
+        }
+    });
+    return out;
+}
+
+function sanitizeClientInfo(info) {
+    if (!info || typeof info !== "object") return {};
+    const out = {};
+    if (info.platform) out.platform = sanitizeString(info.platform, 32).toLowerCase();
+    if (info.appVersion) out.appVersion = sanitizeString(info.appVersion, 32);
+    if (info.buildNumber) out.buildNumber = sanitizeString(info.buildNumber, 32);
+    if (info.deviceName) out.deviceName = sanitizeString(info.deviceName, 64);
+    if (info.locale) out.locale = sanitizeString(info.locale, 32);
+    if (info.appOwnership) out.appOwnership = sanitizeString(info.appOwnership, 16);
+    out.receivedAt = Date.now();
+    return out;
+}
+
 export const appendWorkoutSets = onCall({ region: "us-central1" }, async (request) => {
     const authUid = request?.auth?.uid || null;
     if (!authUid) throw new HttpsError("unauthenticated", "Must be signed in.");
@@ -1728,6 +1793,67 @@ export const appendWorkoutSets = onCall({ region: "us-central1" }, async (reques
     }
 
     return { ok: true, appended: Object.keys(patch.statsExercises).length };
+});
+
+export const submitModerationReport = onCall({ region: "us-central1" }, async (request) => {
+    const { reason, details = "", context = {}, clientInfo = {}, reporterUid: reporterUidRaw } = request.data || {};
+
+    const reporterUid = request.auth?.uid ? String(request.auth.uid).trim() : sanitizeString(reporterUidRaw, 64);
+    if (!reporterUid) {
+        throw new HttpsError("unauthenticated", "Reporter identity required.");
+    }
+
+    const reasonClean = coerceReason(reason);
+    if (!reasonClean) {
+        throw new HttpsError("invalid-argument", "Missing or invalid report reason.");
+    }
+
+    const targetType = sanitizeString(context?.targetType, 64).toLowerCase();
+    const targetId = sanitizeString(context?.targetId, 128);
+    if (!targetType || !targetId) {
+        throw new HttpsError("invalid-argument", "Missing target information.");
+    }
+
+    const ownerUid = sanitizeString(context?.ownerUid, 64);
+    const ownerHandle = sanitizeString(context?.ownerHandle, 80);
+    const source = sanitizeString(context?.source, 64);
+    const metadata = sanitizeMetadata(context?.metadata);
+    const detailClean = sanitizeString(details, REPORT_DETAILS_MAX_LENGTH);
+
+    let reporterHandle = "";
+    try {
+        const reporterSnap = await adminDb.doc(`users/${reporterUid}`).get();
+        if (reporterSnap.exists) {
+            const data = reporterSnap.data() || {};
+            reporterHandle = sanitizeString(data.handle || data.username || data.tag || "", 80);
+        }
+    } catch (error) {
+        logger.warn("submitModerationReport: failed to load reporter profile", error?.message || error);
+    }
+
+    const doc = {
+        reporterUid,
+        reporterHandle,
+        targetType,
+        targetId,
+        ownerUid,
+        ownerHandle,
+        source,
+        reason: reasonClean,
+        details: detailClean,
+        metadata,
+        clientInfo: sanitizeClientInfo(clientInfo),
+        status: "pending",
+        createdAt: FieldValue.serverTimestamp(),
+        createdAtMs: Date.now(),
+        lastUpdatedAt: FieldValue.serverTimestamp(),
+    };
+
+    const docRef = await adminDb.collection("moderationReports").add(doc);
+
+    logger.info("submitModerationReport: stored report", { reporterUid, reportId: docRef.id, targetType, targetId });
+
+    return { ok: true, reportId: docRef.id };
 });
 
 export const deleteOwnAccount = onCall({ region: "us-central1" }, async (request) => {

@@ -92,11 +92,9 @@ export default function ReportContentSheet({
     try {
       const fn = typeof onSubmit === 'function' ? onSubmit : reportContentHelper;
       const payload = {
-        ...context,
+        context,
         reason,
         details: details.trim(),
-        submittedAt: Date.now(),
-        reporterUid: String(global?.userData?.uid || ''),
       };
       const result = await fn(payload);
       if (result?.ok !== false) {
