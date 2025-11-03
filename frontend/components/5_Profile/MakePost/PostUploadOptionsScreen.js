@@ -97,7 +97,12 @@ export default function PostOptionsScreen({ navigation, route }) {
     }, [route?.params?.images, isEditing, editingMediaEntries]);
     const workoutParam = route?.params?.workout;
 
-    const [caption, setCaption] = useState(() => (isEditing && typeof editingPost?.caption === 'string') ? editingPost.caption : '');
+    const initialCaption = (isEditing && editingWorkoutName)
+        ? ''
+        : (isEditing && typeof editingPost?.caption === 'string')
+            ? editingPost.caption
+            : '';
+    const [caption, setCaption] = useState(initialCaption);
     const [isSharing, setIsSharing] = useState(false);
     const [honestyVisible, setHonestyVisible] = useState(false);
     const [mediaIndex, setMediaIndex] = useState(0);
@@ -564,7 +569,7 @@ export default function PostOptionsScreen({ navigation, route }) {
     }
 
     const shareDisabled = (!isEditing && caption.trim().length === 0) || isSharing;
-    const captionPlaceholder = editingWorkoutName ? "Add a caption (optional)" : "What's popping?";
+    const captionPlaceholder = editingWorkoutName ? "What's popping (optional)" : "What's popping?";
 
     return (
         <View style={styles.main_ctnr}>
