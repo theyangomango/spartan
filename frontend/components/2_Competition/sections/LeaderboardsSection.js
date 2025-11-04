@@ -38,7 +38,7 @@ import { subscribeUserData, emitUserDataUpdate } from "../../../utils/userDataEv
 import { canViewerAccessProfile } from "../../../utils/workoutPrivacy";
 import { withStrongPress } from "../../../utils/haptics";
 import { getLeaderboardValue } from "../../../helper/getLeaderboardValue";
-import { coerceUid, ensureUidArray } from "../../../utils/userRefs";
+import { coerceUid, ensureUidArray, getViewerUid } from "../../../utils/userRefs";
 
 import Podium, { PODIUM_HEIGHT } from "../Podium";
 import LeaderboardPanel from "../LeaderboardPanel";
@@ -189,7 +189,7 @@ const summaryOf = (c) => {
 function filterBlockedVisibility(list, options = {}) {
     const { respectPrivacy = true } = options || {};
     try {
-        const meUid = String(global?.userData?.uid || "");
+        const meUid = getViewerUid();
         if (!meUid) return list;
         const myBlocked = ensureUidArray(global?.userData?.blockedUidList || global?.userData?.blocked);
         const myBlockedSet = new Set(myBlocked);
@@ -200,7 +200,7 @@ function filterBlockedVisibility(list, options = {}) {
                 return null;
             }
         })();
-        const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
+        const viewerUid = viewerData?.uid ? String(viewerData.uid) : meUid;
         const theyBlockedMe = (u) => {
             const theirs = ensureUidArray(u?.blockedUidList || u?.blocked);
             return theirs.includes(meUid);
@@ -680,12 +680,7 @@ export default function LeaderboardsSection({ navigation }) {
         const snapshotId = snapshotMeta?.snapshotId || null;
         const globalSnapshotId = globalSnapshot?.snapshotId || null;
 
-        let viewerUid = "";
-        try {
-            viewerUid = String(global?.userData?.uid || "");
-        } catch {
-            viewerUid = "";
-        }
+        const viewerUid = getViewerUid();
 
         const followingSet = new Set();
         if (viewerUid) followingSet.add(viewerUid);

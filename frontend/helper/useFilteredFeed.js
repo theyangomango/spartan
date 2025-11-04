@@ -11,7 +11,7 @@ import {
     doc,
 } from 'firebase/firestore';
 import { db } from '../../firebase.config';
-import { coerceUid, ensureUidArray } from '../utils/userRefs';
+import { coerceUid, ensureUidArray, getViewerUid } from '../utils/userRefs';
 
 const PAGE_SIZE_DEFAULT = 50;
 const FEED_CACHE_PREFIX = 'feed-cache:v2:';
@@ -124,7 +124,10 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
     const [hydratedFromCache, setHydratedFromCache] = useState(false);
     const [initialSyncComplete, setInitialSyncComplete] = useState(false);
 
-    const myUid = global?.userData?.uid ? String(global.userData.uid) : null;
+    const myUid = (() => {
+        const resolved = getViewerUid();
+        return resolved ? resolved : null;
+    })();
 
     const filtersRef = useRef({ allowed: new Set(), excluded: new Set() });
     const firstPageLastDocRef = useRef(null);
@@ -170,6 +173,9 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
         if (trimmed.length === 0) return;
 
         const serialized = JSON.stringify(trimmed, cacheReplacer);
+        if (typeof serialized !== 'string') return;
+        const key = cacheKeyRef.current;
+        if (typeof key !== 'string' || key.length === 0) return;
 
         if (cacheWriteTimeoutRef.current) {
             clearTimeout(cacheWriteTimeoutRef.current);
@@ -177,8 +183,8 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
 
         cacheWriteTimeoutRef.current = setTimeout(() => {
             cacheWriteTimeoutRef.current = null;
-            AsyncStorage.setItem(cacheKeyRef.current, serialized).catch((error) => {
-                console.warn('useFilteredFeed: failed to persist cache', error);
+            AsyncStorage.multiSet([[key, serialized]]).catch((error) => {
+                console.warn('useFilteredFeed: failed to persist cache', { key, error });
             });
         }, CACHE_WRITE_DELAY);
     }, []);

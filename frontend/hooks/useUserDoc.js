@@ -74,6 +74,7 @@ export default function useUserDoc(uid, options = {}) {
     useEffect(() => {
         if (uid) {
             global.userData = { ...(global.userData || {}), uid, id: uid };
+            try { global.__lastKnownUid = uid; } catch {}
         }
     }, [uid]);
 
@@ -98,6 +99,7 @@ export default function useUserDoc(uid, options = {}) {
             // keep global in sync for legacy consumers (full object)
             const mergedForGlobal = { ...(global.userData || {}), ...dataForUser, uid, id: uid };
             global.userData = mergedForGlobal;
+            try { global.__lastKnownUid = uid; } catch {}
             emitUserDataUpdate();
 
             // apply ignoreKeys to reduce needless rerenders in interested screens

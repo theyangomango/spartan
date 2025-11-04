@@ -32,6 +32,8 @@ import { strong as hapticStrong } from "../../utils/haptics";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../../firebase.config";
 import useReportContentSheet from "../../hooks/useReportContentSheet";
+import { getViewerUid } from "../../utils/userRefs";
+import { subscribeUserData } from "../../utils/userDataEvents";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -715,12 +717,14 @@ const SimpleFeedPost = ({
     const likeColor = isLiked ? "#FE5555" : theme.textPrimary;
     const keyExtractor = useCallback((item, idx) => `${item?.uri || 'media'}-${idx}`, []);
 
-    const viewerUid = useMemo(() => {
-        try {
-            return global?.userData?.uid ? String(global.userData.uid) : '';
-        } catch {
-            return '';
-        }
+    const [viewerUid, setViewerUid] = useState(() => getViewerUid());
+    useEffect(() => {
+        return subscribeUserData(() => {
+            setViewerUid((prev) => {
+                const next = getViewerUid();
+                return prev === next ? prev : next;
+            });
+        });
     }, []);
 
     const postOwnerUid = useMemo(() => {

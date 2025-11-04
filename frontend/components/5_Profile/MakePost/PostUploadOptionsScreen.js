@@ -17,6 +17,8 @@ import PostHonestyModal from "./PostHonestyModal";
 import theme from '../../../theme/mfpDark';
 import { withStrongPress } from "../../../utils/haptics";
 import { resolvePhotoURL } from "../../../utils/profilePhoto";
+import { getViewerUid } from "../../../utils/userRefs";
+import { subscribeUserData } from "../../../utils/userDataEvents";
 
 import DismissableTextInput from "../../common/DismissableTextInput";
 
@@ -119,6 +121,16 @@ export default function PostOptionsScreen({ navigation, route }) {
     const measureRequestRef = useRef(null);
     const [lineLimitReached, setLineLimitReached] = useState(false);
     const compressionCacheRef = useRef(new Map()); // reuse compressed results across retries
+    const [viewerUid, setViewerUid] = useState(() => getViewerUid());
+
+    useEffect(() => {
+        return subscribeUserData(() => {
+            setViewerUid((prev) => {
+                const next = getViewerUid();
+                return prev === next ? prev : next;
+            });
+        });
+    }, []);
 
     useEffect(() => {
         setSelectedImages(routeImages);
@@ -520,7 +532,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     });
 
                 } else {
-                    const uid = global?.userData?.uid;
+                    const uid = viewerUid || getViewerUid();
                     if (!uid) throw new Error('Missing user UID for createPost');
 
                     await createPost(

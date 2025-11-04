@@ -1,3 +1,5 @@
+import { auth } from "../../firebase.config";
+
 const UID_KEYS = [
     "uid",
     "id",
@@ -60,9 +62,42 @@ export const mergeUidSets = (base = [], incoming = []) => {
     return Array.from(set);
 };
 
+export const getViewerUid = () => {
+    try {
+        const direct = global?.userData?.uid || global?.userData?.id;
+        if (direct) {
+            const str = String(direct).trim();
+            if (str) {
+                try { global.__lastKnownUid = str; } catch { }
+                return str;
+            }
+        }
+    } catch { }
+
+    try {
+        const cached = global?.__lastKnownUid;
+        if (cached) {
+            const str = String(cached).trim();
+            if (str) return str;
+        }
+    } catch { }
+
+    const authUid = auth?.currentUser?.uid;
+    if (authUid) {
+        const str = String(authUid).trim();
+        if (str) {
+            try { global.__lastKnownUid = str; } catch { }
+            return str;
+        }
+    }
+
+    return "";
+};
+
 export default {
     coerceUid,
     normalizeUserRef,
     ensureUidArray,
     mergeUidSets,
+    getViewerUid,
 };

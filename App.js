@@ -394,6 +394,7 @@ export default function App() {
                 emitUserDataUpdate();
             } catch { }
             try { delete global.__userDocHydrated; } catch { }
+            try { delete global.__lastKnownUid; } catch { }
             prevMessagesSigRef.current = '';
             resetMessagesState();
             stopNotificationsListener();
@@ -420,6 +421,7 @@ export default function App() {
             }
 
             uidRef.current = nextUid;
+            try { global.__lastKnownUid = nextUid; } catch { }
             try { delete global.__userDocHydrated; } catch { }
             prevMessagesSigRef.current = '';
             setIsAuthenticated(true);
@@ -862,6 +864,7 @@ export default function App() {
 
             try {
                 global.userData = mergedData;
+                global.__lastKnownUid = uid;
                 emitUserDataUpdate();
             } catch { }
             setUserReady(true);
