@@ -15,14 +15,20 @@ export default function PrivateProfileInfo({ navigation }) {
   const goBack = () => navigation.goBack();
 
   useEffect(() => {
-    try { setIsPrivate(Boolean(user?.settings?.profilePrivate)); } catch {}
-  }, [user?.settings?.profilePrivate]);
+    try {
+      const next = user?.isPrivate ?? user?.settings?.profilePrivate ?? global?.userData?.settings?.profilePrivate;
+      setIsPrivate(Boolean(next));
+    } catch {}
+  }, [user?.isPrivate, user?.settings?.profilePrivate]);
 
   const onToggle = useCallback(async (next) => {
     setIsPrivate(next);
     try {
       if (!uid) return;
-      await fsUpdateDoc(doc(db, 'users', uid), { 'settings.profilePrivate': next });
+      await Promise.all([
+        fsUpdateDoc(doc(db, 'usersPrivate', uid), { 'settings.profilePrivate': next }),
+        fsUpdateDoc(doc(db, 'usersPublic', uid), { isPrivate: next }),
+      ]);
       try { global.userData = { ...(global.userData || {}), settings: { ...(global.userData?.settings || {}), profilePrivate: next } }; } catch {}
 
       if (!next) {

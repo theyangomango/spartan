@@ -2,7 +2,7 @@ import arrayAppend from "../helper/firebase/arrayAppend";
 import arrayErase from "../helper/firebase/arrayErase";
 import incrementDocValue from "../helper/firebase/incrementDocValue";
 import sendNotification from "../sendNotification";
-import readDoc from "../helper/firebase/readDoc";
+import readUserProfiles from "../helper/firebase/readUserProfiles";
 import { normalizeUserRef, ensureUidArray } from "../helper/userRefs";
 
 export default async function followUser(this_user, user) {
@@ -13,33 +13,29 @@ export default async function followUser(this_user, user) {
         return { status: 'error', reason: 'missing-uid' };
     }
 
-    let targetDoc = null;
-    let meDoc = null;
-    try { targetDoc = await readDoc('users', otherRef.uid); }
-    catch { targetDoc = null; }
-    try { meDoc = await readDoc('users', meRef.uid); }
-    catch { meDoc = null; }
+    const [{ publicProfile: targetPublic, privateProfile: targetPrivate }, { publicProfile: mePublic, privateProfile: mePrivate }] = await Promise.all([
+        readUserProfiles(otherRef.uid),
+        readUserProfiles(meRef.uid),
+    ]);
 
-    const targetBlocked = ensureUidArray(targetDoc?.blockedUidList || targetDoc?.blocked);
-    const meBlocked = ensureUidArray(meDoc?.blockedUidList || meDoc?.blocked);
-    const targetBlockedBy = ensureUidArray(targetDoc?.blockedByUidList || targetDoc?.blockedBy);
+    const targetBlocked = ensureUidArray(targetPrivate?.blockedUidList || targetPrivate?.blocked);
+    const meBlocked = ensureUidArray(mePrivate?.blockedUidList || mePrivate?.blocked);
+    const targetBlockedBy = ensureUidArray(targetPrivate?.blockedByUidList || targetPrivate?.blockedBy);
 
     if (targetBlocked.includes(meRef.uid) || meBlocked.includes(otherRef.uid) || targetBlockedBy.includes(meRef.uid)) {
         return { status: "error", reason: "blocked" };
     }
 
-    const isPrivate = !!targetDoc?.settings?.profilePrivate;
-    const alreadyFollower = Array.isArray(targetDoc?.followers)
-        ? targetDoc.followers.some((entry) => String(entry?.uid || entry?.id || entry) === meRef.uid)
-        : false;
-    const alreadyRequested = Array.isArray(targetDoc?.followRequestsIn)
-        ? targetDoc.followRequestsIn.some((entry) => String(entry?.uid || entry?.id || entry) === meRef.uid)
-        : false;
+    const isPrivate = !!targetPublic?.isPrivate;
+    const followersArr = Array.isArray(targetPublic?.followers) ? targetPublic.followers : [];
+    const followRequestsIn = Array.isArray(targetPrivate?.followRequestsIn) ? targetPrivate.followRequestsIn : [];
+    const alreadyFollower = followersArr.some((entry) => String(entry?.uid || entry?.id || entry) === meRef.uid);
+    const alreadyRequested = followRequestsIn.some((entry) => String(entry?.uid || entry?.id || entry) === meRef.uid);
 
     if (isPrivate && !alreadyFollower) {
         if (!alreadyRequested) {
-            try { await arrayAppend('users', otherRef.uid, 'followRequestsIn', meRef); } catch {}
-            try { await arrayAppend('users', meRef.uid, 'followRequestsOut', otherRef); } catch {}
+            try { await arrayAppend('usersPrivate', otherRef.uid, 'followRequestsIn', meRef); } catch {}
+            try { await arrayAppend('usersPrivate', meRef.uid, 'followRequestsOut', otherRef); } catch {}
 
             try {
                 if (meRef.uid !== otherRef.uid) {
@@ -63,15 +59,15 @@ export default async function followUser(this_user, user) {
     }
 
     // Ensure any stale requests are cleared before finalizing follow
-    try { await arrayErase('users', otherRef.uid, 'followRequestsIn', meRef); } catch {}
-    try { await arrayErase('users', meRef.uid, 'followRequestsOut', otherRef); } catch {}
+    try { await arrayErase('usersPrivate', otherRef.uid, 'followRequestsIn', meRef); } catch {}
+    try { await arrayErase('usersPrivate', meRef.uid, 'followRequestsOut', otherRef); } catch {}
 
     // Append normalized entries; arrayUnion prevents duplicates of the same shape
-    try { await arrayAppend('users', meRef.uid, 'following', otherRef); } catch {}
-    try { await incrementDocValue('users', meRef.uid, 'followingCount'); } catch {}
+    try { await arrayAppend('usersPublic', meRef.uid, 'following', otherRef); } catch {}
+    try { await incrementDocValue('usersPublic', meRef.uid, 'followingCount'); } catch {}
 
-    try { await arrayAppend('users', otherRef.uid, 'followers', meRef); } catch {}
-    try { await incrementDocValue('users', otherRef.uid, 'followerCount'); } catch {}
+    try { await arrayAppend('usersPublic', otherRef.uid, 'followers', meRef); } catch {}
+    try { await incrementDocValue('usersPublic', otherRef.uid, 'followerCount'); } catch {}
 
     try {
         if (meRef.uid && meRef.uid !== otherRef.uid) {

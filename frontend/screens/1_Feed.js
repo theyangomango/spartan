@@ -136,6 +136,7 @@ export default function Feed({ navigation, route }) {
     });
 
     const flatListRef = useRef(null);
+    const refreshTimeoutRef = useRef(null);
     const [refreshing, setRefreshing] = useState(false);
     const [activePostIndex, setActivePostIndex] = useState(-1);
     const [activeSheet, setActiveSheet] = useState(null); // 'comments' | 'share' | null
@@ -195,28 +196,44 @@ export default function Feed({ navigation, route }) {
     const showFeedSkeleton = (!hydratedFromCache || !initialSyncComplete)
         && (!Array.isArray(listData) || listData.length === 0);
 
+    const hasPosts = Array.isArray(listData) && listData.length > 0;
+
+    useEffect(() => {
+        if (hasPosts) return;
+        try {
+            flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+        } catch { }
+    }, [hasPosts]);
+
+    useEffect(() => () => {
+        if (refreshTimeoutRef.current) {
+            clearTimeout(refreshTimeoutRef.current);
+            refreshTimeoutRef.current = null;
+        }
+    }, []);
+
+    const listFooter = hasPosts && loadingMorePosts ? (
+        <View style={styles.listFooter}>
+            <ActivityIndicator size="small" color={theme.textSecondary} />
+        </View>
+    ) : null;
+
     const handleEndReached = useCallback(() => {
         if (!hasMorePosts || loadingMorePosts) return;
         loadMorePosts();
     }, [hasMorePosts, loadingMorePosts, loadMorePosts]);
 
-    const listFooter = useMemo(() => {
-        if (showFeedSkeleton || !loadingMorePosts) return null;
-        return (
-            <View style={styles.listFooter}>
-                <ActivityIndicator size="small" color={theme.textSecondary} />
-            </View>
-        );
-    }, [loadingMorePosts, showFeedSkeleton]);
-
-    const onRefresh = useCallback(async () => {
-        try {
-            setRefreshing(true);
-            await new Promise((resolve) => setTimeout(resolve, 600));
-        } finally {
-            setRefreshing(false);
+    const onRefresh = useCallback(() => {
+        if (refreshing) return;
+        setRefreshing(true);
+        if (refreshTimeoutRef.current) {
+            clearTimeout(refreshTimeoutRef.current);
         }
-    }, []);
+        refreshTimeoutRef.current = setTimeout(() => {
+            refreshTimeoutRef.current = null;
+            setRefreshing(false);
+        }, 700);
+    }, [refreshing]);
 
     const openCommentsModal = useCallback((index) => {
         if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
@@ -787,22 +804,25 @@ export default function Feed({ navigation, route }) {
     const renderEmptyList = () => {
         const isPersonalScope = feedScope === "personal";
         return (
-            <View style={styles.emptyState}>
-                <View style={styles.emptyIcon}>
-                    <Feather
-                        name={isPersonalScope ? "user" : "users"}
-                        size={scaleSize(28)}
-                        color={theme.primary}
-                    />
+            <View>
+                {renderSnapshotCard()}
+                <View style={styles.emptyState}>
+                    <View style={styles.emptyIcon}>
+                        <Feather
+                            name={isPersonalScope ? "user" : "users"}
+                            size={scaleSize(28)}
+                            color={theme.primary}
+                        />
+                    </View>
+                    <Text style={styles.emptyTitle}>
+                        {isPersonalScope ? "No personal posts yet" : "Your feed is quiet"}
+                    </Text>
+                    <Text style={styles.emptySubtitle}>
+                        {isPersonalScope
+                            ? "Share a workout or update to see it appear in your personal feed."
+                            : "Follow friends or share your progress to see posts here."}
+                    </Text>
                 </View>
-                <Text style={styles.emptyTitle}>
-                    {isPersonalScope ? "No personal posts yet" : "Your feed is quiet"}
-                </Text>
-                <Text style={styles.emptySubtitle}>
-                    {isPersonalScope
-                        ? "Share a workout or update to see it appear in your personal feed."
-                        : "Follow friends or share your progress to see posts here."}
-                </Text>
             </View>
         );
     };
@@ -869,7 +889,7 @@ export default function Feed({ navigation, route }) {
                 style={styles.list}
                 ListEmptyComponent={showFeedSkeleton ? renderLoadingList : renderEmptyList}
                 ListFooterComponent={listFooter}
-                ListHeaderComponent={renderSnapshotCard}
+                ListHeaderComponent={hasPosts ? renderSnapshotCard : null}
                 refreshControl={(
                     <RefreshControl
                         refreshing={refreshing}
@@ -995,9 +1015,7 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 3 },
     },
     emptyState: {
-        flex: 1,
         alignItems: "center",
-        justifyContent: "center",
         paddingHorizontal: scaleSize(28),
         paddingTop: scaleSize(36),
     },

@@ -219,7 +219,7 @@ export default function FoodDetail({ navigation, route }) {
         // Persist in background
         (async () => {
             try {
-                const uref = doc(db, 'users', uid);
+                const uref = doc(db, 'usersPrivate', uid);
                 const fieldPath = `loggedFoods.${dayKey}.${entry.key}`;
                 await updateDoc(uref, {
                     [fieldPath]: {
@@ -285,12 +285,12 @@ export default function FoodDetail({ navigation, route }) {
         // Persist to Firestore + recent foods asynchronously
         (async () => {
             try {
-                const uref = doc(db, 'users', uid);
+                const uref = doc(db, 'usersPrivate', uid);
                 const fieldPath = `loggedFoods.${dayKey}.${newId}`;
                 await updateDoc(uref, { [fieldPath]: flat });
             } catch {
                 try {
-                    await setDoc(doc(db, 'users', uid), { loggedFoods: { [dayKey]: { [newId]: flat } } }, { merge: true });
+                    await setDoc(doc(db, 'usersPrivate', uid), { loggedFoods: { [dayKey]: { [newId]: flat } } }, { merge: true });
                 } catch { }
             }
             try {

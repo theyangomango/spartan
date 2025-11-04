@@ -165,7 +165,7 @@ export function useFoodLogs(dateObj, userIdOverride, shouldSubscribe = true) {
             (async () => {
                 pendingFetchRef.current.add(ckey);
                 try {
-                    const dayRef = doc(db, 'users', userId, 'foodLogs', dk);
+                    const dayRef = doc(db, 'usersPrivate', userId, 'foodLogs', dk);
                     const qy = query(collection(dayRef, 'entries'), orderBy('createdAt', 'asc'));
                     const snap = await getDocs(qy);
                     const built = buildFromSnap(snap);
@@ -193,7 +193,7 @@ export function useFoodLogs(dateObj, userIdOverride, shouldSubscribe = true) {
             unsubRef.current = null;
         }
 
-        const dayRef = doc(db, 'users', userId, 'foodLogs', dk);
+        const dayRef = doc(db, 'usersPrivate', userId, 'foodLogs', dk);
         const qy = query(collection(dayRef, 'entries'), orderBy('createdAt', 'asc'));
 
         unsubRef.current = onSnapshot(
@@ -244,7 +244,7 @@ export function useFoodLogs(dateObj, userIdOverride, shouldSubscribe = true) {
         if (!userId || !mealName) return;
 
         const dk = toDayKey(dateObj);
-        const dayRef = doc(db, 'users', userId, 'foodLogs', dk);
+        const dayRef = doc(db, 'usersPrivate', userId, 'foodLogs', dk);
 
         const factor = food?.__portionMultiplier ?? 1;
 
@@ -339,7 +339,7 @@ export function useFoodLogs(dateObj, userIdOverride, shouldSubscribe = true) {
 
                 // Also surface this entry on the user document under `loggedFoods.<entryId>`
                 try {
-                    const uref = doc(db, 'users', userId);
+                    const uref = doc(db, 'usersPrivate', userId);
                     // Nest by dayKey so it mirrors foodLogs: loggedFoods.<dayKey>.<entryId>
                     const fieldPath = `loggedFoods.${dk}.${newId}`;
                     const flat = {
@@ -358,7 +358,7 @@ export function useFoodLogs(dateObj, userIdOverride, shouldSubscribe = true) {
 
                 // best-effort recent-foods
                 try {
-                    const recentRef = doc(db, 'users', userId, 'recentFoods', String(payload.foodId || payload.name));
+                    const recentRef = doc(db, 'usersPrivate', userId, 'recentFoods', String(payload.foodId || payload.name));
                     await setDoc(
                         recentRef,
                         {
@@ -466,12 +466,12 @@ export function useFoodLogs(dateObj, userIdOverride, shouldSubscribe = true) {
         try { if (global?.userData?.loggedFoods?.[dk]) delete global.userData.loggedFoods[dk][entry.key]; } catch {}
 
         // Persist deletion (loggedFoods.<dayKey>.<entryId>)
-        const ref = doc(db, 'users', userId, 'foodLogs', dk, 'entries', entry.key);
+        const ref = doc(db, 'usersPrivate', userId, 'foodLogs', dk, 'entries', entry.key);
         await deleteDoc(ref);
 
         // Also remove from the user's `loggedFoods` map
         try {
-            const uref = doc(db, 'users', userId);
+            const uref = doc(db, 'usersPrivate', userId);
             const fieldPath = `loggedFoods.${dk}.${entry.key}`;
             await fsUpdateDoc(uref, { [fieldPath]: deleteField() });
         } catch { /* best-effort */ }
@@ -493,7 +493,7 @@ async function preloadNeighborsForUser(userId, centerDate, onBuilt) {
                 const ckey = `${userId}|${dk}`;
                 if (globalCache.get(ckey) || inflightPrefetch.has(ckey)) return;
                 inflightPrefetch.add(ckey);
-                const dayRef = doc(db, 'users', userId, 'foodLogs', dk);
+                const dayRef = doc(db, 'usersPrivate', userId, 'foodLogs', dk);
                 const qy = query(collection(dayRef, 'entries'), orderBy('createdAt', 'asc'));
                 const snap = await getDocs(qy);
                 const built = buildFromSnap(snap);
@@ -525,7 +525,7 @@ export async function primeFoodLogsCache(userId, centerDate, radius = 2) {
                 if (globalCache.get(centerKey)) return;
                 if (inflightPrefetch.has(centerKey)) return;
                 inflightPrefetch.add(centerKey);
-                const dayRef = doc(db, 'users', userId, 'foodLogs', toDayKey(now));
+                const dayRef = doc(db, 'usersPrivate', userId, 'foodLogs', toDayKey(now));
                 const qy = query(collection(dayRef, 'entries'), orderBy('createdAt', 'asc'));
                 const snap = await getDocs(qy);
                 const built = buildFromSnap(snap);
@@ -539,7 +539,7 @@ export async function primeFoodLogsCache(userId, centerDate, radius = 2) {
                 const k = `${userId}|${dk}`;
                 if (globalCache.get(k) || inflightPrefetch.has(k)) return;
                 inflightPrefetch.add(k);
-                const dayRef = doc(db, 'users', userId, 'foodLogs', dk);
+                const dayRef = doc(db, 'usersPrivate', userId, 'foodLogs', dk);
                 const qy = query(collection(dayRef, 'entries'), orderBy('createdAt', 'asc'));
                 const snap = await getDocs(qy);
                 const built = buildFromSnap(snap);

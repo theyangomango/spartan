@@ -497,11 +497,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     }
                     (async () => {
                         try {
-                            await setDoc(doc(db, "users", uid), { currentWorkout: payload }, { merge: true });
-                        } catch (e) {
-                            console.log("setDoc users.currentWorkout error", e);
-                            try { await updateDoc("users", uid, { currentWorkout: payload }); } catch { }
-                        }
+                            await syncCurrentWorkoutRemote(payload);
+                        } catch { /* noop */ }
                         try {
                             await upsertWorkoutDoc(payload, { active: true, sanitized: true });
                         } catch (e) {
@@ -511,7 +508,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 } catch { }
             } catch { /* best effort */ }
         });
-    }, [uid, ensurePrevSetsCache, upsertWorkoutDoc]);
+    }, [uid, ensurePrevSetsCache, upsertWorkoutDoc, syncCurrentWorkoutRemote]);
     const persistCurrentWorkout = useCallback(
         (value, options = {}) => {
             if (!uid) return;
@@ -525,11 +522,8 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 }
                 (async () => {
                     try {
-                        await setDoc(doc(db, "users", uid), { currentWorkout: null }, { merge: true });
-                    } catch (e) {
-                        console.log("setDoc users.currentWorkout (clear) error", e);
-                        try { await updateDoc("users", uid, { currentWorkout: null }); } catch { }
-                    }
+                        await syncCurrentWorkoutRemote(null);
+                    } catch { /* noop */ }
                 })();
                 return;
             }
@@ -554,7 +548,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 pendingPersistValueRef.current = null;
             }, PERSIST_DEBOUNCE_MS);
         },
-        [uid, clearPersistDebounce, performPersist]
+        [uid, clearPersistDebounce, performPersist, syncCurrentWorkoutRemote]
     );
 
     /* ------------ helpers ------------ */
@@ -612,6 +606,51 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         },
         [uid]
     );
+
+    const syncCurrentWorkoutRemote = useCallback(async (value) => {
+        if (!uid) return;
+        const payload = { currentWorkout: value ?? null };
+        const targets = ["users", "usersPublic", "usersPrivate"];
+        await Promise.allSettled(
+            targets.map(async (collection) => {
+                try {
+                    await setDoc(doc(db, collection, uid), payload, { merge: true });
+                } catch (error) {
+                    console.log(`setDoc ${collection}.currentWorkout error`, error);
+                    try {
+                        await updateDoc(collection, uid, payload);
+                    } catch (fallbackError) {
+                        console.log(`${collection}.currentWorkout fallback error`, fallbackError);
+                    }
+                }
+            })
+        );
+    }, [uid]);
+
+    const appendCompletedWorkoutRemote = useCallback(async (workout, incVolume = 0, incHours = 0) => {
+        if (!uid || !workout) return;
+        const payload = {
+            currentWorkout: null,
+            completedWorkouts: arrayUnion(workout),
+            statsTotalWorkouts: increment(1),
+            statsTotalVolume: increment(incVolume),
+            statsTotalHours: increment(incHours),
+        };
+        const targets = ["users", "usersPublic", "usersPrivate"];
+        await Promise.allSettled(
+            targets.map(async (collection) => {
+                try {
+                    await fsUpdateDoc(doc(db, collection, uid), payload);
+                } catch (error) {
+                    try {
+                        await updateDoc(collection, uid, payload);
+                    } catch (fallbackError) {
+                        console.log(`${collection}.appendCompletedWorkout error`, fallbackError);
+                    }
+                }
+            })
+        );
+    }, [uid]);
 
     const clearCurrentWorkoutLocally = useCallback(() => {
         try {
@@ -796,9 +835,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
                 clearPersistDebounce();
                 const scheduleRemotePersist = () => {
-                    setDoc(doc(db, "users", uid), { currentWorkout: newWorkout }, { merge: true })
-                        .catch((e) => console.log("setDoc users.currentWorkout error", e));
-
+                    syncCurrentWorkoutRemote(newWorkout).catch(() => { /* noop */ });
                     createWorkoutDoc(wid, name, appliedPrivacy).catch((e) => console.log("createWorkoutDoc error", e));
                 };
                 if (InteractionManager?.runAfterInteractions) {
@@ -848,7 +885,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 }
             }
         },
-        [uid, startTimer, clearPersistDebounce, createWorkoutDoc, defaultWorkoutName, setSheetState, setWorkoutInStore, setIsNewWorkoutVisible]
+        [uid, startTimer, clearPersistDebounce, createWorkoutDoc, defaultWorkoutName, setSheetState, setWorkoutInStore, setIsNewWorkoutVisible, syncCurrentWorkoutRemote]
     );
 
     const updateNewWorkout = useCallback((next) => {
@@ -875,8 +912,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             // 3) Clear my user doc (authoritative)
             if (uid) {
                 const clearRemote = async () => {
-                    try { await setDoc(doc(db, "users", uid), { currentWorkout: null }, { merge: true }); }
-                    catch (e) { console.log("setDoc users.currentWorkout (cancel) error", e); await updateDoc("users", uid, { currentWorkout: null }); }
+                    try { await syncCurrentWorkoutRemote(null); } catch { /* noop */ }
                 };
                 if (InteractionManager?.runAfterInteractions) {
                     InteractionManager.runAfterInteractions(clearRemote);
@@ -887,7 +923,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         } catch (e) {
             console.log("cancelWorkout error", e);
         }
-    }, [uid, clearCurrentWorkoutLocally, clearPersistDebounce, leaveWorkoutGroup]);
+    }, [uid, clearCurrentWorkoutLocally, clearPersistDebounce, leaveWorkoutGroup, syncCurrentWorkoutRemote]);
 
     const finishWorkout = useCallback(async () => {
         try {
@@ -971,7 +1007,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     // Combine completedWorkouts append + totals + clear currentWorkout into one user doc update (reduces triggers)
                     try {
                         if (uid) {
-                            const uref = doc(db, 'users', uid);
+                            const uref = doc(db, 'usersPrivate', uid);
                             const incVol = Number(completed?.volume || 0);
                             const incHrs = Number(completed?.duration || 0) / 3600000;
                             fsUpdateDoc(uref, {
@@ -980,13 +1016,14 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                                 statsTotalWorkouts: increment(1),
                                 statsTotalVolume: increment(incVol),
                                 statsTotalHours: increment(incHrs),
-                            }).catch(() => updateDoc('users', uid, {
+                            }).catch(() => updateDoc('usersPrivate', uid, {
                                 currentWorkout: null,
                                 completedWorkouts: arrayUnion(completed),
                                 statsTotalWorkouts: increment(1),
                                 statsTotalVolume: increment(incVol),
                                 statsTotalHours: increment(incHrs),
                             }));
+                            appendCompletedWorkoutRemote(completed, incVol, incHrs);
                         }
                     } catch { }
 
@@ -1017,7 +1054,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         try {
                             // Persist minimal stats deltas (currentWorkout already cleared in base update)
                             if (uid && namesTouched.size > 0) {
-                                const uref = doc(db, 'users', uid);
+                                const uref = doc(db, 'usersPrivate', uid);
                                 const combined = {
                                     ...atomicUpdates,
                                     currentWorkout: null,
@@ -1025,7 +1062,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                                 try {
                                     await fsUpdateDoc(uref, combined);
                                 } catch (e) {
-                                    await updateDoc('users', uid, {
+                                    await updateDoc('usersPrivate', uid, {
                                         currentWorkout: null,
                                         statsExercises: localPatch,
                                     });
@@ -1048,7 +1085,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                                             statsHexagon: nextHex,
                                             statsHexagonMeta: { lastTrainedByGroup: lastTrained, updatedAt: serverTimestamp() },
                                         };
-                                        fsUpdateDoc(doc(db, 'users', uid), payload).catch(() => updateDoc('users', uid, payload));
+                                        fsUpdateDoc(doc(db, 'usersPrivate', uid), payload).catch(() => updateDoc('usersPrivate', uid, payload));
                                     }
                                     captureHexSnapshot(prevHex, nextHex);
                                     if (global?.userData) { global.userData.statsHexagon = cloneHexagon(nextHex); }
@@ -1127,7 +1164,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     const persistSetsHistory = () => {
                         try {
                             if (!uid) return;
-                            const uref = doc(db, 'users', uid);
+                            const uref = doc(db, 'usersPrivate', uid);
                             const todayKey2 = getTodayKey();
                             const updateFields = {};
                             for (const ex of (cleanedExercises || [])) {
@@ -1149,7 +1186,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                                 }
                                 if (payloadSets.length) updateFields[`statsExercises.${name}.sets`] = arrayUnion(...payloadSets);
                             }
-                            if (Object.keys(updateFields).length) fsUpdateDoc(uref, updateFields).catch(() => updateDoc('users', uid, updateFields));
+                            if (Object.keys(updateFields).length) fsUpdateDoc(uref, updateFields).catch(() => updateDoc('usersPrivate', uid, updateFields));
                         } catch {}
                     };
                     // Immediate local sets for UI responsiveness
@@ -1168,7 +1205,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         } catch (e) {
             console.log("finishWorkout error", e);
         }
-    }, [uid, clearCurrentWorkoutLocally, leaveWorkoutGroup, defaultWorkoutName, upsertWorkoutDoc]);
+    }, [uid, clearCurrentWorkoutLocally, leaveWorkoutGroup, defaultWorkoutName, upsertWorkoutDoc, appendCompletedWorkoutRemote, syncCurrentWorkoutRemote]);
 
     const postWorkout = useCallback(async () => {
         setIsSummaryModalVisible(false);
@@ -1256,10 +1293,9 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
             // Persist to user doc
             try {
-                await setDoc(doc(db, "users", me), { currentWorkout: joined }, { merge: true });
+                await syncCurrentWorkoutRemote(joined);
             } catch (e) {
                 console.log("joinExternalWorkout: set currentWorkout error", e);
-                try { await updateDoc("users", me, { currentWorkout: joined }); } catch { }
             }
 
             // Auto-publish presence right away (best-effort); ongoing lifecycle handled by ActiveWorkoutModal hook
@@ -1281,7 +1317,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         } catch (e) {
             console.log("joinExternalWorkout error", e);
         }
-    }, [uid, startTimer, setSheetState, setWorkoutInStore, setIsNewWorkoutVisible]);
+    }, [uid, startTimer, setSheetState, setWorkoutInStore, setIsNewWorkoutVisible, syncCurrentWorkoutRemote]);
 
     /* ------------ Rehydrate from Firestore user doc ------------ */
     useEffect(() => {

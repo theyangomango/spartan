@@ -1,8 +1,10 @@
 import { doc, setDoc, updateDoc as nativeUpdateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase.config';
 
+const skipCreateCollections = new Set(['users', 'usersPublic', 'usersPrivate']);
+
 export default async function updateDoc(col, did, data, options = {}) {
-    const { allowCreate = col !== 'users' } = options;
+    const { allowCreate = !skipCreateCollections.has(col) } = options;
     const ref = doc(db, col, did);
     try {
         await nativeUpdateDoc(ref, data);

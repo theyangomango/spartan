@@ -110,7 +110,7 @@ export const preloadMessagesForUid = async (uid, { userDoc } = {}) => {
     }
 
     const loadPromise = (async () => {
-        const baseDoc = userDoc || await readDoc('users', normalizedUid);
+        const baseDoc = userDoc || await readDoc('usersPrivate', normalizedUid);
         const saneUser = buildSaneUser(normalizedUid, baseDoc);
         const expectedMids = extractMids(saneUser.messages);
         const messages = await getUserMessages(saneUser);

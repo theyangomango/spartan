@@ -13,8 +13,8 @@ export default async function declineFollowRequest(this_user, requester) {
 
     if (!meRef.uid || !otherRef.uid) return { status: 'error', reason: 'missing-uid' };
 
-    try { await arrayErase('users', meRef.uid, 'followRequestsIn', otherRef); } catch {}
-    try { await arrayErase('users', otherRef.uid, 'followRequestsOut', meRef); } catch {}
+    try { await arrayErase('usersPrivate', meRef.uid, 'followRequestsIn', otherRef); } catch {}
+    try { await arrayErase('usersPrivate', otherRef.uid, 'followRequestsOut', meRef); } catch {}
 
     return { status: 'declined' };
 }

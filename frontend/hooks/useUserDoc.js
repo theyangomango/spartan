@@ -79,7 +79,7 @@ export default function useUserDoc(uid, options = {}) {
 
     useEffect(() => {
         if (!uid) return;
-        const unsub = onSnapshot(doc(db, "users", uid), (snap) => {
+        const unsub = onSnapshot(doc(db, "usersPublic", uid), (snap) => {
             const rawData = snap.data() || {};
             const data = { ...rawData, savedExercises: normalizeSavedExercises(rawData?.savedExercises) };
             const local = (() => { try { return global?.userData?.templates; } catch { return undefined; } })();
@@ -136,8 +136,8 @@ export default function useUserDoc(uid, options = {}) {
                         trainedExerciseNames: [],
                     });
                     const payload = { statsHexagon: nextHex, statsHexagonMeta: { lastTrainedByGroup: lastTrained, updatedAt: serverTimestamp() } };
-                    fsUpdateDoc(doc(db, 'users', uid), payload)
-                        .catch(() => updateDoc('users', uid, payload))
+                    fsUpdateDoc(doc(db, 'usersPublic', uid), payload)
+                        .catch(() => updateDoc('usersPublic', uid, payload))
                         .finally(() => { try { global.__hexagonComputeLock = false; } catch { } });
                     try { global.userData.statsHexagon = nextHex; emitHexagonUpdate(); } catch {}
                 }

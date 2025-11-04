@@ -729,6 +729,7 @@ const SimpleFeedPost = ({
     const isPostVerified = useUserVerified(postOwnerUid, fallbackVerified);
 
     const isViewerOwner = viewerUid && postOwnerUid && viewerUid === postOwnerUid;
+    const showOverflowActions = !isLivePost;
 
     const workoutDeleteIdentifier = useMemo(() => {
         if (!workout || typeof workout !== "object") return null;
@@ -1063,23 +1064,25 @@ const SimpleFeedPost = ({
                                     <Text style={styles.cheerButtonText}>Cheer</Text>
                                 </Pressable>
                             ) : null}
-                            {isViewerOwner ? (
-                                <Pressable
-                                    style={styles.moreButton}
-                                    onPress={openOptionsSheet}
-                                    hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
-                                >
-                                    <MaterialCommunityIcons name="dots-vertical" size={scaleSize(20)} color={theme.textPrimary} />
-                                </Pressable>
-                            ) : (
-                                <Pressable
-                                    style={styles.moreButton}
-                                    onPress={openReportOptions}
-                                    hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
-                                >
-                                    <MaterialCommunityIcons name="dots-vertical" size={scaleSize(20)} color={theme.textPrimary} />
-                                </Pressable>
-                            )}
+                            {showOverflowActions ? (
+                                isViewerOwner ? (
+                                    <Pressable
+                                        style={styles.moreButton}
+                                        onPress={openOptionsSheet}
+                                        hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                                    >
+                                        <MaterialCommunityIcons name="dots-vertical" size={scaleSize(20)} color={theme.textPrimary} />
+                                    </Pressable>
+                                ) : (
+                                    <Pressable
+                                        style={styles.moreButton}
+                                        onPress={openReportOptions}
+                                        hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                                    >
+                                        <MaterialCommunityIcons name="dots-vertical" size={scaleSize(20)} color={theme.textPrimary} />
+                                    </Pressable>
+                                )
+                            ) : null}
                         </View>
                     </View>
 

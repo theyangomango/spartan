@@ -35,7 +35,7 @@ export default function SearchUsers({ navigation }) {
   const remotePrefixQuery = useCallback(async (text) => {
     const needle = (text || '').toLowerCase();
     if (!needle) return [];
-    const usersCol = collection(db, 'users');
+    const usersCol = collection(db, 'usersPublic');
     try {
       const handleQ = query(usersCol, orderBy('handle_lower'), where('handle_lower', '>=', needle), where('handle_lower', '<=', needle + '\uf8ff'), limit(20));
       const nameQ = query(usersCol, orderBy('name_lower'), where('name_lower', '>=', needle), where('name_lower', '<=', needle + '\uf8ff'), limit(20));
@@ -45,7 +45,13 @@ export default function SearchUsers({ navigation }) {
       nSnap.forEach((d) => map.set(d.id, d.data()));
       const me = global?.userData?.uid;
       const arr = Array.from(map.entries())
-        .map(([uid, data]) => ({ uid, handle: data?.handle || '', name: data?.name || '', pfp: data?.pfp || data?.photoURL || data?.image || '' }))
+        .map(([uid, data]) => ({
+          uid,
+          handle: data?.handle || '',
+          name: data?.name || '',
+          pfp: data?.pfp || data?.photoURL || data?.image || '',
+          photoURL: data?.photoURL || data?.image || data?.pfp || '',
+        }))
         .filter((u) => u.uid !== me);
       if (arr.length) return arr;
     } catch {}
@@ -54,7 +60,7 @@ export default function SearchUsers({ navigation }) {
       .filter((u) => u?.uid && u.uid !== me)
       .filter((u) => (u.handle || '').toLowerCase().includes(needle) || (u.name || '').toLowerCase().includes(needle))
       .slice(0, 50)
-      .map((u) => ({ uid: u.uid, handle: u.handle, name: u.name, pfp: u.pfp || u.image || '' }));
+      .map((u) => ({ uid: u.uid, handle: u.handle, name: u.name, pfp: u.pfp || u.photoURL || '' }));
   }, [allUsers]);
 
   useEffect(() => {

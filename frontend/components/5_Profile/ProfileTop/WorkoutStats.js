@@ -5,8 +5,13 @@ import scaleSize from "../../../helper/scaleSize";
 
 const scaledSize = (size) => scaleSize(size);
 
+const safeNumber = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+};
+
 function formatNumber(value) {
-    const number = Number.isFinite(Number(value)) ? Number(value) : 0;
+    const number = safeNumber(value);
     if (number < 1000) {
         return number.toString();
     } else if (number < 1000000) {
@@ -19,23 +24,27 @@ function formatNumber(value) {
 }
 
 export default function WorkoutStats({ userData }) {
+    const totalWorkouts = safeNumber(userData?.statsTotalWorkouts);
+    const totalHours = safeNumber(userData?.statsTotalHours);
+    const totalVolume = formatNumber(userData?.statsTotalVolume);
+
     return (
         <View style={styles.main_ctnr}>
             <View style={[styles.workout_stat, styles.total_workouts_stat_ctnr]}>
                 <Text style={[styles.workout_stat_number, styles.total_workouts_stat_number]}>
-                    {userData && userData.statsTotalWorkouts}
+                    {totalWorkouts}
                 </Text>
                 <Text style={styles.workout_stat_text}>Workouts</Text>
             </View>
             <View style={[styles.workout_stat, styles.gym_time_stat_ctnr]}>
                 <Text style={[styles.workout_stat_number, styles.gym_time_stat_number]}>
-                    {(Number(userData?.statsTotalHours) || 0).toFixed(1)}
+                    {totalHours.toFixed(1)}
                 </Text>
                 <Text style={styles.workout_stat_text}>Hours in Gym</Text>
             </View>
             <View style={[styles.workout_stat, styles.total_volume_stat_ctnr]}>
                 <Text style={[styles.workout_stat_number, styles.total_volume_stat_number]}>
-                    {formatNumber(userData?.statsTotalVolume)}
+                    {totalVolume}
                 </Text>
                 <Text style={styles.workout_stat_text}>Lbs Lifted</Text>
             </View>

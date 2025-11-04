@@ -402,7 +402,7 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
                 const uid = String(rawUid);
                 if (!uid || excluded.has(uid) || liveUnsubRef.current.has(uid) || localUnsubs.has(uid)) return;
                 try {
-                    const unsubscribeUser = onSnapshot(doc(db, 'users', uid), (snapshot) => {
+                    const unsubscribeUser = onSnapshot(doc(db, 'usersPublic', uid), (snapshot) => {
                         const data = snapshot.data() || {};
                         const workout = data.currentWorkout || null;
                         const { allowed: allowedSet, excluded: excludedSet } = filtersRef.current;

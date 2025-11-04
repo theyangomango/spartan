@@ -27,6 +27,240 @@ const tokenCacheByScope = new Map(); // scope -> { accessToken, expiresAt }
 const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000;
 const fatsecretSearchCache = new Map(); // normalizedQuery|max|page -> { value, expiresAt }
 
+const HANDLE_REGEX = /^[a-z0-9_.]{6,20}$/;
+
+function sanitizeDisplayName(input) {
+    if (typeof input !== "string") return "Spartan Athlete";
+    const trimmed = input.trim();
+    if (!trimmed) return "Spartan Athlete";
+    return trimmed.slice(0, 60);
+}
+
+function sanitizePhotoUrl(url) {
+    if (typeof url !== "string") return "";
+    const trimmed = url.trim();
+    if (!trimmed) return "";
+    return /^https?:\/\//i.test(trimmed) ? trimmed : "";
+}
+
+function coerceBoolean(value, fallback = false) {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "string") {
+        const lowered = value.toLowerCase();
+        if (lowered === "true") return true;
+        if (lowered === "false") return false;
+    }
+    return fallback;
+}
+
+function buildSearchTokens(displayName, handle) {
+    const tokens = new Set();
+    const pushToken = (token) => {
+        if (!token) return;
+        const clean = token
+            .toLowerCase()
+            .replace(/[^a-z0-9]/g, " ")
+            .split(" ")
+            .map((part) => part.trim())
+            .filter((part) => part.length > 1);
+        for (const part of clean) {
+            tokens.add(part);
+        }
+    };
+    pushToken(displayName);
+    pushToken(handle);
+    return Array.from(tokens).slice(0, 24);
+}
+
+async function upsertSearchIndex(uid, { displayName, handle, isPrivate }) {
+    try {
+        const payload = {
+            displayName: displayName || "",
+            handle: handle || "",
+            handleLower: handle ? handle.toLowerCase() : "",
+            isPrivate: !!isPrivate,
+            tokens: buildSearchTokens(displayName, handle),
+            updatedAt: FieldValue.serverTimestamp(),
+        };
+        await adminDb.collection("userSearchIndex").doc(uid).set(payload, { merge: true });
+    } catch (error) {
+        logger.error("Failed to upsert search index", { uid, error });
+        throw new HttpsError("internal", "Failed to update search index.");
+    }
+}
+
+export const ensureUserProfile = onCall({ region: "us-central1" }, async (request) => {
+    try {
+        const auth = request.auth;
+        if (!auth?.uid) {
+            throw new HttpsError("unauthenticated", "Authentication required.");
+        }
+        const uid = auth.uid;
+        const data = request.data || {};
+        const providerId = typeof data.providerId === "string" ? data.providerId : null;
+        const displayNameSource = data.displayName || auth.token?.name || "";
+        const photoSource = data.photoURL || auth.token?.picture || "";
+        const emailSource = data.email || auth.token?.email || "";
+        const emailVerified = typeof data.emailVerified === "boolean"
+            ? data.emailVerified
+            : !!auth.token?.email_verified;
+        const now = FieldValue.serverTimestamp();
+
+        const publicRef = adminDb.collection("usersPublic").doc(uid);
+        const privateRef = adminDb.collection("usersPrivate").doc(uid);
+        const [publicSnap, privateSnap] = await Promise.all([publicRef.get(), privateRef.get()]);
+
+        const publicData = publicSnap.exists ? (publicSnap.data() || {}) : {};
+        const privateData = privateSnap.exists ? (privateSnap.data() || {}) : {};
+
+        const displayName = sanitizeDisplayName(displayNameSource || publicData.displayName);
+        const photoURL = sanitizePhotoUrl(photoSource || publicData.photoURL);
+        const isPrivate = coerceBoolean(publicData.isPrivate, false);
+        const bio = typeof publicData.bio === "string" ? publicData.bio.slice(0, 160) : "";
+        const stats = typeof publicData.stats === "object" && publicData.stats !== null ? publicData.stats : {};
+        const followersCount = Number.isFinite(publicData.followersCount) ? publicData.followersCount : 0;
+        const followingCount = Number.isFinite(publicData.followingCount) ? publicData.followingCount : 0;
+
+        const publicPayload = {
+            displayName,
+            photoURL,
+            isPrivate,
+            bio,
+            stats,
+            followersCount,
+            followingCount,
+            updatedAt: now,
+        };
+        if (!publicSnap.exists) {
+            publicPayload.uid = uid;
+            publicPayload.handle = null;
+            publicPayload.handleLower = null;
+            publicPayload.createdAt = now;
+        }
+
+        const existingProviders = Array.isArray(privateData.authProviders) ? privateData.authProviders : [];
+        const providerSet = new Set(existingProviders.filter(Boolean));
+        if (providerId) providerSet.add(providerId);
+        const tokenProvider = auth.token?.firebase?.sign_in_provider;
+        if (tokenProvider) providerSet.add(tokenProvider);
+
+        const privatePayload = {
+            email: emailSource || privateData.email || null,
+            emailVerified: emailVerified,
+            authProviders: Array.from(providerSet),
+            lastLoginAt: now,
+        };
+        if (!privateSnap.exists) {
+            privatePayload.createdAt = now;
+            privatePayload.blocked = [];
+            privatePayload.blockedBy = [];
+            privatePayload.deviceTokens = [];
+        }
+
+        await Promise.all([
+            publicSnap.exists ? publicRef.update(publicPayload) : publicRef.set(publicPayload, { merge: true }),
+            privateSnap.exists ? privateRef.update(privatePayload) : privateRef.set(privatePayload, { merge: true }),
+        ]);
+
+        const mergedPublic = {
+            ...publicData,
+            ...publicPayload,
+            handle: typeof publicData.handle === "string" ? publicData.handle : null,
+            handleLower: typeof publicData.handle === "string" ? publicData.handle.toLowerCase() : null,
+        };
+
+        await adminDb.collection("users").doc(uid).set(mergedPublic, { merge: true });
+
+        const finalHandle = mergedPublic.handle || null;
+        await upsertSearchIndex(uid, {
+            displayName,
+            handle: finalHandle,
+            isPrivate,
+        });
+
+        return {
+            uid,
+            requiresHandle: !finalHandle,
+            publicProfile: mergedPublic,
+        };
+    } catch (error) {
+        if (error instanceof HttpsError) throw error;
+        logger.error("ensureUserProfile failure", error);
+        throw new HttpsError("internal", "Failed to ensure user profile.");
+    }
+});
+
+export const setUserHandle = onCall({ region: "us-central1" }, async (request) => {
+    try {
+        if (!request.auth?.uid) {
+            throw new HttpsError("unauthenticated", "Authentication required.");
+        }
+        const uid = request.auth.uid;
+        const rawHandle = request.data?.handle;
+        if (typeof rawHandle !== "string") {
+            throw new HttpsError("invalid-argument", "Handle is required.");
+        }
+        const normalized = rawHandle.trim().toLowerCase();
+        const sanitized = normalized.replace(/[^a-z0-9_.]/g, "");
+        if (sanitized !== normalized || !HANDLE_REGEX.test(sanitized)) {
+            throw new HttpsError("invalid-argument", "Handle must be 6-20 characters (a-z, 0-9, _, .).");
+        }
+        const handleLower = sanitized.toLowerCase();
+        const now = FieldValue.serverTimestamp();
+
+        await adminDb.runTransaction(async (tx) => {
+            const publicRef = adminDb.collection("usersPublic").doc(uid);
+            const publicSnap = await tx.get(publicRef);
+            if (!publicSnap.exists) {
+                throw new HttpsError("failed-precondition", "User profile not initialized.");
+            }
+
+            const handleRef = adminDb.collection("userHandles").doc(handleLower);
+            const handleSnap = await tx.get(handleRef);
+            const existingUid = handleSnap.exists ? handleSnap.data()?.uid : null;
+            if (existingUid && existingUid !== uid) {
+                throw new HttpsError("already-exists", "Handle is already taken.");
+            }
+
+            const currentHandleLower = publicSnap.data()?.handleLower || null;
+            const handleDoc = { uid, updatedAt: now };
+            if (!handleSnap.exists) {
+                handleDoc.createdAt = now;
+            }
+            tx.set(handleRef, handleDoc, { merge: true });
+            tx.update(publicRef, {
+                handle: sanitized,
+                handleLower,
+                updatedAt: now,
+            });
+            if (currentHandleLower && currentHandleLower !== handleLower) {
+                const prevHandleRef = adminDb.collection("userHandles").doc(currentHandleLower);
+                tx.delete(prevHandleRef);
+            }
+        });
+
+        const publicSnap = await adminDb.collection("usersPublic").doc(uid).get();
+        const publicData = publicSnap.data() || {};
+        await upsertSearchIndex(uid, {
+            displayName: publicData.displayName || "",
+            handle: sanitized,
+            isPrivate: coerceBoolean(publicData.isPrivate, false),
+        });
+
+        await adminDb.collection("users").doc(uid).set({
+            handle: sanitized,
+            handleLower,
+            updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        return { handle: sanitized };
+    } catch (error) {
+        if (error instanceof HttpsError) throw error;
+        logger.error("setUserHandle failure", error);
+        throw new HttpsError("internal", "Failed to set handle.");
+    }
+});
+
 export const computeHexagonStats = onCall({ region: "us-central1" }, async (request) => {
     try {
         if (!request.auth?.uid) {
@@ -843,7 +1077,7 @@ export const refreshLeaderboardLastRanks = onSchedule(
     },
     async () => {
         const started = Date.now();
-        const usersSnap = await adminDb.collection('users').get();
+        const usersSnap = await adminDb.collection('usersPublic').get();
         if (usersSnap.empty) {
             logger.info('refreshLeaderboardLastRanks: no users found');
             return;
@@ -862,7 +1096,8 @@ export const refreshLeaderboardLastRanks = onSchedule(
                 const isPrivate =
                     data?.privacy?.profile === 'private' ||
                     data?.profilePrivacy === 'private' ||
-                    data?.isProfilePrivate === true;
+                    data?.isProfilePrivate === true ||
+                    data?.isPrivate === true;
                 if (isPrivate) return;
 
                 const ref = docSnap.ref;
@@ -1517,19 +1752,64 @@ export const onCompletedWorkoutAutoPost = onDocumentWritten(
                         error,
                     });
                 }
+
+                const publicRefLink = adminDb.doc(`usersPublic/${uid}`);
+                try {
+                    await adminDb.runTransaction(async (txn) => {
+                        const snap = await txn.get(publicRefLink);
+                        if (!snap.exists) return;
+                        const workoutsArr = Array.isArray(snap.get("completedWorkouts"))
+                            ? snap.get("completedWorkouts")
+                            : [];
+                        let changed = false;
+                        const updatedArr = workoutsArr.map((entry) => {
+                            const key = workoutIdentityKey(entry);
+                            if (!key) return entry;
+                            const pid = postIdByWorkoutKey.get(key);
+                            if (!pid) return entry;
+                            if (entry?.postPid === pid) return entry;
+                            changed = true;
+                            const patched = {
+                                ...entry,
+                                postPid: pid,
+                                postPidLinkedAt: linkedAt,
+                            };
+                            if (patched.pid !== pid) {
+                                patched.pid = pid;
+                            }
+                            return patched;
+                        });
+                        if (changed) {
+                            txn.update(publicRefLink, { completedWorkouts: updatedArr });
+                        }
+                    });
+                } catch (error) {
+                    logger.warn("onCompletedWorkoutAutoPost: failed to attach postPid within usersPublic", {
+                        uid,
+                        error,
+                    });
+                }
             }
 
             const userRef = adminDb.doc(`users/${uid}`);
+            const userPublicRef = adminDb.doc(`usersPublic/${uid}`);
+            const postUpdatePayload = {
+                posts: FieldValue.arrayUnion(...postIds),
+                postCount: FieldValue.increment(postIds.length),
+            };
             try {
-                await userRef.set(
-                    {
-                        posts: FieldValue.arrayUnion(...postIds),
-                        postCount: FieldValue.increment(postIds.length),
-                    },
-                    { merge: true }
-                );
+                await userRef.set(postUpdatePayload, { merge: true });
             } catch (error) {
-                logger.warn("onCompletedWorkoutAutoPost: failed to update user posts array", {
+                logger.warn("onCompletedWorkoutAutoPost: failed to update legacy user posts array", {
+                    uid,
+                    error,
+                });
+            }
+
+            try {
+                await userPublicRef.set(postUpdatePayload, { merge: true });
+            } catch (error) {
+                logger.warn("onCompletedWorkoutAutoPost: failed to update usersPublic posts array", {
                     uid,
                     error,
                 });

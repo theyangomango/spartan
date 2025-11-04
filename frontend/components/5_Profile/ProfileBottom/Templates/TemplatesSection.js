@@ -222,7 +222,7 @@ const TemplatesSection = ({ templates, isVisible, isBottomSheetExpanded, onScrol
             const nextTemplates = [...existingTemplates, newTemplate];
 
             try {
-                await updateDoc('users', uid, { templates: nextTemplates });
+                await updateDoc('usersPrivate', uid, { templates: nextTemplates });
             } catch { }
 
             try {

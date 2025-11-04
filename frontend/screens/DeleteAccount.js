@@ -4,7 +4,8 @@ import scaleSize, { ts } from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import { httpsCallable } from 'firebase/functions';
-import { functions } from '../../firebase.config';
+import { signOut } from 'firebase/auth';
+import { auth, functions } from '../../firebase.config';
 
 export default function DeleteAccount({ navigation }) {
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
@@ -13,15 +14,16 @@ export default function DeleteAccount({ navigation }) {
   const deleteInFlightRef = useRef(false);
 
   const logoutAndReset = useCallback(() => {
-    try {
-      if (global?.logout) {
-        global.logout();
-      } else if (typeof global?.setAuthUid === 'function') {
-        global.setAuthUid(null);
-      }
-    } catch (err) {
-      console.warn('delete-account: local logout failed', err?.message || err);
-    }
+    Promise.resolve()
+      .then(() => {
+        if (global?.logout) {
+          return global.logout();
+        }
+        return signOut(auth).catch(() => {});
+      })
+      .catch((err) => {
+        console.warn('delete-account: local logout failed', err?.message || err);
+      });
     try {
       navigation.reset({ index: 0, routes: [{ name: 'SignUp' }] });
     } catch (err) {

@@ -160,7 +160,7 @@ export default function Messages({ navigation, route }) {
 
         const attach = (uid) => {
             try {
-                const userRef = doc(db, 'users', uid);
+                const userRef = doc(db, 'usersPrivate', uid);
                 unsubUser = onSnapshot(userRef, async (snap) => {
                     if (cancelled) return;
                     const data = snap.data() || {};
@@ -278,7 +278,7 @@ export default function Messages({ navigation, route }) {
         useCallback(() => {
             const uid = global?.userData?.uid;
             if (!uid) return;
-            try { updateDocMerge('users', uid, { unreadMessagesCount: 0 }); } catch {}
+            try { updateDocMerge('usersPrivate', uid, { unreadMessagesCount: 0 }); } catch {}
             return () => {};
         }, [])
     );

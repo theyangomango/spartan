@@ -3,38 +3,51 @@ import makeID from "./helper/makeID";
 
 export default async function initUser(handle, name = null, phoneNumber) {
     let uid = makeID();
-    createDoc('users', uid, {
-        uid: uid,
-        handle: handle,
-        name: name,
-        phoneNumber: phoneNumber,
-        joined: Date.now(),
-        instagramHandle: null,
-        lastActive: Date.now(),
-        pfp: null,
-        bio: '',
-        followers: [],
-        following: [],
-        followRequestsIn: [],
-        followRequestsOut: [],
-        feedPosts: [],
-        progressPhotos: [],
-        posts: [],
-        workouts: [],
-        messages: [],
-        stats: {
-            totalReps: 0,
-            totalVolume: 0,
-            totalTime: 0,
-            workoutCount: 0,
-        },
-        followerCount: 0,
-        followingCount: 0,
-        postCount: 0,
-        settings: {
-            profilePrivate: false,
-            units: 'lb',
-            push: true,
-        }
-    });
+    const timestamp = Date.now();
+    await Promise.all([
+        createDoc('usersPublic', uid, {
+            uid,
+            handle,
+            displayName: name,
+            phoneNumber,
+            joined: timestamp,
+            instagramHandle: null,
+            lastActive: timestamp,
+            photoURL: null,
+            bio: '',
+            followers: [],
+            following: [],
+            feedPosts: [],
+            progressPhotos: [],
+            posts: [],
+            workouts: [],
+            stats: {
+                totalReps: 0,
+                totalVolume: 0,
+                totalTime: 0,
+                workoutCount: 0,
+            },
+            followerCount: 0,
+            followingCount: 0,
+            postCount: 0,
+            isPrivate: false,
+        }),
+        createDoc('usersPrivate', uid, {
+            uid,
+            phoneNumber,
+            followRequestsIn: [],
+            followRequestsOut: [],
+            messages: [],
+            blocked: [],
+            blockedUidList: [],
+            blockedBy: [],
+            blockedByUidList: [],
+            deviceTokens: [],
+            settings: {
+                profilePrivate: false,
+                units: 'lb',
+                push: true,
+            },
+        }),
+    ]);
 }

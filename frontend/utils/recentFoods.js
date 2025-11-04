@@ -6,7 +6,7 @@ import { collection, doc, getDocs, limit, orderBy, query, serverTimestamp, setDo
 export async function fetchRecentFoods(uid, max = 20) {
   if (!uid) return [];
   try {
-    const recentRef = collection(db, 'users', uid, 'recentFoods');
+    const recentRef = collection(db, 'usersPrivate', uid, 'recentFoods');
     const qy = query(recentRef, orderBy('lastUsedAt', 'desc'), limit(Math.max(1, Math.min(50, max || 20))));
     const snap = await getDocs(qy);
     return snap.docs.map((d) => ({ id: d.id, ...(d.data() || {}) }));
@@ -21,7 +21,7 @@ export async function touchRecentFood(uid, { foodId, name, brand, description } 
   const idKey = String(foodId || name || '').trim();
   if (!idKey) return;
   try {
-    const recentRef = doc(db, 'users', uid, 'recentFoods', idKey);
+    const recentRef = doc(db, 'usersPrivate', uid, 'recentFoods', idKey);
     await setDoc(
       recentRef,
       {
@@ -46,7 +46,7 @@ export async function deleteRecentFood(uid, foodKey) {
   const idKey = String(foodKey || '').trim();
   if (!idKey) return;
   try {
-    const recentRef = doc(db, 'users', uid, 'recentFoods', idKey);
+    const recentRef = doc(db, 'usersPrivate', uid, 'recentFoods', idKey);
     await deleteDoc(recentRef);
   } catch {
     // best-effort

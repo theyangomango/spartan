@@ -1,0 +1,60 @@
+You are Codex, the engineer responsible for relaunching Spartan with a secure backend. Work from a clean slate—the legacy user base is purged. Execute the following plan exactly and cross-check each step against the app’s features (global feed, follows, private accounts, workouts, leaderboards, messaging, search).
+
+Objectives
+- Eliminate plaintext credentials and custom UID storage.
+- Require real Firebase Authentication for every privileged request.
+- Implement least-privilege Firestore and Storage rules keyed off `request.auth.uid`.
+- Preserve app functionality while protecting private-user data from non-followers.
+
+Phase 1 – Foundations
+1. Enable Firebase Auth providers (email/password, Google, Apple) with email verification.
+2. Remove AsyncStorage UID hacks; rely on Firebase Auth state observers throughout the client.
+3. Scaffold two collections: `usersPublic` (safe-to-share profile fields, search index flags, `isPrivate` boolean) and `usersPrivate` (emails, auth metadata, device tokens, blocked lists).
+4. Purge all legacy user accounts, posts, workouts, media, and related aggregates so the relaunch starts from an empty dataset.
+5. Prepare bootstrap scripts that seed only the required admin/test accounts after the purge using the new Auth-backed flow.
+
+Phase 2 – Schema
+1. Design the follow graph using either:
+   - `followers/{uid}/following/{otherUid}` subcollections; or
+   - A flat `relationships` collection with documents `{ followerUid, targetUid, status }`.
+   Choose the option that keeps follow checks fast for private-account gating.
+2. Add a Function-maintained `userSearchIndex` if the existing search UI needs richer query support without overexposing data.
+3. Ensure workout logs, posts, messages, and leaderboards reference `usersPublic` docs for display data and never touch `usersPrivate` directly.
+
+Phase 3 – Security Rules
+1. Firestore rules:
+   - Reject requests without `request.auth`.
+   - Allow users to read/update their own `usersPrivate/{uid}` with validation helpers.
+   - Allow anyone to read `usersPublic/{uid}` but restrict writes to the owner or trusted Cloud Functions.
+   - Enforce follow/request writes exclusively through Cloud Functions that verify both sides and respect private profile settings.
+2. Storage rules:
+   - Require auth.
+   - Restrict `pfps/{uid}` uploads to the owner or Cloud Functions.
+   - Provide signed URLs via Functions when anonymous access is needed.
+
+Phase 4 – Client Refactor
+1. Update login/signup flows to use Firebase Auth APIs; remove plaintext password handling from React Native screens and helpers.
+2. Replace `readDoc`/`updateDoc` helpers with wrappers that inject auth context and call secure Functions when elevated permissions are required.
+3. Update feed, profile, search, and messaging screens to fetch from `usersPublic` and conditionally request private data via authenticated calls that verify follow relationships.
+
+Phase 5 – Testing & Observability
+1. Build rule tests with the Firestore Emulator covering:
+   - Attempted access to another user’s `usersPrivate`.
+   - Private profile reads by non-followers vs followers.
+   - Unauthorized writes to follow relationships.
+2. Add integration tests for signup/login, follow requests, private feed access, and media uploads.
+3. Configure monitoring for rule-denied events, Storage violations, and Cloud Function errors.
+
+Phase 6 – Rollout
+1. Deploy new Firestore and Storage rules.
+2. Deploy updated Cloud Functions.
+3. Release the client update via staged rollout; verify search discovers all users while private profiles remain locked.
+4. Confirm legacy plaintext data remains purged (users, posts, workouts, media) and revoke any leaked credentials or tokens.
+5. Run bootstrap scripts to create designated admin/test accounts, ensuring they authenticate through Firebase Auth.
+
+Deliverables Checklist
+- Firebase Auth configuration and helper utilities.
+- Firestore/Storage rule files with inline documentation.
+- Cloud Functions for follows, feed assembly, search indexing, and account deletion.
+- Client modules handling authenticated data access.
+- Automated test suite results and monitoring dashboards.

@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, Platform, StyleSheet } from 'react-native';
 import useAppleAuth from '../../auth/useAppleAuth';
-import { upsertAppleUser } from '../../auth/appleAccount';
+import { signInWithAppleCredential } from '../../auth/appleAccount';
 import scaleSize from '../../helper/scaleSize';
 import AuthButton from './AuthButton';
 
@@ -47,11 +47,11 @@ const AppleAuthButton = ({
 
     setBusy(true);
     try {
-      const credential = await signIn();
-      if (!credential) return;
+      const response = await signIn();
+      if (!response) return;
 
-      const result = await upsertAppleUser(credential);
-      handleSuccess(result);
+      const result = await signInWithAppleCredential(response);
+      handleSuccess({ provider: 'apple', ...result });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Sign in with Apple failed. Please try again.';
       handleError(message);

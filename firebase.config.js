@@ -3,6 +3,8 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 import { getStorage } from "firebase/storage";
+import { getAuth, initializeAuth, getReactNativePersistence } from "firebase/auth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 // https://firebase.google.com/docs/web/setup#available-libraries
 
 // Your web app's Firebase configuration
@@ -21,3 +23,16 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 // Keep Functions export for other endpoints (e.g., FatSecret) if present.
 export const functions = getFunctions(app, "us-central1");
+
+let authInstance;
+try {
+    authInstance = initializeAuth(app, {
+        persistence: getReactNativePersistence(AsyncStorage),
+    });
+} catch (error) {
+    authInstance = getAuth(app);
+}
+
+authInstance.useDeviceLanguage?.();
+
+export const auth = authInstance;

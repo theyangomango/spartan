@@ -43,7 +43,7 @@ export default function useLiveFollowing(user) {
             const fuid = typeof f === "string" ? f : f?.uid;
             if (!fuid) return;
             try {
-                const unsub = onSnapshot(doc(db, "users", String(fuid)), (snap) => {
+                const unsub = onSnapshot(doc(db, "usersPublic", String(fuid)), (snap) => {
                     if (!mounted) return;
                     const data = snap.data() || {};
                     const cw = data.currentWorkout || null;

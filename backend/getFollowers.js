@@ -4,7 +4,7 @@ export default async function getFollowers(followers) {
     let db_followers = [];
     for (user of followers) {
         const uid = user.uid;
-        let userData = await readDoc('users', uid);
+        let userData = await readDoc('usersPublic', uid);
         db_followers.push(userData);
     }
 

@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Alert, StyleSheet, Image } from 'react-native';
 import useGoogleAuth from '../../auth/useGoogleAuth';
-import { upsertGoogleUser } from '../../auth/googleAccount';
+import { signInWithGoogleResponse } from '../../auth/googleAccount';
 import AuthButton from './AuthButton';
 import scaleSize from '../../helper/scaleSize';
 
@@ -42,11 +42,11 @@ const GoogleAuthButton = ({
     }
     setBusy(true);
     try {
-      const profile = await signIn();
-      if (!profile) return;
+      const response = await signIn();
+      if (!response) return;
 
-      const result = await upsertGoogleUser(profile);
-      handleSuccess(result);
+      const result = await signInWithGoogleResponse(response);
+      handleSuccess({ provider: 'google', ...result });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Google sign-in failed. Please try again.';
       handleError(message);

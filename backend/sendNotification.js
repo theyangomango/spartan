@@ -8,11 +8,11 @@ export default async function sendNotification(uid, event) {
         case 'liked-post':
         case 'liked-comment':
         case 'liked-story':
-            incrementDocValue('users', uid, 'notificationNewLikes');
+            incrementDocValue('usersPrivate', uid, 'notificationNewLikes');
             break;
         case 'comment':
         case 'replied-comment':
-            incrementDocValue('users', uid, 'notificationNewComments');
+            incrementDocValue('usersPrivate', uid, 'notificationNewComments');
             break;
         case 'workout-invite':
             // leave counters unchanged for now (only contributes to general events)
@@ -25,10 +25,10 @@ export default async function sendNotification(uid, event) {
             // overall events counter only
             break;
     }
-    incrementDocValue('users', uid, 'notificationNewEvents');
+    incrementDocValue('usersPrivate', uid, 'notificationNewEvents');
 
     // Add event to the user's notifications subcollection
-    const notificationsRef = collection(db, 'users', uid, 'notifications');
+    const notificationsRef = collection(db, 'usersPrivate', uid, 'notifications');
     await addDoc(notificationsRef, {
         ...event,
         read: false            // Optional: add `read` flag
@@ -36,7 +36,7 @@ export default async function sendNotification(uid, event) {
 
     // Try push notification via Expo (best-effort, no throw)
     try {
-        const snap = await getDoc(doc(db, 'users', uid));
+        const snap = await getDoc(doc(db, 'usersPrivate', uid));
         const target = snap.exists() ? (snap.data() || {}) : {};
         const to = String(target?.expoPushToken || '');
         if (!to || !to.startsWith('ExponentPushToken')) return;

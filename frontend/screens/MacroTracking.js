@@ -127,7 +127,7 @@ export default function MacroTracking({ navigation, route }) {
         const uid = global?.userData?.uid || global?.userData?.id;
         if (!uid) return;
 
-        const ref = doc(db, 'users', uid);
+        const ref = doc(db, 'usersPrivate', uid);
         const unsub = onSnapshot(ref, (snap) => {
             const data = snap.data() || {};
             const mg = data.macroGoals ?? data.macrosGoal; // keep legacy fallback
@@ -312,7 +312,7 @@ export default function MacroTracking({ navigation, route }) {
         } catch { }
         try {
             if (uid) {
-                const uref = doc(db, 'users', uid);
+                const uref = doc(db, 'usersPrivate', uid);
                 const nestedPath = `loggedFoods.${dk}.${entry.key}`;
                 const flatPath = `loggedFoods.${entry.key}`;
                 updateDoc(uref, { [nestedPath]: deleteField(), [flatPath]: deleteField() }).catch(() => { });
@@ -433,7 +433,7 @@ export default function MacroTracking({ navigation, route }) {
         }));
         try {
             if (uid) {
-                const uref = doc(db, 'users', uid);
+                const uref = doc(db, 'usersPrivate', uid);
                 const fieldPath = `loggedFoods.${dk}.${newId}`;
                 const flat = {
                     dayKey: dk,
@@ -480,7 +480,7 @@ export default function MacroTracking({ navigation, route }) {
         const uid = global?.userData?.uid || global?.userData?.id;
         if (uid) {
             try {
-                await updateDoc(doc(db, 'users', uid), {
+                await updateDoc(doc(db, 'usersPrivate', uid), {
                     macroGoals: next,
                     updatedAt: serverTimestamp(),
                 });
@@ -526,7 +526,7 @@ export default function MacroTracking({ navigation, route }) {
         };
 
         try {
-            await updateDoc(doc(db, 'users', uid), {
+            await updateDoc(doc(db, 'usersPrivate', uid), {
                 personalInfo: info,
                 updatedAt: serverTimestamp(),
             });

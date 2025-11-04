@@ -86,14 +86,21 @@ export default function ViewProfile({ navigation, route }) {
     }, [user]);
 
     async function getFullUserData() {
-        const data = await readDoc('users', user.uid);
-        setProfileUserData(data);
+        const [publicData, privateData] = await Promise.all([
+            readDoc('usersPublic', user.uid),
+            readDoc('usersPrivate', user.uid),
+        ]);
+        const merged = {
+            ...(publicData || {}),
+            ...(privateData || {}),
+        };
+        setProfileUserData(merged);
         try {
             const meUid = String(global?.userData?.uid || '');
-            const theirBlockedUids = ensureUidArray(data?.blockedUidList || data?.blocked);
+            const theirBlockedUids = ensureUidArray((privateData?.blockedUidList || privateData?.blocked));
             const theyBlockedMe = theirBlockedUids.includes(meUid);
             const myBlockedBy = ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy);
-            const uid = coerceUid(data) || coerceUid(user);
+            const uid = coerceUid(publicData) || coerceUid(privateData) || coerceUid(user);
             const inMyBlockedBy = uid ? myBlockedBy.includes(uid) : false;
             setBlockedFromViewing(Boolean(theyBlockedMe || inMyBlockedBy));
         } catch {
@@ -139,11 +146,11 @@ export default function ViewProfile({ navigation, route }) {
         if (!selfUser.uid || !otherUid) return;
 
         const cid = makeID();
-        await arrayAppend('users', selfUser.uid, 'messages', {
+        await arrayAppend('usersPrivate', selfUser.uid, 'messages', {
             mid: cid,
             otherUsers: [otherUser]
         });
-        await arrayAppend('users', otherUid, 'messages', {
+        await arrayAppend('usersPrivate', otherUid, 'messages', {
             mid: cid,
             otherUsers: [selfUser]
         });

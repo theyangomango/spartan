@@ -42,7 +42,7 @@ export default function useFeedUserData({ UID, navigation, route, isScreenFocuse
     useEffect(() => {
         if (!UID) return undefined;
 
-        const unsubscribe = onSnapshot(doc(db, "users", UID), (snap) => {
+        const unsubscribe = onSnapshot(doc(db, "usersPublic", UID), (snap) => {
             userDataRef.current = snap.data();
             try { global.userData = userDataRef.current; } catch { }
 

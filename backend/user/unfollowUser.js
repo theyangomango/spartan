@@ -1,8 +1,8 @@
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../firebase.config';
+import { getDoc, updateDoc } from 'firebase/firestore';
 import arrayErase from '../helper/firebase/arrayErase';
 import incrementDocValue from '../helper/firebase/incrementDocValue';
 import { normalizeUserRef } from '../helper/userRefs';
+import { userPublicDoc } from '../../shared/firestoreRefs';
 
 export default async function unfollowUser(this_user, user) {
     const meRef = normalizeUserRef(this_user);
@@ -11,17 +11,17 @@ export default async function unfollowUser(this_user, user) {
     if (!meRef || !otherRef) return;
 
     // Clear any lingering follow requests in either direction
-    try { await arrayErase('users', meRef.uid, 'followRequestsOut', otherRef); } catch {}
-    try { await arrayErase('users', otherRef.uid, 'followRequestsIn', meRef); } catch {}
+    try { await arrayErase('usersPrivate', meRef.uid, 'followRequestsOut', otherRef); } catch {}
+    try { await arrayErase('usersPrivate', otherRef.uid, 'followRequestsIn', meRef); } catch {}
 
     // First attempt fast arrayRemove with normalized shapes (covers recent follows)
-    try { await arrayErase('users', meRef.uid, 'following', otherRef); } catch {}
-    try { await arrayErase('users', otherRef.uid, 'followers', meRef); } catch {}
+    try { await arrayErase('usersPublic', meRef.uid, 'following', otherRef); } catch {}
+    try { await arrayErase('usersPublic', otherRef.uid, 'followers', meRef); } catch {}
 
     // Defensive cleanup: read both docs and purge any entries matching by uid (handles shape drift & rapid taps)
     try {
-        const meDocRef = doc(db, 'users', meRef.uid);
-        const otherDocRef = doc(db, 'users', otherRef.uid);
+        const meDocRef = userPublicDoc(meRef.uid);
+        const otherDocRef = userPublicDoc(otherRef.uid);
 
         const [meSnap, otherSnap] = await Promise.all([getDoc(meDocRef), getDoc(otherDocRef)]);
         const meData = meSnap.exists() ? (meSnap.data() || {}) : {};
@@ -52,7 +52,7 @@ export default async function unfollowUser(this_user, user) {
         await Promise.all(writes);
     } catch {
         // Fallback to counter decrement if reads fail
-        try { await incrementDocValue('users', meRef.uid, 'followingCount', -1); } catch {}
-        try { await incrementDocValue('users', otherRef.uid, 'followerCount', -1); } catch {}
+        try { await incrementDocValue('usersPublic', meRef.uid, 'followingCount', -1); } catch {}
+        try { await incrementDocValue('usersPublic', otherRef.uid, 'followerCount', -1); } catch {}
     }
 }

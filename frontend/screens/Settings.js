@@ -3,7 +3,8 @@ import { SafeAreaView, View, Text, StyleSheet, ScrollView, Switch, TouchableOpac
 import scaleSize, { ts } from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc as fsUpdateDoc } from 'firebase/firestore';
-import { db } from '../../firebase.config';
+import { signOut } from 'firebase/auth';
+import { auth, db } from '../../firebase.config';
 import useUserDoc from '../hooks/useUserDoc';
 import theme from '../theme/mfpDark';
 
@@ -24,8 +25,11 @@ export default function Settings({ navigation }) {
         style: 'destructive',
         onPress: () => {
           try {
-            if (global.logout) global.logout();
-            else global.setAuthUid?.(null);
+            if (global.logout) {
+              global.logout();
+            } else {
+              signOut(auth).catch(() => {});
+            }
           } catch {}
           navigation.reset({ index: 0, routes: [{ name: 'SignUp' }] });
         },
@@ -46,7 +50,7 @@ export default function Settings({ navigation }) {
   const persistSetting = useCallback(async (path, value) => {
     try {
       if (!uid) return;
-      const ref = doc(db, 'users', uid);
+      const ref = doc(db, 'usersPrivate', uid);
       await fsUpdateDoc(ref, { [path]: value });
       // keep global in sync for immediate UX
       try {

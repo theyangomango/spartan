@@ -22,7 +22,7 @@ const EditProfileModal = ({ setPFP }) => {
         if (global?.userData) {
             global.userData.bio = bio;
         }
-        updateDoc('users', global.userData.uid, { bio: bio });
+        updateDoc('usersPublic', global.userData.uid, { bio });
     };
 
     return (

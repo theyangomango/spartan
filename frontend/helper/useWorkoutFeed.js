@@ -181,7 +181,7 @@ export default function useWorkoutFeed(followingUsers, viewerUid, maxTotal = DEF
         allowedSet.forEach((uid) => {
             if (unsubRef.current.has(uid)) return;
             const unsubscribe = onSnapshot(
-                doc(db, "users", uid),
+                doc(db, "usersPublic", uid),
                 (snap) => {
                     const data = snap.data() || {};
                     profilesRef.current.set(uid, {
@@ -220,4 +220,3 @@ export default function useWorkoutFeed(followingUsers, viewerUid, maxTotal = DEF
 
     return items;
 }
-

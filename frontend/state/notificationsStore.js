@@ -71,7 +71,7 @@ export const ensureNotificationsListener = (uid) => {
     useNotificationsStore.setState({ ...initialState, ready: false });
 
     try {
-        const notifRef = collection(db, 'users', normalizedUid, 'notifications');
+        const notifRef = collection(db, 'usersPrivate', normalizedUid, 'notifications');
         const notifQuery = query(notifRef, orderBy('timestamp', 'desc'), limit(PAGE_SIZE));
         unsubscribe = onSnapshot(notifQuery, (snapshot) => {
             const docs = snapshot.docs.map((doc) => ({ id: doc.id, ...(doc.data() || {}) }));
@@ -104,7 +104,7 @@ export const loadMoreNotifications = async () => {
     useNotificationsStore.setState((state) => (state.loadingMore ? state : { ...state, loadingMore: true }));
 
     try {
-        const notifRef = collection(db, 'users', activeUid, 'notifications');
+        const notifRef = collection(db, 'usersPrivate', activeUid, 'notifications');
         const q = query(
             notifRef,
             orderBy('timestamp', 'desc'),

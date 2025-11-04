@@ -7,8 +7,12 @@ import { ensureUidArray, coerceUid } from "./helper/userRefs";
 
 // 1. 🔹 Get posts from global.post list (reversed)
 export async function getUserPosts() {
-    const postsDoc = await readDoc('global', 'posts');
-    const db_posts = await retrievePosts(getReverse(postsDoc.PIDs));
+    const postsDoc = await readDoc('global', 'posts').catch(() => null);
+    const pids = Array.isArray(postsDoc?.PIDs) ? postsDoc.PIDs : [];
+    if (!pids.length) {
+        return [];
+    }
+    const db_posts = await retrievePosts(getReverse(pids));
     return db_posts;
 }
 

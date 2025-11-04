@@ -16,14 +16,14 @@ export default async function acceptFollowRequest(this_user, requester) {
 
     if (!meRef.uid || !otherRef.uid) return { status: 'error', reason: 'missing-uid' };
 
-    try { await arrayErase('users', meRef.uid, 'followRequestsIn', otherRef); } catch {}
-    try { await arrayErase('users', otherRef.uid, 'followRequestsOut', meRef); } catch {}
+    try { await arrayErase('usersPrivate', meRef.uid, 'followRequestsIn', otherRef); } catch {}
+    try { await arrayErase('usersPrivate', otherRef.uid, 'followRequestsOut', meRef); } catch {}
 
-    try { await arrayAppend('users', meRef.uid, 'followers', otherRef); } catch {}
-    try { await incrementDocValue('users', meRef.uid, 'followerCount'); } catch {}
+    try { await arrayAppend('usersPublic', meRef.uid, 'followers', otherRef); } catch {}
+    try { await incrementDocValue('usersPublic', meRef.uid, 'followerCount'); } catch {}
 
-    try { await arrayAppend('users', otherRef.uid, 'following', meRef); } catch {}
-    try { await incrementDocValue('users', otherRef.uid, 'followingCount'); } catch {}
+    try { await arrayAppend('usersPublic', otherRef.uid, 'following', meRef); } catch {}
+    try { await incrementDocValue('usersPublic', otherRef.uid, 'followingCount'); } catch {}
 
     try {
         if (meRef.uid !== otherRef.uid) {

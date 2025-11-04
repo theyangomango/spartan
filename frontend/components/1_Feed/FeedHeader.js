@@ -556,7 +556,7 @@ const FeedHeader = ({
     useEffect(() => {
         const uid = global?.userData?.uid;
         if (!uid) return;
-        const notificationsRef = collection(db, "users", uid, "notifications");
+        const notificationsRef = collection(db, "usersPrivate", uid, "notifications");
         const q = query(notificationsRef, where("read", "==", false));
         const unsubscribe = onSnapshot(q, (snapshot) => setUnreadCount(snapshot.size));
         return () => unsubscribe();
@@ -566,7 +566,7 @@ const FeedHeader = ({
     useEffect(() => {
         const uid = global?.userData?.uid;
         if (!uid) return;
-        const userRef = doc(db, 'users', uid);
+        const userRef = doc(db, 'usersPrivate', uid);
         const unsub = onSnapshot(userRef, (snap) => {
             try {
                 const v = Number(snap.data()?.unreadMessagesCount || 0);

@@ -109,11 +109,14 @@ export default function useGoogleAuth() {
     if (!request) {
       throw new Error('Google Sign-In is still initializing. Please try again.');
     }
+    if (useProxyDefault && !baseConfig.expoClientId && !baseConfig.webClientId) {
+      throw new Error('Google Sign-In requires EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID (or EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID) when running inside Expo Go.');
+    }
 
     setLoading(true);
     try {
       const useProxy = useProxyDefault;
-      const redirectUri = resolvedRedirectUri;
+      const redirectUri = request?.redirectUri || resolvedRedirectUri;
       const result = await promptAsync({ useProxy });
 
       if (!result) return null;
@@ -139,7 +142,7 @@ export default function useGoogleAuth() {
       const tokenResponse = await AuthSession.exchangeCodeAsync(
         {
           code: authorizationCode,
-          clientId: activeClientId,
+          clientId: request?.clientId || activeClientId,
           redirectUri,
           extraParams: {
             code_verifier: request.codeVerifier,
@@ -149,6 +152,7 @@ export default function useGoogleAuth() {
       );
 
       const accessToken = tokenResponse?.accessToken;
+      const idToken = tokenResponse?.idToken;
       if (!accessToken) {
         throw new Error('Google Sign-In token exchange failed.');
       }
@@ -167,7 +171,15 @@ export default function useGoogleAuth() {
         throw new Error('Google profile response was missing required fields.');
       }
 
-      return profile;
+      return {
+        profile,
+        tokens: {
+          accessToken,
+          idToken,
+          scope: tokenResponse?.scope || '',
+          expiresIn: tokenResponse?.expiresIn || 0,
+        },
+      };
     } catch (err) {
       if (err instanceof Error) throw err;
       throw new Error('Google Sign-In failed.');

@@ -40,19 +40,21 @@ const SignUp = ({ navigation }) => {
     }, [navigation]);
 
     const handleProviderSuccess = useCallback((result) => {
-        if (result?.pendingUser) {
+        const uid = result?.user?.uid || null;
+        if (result?.requiresHandle && uid) {
             navigation.navigate('CreateUsername', {
-                pendingUser: result.pendingUser,
-                initialHandle: result.pendingUser?.suggestedHandle || '',
+                uid,
+                initialHandle: result?.publicProfile?.handle || '',
+                pendingProfile: result?.pendingProfile || null,
                 nextRoute: 'Tabs',
             });
             return;
         }
-
-        const user = result?.user;
-        try {
-            navigation.navigate('Tabs');
-        } catch {}
+        if (uid) {
+            navigation.reset({ index: 0, routes: [{ name: 'Tabs' }] });
+        } else {
+            navigation.reset({ index: 0, routes: [{ name: 'SignUp' }] });
+        }
     }, [navigation]);
 
     const backgroundSource = useAuthBackgroundSource();

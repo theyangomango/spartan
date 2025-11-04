@@ -64,7 +64,7 @@ export async function linkCompletedWorkoutToPost(uid, workout, pid) {
     const key = workoutIdentityKey(workout);
     if (!key) return;
 
-    const userRef = doc(db, 'users', uid);
+    const userRef = doc(db, 'usersPrivate', uid);
     await runTransaction(db, async (txn) => {
         const snap = await txn.get(userRef);
         if (!snap.exists()) return;

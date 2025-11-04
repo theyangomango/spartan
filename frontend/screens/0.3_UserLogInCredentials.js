@@ -3,8 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback, Platform } from 'react-native';
 import { Octicons, Feather } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
-import readDoc from '../../backend/helper/firebase/readDoc';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { auth } from '../../firebase.config';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -18,7 +18,7 @@ const UserLogInCredentials = ({ navigation }) => {
     const [emailOrPhone, setEmailOrPhone] = useState('');
     const [password, setPassword] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
-    const usersRef = useRef(null);
+    const [busy, setBusy] = useState(false);
 
     const emailOrPhoneInputRef = useRef(null);
 
@@ -35,58 +35,45 @@ const UserLogInCredentials = ({ navigation }) => {
         };
     }, []);
 
-    useEffect(() => {
-        readDoc('global', 'users')
-            .then(data => {
-                usersRef.current = data.all;
-            })
-    }, []);
-
     function goBack() {
         navigation.goBack();
     }
 
-    function logIn() {
-        const input = emailOrPhone.trim().toLowerCase();
-        const enteredPassword = password.trim();
-        setErrorMsg('');
+    async function logIn() {
+    const input = emailOrPhone.trim().toLowerCase();
+    const enteredPassword = password.trim();
+    setErrorMsg('');
 
-        if (!input || !enteredPassword) {
-            setErrorMsg('Enter your username/email/phone and password.');
-            return;
-        }
+    if (!input || !enteredPassword) {
+        setErrorMsg('Enter your email and password.');
+        return;
+    }
 
-        if (usersRef.current) {
-            // Loop through the users to find a match
-            const user = usersRef.current.find(user => {
-                const emailMatch = !!user?.email && String(user.email).toLowerCase() === input;
-                const phoneMatch = !!user?.phoneNumber && String(user.phoneNumber).toLowerCase() === input;
-                const handleMatch = !!user?.handle && String(user.handle).toLowerCase() === input;
-                const passwordMatch = user?.password === enteredPassword;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input)) {
+        setErrorMsg('Enter a valid email address.');
+        return;
+    }
 
-                // Allow login by handle, email, or phone, but only if the relevant
-                // property exists (guards against null email/phoneNumber).
-                return (emailMatch || phoneMatch || handleMatch) && passwordMatch;
-            });
-
-            if (user) {
-                // Successfully found a matching user
-                console.log('Login successful', user.uid);
-                AsyncStorage.setItem('uid', user.uid, () => {
-                    console.log('async storage set uid');
-                });
-                try { global.setAuthUid?.(user.uid); } catch {}
-                try {
-                    navigation.navigate('Tabs');
-                } catch { }
-            } else {
-                // No matching user found
-                console.log('Login failed: Invalid credentials');
-                setErrorMsg('Invalid credentials. Please try again.');
+        setBusy(true);
+        try {
+            const result = await signInWithEmailAndPassword(auth, input, enteredPassword);
+            if (!result.user?.emailVerified) {
+                setErrorMsg('Verify your email before continuing.');
+                try { await signOut(auth); } catch { }
+                return;
             }
-        } else {
-            console.log('Login failed: No user data available');
-            setErrorMsg('Unable to load users. Check your connection.');
+            navigation.reset({ index: 0, routes: [{ name: 'Tabs' }] });
+        } catch (error) {
+            const code = error?.code || '';
+            if (code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+                setErrorMsg('Invalid credentials. Please try again.');
+            } else if (code === 'auth/too-many-requests') {
+                setErrorMsg('Too many attempts. Try again later.');
+            } else {
+                setErrorMsg('Unable to sign in. Check your connection.');
+            }
+        } finally {
+            setBusy(false);
         }
     }
 
@@ -101,11 +88,11 @@ const UserLogInCredentials = ({ navigation }) => {
 
                 <View style={styles.formWrapper}>
                     <View style={styles.formContainer}>
-                        <Text style={styles.title}>Username / Email / Phone Number</Text>
+                        <Text style={styles.title}>Email</Text>
                         <TextInput
                             ref={emailOrPhoneInputRef}
                             style={styles.input}
-                            placeholder="Enter your username, email, or phone"
+                            placeholder="Enter your email"
                             placeholderTextColor={theme.textSecondary}
                             value={emailOrPhone}
                             onChangeText={setEmailOrPhone}

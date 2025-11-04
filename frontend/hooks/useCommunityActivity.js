@@ -218,7 +218,7 @@ export default function useCommunityActivity(user, enabled = true) {
 
     target.forEach((uid) => {
       if (listeners.has(uid)) return;
-      const unsub = onSnapshot(doc(db, 'users', uid), (snap) => {
+      const unsub = onSnapshot(doc(db, 'usersPublic', uid), (snap) => {
         const data = snap.data() || {};
         const nextProfiles = new Map(profilesRef.current);
         const prev = nextProfiles.get(uid) || { uid };
@@ -248,7 +248,7 @@ export default function useCommunityActivity(user, enabled = true) {
 
       const profileMap = new Map();
       for (const group of chunk10(mutualFriendUids)) {
-        const q = query(collection(db, 'users'), where(documentId(), 'in', group));
+        const q = query(collection(db, 'usersPublic'), where(documentId(), 'in', group));
         const snap = await getDocs(q);
         snap.forEach((docSnap) => {
           const data = docSnap.data() || {};

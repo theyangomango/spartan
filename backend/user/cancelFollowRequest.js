@@ -14,7 +14,7 @@ export default async function cancelFollowRequest(this_user, user) {
     if (!meRef.uid || !otherRef.uid) return false;
 
     let mutated = false;
-    try { await arrayErase('users', meRef.uid, 'followRequestsOut', otherRef); mutated = true; } catch {}
-    try { await arrayErase('users', otherRef.uid, 'followRequestsIn', meRef); mutated = true; } catch {}
+    try { await arrayErase('usersPrivate', meRef.uid, 'followRequestsOut', otherRef); mutated = true; } catch {}
+    try { await arrayErase('usersPrivate', otherRef.uid, 'followRequestsIn', meRef); mutated = true; } catch {}
     return mutated;
 }

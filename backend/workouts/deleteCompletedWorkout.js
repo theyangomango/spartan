@@ -1,6 +1,7 @@
 import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import computeHexagonFromStats from "../../shared/computeHexagon.js";
+import updateDoc from "../helper/firebase/updateDoc.js";
 
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
@@ -129,6 +130,15 @@ const removeWorkoutFromList = (workouts, identifier) => {
         }
     }
     return { remaining, removed };
+};
+
+const sanitizeWorkoutForPublic = (workout) => {
+    if (!workout || typeof workout !== "object") return null;
+    try {
+        return JSON.parse(JSON.stringify(workout));
+    } catch {
+        return { ...workout };
+    }
 };
 
 const rebuildStatsFromWorkouts = (workouts) => {
@@ -294,18 +304,22 @@ export default async function deleteCompletedWorkout(uid, identifier) {
     if (!id) throw new Error("deleteCompletedWorkout: missing identifier");
 
     const userRef = doc(db, "users", normalizedUid);
+    const publicRef = doc(db, "usersPublic", normalizedUid);
+    const privateRef = doc(db, "usersPrivate", normalizedUid);
 
     const result = await runTransaction(db, async (tx) => {
-        const snap = await tx.get(userRef);
-        if (!snap.exists()) throw new Error("User not found");
-        const data = snap.data() || {};
+        const userSnap = await tx.get(userRef);
+        if (!userSnap.exists()) throw new Error("User not found");
+        const publicSnap = await tx.get(publicRef);
+        const privateSnap = await tx.get(privateRef);
+        const data = userSnap.data() || {};
         const workouts = Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [];
         const { remaining, removed } = removeWorkoutFromList(workouts, id);
         if (!removed) throw new Error("Workout not found");
 
         const rebuilt = rebuildStatsFromWorkouts(remaining);
 
-        tx.update(userRef, {
+        const userUpdatePayload = {
             completedWorkouts: remaining,
             statsExercises: rebuilt.statsExercises,
             statsHexagon: rebuilt.statsHexagon,
@@ -317,7 +331,49 @@ export default async function deleteCompletedWorkout(uid, identifier) {
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
-        });
+        };
+
+        const publicUpdatePayload = {
+            completedWorkouts: remaining.map((entry) => sanitizeWorkoutForPublic(entry)).filter(Boolean),
+            statsExercises: rebuilt.statsExercises,
+            statsHexagon: rebuilt.statsHexagon,
+            statsHexagonMeta: {
+                lastTrainedByGroup: rebuilt.lastTrainedByGroup,
+                updatedAt: serverTimestamp(),
+            },
+            statsTotalVolume: rebuilt.statsTotalVolume,
+            statsTotalHours: rebuilt.statsTotalHours,
+            statsTotalWorkouts: rebuilt.statsTotalWorkouts,
+            workoutsByDate: rebuilt.workoutsByDate,
+        };
+
+        const privateUpdatePayload = {
+            completedWorkouts: remaining.map((entry) => sanitizeWorkoutForPublic(entry)).filter(Boolean),
+            statsExercises: rebuilt.statsExercises,
+            statsHexagon: rebuilt.statsHexagon,
+            statsHexagonMeta: {
+                lastTrainedByGroup: rebuilt.lastTrainedByGroup,
+                updatedAt: serverTimestamp(),
+            },
+            statsTotalVolume: rebuilt.statsTotalVolume,
+            statsTotalHours: rebuilt.statsTotalHours,
+            statsTotalWorkouts: rebuilt.statsTotalWorkouts,
+            workoutsByDate: rebuilt.workoutsByDate,
+        };
+
+        tx.update(userRef, userUpdatePayload);
+        if (publicSnap.exists()) {
+            tx.update(publicRef, publicUpdatePayload);
+        } else {
+            tx.set(publicRef, publicUpdatePayload, { merge: true });
+        }
+        if (privateSnap.exists()) {
+            tx.update(privateRef, privateUpdatePayload);
+        } else {
+            tx.set(privateRef, privateUpdatePayload, { merge: true });
+        }
+
+        const postPidInsideTx = removed?.postPid ?? removed?.pid ?? null;
 
         return {
             removedWorkout: removed,
@@ -332,8 +388,25 @@ export default async function deleteCompletedWorkout(uid, identifier) {
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
+            postPid: postPidInsideTx,
         };
     });
 
-    return { ok: true, ...result };
+    const { postPid, ...rest } = result || {};
+
+    if (postPid) {
+        try {
+            await updateDoc("posts", postPid, {
+                workout: null,
+                workoutDeletedAt: Date.now(),
+            });
+        } catch (error) {
+            console.warn("deleteCompletedWorkout: failed to update linked post", {
+                postPid,
+                error,
+            });
+        }
+    }
+
+    return { ok: true, ...rest };
 }

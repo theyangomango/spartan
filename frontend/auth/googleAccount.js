@@ -1,75 +1,33 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import readDoc from '../../backend/helper/firebase/readDoc';
-import updateDoc from '../../backend/helper/firebase/updateDoc';
-import makeID from '../../backend/helper/makeID';
+import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { auth } from '../../firebase.config';
+import { prepareProfileForAuth } from '../services/userProfileService';
 
-function normalizeHandle(source) {
-  if (!source) return '';
-  const lowered = source.toLowerCase();
-  const safe = lowered.replace(/[^a-z0-9_.]/g, '');
-  return safe.slice(0, 20);
-}
+export async function signInWithGoogleResponse({ profile, tokens }) {
+  if (!tokens?.idToken) {
+    throw new Error('Missing Google ID token.');
+  }
+  const credential = GoogleAuthProvider.credential(tokens.idToken, tokens.accessToken);
+  const userCredential = await signInWithCredential(auth, credential);
+  const user = userCredential.user;
 
-export async function upsertGoogleUser(profile, options = {}) {
-  const { preferredHandle } = options || {};
-  const usersSnapshot = await readDoc('global', 'users').catch(() => null);
-  const allUsers = Array.isArray(usersSnapshot?.all) ? usersSnapshot.all : [];
-
-  const email = profile?.email ? String(profile.email).toLowerCase() : null;
-  const googleId = profile?.id ? String(profile.id) : profile?.sub ? String(profile.sub) : '';
-
-  const existingUser = allUsers.find((user) => {
-    const emailMatch = email && user?.email && String(user.email).toLowerCase() === email;
-    const providerMatch = googleId && user?.googleId === googleId;
-    return emailMatch || providerMatch;
-  });
-
-  if (existingUser) {
-    await AsyncStorage.setItem('uid', existingUser.uid);
-    try { global.setAuthUid?.(existingUser.uid); } catch {}
-    try { global.userData = { ...(global.userData || {}), ...existingUser }; } catch {}
-
-    if (googleId && existingUser.googleId !== googleId) {
-      try { await updateDoc('users', existingUser.uid, { googleId, authProvider: existingUser.authProvider || 'google' }); } catch {}
-    }
-
-    return { user: existingUser, isNew: false };
+  if (!user?.uid) {
+    throw new Error('Failed to authenticate with Google.');
   }
 
-  const uid = makeID();
-  const normalizedPreferredHandle = normalizeHandle(preferredHandle);
-  const profileHandleSource = normalizeHandle(
-    email?.split('@')[0]
-      || profile?.given_name
-      || profile?.family_name
-      || profile?.name
-      || ''
-  );
-
-  const fallbackHandle = `user${uid.slice(0, 6).toLowerCase()}`;
-  const baseHandle = normalizedPreferredHandle && normalizedPreferredHandle.length >= 6
-    ? normalizedPreferredHandle
-    : (profileHandleSource && profileHandleSource.length >= 6
-      ? profileHandleSource
-      : fallbackHandle);
-
-  const displayName = profile?.name
-    || [profile?.given_name, profile?.family_name].filter(Boolean).join(' ')
-    || (email ? email.split('@')[0] : 'New Spartan');
-
-  const avatar = typeof profile?.picture === 'string' ? profile.picture : '';
-
-  const pendingUser = {
-    uid,
-    name: displayName,
-    email,
-    phoneNumber: null,
-    image: avatar,
-    password: null,
-    authProvider: 'google',
-    extra: { googleId },
-    suggestedHandle: baseHandle,
+  const profilePayload = {
+    displayName: user.displayName || profile?.name || '',
+    photoURL: user.photoURL || profile?.picture || '',
+    email: user.email || profile?.email || '',
+    emailVerified: user.emailVerified,
+    providerId: 'google.com',
   };
 
-  return { user: null, isNew: true, pendingUser };
+  const prepared = await prepareProfileForAuth(profilePayload);
+
+  return {
+    user,
+    requiresHandle: !!prepared?.requiresHandle,
+    publicProfile: prepared?.publicProfile || null,
+    pendingProfile: prepared?.pendingProfile || null,
+  };
 }

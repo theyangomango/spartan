@@ -147,9 +147,9 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
 
         try {
             if (isSaved) {
-                arrayErase('users', user.uid, 'savedPosts', data.pid);
+                arrayErase('usersPrivate', user.uid, 'savedPosts', data.pid);
             } else {
-                arrayAppend('users', user.uid, 'savedPosts', data.pid);
+                arrayAppend('usersPrivate', user.uid, 'savedPosts', data.pid);
             }
         } catch (error) {
             console.warn('Failed to toggle saved post', error);

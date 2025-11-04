@@ -24,13 +24,23 @@ export default async function deletePost(pid, uid) {
     if (safeUid) {
         await Promise.allSettled([
             (async () => {
+                try { await arrayErase("usersPublic", safeUid, "posts", safePid); } catch (error) {
+                    console.error("deletePost: failed to remove pid from usersPublic posts array", error);
+                }
+            })(),
+            (async () => {
+                try { await incrementDocValue("usersPublic", safeUid, "postCount", -1); } catch (error) {
+                    console.error("deletePost: failed to decrement usersPublic postCount", error);
+                }
+            })(),
+            (async () => {
                 try { await arrayErase("users", safeUid, "posts", safePid); } catch (error) {
-                    console.error("deletePost: failed to remove pid from user posts", error);
+                    console.error("deletePost: failed to remove pid from legacy users posts array", error);
                 }
             })(),
             (async () => {
                 try { await incrementDocValue("users", safeUid, "postCount", -1); } catch (error) {
-                    console.error("deletePost: failed to decrement user postCount", error);
+                    console.error("deletePost: failed to decrement legacy users postCount", error);
                 }
             })(),
         ]);

@@ -47,19 +47,23 @@ const LogIn = ({ navigation }) => {
         navigation.navigate('UserLogInCredentials');
     }, [navigation]);
 
-    const handleGoogleSuccess = useCallback((result) => {
+    const handleProviderSuccess = useCallback((result) => {
         setErrorMsg('');
-        if (result?.pendingUser) {
+        const uid = result?.user?.uid || null;
+        if (result?.requiresHandle && uid) {
             navigation.navigate('CreateUsername', {
-                pendingUser: result.pendingUser,
-                initialHandle: result.pendingUser?.suggestedHandle || '',
+                uid,
+                initialHandle: result?.publicProfile?.handle || '',
+                pendingProfile: result?.pendingProfile || null,
                 nextRoute: 'Tabs',
             });
             return;
         }
-        try {
-            navigation.navigate('Tabs');
-        } catch {}
+        if (uid) {
+            navigation.reset({ index: 0, routes: [{ name: 'Tabs' }] });
+            return;
+        }
+        setErrorMsg('Unable to sign in. Try again.');
     }, [navigation]);
 
     const backgroundSource = useAuthBackgroundSource();
@@ -94,14 +98,14 @@ const LogIn = ({ navigation }) => {
                         <GoogleAuthButton
                             label="Continue with Google"
                             busyText="Logging in…"
-                            onSuccess={handleGoogleSuccess}
+                            onSuccess={handleProviderSuccess}
                             onError={setErrorMsg}
                             style={styles.googleButton}
                         />
                         <AppleAuthButton
                             label="Continue with Apple"
                             busyText="Logging in…"
-                            onSuccess={handleGoogleSuccess}
+                            onSuccess={handleProviderSuccess}
                             onError={setErrorMsg}
                             style={styles.appleButton}
                         />

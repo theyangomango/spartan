@@ -5,7 +5,7 @@ const resetNewNotifications = async () => {
     const uid = global.userData?.uid;
     if (!uid) return;
 
-    const notificationsRef = collection(db, 'users', uid, 'notifications');
+    const notificationsRef = collection(db, 'usersPrivate', uid, 'notifications');
     const q = query(notificationsRef, where('read', '==', false));
     const snapshot = await getDocs(q);
 

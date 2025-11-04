@@ -35,7 +35,7 @@ export async function fetchPostRecord(pid, hintUid) {
     if (!pid) return null;
     let ownerUid = hintUid ? String(hintUid) : await resolvePostOwner(pid);
     if (!ownerUid) return null;
-    const userSnap = await getDoc(doc(db, 'users', ownerUid));
+    const userSnap = await getDoc(doc(db, 'usersPublic', ownerUid));
     if (!userSnap.exists()) return null;
     const data = userSnap.data() || {};
     const record = data.postRecords?.[pid];
@@ -45,7 +45,7 @@ export async function fetchPostRecord(pid, hintUid) {
 
 export async function fetchUserPostRecords(uid) {
     if (!uid) return { order: [], records: {} };
-    const snap = await getDoc(doc(db, 'users', uid));
+    const snap = await getDoc(doc(db, 'usersPublic', uid));
     if (!snap.exists()) return { order: [], records: {} };
     const data = snap.data() || {};
     const order = Array.isArray(data.posts) ? data.posts : Object.keys(data.postRecords || {});

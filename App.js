@@ -22,11 +22,11 @@ import * as Network from 'expo-network';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { enableScreens, enableFreeze } from 'react-native-screens';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFonts } from 'expo-font';
 import { customFonts } from './fonts';
-import { db } from './firebase.config';
+import { auth, db } from './firebase.config';
 import { doc, onSnapshot, collection, query, where, getDoc, getDocFromCache } from 'firebase/firestore';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { initCommunityStats, refreshCommunityStats } from './frontend/logic/communityStats';
 import { ensureAuthBackgroundAsync } from './frontend/utils/authBackground';
 import { emitUserDataUpdate } from './frontend/utils/userDataEvents';
@@ -161,6 +161,8 @@ export default function App() {
     const logoutCleanupRef = useRef(null);
     const logoutResetTimerRef = useRef(null);
     const prevMessagesSigRef = useRef('');
+    const latestUserPublicRef = useRef(null);
+    const latestUserPrivateRef = useRef(null);
 
     const animateFooterVisibility = useCallback((visible) => {
         if (footerVisibilityTargetRef.current === visible && footerVisibilitySV.value === (visible ? 1 : 0)) {
@@ -227,6 +229,10 @@ export default function App() {
         if (!showFooter && isFeedPostFocused) {
             setIsFeedPostFocused(false);
             feedOverlayProgressSV.value = 1;
+        }
+
+        if (pendingNotificationsNavRef.current) {
+            scheduleNotificationsNavigation();
         }
     }, [currentTabName, isFeedPostFocused, feedOverlayProgressSV, setIsFooterNavEligible]);
 
@@ -372,63 +378,60 @@ export default function App() {
     }, [feedOverlayProgressSV]);
 
     useEffect(() => {
-        // Expose a minimal auth setter so login/signup can notify App immediately
-        // AsyncStorage.clear();
-
-        global.setAuthUid = (uid) => {
-            const normalizedUid = uid ? String(uid) : null;
-            try {
-                if (normalizedUid) {
-                    AsyncStorage.setItem('uid', normalizedUid).catch(() => { });
-                } else {
-                    AsyncStorage.removeItem('uid').catch(() => { });
-                }
-            } catch { }
-            if (!normalizedUid) {
-                const prevUid = uidRef.current;
-                if (prevUid) {
-                    try {
-                        const updateDoc = require('./backend/helper/firebase/updateDoc').default;
-                        updateDoc('users', prevUid, { expoPushToken: '' }).catch(() => { });
-                    } catch { }
-                }
-                try { logoutCleanupRef.current?.(); } catch { }
-                uidRef.current = null;
-                setUserReady(false);
+        const handleLogoutSideEffects = (prevUid) => {
+            if (prevUid) {
                 try {
-                    global.userData = {};
-                    emitUserDataUpdate();
+                    const updateDoc = require('./backend/helper/firebase/updateDoc').default;
+                    updateDoc('usersPrivate', prevUid, { expoPushToken: '' }).catch(() => { });
                 } catch { }
-                try { delete global.__userDocHydrated; } catch { }
-                prevMessagesSigRef.current = '';
-                resetMessagesState();
-                stopNotificationsListener();
-            } else {
-                if (logoutResetTimerRef.current) {
-                    try { clearTimeout(logoutResetTimerRef.current); } catch { }
-                    logoutResetTimerRef.current = null;
-                }
-                uidRef.current = normalizedUid;
-                try { delete global.__userDocHydrated; } catch { }
-                prevMessagesSigRef.current = '';
             }
-            setIsAuthenticated(!!normalizedUid);
-        };
-
-        global.logout = () => {
-            try { global.setAuthUid?.(null); } catch { }
-        };
-
-        (async () => {
+            try { logoutCleanupRef.current?.(); } catch { }
+            uidRef.current = null;
+            setUserReady(false);
             try {
-                const uid = await AsyncStorage.getItem('uid');
-                if (uid) { uidRef.current = uid; setIsAuthenticated(true); }
-                else { setIsAuthenticated(false); setUserReady(false); }
-            } catch (err) { console.error(err); }
-            finally { setAuthChecked(true); }
-        })();
+                global.userData = {};
+                emitUserDataUpdate();
+            } catch { }
+            try { delete global.__userDocHydrated; } catch { }
+            prevMessagesSigRef.current = '';
+            resetMessagesState();
+            stopNotificationsListener();
+        };
+
+        const unsub = onAuthStateChanged(auth, (firebaseUser) => {
+            const nextUid = firebaseUser?.uid ? String(firebaseUser.uid) : null;
+            const prevUid = uidRef.current ? String(uidRef.current) : null;
+
+            if (!nextUid) {
+                handleLogoutSideEffects(prevUid);
+                setIsAuthenticated(false);
+                setAuthChecked(true);
+                return;
+            }
+
+            if (prevUid && prevUid !== nextUid) {
+                handleLogoutSideEffects(prevUid);
+            }
+
+            if (logoutResetTimerRef.current) {
+                try { clearTimeout(logoutResetTimerRef.current); } catch { }
+                logoutResetTimerRef.current = null;
+            }
+
+            uidRef.current = nextUid;
+            try { delete global.__userDocHydrated; } catch { }
+            prevMessagesSigRef.current = '';
+            setIsAuthenticated(true);
+            setAuthChecked(true);
+        });
+
+        global.logout = async () => {
+            try { await signOut(auth); } catch { }
+        };
+
         return () => {
-            try { delete global.setAuthUid; delete global.logout; } catch { }
+            try { unsub(); } catch { }
+            try { delete global.logout; } catch { }
         };
     }, []);
 
@@ -445,6 +448,8 @@ export default function App() {
     const pendingFeedTargetRef = useRef(null);
     const pendingFeedNavTimerRef = useRef(null);
     const pendingFeedValidationTokenRef = useRef(0);
+    const pendingNotificationsNavRef = useRef(false);
+    const pendingNotificationsTimerRef = useRef(null);
     useEffect(() => {
         let mounted = true;
         try {
@@ -620,6 +625,60 @@ export default function App() {
         attempt();
     }, [tryNavigateToPendingFeedTarget]);
 
+    const attemptNavigateToNotifications = useCallback(() => {
+        try {
+            const { navigationRef } = require('./navigationRef');
+            const currentRoute = navigationRef?.getCurrentRoute?.();
+            if (currentRoute?.name === 'Notifications') {
+                pendingNotificationsNavRef.current = false;
+                if (pendingNotificationsTimerRef.current) {
+                    try { clearTimeout(pendingNotificationsTimerRef.current); } catch { }
+                    pendingNotificationsTimerRef.current = null;
+                }
+                return true;
+            }
+        } catch { }
+
+        let handled = false;
+        try {
+            const { navigateRoot } = require('./navigationRef');
+            if (navigateRoot && navigateRoot('Notifications')) {
+                handled = true;
+            }
+        } catch { }
+        if (!handled) {
+            try {
+                const { navigationRef } = require('./navigationRef');
+                if (navigationRef?.navigate) {
+                    navigationRef.navigate('Notifications');
+                    handled = true;
+                }
+            } catch { }
+        }
+
+        if (handled) {
+            pendingNotificationsNavRef.current = false;
+            if (pendingNotificationsTimerRef.current) {
+                try { clearTimeout(pendingNotificationsTimerRef.current); } catch { }
+                pendingNotificationsTimerRef.current = null;
+            }
+        }
+
+        return handled;
+    }, []);
+
+    const scheduleNotificationsNavigation = useCallback(() => {
+        if (!pendingNotificationsNavRef.current) return;
+        if (attemptNavigateToNotifications()) return;
+        if (pendingNotificationsTimerRef.current) {
+            try { clearTimeout(pendingNotificationsTimerRef.current); } catch { }
+            pendingNotificationsTimerRef.current = null;
+        }
+        pendingNotificationsTimerRef.current = setTimeout(() => {
+            scheduleNotificationsNavigation();
+        }, 300);
+    }, [attemptNavigateToNotifications]);
+
     const processFeedNotificationTarget = useCallback((target) => {
         if (!target || !target.pid) return;
         const pid = String(target.pid);
@@ -684,6 +743,7 @@ export default function App() {
                 if (id && lastHandledNotifIdRef.current === id) return; // dedupe
                 const data = resp?.notification?.request?.content?.data || {};
                 const type = data?.type;
+                let handled = false;
                 if (type === 'chat' && data?.cid) {
                     const cid = String(data.cid);
                     pendingChatCidRef.current = cid;
@@ -692,10 +752,20 @@ export default function App() {
                     if (!tryNavigateToPendingChat()) {
                         // Navigation not ready yet; a separate effect will retry
                     }
+                    handled = true;
                 }
                 const nidType = data?.nidType ? String(data.nidType) : '';
-                if ((nidType === 'liked-post' || nidType === 'liked-comment') && data?.pid) {
+                if (!handled && (nidType === 'liked-post' || nidType === 'liked-comment') && data?.pid) {
                     processFeedNotificationTarget({ pid: data.pid, nidType });
+                    handled = true;
+                }
+                if (!handled) {
+                    const navigated = attemptNavigateToNotifications();
+                    if (!navigated) {
+                        pendingNotificationsNavRef.current = true;
+                        scheduleNotificationsNavigation();
+                    }
+                    handled = true;
                 }
                 if (id) lastHandledNotifIdRef.current = id;
             } catch { }
@@ -716,7 +786,7 @@ export default function App() {
             } catch { }
             notifResponseSubRef.current = null;
         };
-    }, [notificationsRef.current, prefetchChatData, tryNavigateToPendingChat, processFeedNotificationTarget]);
+    }, [notificationsRef.current, prefetchChatData, tryNavigateToPendingChat, processFeedNotificationTarget, attemptNavigateToNotifications, scheduleNotificationsNavigation]);
 
     useEffect(() => () => {
         if (pendingFeedNavTimerRef.current) {
@@ -725,20 +795,72 @@ export default function App() {
         }
     }, []);
 
+    useEffect(() => () => {
+        if (pendingNotificationsTimerRef.current) {
+            try { clearTimeout(pendingNotificationsTimerRef.current); } catch { }
+            pendingNotificationsTimerRef.current = null;
+        }
+        pendingNotificationsNavRef.current = false;
+    }, []);
+
     // Request push permissions and register token on login
     useEffect(() => {
-        // cleanup previous subscription
-        if (unsubRef.current) { try { unsubRef.current(); } catch { } unsubRef.current = null; }
+        const cleanupSubscriptions = () => {
+            const current = unsubRef.current;
+            if (!current) return;
+            if (typeof current === 'function') {
+                try { current(); } catch { }
+            } else {
+                try { current?.public?.(); } catch { }
+                try { current?.private?.(); } catch { }
+            }
+            unsubRef.current = null;
+        };
+
+        cleanupSubscriptions();
         setUserReady(false);
 
         const uid = uidRef.current;
-        if (!isAuthenticated || !uid) return;
+        if (!isAuthenticated || !uid) {
+            return () => {
+                cleanupSubscriptions();
+                stopNotificationsListener();
+            };
+        }
+
         try { delete global.__userDocHydrated; } catch { }
-        const ref = doc(db, 'users', uid);
-        unsubRef.current = onSnapshot(ref, async (snap) => {
-            const data = snap.data() || {};
+        latestUserPublicRef.current = null;
+        latestUserPrivateRef.current = null;
+
+        const mergeAndApply = async (nextPublic, nextPrivate, meta = {}) => {
+            const { publicExists, privateExists } = meta;
+            if (nextPublic) latestUserPublicRef.current = nextPublic;
+            if (nextPrivate) latestUserPrivateRef.current = nextPrivate;
+
+            const hasPublic = publicExists !== undefined
+                ? publicExists
+                : !!(latestUserPublicRef.current && Object.keys(latestUserPublicRef.current).length);
+            const hasPrivate = privateExists !== undefined
+                ? privateExists
+                : !!(latestUserPrivateRef.current && Object.keys(latestUserPrivateRef.current).length);
+
+            if (!hasPublic && !hasPrivate) {
+                latestUserPublicRef.current = null;
+                latestUserPrivateRef.current = null;
+                setUserReady(false);
+                try {
+                    global.userData = {};
+                    emitUserDataUpdate();
+                } catch { }
+                return;
+            }
+
+            const publicData = latestUserPublicRef.current || {};
+            const privateData = latestUserPrivateRef.current || {};
+            const mergedData = { uid, ...publicData, ...privateData };
+
             try {
-                global.userData = { uid, ...data };
+                global.userData = mergedData;
                 emitUserDataUpdate();
             } catch { }
             setUserReady(true);
@@ -751,7 +873,7 @@ export default function App() {
                 }
             } catch { }
 
-            const messagesArr = Array.isArray(data.messages) ? data.messages : [];
+            const messagesArr = Array.isArray(mergedData.messages) ? mergedData.messages : [];
             const sig = (() => {
                 if (!messagesArr.length) return 'len:0';
                 const mids = messagesArr
@@ -761,18 +883,17 @@ export default function App() {
             })();
             if (prevMessagesSigRef.current !== sig) {
                 prevMessagesSigRef.current = sig;
-                preloadMessagesForUid(uid, { userDoc: data }).catch(() => { });
+                preloadMessagesForUid(uid, { userDoc: mergedData }).catch(() => { });
             }
 
             // Register for push notifications (EAS project id required)
             try {
                 if (Device.isDevice && notificationsRef.current) {
-                    const wantsPush = (global?.userData?.settings?.push !== false);
-                    // If user disabled push and we previously had a token, clear it
-                    if (!wantsPush && global?.userData?.expoPushToken) {
+                    const wantsPush = (mergedData?.settings?.push !== false);
+                    if (!wantsPush && mergedData?.expoPushToken) {
                         try {
                             const updateDoc = require('./backend/helper/firebase/updateDoc').default;
-                            await updateDoc('users', uid, { expoPushToken: '' });
+                            await updateDoc('usersPrivate', uid, { expoPushToken: '' });
                             try { global.userData.expoPushToken = ''; } catch { }
                         } catch { }
                     }
@@ -786,25 +907,25 @@ export default function App() {
                     if (finalStatus === 'granted') {
                         const token = await notificationsRef.current.getExpoPushTokenAsync({ projectId: '6cd30997-3609-4c85-9f1f-6e2391e0b736' });
                         const t = token?.data || '';
-                        if (t && t !== (global?.userData?.expoPushToken || '')) {
+                        if (t && t !== (mergedData?.expoPushToken || '')) {
                             const updateDoc = require('./backend/helper/firebase/updateDoc').default;
-                            await updateDoc('users', uid, { expoPushToken: t });
+                            await updateDoc('usersPrivate', uid, { expoPushToken: t });
                             try { global.userData.expoPushToken = t; } catch { }
                         }
                     }
                 }
             } catch (e) { console.log('Push registration error', e?.message || e); }
+
             // Vibrate on unread messages count increase (skip when in Chat)
             try {
-                const data = snap.data() || {};
-                const nextCount = Number(data?.unreadMessagesCount || 0);
+                const nextCount = Number(mergedData?.unreadMessagesCount || 0);
                 if (prevUnreadMsgRef.current === null || prevUnreadMsgRef.current === undefined) {
                     prevUnreadMsgRef.current = nextCount;
                 } else if (Number.isFinite(nextCount) && nextCount > prevUnreadMsgRef.current) {
                     let route = null;
                     try { if (navigationRef?.isReady?.() && navigationRef?.getCurrentRoute) { route = navigationRef.getCurrentRoute(); } } catch { }
                     if (!route || route?.name !== 'Chat') {
-                        const soundsOn = (global?.userData?.settings?.sounds !== false);
+                        const soundsOn = (mergedData?.settings?.sounds !== false);
                         if (soundsOn) buzzOnce();
                     }
                     prevUnreadMsgRef.current = nextCount;
@@ -812,32 +933,34 @@ export default function App() {
                     prevUnreadMsgRef.current = nextCount;
                 }
             } catch { }
+        };
+
+        const publicRef = doc(db, 'usersPublic', uid);
+        const privateRef = doc(db, 'usersPrivate', uid);
+
+        const unsubPublic = onSnapshot(publicRef, (snap) => {
+            const data = snap.exists() ? (snap.data() || {}) : null;
+            mergeAndApply(data, null, { publicExists: snap.exists() }).catch(() => {});
         }, (err) => {
-            console.warn('User document subscription error:', err?.message || err);
-            // proceed but keep ready false to avoid crashing screens
+            console.warn('User public document subscription error:', err?.message || err);
         });
+
+        const unsubPrivate = onSnapshot(privateRef, (snap) => {
+            const data = snap.exists() ? (snap.data() || {}) : null;
+            mergeAndApply(null, data, { privateExists: snap.exists() }).catch(() => {});
+        }, (err) => {
+            console.warn('User private document subscription error:', err?.message || err);
+        });
+
+        unsubRef.current = { public: unsubPublic, private: unsubPrivate };
+
         return () => {
-            if (unsubRef.current) { try { unsubRef.current(); } catch { } unsubRef.current = null; }
+            cleanupSubscriptions();
             stopNotificationsListener();
         };
     }, [isAuthenticated]);
 
-    // Safety: if user doc doesn't arrive promptly (offline, slow network), proceed with minimal data
-    useEffect(() => {
-        if (!isAuthenticated || userReady) return;
-        const id = setTimeout(() => {
-            if (!userReady) {
-                try {
-                    const uid = uidRef.current;
-                    global.userData = { ...(global.userData || {}), uid, id: uid };
-                    emitUserDataUpdate();
-                } catch { }
-                setUserReady(true);
-                try { global.__userDocHydrated = true; } catch { }
-            }
-        }, 2500);
-        return () => clearTimeout(id);
-    }, [isAuthenticated, userReady]);
+    // Removed optimistic hydration fallback: userReady only flips true once profile docs exist.
 
     // Safety: ensure authChecked resolves even if AsyncStorage is slow
     useEffect(() => {
@@ -888,12 +1011,23 @@ export default function App() {
             }
             pendingFeedTargetRef.current = null;
             pendingFeedValidationTokenRef.current = 0;
+            if (pendingNotificationsTimerRef.current) {
+                try { clearTimeout(pendingNotificationsTimerRef.current); } catch { }
+                pendingNotificationsTimerRef.current = null;
+            }
+            pendingNotificationsNavRef.current = false;
             if (logoutResetTimerRef.current) {
                 try { clearTimeout(logoutResetTimerRef.current); } catch { }
                 logoutResetTimerRef.current = null;
             }
-            if (unsubRef.current) {
-                try { unsubRef.current(); } catch { }
+            const current = unsubRef.current;
+            if (current) {
+                if (typeof current === 'function') {
+                    try { current(); } catch { }
+                } else {
+                    try { current?.public?.(); } catch { }
+                    try { current?.private?.(); } catch { }
+                }
                 unsubRef.current = null;
             }
             prevMessagesSigRef.current = '';
@@ -1023,7 +1157,7 @@ export default function App() {
         const uid = global?.userData?.uid;
         if (!uid) return;
         try {
-            const notificationsRefFs = collection(db, 'users', uid, 'notifications');
+            const notificationsRefFs = collection(db, 'usersPrivate', uid, 'notifications');
             const q = query(notificationsRefFs, where('read', '==', false));
             notifUnsubRef.current = onSnapshot(q, (snap) => {
                 try {
@@ -1054,8 +1188,9 @@ export default function App() {
         const id = setTimeout(() => setAppForceReady(true), 4500);
         return () => clearTimeout(id);
     }, [appForceReady]);
+    const isAccountReady = isAuthenticated && userReady;
     const hasUserData = authChecked && (!isAuthenticated || userReady);
-    const shouldWaitForAuthBackground = !isAuthenticated;
+    const shouldWaitForAuthBackground = !isAccountReady;
     const baseAppReady = fontsReady
         && (hasUserData || appForceReady)
         && (communityStatsReady || appForceReady);
@@ -1146,8 +1281,8 @@ return (
                     {/* Single root navigator with all screens */}
                     <RootStack.Navigator
                         id="ROOT"
-                        key={isAuthenticated ? 'auth' : 'guest'}
-                        initialRouteName={isAuthenticated ? 'Tabs' : 'SignUp'}
+                        key={isAccountReady ? 'auth' : 'guest'}
+                        initialRouteName={isAccountReady ? 'Tabs' : 'SignUp'}
                         screenOptions={({ route }) => {
                             const transition = route?.params?.transition; // 'slide-from-left' | 'slide-from-right' | 'fade' | 'none'
                             const isFade = transition === 'fade';

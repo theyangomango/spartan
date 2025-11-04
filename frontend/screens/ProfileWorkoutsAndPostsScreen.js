@@ -348,10 +348,17 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         if (!targetUid) return;
         let cancelled = false;
         setIsUserLoading(true);
-        readDoc('users', targetUid)
-            .then((doc) => {
+        Promise.all([
+            readDoc('usersPublic', targetUid),
+            readDoc('usersPrivate', targetUid),
+        ])
+            .then(([publicDoc, privateDoc]) => {
                 if (cancelled) return;
-                if (doc && doc.uid) setUserData(doc);
+                const merged = {
+                    ...(publicDoc || {}),
+                    ...(privateDoc || {}),
+                };
+                if (merged && (merged.uid || merged.id)) setUserData(merged);
             })
             .catch(() => { })
             .finally(() => {

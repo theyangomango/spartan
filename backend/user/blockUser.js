@@ -1,6 +1,5 @@
 import {
     collection,
-    doc,
     getDoc,
     getDocs,
     query,
@@ -15,10 +14,11 @@ import updateDoc from "../helper/firebase/updateDoc";
 import readDoc from "../helper/firebase/readDoc";
 import unfollowUser from "./unfollowUser";
 import { normalizeUserRef, coerceUid, ensureUidArray } from "../helper/userRefs";
+import { userPrivateDoc, userPublicDoc } from "../../shared/firestoreRefs";
 
 const pruneUserMessages = async (uid, blockedUid) => {
     try {
-        const data = await readDoc("users", uid);
+        const data = await readDoc("usersPrivate", uid);
         if (!data) return;
         const messages = Array.isArray(data.messages) ? data.messages : [];
         const filtered = messages.filter((entry) => {
@@ -27,7 +27,7 @@ const pruneUserMessages = async (uid, blockedUid) => {
             return !others.some((u) => coerceUid(u) === blockedUid);
         });
         if (filtered.length !== messages.length) {
-            await updateDoc("users", uid, { messages: filtered });
+            await updateDoc("usersPrivate", uid, { messages: filtered });
         }
     } catch (err) {
         console.log("pruneUserMessages error", err?.message || err);
@@ -69,10 +69,10 @@ const removeUserFromCommonTribes = async (uidA, uidB) => {
             }
 
             if (members.includes(uidA)) {
-                updates.push(arrayErase("users", uidA, "tribeIds", tribeId));
+                updates.push(arrayErase("usersPrivate", uidA, "tribeIds", tribeId));
             }
             if (members.includes(uidB)) {
-                updates.push(arrayErase("users", uidB, "tribeIds", tribeId));
+                updates.push(arrayErase("usersPrivate", uidB, "tribeIds", tribeId));
             }
         });
 
@@ -155,14 +155,22 @@ export default async function blockUser(this_user, user) {
     const meUid = meRef.uid;
     const otherUid = otherRef.uid;
 
-    const meDocRef = doc(db, "users", meUid);
-    const otherDocRef = doc(db, "users", otherUid);
+    const mePublicRef = userPublicDoc(meUid);
+    const otherPublicRef = userPublicDoc(otherUid);
+    const mePrivateRef = userPrivateDoc(meUid);
+    const otherPrivateRef = userPrivateDoc(otherUid);
 
-    const [meSnap, otherSnap] = await Promise.all([getDoc(meDocRef), getDoc(otherDocRef)]);
-    const meData = meSnap.exists() ? meSnap.data() || {} : {};
-    const otherData = otherSnap.exists() ? otherSnap.data() || {} : {};
+    const [mePublicSnap, otherPublicSnap, mePrivateSnap, otherPrivateSnap] = await Promise.all([
+        getDoc(mePublicRef),
+        getDoc(otherPublicRef),
+        getDoc(mePrivateRef),
+        getDoc(otherPrivateRef),
+    ]);
+    const mePublicData = mePublicSnap.exists() ? mePublicSnap.data() || {} : {};
+    const otherPublicData = otherPublicSnap.exists() ? otherPublicSnap.data() || {} : {};
+    const mePrivateData = mePrivateSnap.exists() ? mePrivateSnap.data() || {} : {};
 
-    const alreadyBlocked = ensureUidArray(meData.blockedUidList || meData.blocked).includes(otherUid);
+    const alreadyBlocked = ensureUidArray(mePrivateData.blockedUidList || mePrivateData.blocked).includes(otherUid);
     if (alreadyBlocked) return;
 
     // Remove social connections first
@@ -179,21 +187,21 @@ export default async function blockUser(this_user, user) {
 
     // Remove any lingering follow requests in either direction
     try {
-        await arrayErase("users", meUid, "followRequestsOut", otherRef);
+        await arrayErase("usersPrivate", meUid, "followRequestsOut", otherRef);
     } catch {}
     try {
-        await arrayErase("users", meUid, "followRequestsIn", otherRef);
+        await arrayErase("usersPrivate", meUid, "followRequestsIn", otherRef);
     } catch {}
     try {
-        await arrayErase("users", otherUid, "followRequestsOut", meRef);
+        await arrayErase("usersPrivate", otherUid, "followRequestsOut", meRef);
     } catch {}
     try {
-        await arrayErase("users", otherUid, "followRequestsIn", meRef);
+        await arrayErase("usersPrivate", otherUid, "followRequestsIn", meRef);
     } catch {}
 
     await Promise.all([
-        removeFromRelationshipArrays(meDocRef, meData, otherUid),
-        removeFromRelationshipArrays(otherDocRef, otherData, meUid),
+        removeFromRelationshipArrays(mePublicRef, mePublicData, otherUid),
+        removeFromRelationshipArrays(otherPublicRef, otherPublicData, meUid),
     ]);
 
     await Promise.all([
@@ -205,14 +213,14 @@ export default async function blockUser(this_user, user) {
 
     // Update block metadata & derived uid lists
     await Promise.all([
-        arrayAppend("users", meUid, "blocked", otherRef),
-        arrayAppend("users", meUid, "blockedUidList", otherUid),
-        updateDoc("users", meUid, {
+        arrayAppend("usersPrivate", meUid, "blocked", otherRef),
+        arrayAppend("usersPrivate", meUid, "blockedUidList", otherUid),
+        updateDoc("usersPrivate", meUid, {
             [`blockedTimestamps.${otherUid}`]: serverTimestamp(),
         }),
-        arrayAppend("users", otherUid, "blockedBy", meRef),
-        arrayAppend("users", otherUid, "blockedByUidList", meUid),
-        updateDoc("users", otherUid, {
+        arrayAppend("usersPrivate", otherUid, "blockedBy", meRef),
+        arrayAppend("usersPrivate", otherUid, "blockedByUidList", meUid),
+        updateDoc("usersPrivate", otherUid, {
             [`blockedByTimestamps.${meUid}`]: serverTimestamp(),
         }),
     ]);

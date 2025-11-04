@@ -1,0 +1,45 @@
+{
+  "accounts": [
+    {
+      "email": "admin@spartan.app",
+      "password": "ChangeMe123!",
+      "displayName": "Spartan Admin",
+      "photoURL": "",
+      "isAdmin": true,
+      "publicProfile": {
+        "handle": "spartanadmin",
+        "isPrivate": false,
+        "stats": {},
+        "extra": {
+          "bio": "Administrator account seeded via bootstrap script.",
+          "searchTags": ["admin", "spartan"]
+        }
+      },
+      "privateProfile": {
+        "extra": {
+          "notes": "Bootstrap admin account"
+        }
+      }
+    },
+    {
+      "email": "tester@spartan.app",
+      "password": "ChangeMe123!",
+      "displayName": "Spartan Tester",
+      "photoURL": "",
+      "isAdmin": false,
+      "publicProfile": {
+        "handle": "spartantester",
+        "isPrivate": true,
+        "stats": {},
+        "extra": {
+          "bio": "Private test account for acceptance scenarios."
+        }
+      },
+      "privateProfile": {
+        "extra": {
+          "notes": "Bootstrap tester account"
+        }
+      }
+    }
+  ]
+}

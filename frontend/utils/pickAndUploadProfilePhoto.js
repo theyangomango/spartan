@@ -83,7 +83,7 @@ export async function pickAndUploadProfilePhoto({
         await uploadBytes(pfpRef, bytes);
 
         const firebaseUri = await getPFP(currentUid);
-        await updateDoc('users', currentUid, { image: firebaseUri });
+        await updateDoc('usersPublic', currentUid, { image: firebaseUri, photoURL: firebaseUri });
         onUploaded?.(firebaseUri);
 
         return { localUri: uploadUri, firebaseUri };

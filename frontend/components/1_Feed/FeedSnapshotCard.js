@@ -287,7 +287,7 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
             <CardWrapper style={styles.card} {...cardWrapperProps}>
                 <View style={styles.headerRow}>
                     <View style={styles.headerLeft}>
-                        <Text style={styles.title}>This Week</Text>
+                        <Text style={styles.title}>Your Weekly Snapshot</Text>
                         <Text style={styles.subtitle}>{snapshot.rangeLabel}</Text>
                     </View>
                     <View style={styles.headerRight}>

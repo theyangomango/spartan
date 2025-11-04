@@ -532,7 +532,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     );
 
                     await Promise.allSettled([
-                        arrayAppend('users', uid, 'posts', pid),
+                        arrayAppend('usersPublic', uid, 'posts', pid),
                         arrayAppend('global', 'posts', 'PIDs', pid),
                     ]);
                 }

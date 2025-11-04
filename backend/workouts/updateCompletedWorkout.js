@@ -1,6 +1,7 @@
 import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import computeHexagonFromStats from "../../shared/computeHexagon.js";
+import updateDoc from "../helper/firebase/updateDoc.js";
 
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
@@ -326,12 +327,16 @@ export default async function updateCompletedWorkout(uid, identifierInput, updat
 
     const preparedWorkout = ensureExercisesAreArrays(updatedWorkoutInput);
     const userRef = doc(db, "users", normalizedUid);
+    const publicRef = doc(db, "usersPublic", normalizedUid);
+    const privateRef = doc(db, "usersPrivate", normalizedUid);
 
     const result = await runTransaction(db, async (tx) => {
-        const snap = await tx.get(userRef);
-        if (!snap.exists()) throw new Error("User not found");
+        const userSnap = await tx.get(userRef);
+        if (!userSnap.exists()) throw new Error("User not found");
 
-        const data = snap.data() || {};
+        const publicSnap = await tx.get(publicRef);
+        const privateSnap = await tx.get(privateRef);
+        const data = userSnap.data() || {};
         const workouts = Array.isArray(data?.completedWorkouts) ? data.completedWorkouts : [];
         const { index, workout: existingWorkout } = findWorkoutInList(workouts, identifier);
         if (index < 0 || !existingWorkout) {
@@ -359,11 +364,11 @@ export default async function updateCompletedWorkout(uid, identifierInput, updat
         nextWorkoutsForFirestore[index] = updatedForFirestore;
 
         const nextWorkoutsForClient = [...workouts];
-        nextWorkoutsForClient[index] = updatedForClient;
+       nextWorkoutsForClient[index] = updatedForClient;
 
         const rebuilt = rebuildStatsFromWorkouts(nextWorkoutsForClient);
 
-        tx.update(userRef, {
+        const userUpdatePayload = {
             completedWorkouts: nextWorkoutsForFirestore,
             statsExercises: rebuilt.statsExercises,
             statsHexagon: rebuilt.statsHexagon,
@@ -375,7 +380,49 @@ export default async function updateCompletedWorkout(uid, identifierInput, updat
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
-        });
+        };
+
+        const publicUpdatePayload = {
+            completedWorkouts: nextWorkoutsForClient,
+            statsExercises: rebuilt.statsExercises,
+            statsHexagon: rebuilt.statsHexagon,
+            statsHexagonMeta: {
+                lastTrainedByGroup: rebuilt.lastTrainedByGroup,
+                updatedAt: serverTimestamp(),
+            },
+            statsTotalVolume: rebuilt.statsTotalVolume,
+            statsTotalHours: rebuilt.statsTotalHours,
+            statsTotalWorkouts: rebuilt.statsTotalWorkouts,
+            workoutsByDate: rebuilt.workoutsByDate,
+        };
+
+        const privateUpdatePayload = {
+            completedWorkouts: nextWorkoutsForClient,
+            statsExercises: rebuilt.statsExercises,
+            statsHexagon: rebuilt.statsHexagon,
+            statsHexagonMeta: {
+                lastTrainedByGroup: rebuilt.lastTrainedByGroup,
+                updatedAt: serverTimestamp(),
+            },
+            statsTotalVolume: rebuilt.statsTotalVolume,
+            statsTotalHours: rebuilt.statsTotalHours,
+            statsTotalWorkouts: rebuilt.statsTotalWorkouts,
+            workoutsByDate: rebuilt.workoutsByDate,
+        };
+
+        tx.update(userRef, userUpdatePayload);
+        if (publicSnap.exists()) {
+            tx.update(publicRef, publicUpdatePayload);
+        } else {
+            tx.set(publicRef, publicUpdatePayload, { merge: true });
+        }
+        if (privateSnap.exists()) {
+            tx.update(privateRef, privateUpdatePayload);
+        } else {
+            tx.set(privateRef, privateUpdatePayload, { merge: true });
+        }
+
+        const postPidInsideTx = mergedWorkout?.postPid ?? existingWorkout?.postPid ?? existingWorkout?.pid ?? null;
 
         return {
             updatedWorkout: updatedForClient,
@@ -390,8 +437,25 @@ export default async function updateCompletedWorkout(uid, identifierInput, updat
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
+            postPid: postPidInsideTx,
         };
     });
 
-    return { ok: true, ...result };
+    const { updatedWorkout, postPid, ...rest } = result || {};
+
+    if (postPid && updatedWorkout) {
+        try {
+            await updateDoc("posts", postPid, {
+                workout: updatedWorkout,
+                updatedAt: Date.now(),
+            });
+        } catch (error) {
+            console.warn("updateCompletedWorkout: failed to update linked post", {
+                postPid,
+                error,
+            });
+        }
+    }
+
+    return { ok: true, updatedWorkout, ...rest };
 }
