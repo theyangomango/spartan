@@ -15,6 +15,7 @@ import GoogleAuthButton from '../components/auth/GoogleAuthButton';
 import AppleAuthButton from '../components/auth/AppleAuthButton';
 import authBackground from '../assets/AUTH_BACKGROUND.jpg';
 import useAuthBackgroundSource from '../hooks/useAuthBackgroundSource';
+import useAuthProviderFlow from '../hooks/useAuthProviderFlow';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -30,32 +31,22 @@ const CONTENT_OFFSET = scaleSize(18);
 
 const SignUp = ({ navigation }) => {
     const insets = useSafeAreaInsets();
+    const {
+        errorMsg,
+        handleSuccess: handleProviderSuccess,
+        handleError: handleProviderError,
+        clearError,
+    } = useAuthProviderFlow(navigation);
 
     const toLogInScreen = useCallback(() => {
+        clearError();
         navigation.navigate('LogIn');
-    }, [navigation]);
+    }, [clearError, navigation]);
 
     const toNewUserCreationScreen = useCallback(() => {
+        clearError();
         navigation.navigate('NewUserCreation');
-    }, [navigation]);
-
-    const handleProviderSuccess = useCallback((result) => {
-        const uid = result?.user?.uid || null;
-        if (result?.requiresHandle && uid) {
-            navigation.navigate('CreateUsername', {
-                uid,
-                initialHandle: result?.publicProfile?.handle || '',
-                pendingProfile: result?.pendingProfile || null,
-                nextRoute: 'Tabs',
-            });
-            return;
-        }
-        if (uid) {
-            navigation.reset({ index: 0, routes: [{ name: 'Tabs' }] });
-        } else {
-            navigation.reset({ index: 0, routes: [{ name: 'SignUp' }] });
-        }
-    }, [navigation]);
+    }, [clearError, navigation]);
 
     const backgroundSource = useAuthBackgroundSource();
 
@@ -77,16 +68,19 @@ const SignUp = ({ navigation }) => {
                     </View>
 
                     <View style={styles.actions}>
+                        {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
                         <GoogleAuthButton
                             label="Continue with Google"
                             busyText="Signing up…"
                             onSuccess={handleProviderSuccess}
+                            onError={handleProviderError}
                             style={styles.googleButton}
                         />
                         <AppleAuthButton
                             label="Continue with Apple"
                             busyText="Signing up…"
                             onSuccess={handleProviderSuccess}
+                            onError={handleProviderError}
                             style={styles.appleButton}
                         />
                         <AuthButton
@@ -181,6 +175,12 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(12),
         color: theme.primary,
+    },
+    errorText: {
+        color: '#F87171',
+        fontFamily: 'Outfit_600SemiBold',
+        marginBottom: scaleSize(8),
+        textAlign: 'center',
     },
     googleButton: {
         backgroundColor: '#fff',

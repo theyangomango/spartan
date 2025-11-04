@@ -27,7 +27,8 @@ export default function Profile({ navigation }) {
         const off = onHexagonUpdate(() => setRerender((x) => x + 1));
         return () => off && off();
     }, []);
-    const userData = global.userData || {};
+
+    const [userData, setUserData] = useState(() => ({ ...(global?.userData || {}) }));
 
     // Reuse this flag to show the Competition-style UserStatsBottomSheet
     const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
@@ -36,18 +37,24 @@ export default function Profile({ navigation }) {
 
     const [pfp, setPFP] = useState(() => (global?.userData?.image || ""));
     const isPickingPfpRef = useRef(false);
-    const [loggedFoodsCount, setLoggedFoodsCount] = useState(() => countLoggedFoods(userData?.loggedFoods || {}));
+    const [loggedFoodsCount, setLoggedFoodsCount] = useState(() => countLoggedFoods((global?.userData?.loggedFoods) || {}));
     const [isEditProfileBottomSheetVisible, setIsEditProfileBottomSheetVisible] = useState(false);
 
     // Workout viewer state (reuses Feed viewer)
     const [profileSelectedWorkout, setProfileSelectedWorkout] = useState(null);
     const [profileWorkoutExpandToggle, setProfileWorkoutExpandToggle] = useState(false);
+    useEffect(() => {
+        if (isPickingPfpRef.current) return;
+        const nextImage = userData?.image || '';
+        setPFP((prev) => (prev === nextImage ? prev : nextImage));
+    }, [userData?.image]);
+
     const openWorkoutViewer = useCallback((wk) => {
         if (!wk) { setProfileSelectedWorkout(null); return; }
         // Normalize minimal fields expected by SpectatingWorkoutModal
         const fallback = {
             wid: wk?.wid || wk?.id,
-            creatorUID: wk?.creatorUID || wk?.creatorUid || (global?.userData?.uid || ''),
+            creatorUID: wk?.creatorUID || wk?.creatorUid || (userData?.uid || ''),
             created: wk?.created || wk?.createdAt || Date.now(),
             exercises: Array.isArray(wk?.exercises) ? wk.exercises : [],
             duration: wk?.duration,
@@ -61,7 +68,7 @@ export default function Profile({ navigation }) {
         if (!normalized.privacyMode) normalized.privacyMode = 'global';
         setProfileSelectedWorkout(normalized);
         setProfileWorkoutExpandToggle((t) => !t);
-    }, []);
+    }, [userData?.uid]);
     const closeWorkoutViewer = useCallback(() => {
         // Intentionally leave the last workout cached; the sheet collapsing shouldn't
         // wipe the data so reopening is instant (mirrors Feed behaviour).
@@ -72,7 +79,7 @@ export default function Profile({ navigation }) {
     useEffect(() => {
         const unsub = navigation.addListener('focus', () => {
             clearFooterSuppression();
-            setLoggedFoodsCount(countLoggedFoods(global?.userData?.loggedFoods || {}));
+            setLoggedFoodsCount(countLoggedFoods((global?.userData?.loggedFoods) || {}));
             const sig = Number(global?.profileOpenSelectPhotosSignal || 0);
             if (sig && sig !== lastOpenSigRef.current) {
                 lastOpenSigRef.current = sig;
@@ -83,7 +90,9 @@ export default function Profile({ navigation }) {
     }, [navigation]);
     useEffect(() => {
         const unsubscribe = subscribeUserData((nextUser) => {
-            setLoggedFoodsCount(countLoggedFoods(nextUser?.loggedFoods || {}));
+            const snapshot = nextUser || {};
+            setUserData(snapshot);
+            setLoggedFoodsCount(countLoggedFoods(snapshot.loggedFoods || {}));
         });
         return unsubscribe;
     }, []);
@@ -91,7 +100,7 @@ export default function Profile({ navigation }) {
     function uploadPost() {
         navigation.navigate('PostOptions', {
             images: [],
-            userData: userData,
+            userData,
         });
     }
 
@@ -134,6 +143,7 @@ export default function Profile({ navigation }) {
             >
                 <View style={styles.body_ctnr}>
                     <ProfileHeader
+                        userData={userData}
                         onPressCreateBtn={uploadPost}
                         onPressSettings={() => {
                             try {
@@ -175,7 +185,7 @@ export default function Profile({ navigation }) {
                             });
                         }}
                         postsCount={Array.isArray(userData?.posts) ? userData.posts.length : 0}
-                        workoutsCount={Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts.length : 0}
+                        workoutsCount={Array.isArray(userData?.completedWorkouts) ? userData.completedWorkouts.length : 0}
                         loggedFoodsCount={loggedFoodsCount}
                     />
                 </View>
@@ -209,8 +219,8 @@ export default function Profile({ navigation }) {
             <FeedWorkoutViewerSheet
                 expandToggle={profileWorkoutExpandToggle}
                 workout={profileSelectedWorkout}
-                friendUid={global?.userData?.uid}
-                friendPfp={global?.userData?.image}
+                friendUid={userData?.uid}
+                friendPfp={userData?.image}
                 onClose={closeWorkoutViewer}
             />
         </SafeAreaView>

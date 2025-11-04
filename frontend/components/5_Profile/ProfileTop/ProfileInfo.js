@@ -33,6 +33,14 @@ export default function ProfileInfo({
     const trimmedBio = bioDraft.trim();
     const bioText = trimmedBio.length > 0 ? trimmedBio : 'No bio yet...';
     const bioInputRef = useRef(null);
+    const displayName = (() => {
+        const direct = typeof userData?.name === 'string' ? userData.name.trim() : '';
+        if (direct) return direct;
+        const fallback = typeof userData?.displayName === 'string' ? userData.displayName.trim() : '';
+        if (fallback) return fallback;
+        const handle = typeof userData?.handle === 'string' ? userData.handle.trim() : '';
+        return handle || 'Spartan Athlete';
+    })();
 
     useEffect(() => {
         if (!isEditingBio) return undefined;
@@ -71,7 +79,7 @@ export default function ProfileInfo({
             </View>
             <View style={styles.profile_info_ctnr}>
                 <View style={styles.name_and_score_ctnr}>
-                    <Text style={styles.name_text}>{global.userData.name}</Text>
+                    <Text style={styles.name_text}>{displayName}</Text>
                     <View style={styles.border_line}></View>
                     <Text style={styles.score_text}>{overallLabel}</Text>
                 </View>

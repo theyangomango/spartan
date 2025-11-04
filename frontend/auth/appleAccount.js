@@ -14,6 +14,7 @@ export async function signInWithAppleCredential({ credential, rawNonce }) {
   });
   const userCredential = await signInWithCredential(auth, firebaseCredential);
   const user = userCredential.user;
+  const isNewUser = userCredential.additionalUserInfo?.isNewUser ?? null;
 
   const profilePayload = {
     displayName: user.displayName || resolveDisplayName(credential),
@@ -27,6 +28,7 @@ export async function signInWithAppleCredential({ credential, rawNonce }) {
 
   return {
     user,
+    isNewUser,
     requiresHandle: !!prepared?.requiresHandle,
     publicProfile: prepared?.publicProfile || null,
     pendingProfile: prepared?.pendingProfile || null,

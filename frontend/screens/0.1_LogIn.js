@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback } from 'react';
 import {
     View,
     Text,
@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import theme from '../theme/mfpDark';
+import useAuthProviderFlow from '../hooks/useAuthProviderFlow';
 import AuthButton from '../components/auth/AuthButton';
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
 import AppleAuthButton from '../components/auth/AppleAuthButton';
@@ -36,35 +37,23 @@ const HERO_MARGIN_BOTTOM = Math.max(
 const ACTIONS_MARGIN_TOP = scaleSize(12);
 
 const LogIn = ({ navigation }) => {
-    const [errorMsg, setErrorMsg] = useState('');
     const insets = useSafeAreaInsets();
+    const {
+        errorMsg,
+        handleSuccess: handleProviderSuccess,
+        handleError: handleProviderError,
+        clearError,
+    } = useAuthProviderFlow(navigation);
 
     const toSignUpScreen = useCallback(() => {
+        clearError();
         navigation.navigate('SignUp');
-    }, [navigation]);
+    }, [clearError, navigation]);
 
     const toUserLogInCredentials = useCallback(() => {
+        clearError();
         navigation.navigate('UserLogInCredentials');
-    }, [navigation]);
-
-    const handleProviderSuccess = useCallback((result) => {
-        setErrorMsg('');
-        const uid = result?.user?.uid || null;
-        if (result?.requiresHandle && uid) {
-            navigation.navigate('CreateUsername', {
-                uid,
-                initialHandle: result?.publicProfile?.handle || '',
-                pendingProfile: result?.pendingProfile || null,
-                nextRoute: 'Tabs',
-            });
-            return;
-        }
-        if (uid) {
-            navigation.reset({ index: 0, routes: [{ name: 'Tabs' }] });
-            return;
-        }
-        setErrorMsg('Unable to sign in. Try again.');
-    }, [navigation]);
+    }, [clearError, navigation]);
 
     const backgroundSource = useAuthBackgroundSource();
 
@@ -99,14 +88,14 @@ const LogIn = ({ navigation }) => {
                             label="Continue with Google"
                             busyText="Logging in…"
                             onSuccess={handleProviderSuccess}
-                            onError={setErrorMsg}
+                            onError={handleProviderError}
                             style={styles.googleButton}
                         />
                         <AppleAuthButton
                             label="Continue with Apple"
                             busyText="Logging in…"
                             onSuccess={handleProviderSuccess}
-                            onError={setErrorMsg}
+                            onError={handleProviderError}
                             style={styles.appleButton}
                         />
                         <AuthButton

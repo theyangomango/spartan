@@ -9,6 +9,7 @@ export async function signInWithGoogleResponse({ profile, tokens }) {
   const credential = GoogleAuthProvider.credential(tokens.idToken, tokens.accessToken);
   const userCredential = await signInWithCredential(auth, credential);
   const user = userCredential.user;
+  const isNewUser = userCredential.additionalUserInfo?.isNewUser ?? null;
 
   if (!user?.uid) {
     throw new Error('Failed to authenticate with Google.');
@@ -26,6 +27,7 @@ export async function signInWithGoogleResponse({ profile, tokens }) {
 
   return {
     user,
+    isNewUser,
     requiresHandle: !!prepared?.requiresHandle,
     publicProfile: prepared?.publicProfile || null,
     pendingProfile: prepared?.pendingProfile || null,

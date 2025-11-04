@@ -17,9 +17,11 @@ const ICON_STROKE_WIDTH = 2.4;
 const CREATE_ICON_SIZE = ICON_SIZE + scaleSize(3.2);
 const CREATE_ICON_STROKE_WIDTH = 3.25;
 
-export default function ProfileHeader({ onPressCreateBtn, onPressSettings }) {
-    const handle = global?.userData?.handle || '';
+export default function ProfileHeader({ userData, onPressCreateBtn, onPressSettings }) {
+    const handle = typeof userData?.handle === 'string' ? userData.handle : (global?.userData?.handle || '');
     const isVerified = Boolean(
+        userData?.isVerified ??
+        userData?.verified ??
         global?.userData?.isVerified ??
         global?.userData?.verified ??
         false
