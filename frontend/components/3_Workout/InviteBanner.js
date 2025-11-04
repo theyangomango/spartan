@@ -25,11 +25,12 @@ export default function InviteBanner({ invite, pfpUri, onAccept, onDecline }) {
                     )}
                 </View>
 
-                <View style={{ flex: 1 }}>
-                    <Text style={styles.inviteTitle}>
-                        {invite?.fromHandle ? `@${invite.fromHandle} invited you` : "You’ve been invited"}
+                <View style={styles.inviteCopy}>
+                    <Text style={styles.inviteTitle} numberOfLines={2} ellipsizeMode="tail">
+                        {!invite?.fromHandle && "You’ve been invited to join their workout"}
+                        {invite?.fromHandle && <Text style={styles.inviteHandle}>{invite.fromHandle}</Text>}
+                        {invite?.fromHandle && " invited you to join their workout"}
                     </Text>
-                    <Text style={styles.inviteSub}>Join their workout?</Text>
                 </View>
             </View>
 
@@ -49,47 +50,70 @@ const styles = StyleSheet.create({
     // EXACT copy from the 900-line screen
     inviteCard: {
         width: "92%",
-        borderRadius: scaleSize(14),
-        backgroundColor: theme.surface,
+        borderRadius: scaleSize(16),
+        backgroundColor: "rgba(18, 20, 28, 0.96)",
         borderWidth: scaleSize(1),
-        borderColor: theme.hairline,
-        paddingVertical: scaleSize(10),
-        paddingHorizontal: scaleSize(12),
+        borderColor: "rgba(255, 255, 255, 0.12)",
+        paddingVertical: scaleSize(12),
+        paddingHorizontal: scaleSize(14),
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        shadowColor: "#000",
-        shadowOpacity: 0.08,
-        shadowRadius: scaleSize(10),
-        shadowOffset: { width: 0, height: scaleSize(6) },
-        elevation: 3,
+        shadowColor: "rgba(15, 23, 42, 0.85)",
+        shadowOpacity: 0.3,
+        shadowRadius: scaleSize(20),
+        shadowOffset: { width: 0, height: scaleSize(12) },
+        elevation: 8,
     },
-    inviteLeft: { flexDirection: "row", alignItems: "center", flex: 1, marginRight: scaleSize(8) },
+    inviteLeft: { flexDirection: "row", alignItems: "center", flex: 1, marginRight: scaleSize(12) },
     invitePfpWrap: {
-        width: scaleSize(36),
-        height: scaleSize(36),
-        borderRadius: scaleSize(18),
+        width: scaleSize(34),
+        height: scaleSize(34),
+        borderRadius: scaleSize(17),
         overflow: "hidden",
         marginRight: scaleSize(10),
         backgroundColor: theme.surface,
         borderWidth: scaleSize(1),
-        borderColor: theme.hairline,
+        borderColor: "rgba(255, 255, 255, 0.08)",
     },
     invitePfp: { width: "100%", height: "100%" },
-    inviteTitle: { fontFamily: "Outfit_700Bold", fontSize: scaleSize(14.5), color: theme.textPrimary },
-    inviteSub: { fontFamily: "Outfit_500Medium", fontSize: scaleSize(12.5), color: theme.textSecondary, marginTop: scaleSize(2) },
+    inviteCopy: { flex: 1 },
+    inviteTitle: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaleSize(13),
+        lineHeight: scaleSize(16),
+        color: theme.textSecondary,
+        flexShrink: 1,
+    },
+    inviteHandle: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(13),
+        lineHeight: scaleSize(16),
+        color: theme.textPrimary,
+    },
 
     inviteActions: { flexDirection: "row", alignItems: "center" },
     inviteAccept: {
-        height: scaleSize(30),
-        paddingHorizontal: scaleSize(14),
-        borderRadius: scaleSize(999),
-        backgroundColor: "#10B981",
+        height: scaleSize(28),
+        minWidth: scaleSize(74),
+        paddingHorizontal: scaleSize(12),
+        borderRadius: scaleSize(14),
+        backgroundColor: theme.successButton,
         alignItems: "center",
         justifyContent: "center",
         marginRight: scaleSize(8),
+        shadowColor: "#10B981",
+        shadowOpacity: 0.28,
+        shadowRadius: scaleSize(8),
+        shadowOffset: { width: 0, height: scaleSize(4) },
+        elevation: 3,
     },
-    inviteAcceptText: { color: "#fff", fontFamily: "Outfit_700Bold", fontSize: scaleSize(13) },
-    inviteDismiss: { paddingHorizontal: scaleSize(6), paddingVertical: scaleSize(4) },
-    inviteDismissText: { color: theme.textSecondary, fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(12.5) },
+    inviteAcceptText: { color: "#fff", fontFamily: "Outfit_700Bold", fontSize: scaleSize(12) },
+    inviteDismiss: { paddingHorizontal: scaleSize(4), paddingVertical: scaleSize(4) },
+    inviteDismissText: {
+        color: theme.textSecondary,
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(11.5),
+        opacity: 0.85,
+    },
 });
