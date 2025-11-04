@@ -328,7 +328,7 @@ const ActiveWorkoutModal = ({
             return;
         }
         if (!sheetReadyForFocus) {
-            setLiveFeaturesEnabled(false);
+            // Keep whatever state we already had so live listeners remain active while collapsed.
             return;
         }
         let cancelled = false;
@@ -350,7 +350,6 @@ const ActiveWorkoutModal = ({
             if (rafId != null) {
                 try { cancelAnimationFrame(rafId); } catch { }
             }
-            setLiveFeaturesEnabled(false);
         };
     }, [streamLive, sheetReadyForFocus, lockFriend]);
 
