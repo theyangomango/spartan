@@ -138,6 +138,13 @@ const formatTimestamp = (value) => {
 
 const normalizeToMinute = (value) => dayjs(value).second(0).millisecond(0).toDate();
 
+const clampDateToNow = (value) => {
+    const normalized = normalizeToMinute(value);
+    const now = normalizeToMinute(new Date());
+    if (!dayjs(normalized).isValid()) return now;
+    return dayjs(normalized).isAfter(now) ? now : normalized;
+};
+
 const mergeDateByMode = (base, next, mode) => {
     const baseDay = dayjs(base);
     const nextDay = dayjs(next);
@@ -925,11 +932,14 @@ const AddMeasurementModal = ({
         if (mode === "edit" && initialEntry) {
             setWeightInput(String(initialEntry.weight ?? ""));
             const entryDay = dayjs(initialEntry.recordedAt);
-            const nextDate = entryDay.isValid() ? normalizeToMinute(entryDay.toDate()) : normalizeToMinute(new Date());
+            const nextDateRaw = entryDay.isValid()
+                ? normalizeToMinute(entryDay.toDate())
+                : normalizeToMinute(new Date());
+            const nextDate = clampDateToNow(nextDateRaw);
             setSelectedDate(nextDate);
             setIosDraftDate(nextDate);
         } else {
-            const current = normalizeToMinute(new Date());
+            const current = clampDateToNow(new Date());
             setWeightInput("");
             setSelectedDate(current);
             setIosDraftDate(current);
@@ -939,7 +949,7 @@ const AddMeasurementModal = ({
     }, [isVisible, initialEntry, mode]);
 
     const handleSetNow = useCallback(() => {
-        const current = normalizeToMinute(new Date());
+        const current = clampDateToNow(new Date());
         setSelectedDate(current);
         setIosDraftDate(current);
     }, []);
@@ -947,6 +957,17 @@ const AddMeasurementModal = ({
     const handleSave = useCallback(() => {
         if (isSaving) return;
         const timestamp = dayjs(selectedDate);
+        if (!timestamp.isValid()) {
+            Alert.alert("Invalid date or time", "Please choose a valid date and time for your measurement.");
+            return;
+        }
+        if (timestamp.valueOf() > Date.now()) {
+            const clamped = clampDateToNow(selectedDate);
+            setSelectedDate(clamped);
+            setIosDraftDate(clamped);
+            Alert.alert("Invalid date or time", "You can't log a measurement in the future.");
+            return;
+        }
         onSubmit({
             weightInput,
             dateInput: timestamp.format("YYYY-MM-DD"),
@@ -963,12 +984,14 @@ const AddMeasurementModal = ({
                     mode: safeMode,
                     value: selectedDate,
                     is24Hour: false,
+                    maximumDate: new Date(),
                     onChange: (event, nextDate) => {
                         if (event.type !== "set" || !nextDate) return;
                         setSelectedDate((prev) => {
                             const updated = mergeDateByMode(prev, nextDate, safeMode);
-                            setIosDraftDate(updated);
-                            return updated;
+                            const clamped = clampDateToNow(updated);
+                            setIosDraftDate(clamped);
+                            return clamped;
                         });
                     },
                 });
@@ -984,7 +1007,10 @@ const AddMeasurementModal = ({
     const handleIOSPickerChange = useCallback(
         (_, nextDate) => {
             if (!nextDate) return;
-            setIosDraftDate((prev) => mergeDateByMode(prev, nextDate, pickerMode));
+            setIosDraftDate((prev) => {
+                const updated = mergeDateByMode(prev, nextDate, pickerMode);
+                return clampDateToNow(updated);
+            });
         },
         [pickerMode]
     );
@@ -995,7 +1021,9 @@ const AddMeasurementModal = ({
     }, [selectedDate]);
 
     const handleIOSPickerConfirm = useCallback(() => {
-        setSelectedDate(iosDraftDate);
+        const clamped = clampDateToNow(iosDraftDate);
+        setSelectedDate(clamped);
+        setIosDraftDate(clamped);
         setIsIOSPickerVisible(false);
     }, [iosDraftDate]);
 
@@ -1144,6 +1172,7 @@ const AddMeasurementModal = ({
                                 display="spinner"
                                 value={iosDraftDate}
                                 onChange={handleIOSPickerChange}
+                                maximumDate={new Date()}
                                 themeVariant="dark"
                                 style={styles.iosPicker}
                             />
@@ -1883,6 +1912,10 @@ const completedWorkouts = useMemo(
             }
 
             const recordedAt = parsed.valueOf();
+            if (recordedAt > Date.now()) {
+                Alert.alert("Invalid date or time", "You can't log a measurement in the future.");
+                return;
+            }
             const existingEntries = getCurrentSanitizedEntries();
             let nextEntries = existingEntries;
 
@@ -3725,10 +3758,10 @@ const styles = StyleSheet.create({
     datetimeRow: {
         flexDirection: "row",
         justifyContent: "space-between",
+        alignItems: "center",
     },
     datetimeColumn: {
         flex: 1,
-        marginBottom: 0,
     },
     datetimeColumnLeft: {
         marginRight: scaleSize(12),

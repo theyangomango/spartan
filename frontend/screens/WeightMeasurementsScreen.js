@@ -40,6 +40,19 @@ const resolvePreferredWeightUnit = (user) => {
     return "lb";
 };
 
+const toDisplayWeightUnit = (unit, fallback = "lbs") => {
+    if (typeof unit === "string") {
+        const trimmed = unit.trim();
+        const normalized = trimmed.toLowerCase();
+        if (normalized) {
+            if (normalized.startsWith("kg")) return "kg";
+            if (normalized === "lb" || normalized === "lbs" || normalized.startsWith("lb")) return "lbs";
+            return trimmed;
+        }
+    }
+    return fallback;
+};
+
 const formatWeightValue = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num) || num <= 0) return "00";
@@ -71,6 +84,13 @@ const sanitizeEntries = (rawEntries) => {
 
 const normalizeToMinute = (value) => dayjs(value).second(0).millisecond(0).toDate();
 
+const clampDateToNow = (value) => {
+    const normalized = normalizeToMinute(value);
+    const now = normalizeToMinute(new Date());
+    if (!dayjs(normalized).isValid()) return now;
+    return dayjs(normalized).isAfter(now) ? now : normalized;
+};
+
 const mergeDateByMode = (base, next, mode) => {
     const baseDay = dayjs(base);
     const nextDay = dayjs(next);
@@ -100,21 +120,24 @@ const AddMeasurementModal = ({
     mode = "create",
 }) => {
     const [weightInput, setWeightInput] = useState("");
-    const [selectedDate, setSelectedDate] = useState(() => normalizeToMinute(new Date()));
+    const [selectedDate, setSelectedDate] = useState(() => clampDateToNow(new Date()));
     const [pickerMode, setPickerMode] = useState("date");
     const [isIOSPickerVisible, setIsIOSPickerVisible] = useState(false);
-    const [iosDraftDate, setIosDraftDate] = useState(() => normalizeToMinute(new Date()));
+    const [iosDraftDate, setIosDraftDate] = useState(() => clampDateToNow(new Date()));
 
     useEffect(() => {
         if (!isVisible) return;
         if (mode === "edit" && initialEntry) {
             setWeightInput(String(initialEntry.weight ?? ""));
             const entryDay = dayjs(initialEntry.recordedAt);
-            const nextDate = entryDay.isValid() ? normalizeToMinute(entryDay.toDate()) : normalizeToMinute(new Date());
+            const nextDateRaw = entryDay.isValid()
+                ? normalizeToMinute(entryDay.toDate())
+                : normalizeToMinute(new Date());
+            const nextDate = clampDateToNow(nextDateRaw);
             setSelectedDate(nextDate);
             setIosDraftDate(nextDate);
         } else {
-            const current = normalizeToMinute(new Date());
+            const current = clampDateToNow(new Date());
             setWeightInput("");
             setSelectedDate(current);
             setIosDraftDate(current);
@@ -124,7 +147,7 @@ const AddMeasurementModal = ({
     }, [isVisible, initialEntry, mode]);
 
     const handleSetNow = useCallback(() => {
-        const current = normalizeToMinute(new Date());
+        const current = clampDateToNow(new Date());
         setSelectedDate(current);
         setIosDraftDate(current);
     }, []);
@@ -132,6 +155,17 @@ const AddMeasurementModal = ({
     const handleSave = useCallback(() => {
         if (isSaving) return;
         const timestamp = dayjs(selectedDate);
+        if (!timestamp.isValid()) {
+            Alert.alert("Invalid date or time", "Please choose a valid date and time for your measurement.");
+            return;
+        }
+        if (timestamp.valueOf() > Date.now()) {
+            const clamped = clampDateToNow(selectedDate);
+            setSelectedDate(clamped);
+            setIosDraftDate(clamped);
+            Alert.alert("Invalid date or time", "You can't log a measurement in the future.");
+            return;
+        }
         onSubmit({
             weightInput,
             dateInput: timestamp.format("YYYY-MM-DD"),
@@ -148,12 +182,14 @@ const AddMeasurementModal = ({
                     mode: safeMode,
                     value: selectedDate,
                     is24Hour: false,
+                    maximumDate: new Date(),
                     onChange: (event, nextDate) => {
                         if (event.type !== "set" || !nextDate) return;
                         setSelectedDate((prev) => {
                             const updated = mergeDateByMode(prev, nextDate, safeMode);
-                            setIosDraftDate(updated);
-                            return updated;
+                            const clamped = clampDateToNow(updated);
+                            setIosDraftDate(clamped);
+                            return clamped;
                         });
                     },
                 });
@@ -169,7 +205,10 @@ const AddMeasurementModal = ({
     const handleIOSPickerChange = useCallback(
         (_, nextDate) => {
             if (!nextDate) return;
-            setIosDraftDate((prev) => mergeDateByMode(prev, nextDate, pickerMode));
+            setIosDraftDate((prev) => {
+                const updated = mergeDateByMode(prev, nextDate, pickerMode);
+                return clampDateToNow(updated);
+            });
         },
         [pickerMode]
     );
@@ -180,7 +219,9 @@ const AddMeasurementModal = ({
     }, [selectedDate]);
 
     const handleIOSPickerConfirm = useCallback(() => {
-        setSelectedDate(iosDraftDate);
+        const clamped = clampDateToNow(iosDraftDate);
+        setSelectedDate(clamped);
+        setIosDraftDate(clamped);
         setIsIOSPickerVisible(false);
     }, [iosDraftDate]);
 
@@ -193,7 +234,7 @@ const AddMeasurementModal = ({
         [selectedDate]
     );
 
-    const weightUnitLabel = (initialEntry?.unit || unit) ?? unit;
+    const weightUnitLabel = toDisplayWeightUnit(initialEntry?.unit || unit);
     const isEditMode = mode === "edit";
 
     return (
@@ -329,6 +370,7 @@ const AddMeasurementModal = ({
                                 display="spinner"
                                 value={iosDraftDate}
                                 onChange={handleIOSPickerChange}
+                                maximumDate={new Date()}
                                 themeVariant="dark"
                                 style={styles.iosPicker}
                             />
@@ -484,6 +526,10 @@ export default function WeightMeasurementsScreen() {
             }
 
             const recordedAt = parsed.valueOf();
+            if (recordedAt > Date.now()) {
+                Alert.alert("Invalid date or time", "You can't log a measurement in the future.");
+                return;
+            }
             const existingEntries = getCurrentSanitizedEntries();
             let nextEntries = existingEntries;
 
@@ -853,26 +899,26 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_400Regular",
         fontSize: ts(13),
         color: "rgba(255,255,255,0.65)",
-        marginBottom: scaleSize(16),
+        marginBottom: scaleSize(18),
     },
     modalField: {
-        marginBottom: scaleSize(16),
+        marginBottom: scaleSize(14),
     },
     modalLabel: {
         fontFamily: "Outfit_500Medium",
-        fontSize: ts(12),
-        color: "rgba(255,255,255,0.72)",
+        fontSize: ts(13),
+        color: "rgba(255,255,255,0.68)",
         marginBottom: scaleSize(6),
     },
     modalInput: {
-        backgroundColor: "rgba(9, 12, 18, 0.72)",
-        borderRadius: scaleSize(12),
+        height: scaleSize(42),
+        borderRadius: scaleSize(10),
+        backgroundColor: "rgba(9,9,9,0.35)",
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.12)",
-        paddingHorizontal: scaleSize(14),
-        paddingVertical: Platform.select({ ios: scaleSize(12), default: scaleSize(10) }),
+        borderColor: "rgba(255,255,255,0.08)",
+        paddingHorizontal: scaleSize(12),
         fontFamily: "Outfit_500Medium",
-        fontSize: ts(13),
+        fontSize: ts(14),
         color: theme.textPrimary ?? "#F6F8FF",
     },
     datetimeRow: {
@@ -887,59 +933,58 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(12),
     },
     nowButton: {
-        paddingVertical: scaleSize(8),
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: scaleSize(12),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.15)",
-        marginBottom: scaleSize(16),
+        alignSelf: "flex-start",
+        paddingHorizontal: scaleSize(14),
+        paddingVertical: scaleSize(6),
+        borderRadius: scaleSize(999),
+        backgroundColor: "rgba(45, 158, 255, 0.18)",
+        marginBottom: scaleSize(8),
     },
     nowButtonText: {
-        fontFamily: "Outfit_500Medium",
+        fontFamily: "Outfit_600SemiBold",
         fontSize: ts(12),
-        color: "rgba(226, 236, 255, 0.75)",
+        color: theme.primary ?? "#2D9EFF",
     },
     modalActions: {
         flexDirection: "row",
+        justifyContent: "flex-end",
         alignItems: "center",
-        justifyContent: "space-between",
+        marginTop: scaleSize(12),
     },
     modalButton: {
-        flex: 1,
+        paddingHorizontal: scaleSize(18),
         paddingVertical: scaleSize(10),
-        borderRadius: scaleSize(12),
-        alignItems: "center",
-        justifyContent: "center",
+        borderRadius: scaleSize(999),
     },
     cancelButton: {
+        backgroundColor: "transparent",
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.15)",
-        marginRight: scaleSize(10),
+        borderColor: "rgba(255,255,255,0.22)",
     },
     saveButton: {
         backgroundColor: theme.primary ?? "#2D9EFF",
+        marginLeft: scaleSize(12),
     },
     saveButtonDisabled: {
-        backgroundColor: "rgba(45, 158, 255, 0.45)",
+        opacity: 0.6,
     },
     cancelButtonText: {
         fontFamily: "Outfit_500Medium",
         fontSize: ts(13),
-        color: "rgba(226, 236, 255, 0.75)",
+        color: "rgba(255,255,255,0.72)",
     },
     saveButtonText: {
         fontFamily: "Outfit_600SemiBold",
         fontSize: ts(13),
-        color: "#0B1017",
+        color: "#0A1420",
     },
     selectorButton: {
-        backgroundColor: "rgba(9, 12, 18, 0.72)",
-        borderRadius: scaleSize(12),
+        height: scaleSize(42),
+        borderRadius: scaleSize(10),
+        backgroundColor: "rgba(9,9,9,0.35)",
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.12)",
-        paddingHorizontal: scaleSize(14),
-        minHeight: Platform.select({ ios: scaleSize(44), default: scaleSize(42) }),
+        borderColor: "rgba(255,255,255,0.08)",
+        paddingHorizontal: scaleSize(12),
         justifyContent: "center",
     },
     selectorButtonDisabled: {
@@ -947,7 +992,7 @@ const styles = StyleSheet.create({
     },
     selectorButtonText: {
         fontFamily: "Outfit_500Medium",
-        fontSize: ts(13),
+        fontSize: ts(14),
         color: theme.textPrimary ?? "#F6F8FF",
     },
     pickerOverlay: {
