@@ -219,6 +219,24 @@ function filterBlockedVisibility(list, options = {}) {
     }
 }
 
+function resolveProfileImage(user) {
+    const candidates = [
+        user?.image,
+        user?.photoURL,
+        user?.photoUrl,
+        user?.photo,
+        user?.pfp,
+        user?.avatar,
+        user?.profilePhoto,
+    ];
+    for (const candidate of candidates) {
+        if (typeof candidate === "string" && candidate.trim()) {
+            return candidate.trim();
+        }
+    }
+    return "";
+}
+
 export default function LeaderboardsSection({ navigation }) {
     const insets = useStableSafeAreaInsets();
     const podiumSectionHeight = useMemo(() => PODIUM_HEIGHT, []);
@@ -505,8 +523,16 @@ export default function LeaderboardsSection({ navigation }) {
             usersSubscriptionRef.current = null;
         }
 
-        usersSubscriptionRef.current = onSnapshot(collection(db, "users"), (snapshot) => {
-            const all = snapshot.docs.map((docSnap) => docSnap.data());
+        usersSubscriptionRef.current = onSnapshot(collection(db, "usersPublic"), (snapshot) => {
+            const all = snapshot.docs.map((docSnap) => {
+                const data = docSnap.data() || {};
+                const uid = typeof data?.uid === "string" && data.uid ? data.uid : docSnap.id;
+                const normalized = { ...data, uid };
+                const image = resolveProfileImage(normalized);
+                if (image && normalized.image !== image) normalized.image = image;
+                if (!normalized.photoURL && image) normalized.photoURL = image;
+                return normalized;
+            });
             usersRef.current = all;
             setUsersLoaded(true);
             try { recomputeRef.current?.(); } catch {}
@@ -981,7 +1007,7 @@ export default function LeaderboardsSection({ navigation }) {
             heightIn: clamp(infoForm.heightIn, 0, 11),
         };
         try {
-            await updateDoc(doc(db, "users", uid), {
+            await updateDoc(doc(db, "usersPrivate", uid), {
                 personalInfo: info,
                 updatedAt: serverTimestamp(),
             });
@@ -1010,7 +1036,7 @@ export default function LeaderboardsSection({ navigation }) {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         });
-        await updateDoc(doc(db, "users", uid), { tribeIds: arrayUnion(ref.id) }).catch(() => {});
+        await updateDoc(doc(db, "usersPrivate", uid), { tribeIds: arrayUnion(ref.id) }).catch(() => {});
         setCreateModalVisible(false);
         setNewTribeName("");
         setSelectedTribeId(ref.id);
@@ -1043,7 +1069,7 @@ export default function LeaderboardsSection({ navigation }) {
             members: arrayUnion(uid),
             updatedAt: serverTimestamp(),
         });
-        await updateDoc(doc(db, "users", uid), { tribeIds: arrayUnion(target.id) }).catch(() => {});
+        await updateDoc(doc(db, "usersPrivate", uid), { tribeIds: arrayUnion(target.id) }).catch(() => {});
         setJoinModalVisible(false);
         setJoinCode("");
         setSelectedTribeId(target.id);
@@ -1056,7 +1082,7 @@ export default function LeaderboardsSection({ navigation }) {
             members: arrayRemove(uid),
             updatedAt: serverTimestamp(),
         });
-        await updateDoc(doc(db, "users", uid), { tribeIds: arrayRemove(selectedTribeId) }).catch(() => {});
+        await updateDoc(doc(db, "usersPrivate", uid), { tribeIds: arrayRemove(selectedTribeId) }).catch(() => {});
         setManageModalVisible(false);
         setSelectedTribeId(null);
     };
@@ -1108,7 +1134,7 @@ export default function LeaderboardsSection({ navigation }) {
         if (key === lastViewRef.current) return;
         lastViewRef.current = key;
         try {
-            updateDoc(doc(db, "users", uid), { competitionLastView: payload }).catch(() => {});
+            updateDoc(doc(db, "usersPrivate", uid), { competitionLastView: payload }).catch(() => {});
         } catch {
             //
         }
@@ -1176,7 +1202,7 @@ export default function LeaderboardsSection({ navigation }) {
             }
             return {
                 handle: u?.handle,
-                pfp: u?.image,
+                pfp: resolveProfileImage(u),
                 stat,
                 isVerified: Boolean(u?.isVerified ?? u?.verified ?? false),
             };
