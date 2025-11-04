@@ -203,7 +203,21 @@ service cloud.firestore {
 
     match /global/{docId} {
       allow read: if signedIn();
-      allow write: if isAdmin();
+      allow create: if isAdmin();
+      allow delete: if isAdmin();
+      allow update: if signedIn()
+        && resource != null
+        && request.resource != null
+        && request.resource.data.keys().hasOnly(resource.data.keys())
+        && (
+          !('PIDs' in resource.data)
+          || (
+            request.resource.data.PIDs is list
+            && resource.data.PIDs is list
+            && request.resource.data.PIDs.size() <= resource.data.PIDs.size()
+            && resource.data.PIDs.hasAll(request.resource.data.PIDs)
+          )
+        );
     }
 
     match /{document=**} {

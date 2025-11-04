@@ -123,17 +123,21 @@ const CommentsBottomSheet = ({
         updateDoc("posts", postPid, { comments });
         incrementDocValue("posts", postPid, "commentCount");
 
-        const notif = {
-            uid: currentUser.uid,
-            pfp: currentUser.image,
-            handle: currentUser.handle,
-            name: currentUser.name,
-            type: "comment",
-            content: message,
-            pid: postPid,
-            timestamp: Date.now(),
-        };
-        sendNotification(postData.uid, notif);
+        const postOwnerUid = String(postData.uid || "");
+        const actorUid = String(currentUser.uid || "");
+        if (postOwnerUid && actorUid && postOwnerUid !== actorUid) {
+            const notif = {
+                uid: actorUid,
+                pfp: currentUser.image,
+                handle: currentUser.handle,
+                name: currentUser.name,
+                type: "comment",
+                content: message,
+                pid: postPid,
+                timestamp: Date.now(),
+            };
+            sendNotification(postOwnerUid, notif);
+        }
 
         setInputText("");
         setReplyingToIndex(null);

@@ -2,7 +2,67 @@ import { collection, addDoc, doc, getDoc } from "firebase/firestore";
 import incrementDocValue from "./helper/firebase/incrementDocValue";
 import { db } from "../firebase.config";
 
-export default async function sendNotification(uid, event) {
+const sanitizeEventPayload = (event = {}) => {
+    if (!event || typeof event !== "object") return {};
+
+    const cleaned = {};
+
+    const assignIfValid = (key, value) => {
+        if (value === undefined) return;
+        if (value === null || typeof value === "boolean") {
+            cleaned[key] = value;
+            return;
+        }
+        if (typeof value === "number") {
+            if (Number.isFinite(value)) cleaned[key] = value;
+            return;
+        }
+        if (typeof value === "string") {
+            const str = value.trim();
+            if (str.length) cleaned[key] = str;
+            return;
+        }
+        if (value instanceof Date) {
+            cleaned[key] = value.getTime();
+            return;
+        }
+        if (typeof value === "object") {
+            try {
+                cleaned[key] = JSON.parse(JSON.stringify(value));
+            } catch {
+                // skip unserializable value
+            }
+        }
+    };
+
+    Object.entries(event).forEach(([key, value]) => {
+        if (key === "timestamp") {
+            const numeric = Number(value);
+            cleaned.timestamp = Number.isFinite(numeric) ? numeric : Date.now();
+            return;
+        }
+        if (key === "uid") {
+            if (value !== undefined && value !== null) {
+                cleaned.uid = String(value);
+            }
+            return;
+        }
+        assignIfValid(key, value);
+    });
+
+    if (!cleaned.type && typeof event.type === "string") {
+        cleaned.type = event.type.trim();
+    }
+    if (!("timestamp" in cleaned)) {
+        cleaned.timestamp = Date.now();
+    }
+
+    return cleaned;
+};
+
+export default async function sendNotification(uid, rawEvent) {
+    const event = rawEvent && typeof rawEvent === "object" ? rawEvent : {};
+
     // Increment notification counters
     switch (event.type) {
         case 'liked-post':
@@ -27,11 +87,27 @@ export default async function sendNotification(uid, event) {
     }
     incrementDocValue('usersPrivate', uid, 'notificationNewEvents');
 
+    const sanitizedEvent = sanitizeEventPayload(event);
+    if (!sanitizedEvent.uid && event?.uid != null) {
+        sanitizedEvent.uid = String(event.uid);
+    }
+    if (!sanitizedEvent.handle && typeof event?.handle === "string") {
+        const str = event.handle.trim();
+        if (str) sanitizedEvent.handle = str;
+    }
+    if (!sanitizedEvent.name && typeof event?.name === "string") {
+        const str = event.name.trim();
+        if (str) sanitizedEvent.name = str;
+    }
+    if (!sanitizedEvent.type) {
+        sanitizedEvent.type = "event";
+    }
+
     // Add event to the user's notifications subcollection
     const notificationsRef = collection(db, 'usersPrivate', uid, 'notifications');
     await addDoc(notificationsRef, {
-        ...event,
-        read: false            // Optional: add `read` flag
+        ...sanitizedEvent,
+        read: false,
     });
 
     // Try push notification via Expo (best-effort, no throw)
@@ -42,18 +118,18 @@ export default async function sendNotification(uid, event) {
         if (!to || !to.startsWith('ExponentPushToken')) return;
 
         // Compose a friendly title/body based on event
-        const h = event?.handle || 'Someone';
+        const h = sanitizedEvent.handle || sanitizedEvent.name || 'Someone';
         let title = 'New activity';
         let body = '';
-        switch (event?.type) {
+        switch (sanitizedEvent?.type) {
             case 'liked-post':
                 title = 'New like'; body = `${h} liked your post`; break;
             case 'liked-comment':
                 title = 'New like'; body = `${h} liked your comment`; break;
             case 'comment':
-                title = 'New comment'; body = `${h}: ${String(event?.content || '').slice(0, 80)}`; break;
+                title = 'New comment'; body = `${h}: ${String(sanitizedEvent?.content || '').slice(0, 80)}`; break;
             case 'replied-comment':
-                title = 'New reply'; body = `${h} replied: ${String(event?.content || '').slice(0, 80)}`; break;
+                title = 'New reply'; body = `${h} replied: ${String(sanitizedEvent?.content || '').slice(0, 80)}`; break;
             case 'workout-invite':
                 title = 'Workout invite'; body = `${h} invited you to a workout`; break;
             case 'follow':
@@ -64,7 +140,7 @@ export default async function sendNotification(uid, event) {
                 title = 'Follow request accepted'; body = `${h} accepted your follow request`; break;
             case 'friend-workout-started':
                 title = `${h} started a workout`;
-                body = event?.workoutName ? `${event.workoutName}` : 'Cheer them on!';
+                body = sanitizedEvent?.workoutName ? `${sanitizedEvent.workoutName}` : 'Cheer them on!';
                 break;
             default:
                 title = 'New notification'; body = `${h} interacted with you`; break;
@@ -79,11 +155,11 @@ export default async function sendNotification(uid, event) {
                 title,
                 body,
                 data: {
-                    nidType: event?.type || 'event',
-                    pid: event?.pid || null,
-                    wid: event?.wid || null,
-                    inviteId: event?.inviteId || null,
-                    followerUid: event?.uid || null,
+                    nidType: sanitizedEvent?.type || 'event',
+                    pid: sanitizedEvent?.pid || null,
+                    wid: sanitizedEvent?.wid || null,
+                    inviteId: sanitizedEvent?.inviteId || null,
+                    followerUid: sanitizedEvent?.uid || null,
                 },
             })
         });
