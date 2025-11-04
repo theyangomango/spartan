@@ -55,27 +55,6 @@ service cloud.firestore {
       );
     }
 
-    function postInteractionUpdate() {
-      return signedIn()
-        && resource != null
-        && request.resource != null
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.pid == resource.data.pid
-        && request.resource.data.handle == resource.data.handle
-        && request.resource.data.pfp == resource.data.pfp
-        && request.resource.data.caption == resource.data.caption
-        && request.resource.data.workout == resource.data.workout
-        && request.resource.data.media == resource.data.media
-        && request.resource.data.images == resource.data.images
-        && request.resource.data.sortKey == resource.data.sortKey
-        && request.resource.data.created == resource.data.created
-        && request.resource.data.createdAt == resource.data.createdAt
-        && request.resource.data.updatedAt == resource.data.updatedAt
-        && request.resource.data.tags == resource.data.tags
-        && request.resource.data.tagged == resource.data.tagged
-        && request.resource.data.keys().hasOnly(resource.data.keys());
-    }
-
     match /usersPrivate/{uid} {
       allow create: if isOwnerUid(uid);
       allow read, update, delete: if isOwnerUid(uid) || isAdmin();
@@ -97,7 +76,8 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow create: if isOwnerUid(uid) || isAdmin();
-      allow read, update, delete: if isOwnerUid(uid) || isAdmin();
+      allow read: if signedIn();
+      allow update, delete: if isOwnerUid(uid) || isAdmin();
     }
 
     match /userHandles/{handle} {
@@ -117,11 +97,55 @@ service cloud.firestore {
     match /posts/{pid} {
       allow read: if signedIn();
       allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if ownerMatchesResource() || ownerMatchesRequest() || postInteractionUpdate() || isAdmin();
+      allow update, delete: if ownerMatchesResource()
+        || ownerMatchesRequest()
+        || (
+          signedIn()
+          && resource != null
+          && request.resource != null
+          && request.resource.data.uid == resource.data.uid
+          && request.resource.data.pid == resource.data.pid
+          && request.resource.data.handle == resource.data.handle
+          && request.resource.data.pfp == resource.data.pfp
+          && request.resource.data.caption == resource.data.caption
+          && request.resource.data.workout == resource.data.workout
+          && request.resource.data.media == resource.data.media
+          && request.resource.data.images == resource.data.images
+          && request.resource.data.sortKey == resource.data.sortKey
+          && request.resource.data.created == resource.data.created
+          && request.resource.data.createdAt == resource.data.createdAt
+          && request.resource.data.updatedAt == resource.data.updatedAt
+          && request.resource.data.tags == resource.data.tags
+          && request.resource.data.tagged == resource.data.tagged
+          && request.resource.data.keys().hasOnly(resource.data.keys())
+        )
+        || isAdmin();
     }
 
     match /workouts/{wid} {
-      allow read, write: if ownerMatchesResource() || ownerMatchesRequest() || isAdmin();
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn()
+        && (
+          ownerMatchesResource()
+          || ownerMatchesRequest()
+          || (request.resource.data.members != null
+            && asList(request.resource.data.members).hasAny([request.auth.uid]))
+          || isAdmin()
+        );
+      allow delete: if ownerMatchesResource() || isAdmin();
+
+      match /live/{participantUid} {
+        allow read: if signedIn();
+        allow create, update: if signedIn() && request.auth.uid == participantUid;
+        allow delete: if (signedIn() && request.auth.uid == participantUid) || isAdmin();
+      }
+
+      match /events/{eventId} {
+        allow read: if signedIn();
+        allow create, update, delete: if signedIn()
+          && request.resource.data.uid == request.auth.uid;
+      }
     }
 
     match /workoutInvites/{inviteId} {
