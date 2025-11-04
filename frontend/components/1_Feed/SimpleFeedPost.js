@@ -656,7 +656,50 @@ const SimpleFeedPost = ({
         return initialsFrom(source);
     }, [firstLiker]);
 
-    const durationLabel = formatDuration(workout?.duration);
+    const getMillis = (value) => {
+        if (value == null) return null;
+        if (typeof value === "number") return Number.isFinite(value) ? value : null;
+        if (typeof value === "object") {
+            if (typeof value.toMillis === "function") {
+                try { return value.toMillis(); } catch { return null; }
+            }
+            const seconds = Number(value.seconds ?? value._seconds);
+            if (Number.isFinite(seconds)) {
+                const nanos = Number(value.nanoseconds ?? value._nanoseconds ?? 0);
+                const extra = Number.isFinite(nanos) ? Math.floor(nanos / 1e6) : 0;
+                return seconds * 1000 + extra;
+            }
+        }
+        const parsed = new Date(value).getTime();
+        return Number.isFinite(parsed) ? parsed : null;
+    };
+
+    const liveDurationRef = useRef(0);
+    const [liveDurationTick, setLiveDurationTick] = useState(0);
+
+    useEffect(() => {
+        if (!isLivePost) return undefined;
+        const startedAt = getMillis(workout?.startedAt ?? workout?.createdAt ?? workout?.created);
+        if (!startedAt) return undefined;
+
+        const DRIFT_MS = 500; // keep feed timer in sync with ActiveWorkoutModal
+        const update = () => {
+            const elapsed = Math.max(0, Date.now() - startedAt - DRIFT_MS);
+            liveDurationRef.current = elapsed;
+            setLiveDurationTick(Date.now());
+        };
+
+        update();
+        const interval = setInterval(update, 1000);
+        return () => clearInterval(interval);
+    }, [isLivePost, workout?.startedAt, workout?.createdAt, workout?.created]);
+
+    const durationLabel = (() => {
+        if (!isLivePost) return formatDuration(workout?.duration);
+        const base = Math.max(0, Number(workout?.duration) || 0);
+        const elapsed = Math.max(base, liveDurationRef.current || 0);
+        return formatDuration(elapsed);
+    })();
     const volumeLabel = formatNumber(workout?.volume);
     const recordsLabel = formatNumber(workout?.PBs ?? workout?.pbs ?? 0);
 
