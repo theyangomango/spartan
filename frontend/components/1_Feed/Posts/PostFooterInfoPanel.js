@@ -12,6 +12,7 @@ import Reanimated, { useAnimatedStyle } from 'react-native-reanimated';
 import scaleSize from '../../../helper/scaleSize';
 import FastImage from 'react-native-fast-image';
 import { usePfp } from '../../../helper/usePFPs';
+import { resolvePhotoURL } from '../../../utils/profilePhoto';
 
 /* Small helper that resolves & renders a PFP with immutable caching */
 const Pfp = ({ uid, version = 0, fallbackUri, style }) => {
@@ -113,14 +114,7 @@ const PostFooterInfoPanel = ({ data, opacityAnim, focusModeSV, interactiveUnfocu
                                 key={`${like.uid}-${index}`}
                                 uid={like.uid}
                                 version={like.pfpVersion ?? 0}
-                                fallbackUri={
-                                    like?.pfp ||
-                                    like?.pfpUrl ||
-                                    like?.image ||
-                                    like?.photoURL ||
-                                    like?.avatar ||
-                                    ""
-                                }
+                                fallbackUri={resolvePhotoURL(like, "")}
                                 style={[
                                     styles.profilePicture,
                                     index === 0
@@ -135,13 +129,7 @@ const PostFooterInfoPanel = ({ data, opacityAnim, focusModeSV, interactiveUnfocu
                         <Pfp
                             uid={data.uid}
                             version={data.pfpVersion ?? 0}
-                            fallbackUri={
-                                data?.pfp ||
-                                data?.pfpUrl ||
-                                data?.image ||
-                                data?.photoURL ||
-                                ""
-                            }
+                            fallbackUri={resolvePhotoURL(data, "")}
                             style={styles.profilePicture}
                         />
                     )}

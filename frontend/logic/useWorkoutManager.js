@@ -29,6 +29,7 @@ import computeHexagonStats from "./computeHexagonStats"; // retained for local f
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
 import { coercePrivacyMode } from "../utils/workoutPrivacy";
 import { emitUserDataUpdate } from "../utils/userDataEvents";
+import { resolvePhotoURL } from "../utils/profilePhoto";
 
 /* ---------------- helpers ---------------- */
 const toMillis = (v) => {
@@ -1300,12 +1301,14 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
             // Auto-publish presence right away (best-effort); ongoing lifecycle handled by ActiveWorkoutModal hook
             try {
+                const presencePhoto = resolvePhotoURL(global?.userData, "");
                 await setDoc(
                     doc(db, "workouts", String(wid), "live", String(me)),
                     {
                         uid: String(me),
                         handle: global?.userData?.handle || "",
-                        image: global?.userData?.image || global?.userData?.pfp || global?.userData?.photoURL || "",
+                        image: presencePhoto,
+                        photoURL: presencePhoto,
                         pfpVersion: global?.userData?.pfpVersion || 0,
                         updatedAt: serverTimestamp(),
                     },

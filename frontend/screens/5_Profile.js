@@ -19,6 +19,7 @@ import { subscribeUserData } from "../utils/userDataEvents";
 import { countLoggedFoods } from "../utils/loggedFoods";
 import { clearFooterSuppression } from "../state/footerSuppressionStore";
 import pickAndUploadProfilePhoto from "../utils/pickAndUploadProfilePhoto";
+import { resolvePhotoURL } from "../utils/profilePhoto";
 
 export default function Profile({ navigation }) {
     const [, setRerender] = useState(0);
@@ -35,7 +36,7 @@ export default function Profile({ navigation }) {
     const [isFollowListVisible, setIsFollowListVisible] = useState(false);
     const [followListMode, setFollowListMode] = useState('followers'); // or 'following'
 
-    const [pfp, setPFP] = useState(() => (global?.userData?.image || ""));
+    const [pfp, setPFP] = useState(() => resolvePhotoURL(global?.userData, ""));
     const isPickingPfpRef = useRef(false);
     const [loggedFoodsCount, setLoggedFoodsCount] = useState(() => countLoggedFoods((global?.userData?.loggedFoods) || {}));
     const [isEditProfileBottomSheetVisible, setIsEditProfileBottomSheetVisible] = useState(false);
@@ -45,9 +46,9 @@ export default function Profile({ navigation }) {
     const [profileWorkoutExpandToggle, setProfileWorkoutExpandToggle] = useState(false);
     useEffect(() => {
         if (isPickingPfpRef.current) return;
-        const nextImage = userData?.image || '';
+        const nextImage = resolvePhotoURL(userData, "");
         setPFP((prev) => (prev === nextImage ? prev : nextImage));
-    }, [userData?.image]);
+    }, [userData]);
 
     const openWorkoutViewer = useCallback((wk) => {
         if (!wk) { setProfileSelectedWorkout(null); return; }

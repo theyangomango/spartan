@@ -27,6 +27,7 @@ import { navigateOneWay } from '../../navigationRef';
 import useSyncSavedExercises from '../hooks/useSyncSavedExercises';
 import { subscribeUserData, emitUserDataUpdate } from '../utils/userDataEvents';
 import calculate1RM from '../helper/calculate1RM';
+import { resolvePhotoURL } from '../utils/profilePhoto';
 
 const TABS = [
     { key: 'about', label: 'About' },
@@ -1944,13 +1945,8 @@ export default function ExerciseDetail() {
             const ownerUid = String(global?.userData?.uid || sanitizedWorkout?.creatorUID || sanitizedWorkout?.creatorUid || '');
             const ownerHandle = String(global?.userData?.handle || global?.userData?.username || sanitizedWorkout?.handle || '');
             const ownerName = String(global?.userData?.name || sanitizedWorkout?.ownerName || '');
-            const ownerPfp = String(
-                global?.userData?.image ||
-                    global?.userData?.pfp ||
-                    global?.userData?.photoURL ||
-                    global?.userData?.photo ||
-                    ''
-            );
+            const workoutFallbackPfp = resolvePhotoURL(sanitizedWorkout, "");
+            const ownerPfp = resolvePhotoURL(global?.userData, workoutFallbackPfp);
             const ownerPfpVersion = Number(global?.userData?.pfpVersion ?? sanitizedWorkout?.pfpVersion ?? 0);
 
             const params = {
@@ -1960,6 +1956,7 @@ export default function ExerciseDetail() {
                     handle: ownerHandle,
                     name: ownerName,
                     pfp: ownerPfp,
+                    photoURL: ownerPfp,
                     pfpVersion: ownerPfpVersion,
                 },
             };

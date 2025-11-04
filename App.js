@@ -30,6 +30,7 @@ import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { initCommunityStats, refreshCommunityStats } from './frontend/logic/communityStats';
 import { ensureAuthBackgroundAsync } from './frontend/utils/authBackground';
 import { emitUserDataUpdate } from './frontend/utils/userDataEvents';
+import { withLegacyPhotoFields } from './frontend/utils/profilePhoto';
 
 /* Screens */
 import SignUp from './frontend/screens/0.0_SignUp';
@@ -857,7 +858,7 @@ export default function App() {
 
             const publicData = latestUserPublicRef.current || {};
             const privateData = latestUserPrivateRef.current || {};
-            const mergedData = { uid, ...publicData, ...privateData };
+            const mergedData = withLegacyPhotoFields({ uid, ...publicData, ...privateData });
 
             try {
                 global.userData = mergedData;

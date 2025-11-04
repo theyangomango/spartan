@@ -34,6 +34,7 @@ import { usePfp } from "../../../helper/usePFPs";
 import FastImage from "react-native-fast-image";
 import sendNotification from "../../../../backend/sendNotification";
 import theme from "../../../theme/mfpDark";
+import { resolvePhotoURL } from "../../../utils/profilePhoto";
 // Lazy-load confetti only when needed to keep bundle lean during editing
 
 // Realtime / Firestore
@@ -442,7 +443,7 @@ const ActiveWorkoutModal = ({
     } = useGroupViewing({
         wid: liveFeaturesEnabled ? cardWid : null,
         meUid,
-        userImage: global?.userData?.image,
+        userImage: resolvePhotoURL(global?.userData, ""),
         userHandle: global?.userData?.handle,
         initViewingUid: initialViewingUid,
         autoJoin: shouldAutoJoin,
@@ -1012,11 +1013,8 @@ const ActiveWorkoutModal = ({
 
     // ===== PFPs (stable) =====
     const selfPfpVersion = global?.userData?.pfpVersion ?? 0;
-    const selfPfpUri = usePfp(meUid, selfPfpVersion) ||
-        global?.userData?.pfp ||
-        global?.userData?.photoURL ||
-        global?.userData?.image ||
-        "";
+    const selfFallbackPfp = resolvePhotoURL(global?.userData, "");
+    const selfPfpUri = usePfp(meUid, selfPfpVersion, selfFallbackPfp) || selfFallbackPfp;
 
     const friendUidForHeader = lockFriend
         ? (toUidString(forcedUid) || toUidString(viewing?.uid || ""))
@@ -1027,8 +1025,9 @@ const ActiveWorkoutModal = ({
     const cachedFriendPfp = (!viewingSelfEffective && friendUidForHeader)
         ? ensureUri(friendPfpCacheRef.current.get(friendUidForHeader))
         : "";
-    const friendFallbackImmediate = ensureUri(viewingOverlayPfp)
-        || ensureUri(viewing?.image)
+    const resolvedViewingPhoto = ensureUri(resolvePhotoURL(viewing, friendPfp || viewingOverlayPfp || ""));
+    const friendFallbackImmediate = resolvedViewingPhoto
+        || ensureUri(viewingOverlayPfp)
         || ensureUri(friendPfp)
         || cachedFriendPfp;
     const viewingPfpUriHook = usePfp(
@@ -1114,12 +1113,7 @@ const ActiveWorkoutModal = ({
             if (!fromUid) return;
             const fromHandle = String(global?.userData?.handle || "");
             const fromName = String(global?.userData?.name || "");
-            const fromPfp = ensureUri(
-                global?.userData?.image ||
-                global?.userData?.pfp ||
-                global?.userData?.photoURL ||
-                ""
-            );
+            const fromPfp = ensureUri(resolvePhotoURL(global?.userData, ""));
             const fromPfpVersion = Number(global?.userData?.pfpVersion ?? 0);
             await addDoc(collection(db, "workouts", wid, "events"), {
                 type: "cheer",
@@ -1150,7 +1144,7 @@ const ActiveWorkoutModal = ({
     const cheerOverlayPfp = usePfp(
         cheerOverlay?.uid || "",
         Number.isFinite(cheerOverlay?.pfpVersion) ? cheerOverlay.pfpVersion : 0,
-        cheerOverlay?.image || undefined
+        resolvePhotoURL(cheerOverlay, cheerOverlay?.image || "")
     );
     const cheerOverlayAnimatedStyle = useMemo(() => ({
         opacity: cheerOverlayAnim,
@@ -1192,17 +1186,13 @@ const ActiveWorkoutModal = ({
         const uid = toUidString(cheerData?.fromUid || cheerData?.uid || "");
         if (!uid || uid === meUid) return;
 
-        let image = ensureUri(
-            cheerData?.fromPfp ||
-            cheerData?.pfp ||
-            ""
-        );
+        let image = ensureUri(resolvePhotoURL(cheerData, cheerData?.fromPfp || cheerData?.pfp || ""));
         let pfpVersion = Number(cheerData?.fromPfpVersion ?? cheerData?.pfpVersion ?? 0);
         let label = cheerData?.fromHandle || cheerData?.fromName || "";
 
         const participant = (participants || []).find((p) => toUidString(p?.uid) === uid);
         if (participant) {
-            if (!image) image = ensureUri(participant.image);
+            if (!image) image = ensureUri(resolvePhotoURL(participant, participant?.image || ""));
             if (!pfpVersion && participant.pfpVersion != null) pfpVersion = Number(participant.pfpVersion);
             if (!label) label = participant.handle || participant.name || "";
         }
@@ -1342,7 +1332,7 @@ const ActiveWorkoutModal = ({
 
             const inviterHandle = global?.userData?.handle || "";
             const inviterName = global?.userData?.name || "";
-            const inviterPfp = global?.userData?.image || global?.userData?.pfp || "";
+            const inviterPfp = resolvePhotoURL(global?.userData, "");
             const inviterPfpVersion = global?.userData?.pfpVersion || 0;
 
             await Promise.all(

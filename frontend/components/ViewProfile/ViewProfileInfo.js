@@ -1,6 +1,7 @@
 import { StyleSheet, View, Text, Dimensions, Pressable } from "react-native";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../helper/usePFPs";
+import { resolvePhotoURL } from "../../utils/profilePhoto";
 import theme from "../../theme/mfpDark";
 import scaleSizeGlobal from "../../helper/scaleSize";
 import { withStrongPress } from "../../utils/haptics";
@@ -12,7 +13,8 @@ const scale = screenHeight / 844; // match Profile screen baseline
 const scaleSize = (size) => Math.round(size * scale);
 
 export default function ViewProfileInfo({ userData, onPressFollowers, onPressFollowing }) {
-    const pfpUri = usePfp(String(userData?.uid || ''), userData?.pfpVersion || 0) || userData?.image || '';
+    const fallbackPfp = resolvePhotoURL(userData, userData?.image || '');
+    const pfpUri = usePfp(String(userData?.uid || ''), userData?.pfpVersion || 0, fallbackPfp) || fallbackPfp;
     // Derive counts from array lengths for accuracy
     const followersCount = Array.isArray(userData?.followers) ? userData.followers.length : 0;
     const followingCount = Array.isArray(userData?.following) ? userData.following.length : 0;

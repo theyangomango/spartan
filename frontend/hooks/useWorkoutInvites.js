@@ -44,10 +44,10 @@ export default function useWorkoutInvites({ uid, onAccepted, enabled = true } = 
     Animated.spring(bannerY, { toValue: currentInvite ? 0 : hidden, useNativeDriver: true, friction: 8, tension: 90 }).start();
   }, [currentInvite, bannerHeight, bannerY]);
 
+  const inviteFallbackPfp = currentInvite?.fromPhotoURL || currentInvite?.fromPfp || "";
   const inviterPfpUri =
-    usePfp(currentInvite?.fromUid || null, currentInvite?.fromPfpVersion || 0) ||
-    currentInvite?.fromPfp ||
-    "";
+    usePfp(currentInvite?.fromUid || null, currentInvite?.fromPfpVersion || 0, inviteFallbackPfp) ||
+    inviteFallbackPfp;
 
   const accept = useCallback(async () => {
     if (!currentInvite) return;

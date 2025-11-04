@@ -7,6 +7,7 @@ import { usePfp } from '../helper/usePFPs';
 import isThisUser from '../helper/isThisUser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { strong as hapticStrong } from '../utils/haptics';
+import { resolvePhotoURL } from '../utils/profilePhoto';
 
 import scaleSize from "../helper/scaleSize";
 import VerifiedHandle from "./common/VerifiedHandle";
@@ -20,11 +21,14 @@ const s = (v) => Math.round(v * scale);
 function normalizeUser(u) {
     if (!u) return null;
     if (typeof u === 'string') return { uid: String(u) };
+    const resolved = resolvePhotoURL(u, u?.pfp || u?.image || u?.photoURL || '');
     return {
         uid: String(u?.uid || u?.id || ''),
         handle: u?.handle || u?.username || '',
         name: u?.name || u?.displayName || '',
-        pfp: u?.pfp || u?.image || u?.photoURL || '',
+        pfp: resolved,
+        photoURL: resolved,
+        image: resolved,
         pfpVersion: u?.pfpVersion || u?.pfpVer || 0,
         isVerified: Boolean(u?.isVerified ?? u?.verified ?? false),
     };
@@ -94,7 +98,8 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
     const keyExtractor = (item) => String(item.uid || Math.random());
 
     const FollowRow = ({ item }) => {
-        const pfpUri = usePfp(String(item?.uid || ''), item?.pfpVersion || 0) || item?.pfp || '';
+        const fallbackPfp = resolvePhotoURL(item, item?.pfp || '');
+        const pfpUri = usePfp(String(item?.uid || ''), item?.pfpVersion || 0, fallbackPfp) || fallbackPfp;
         const isVerified = useUserVerified(item?.uid, Boolean(item?.isVerified));
         return (
             <Pressable style={styles.item} onPress={() => onPressUser(item)}>

@@ -11,6 +11,7 @@ const AnimatedFlashList = Animated.createAnimatedComponent(BaseListComponent);
 
 import ExerciseLog from "./Tracking/ExerciseLog";
 import { usePfp } from "../../../helper/usePFPs";
+import { resolvePhotoURL } from "../../../utils/profilePhoto";
 import { ss as scaledSize } from "../../../utils/scale";
 import theme from "../../../theme/mfpDark";
 import { getFirestore, addDoc, collection, serverTimestamp, onSnapshot, query, orderBy, limit } from "firebase/firestore";
@@ -67,7 +68,7 @@ const SpectatingWorkoutModal = ({
     } = useGroupViewing({
         wid: streamLive ? cardWid : null,
         meUid,
-        userImage: global?.userData?.image,
+        userImage: resolvePhotoURL(global?.userData, ""),
         userHandle: global?.userData?.handle,
         initViewingUid: initialViewingUid,
         autoJoin: false,
@@ -135,11 +136,8 @@ const SpectatingWorkoutModal = ({
     const isEmptyList = exercisesData.length === 0;
 
     const selfPfpVersion = global?.userData?.pfpVersion ?? 0;
-    const selfPfpUri = usePfp(meUid, selfPfpVersion) ||
-        global?.userData?.pfp ||
-        global?.userData?.photoURL ||
-        global?.userData?.image ||
-        "";
+    const selfFallbackPfp = resolvePhotoURL(global?.userData, "");
+    const selfPfpUri = usePfp(meUid, selfPfpVersion, selfFallbackPfp) || selfFallbackPfp;
 
     const viewingPfpUriHook = usePfp(
         String(viewing?.uid || ""),
@@ -148,11 +146,12 @@ const SpectatingWorkoutModal = ({
             : (friendPfpVersion || 0)
     );
 
+    const resolvedViewingPfp = resolvePhotoURL(viewing, friendPfp || viewingPfpUriHook || viewing?.image || "");
     const headerOverlayPfp = lockFriend
-        ? (viewingPfpUriHook || friendPfp || viewing?.image || "")
+        ? (viewingPfpUriHook || resolvedViewingPfp || friendPfp || viewing?.image || "")
         : (viewingSelfEffective
             ? selfPfpUri
-            : (viewingPfpUriHook || viewing?.image || friendPfp || ""));
+            : (viewingPfpUriHook || resolvedViewingPfp || friendPfp || viewing?.image || ""));
 
     const friendOngoing = useMemo(
         () => (!viewingSelfEffective && (streamLive || String(activeWorkout?.wid || "") === cardWid)),

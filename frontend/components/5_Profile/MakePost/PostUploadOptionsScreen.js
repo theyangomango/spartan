@@ -16,6 +16,7 @@ import { compressUnder250KB } from "./compressUnder250KB";
 import PostHonestyModal from "./PostHonestyModal";
 import theme from '../../../theme/mfpDark';
 import { withStrongPress } from "../../../utils/haptics";
+import { resolvePhotoURL } from "../../../utils/profilePhoto";
 
 import DismissableTextInput from "../../common/DismissableTextInput";
 
@@ -112,7 +113,7 @@ export default function PostOptionsScreen({ navigation, route }) {
     const isMountedRef = useRef(true);
     const insets = useSafeAreaInsets();
     const headerTopPadding = useMemo(() => scaleSize(6) + Math.max(0, insets.top), [insets.top]);
-    const userImage = global?.userData?.image;
+    const userImage = resolvePhotoURL(global?.userData, "");
     const captionLastValidRef = useRef('');
     const [measureState, setMeasureState] = useState({ text: ' ', nonce: 0 });
     const measureRequestRef = useRef(null);
@@ -491,11 +492,12 @@ export default function PostOptionsScreen({ navigation, route }) {
                     if (!hadCaption) {
                         const authorHandleRaw = typeof latest.handle === 'string' ? latest.handle : (global?.userData?.handle || '');
                         const normalizedHandle = authorHandleRaw.startsWith('@') ? authorHandleRaw.slice(1) : authorHandleRaw;
+                        const authorPfp = resolvePhotoURL(latest, userImage);
                         updatedComments.unshift({
                             content: trimmedCaption,
                             handle: normalizedHandle,
                             isCaption: true,
-                            pfp: latest.pfp || global?.userData?.image || '',
+                            pfp: authorPfp,
                             timestamp: now,
                             uid: latest.uid || global?.userData?.uid || null,
                         });
@@ -524,7 +526,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     await createPost(
                         uid,
                         global?.userData?.handle,
-                        global?.userData?.image,
+                        userImage,
                         trimmedCaption,
                         mediaPayload,
                         pid,

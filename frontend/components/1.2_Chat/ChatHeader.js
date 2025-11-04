@@ -9,6 +9,7 @@ import scaleSize, { ts } from "../../helper/scaleSize";
 import theme from "../../theme/mfpDark";
 import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
+import { resolvePhotoURL } from "../../utils/profilePhoto";
 
 const HAIRLINE = theme.hairline;
 const BG = theme.bg;
@@ -37,8 +38,8 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages, onPressParticipant })
     const names = "";
     const u0 = usersExcludingSelf[0] || null;
     const u1 = usersExcludingSelf[1] || null;
-    const fallback0 = u0?.pfp || u0?.pfpUrl || u0?.image || u0?.photoURL || u0?.avatar || "";
-    const fallback1 = u1?.pfp || u1?.pfpUrl || u1?.image || u1?.photoURL || u1?.avatar || "";
+    const fallback0 = resolvePhotoURL(u0, "");
+    const fallback1 = resolvePhotoURL(u1, "");
     const p0 = usePfp(
         u0?.uid || null,
         u0?.pfpVersion ?? 0,

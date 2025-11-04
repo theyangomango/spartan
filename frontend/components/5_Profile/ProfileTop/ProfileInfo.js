@@ -3,6 +3,7 @@ import { StyleSheet, View, Text, Dimensions, Pressable } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../../helper/usePFPs";
+import { resolvePhotoURL } from "../../../utils/profilePhoto";
 import theme from '../../../theme/mfpDark';
 import { withStrongPress } from "../../../utils/haptics";
 import DismissableTextInput from "../../common/DismissableTextInput";
@@ -23,8 +24,9 @@ export default function ProfileInfo({
     onBioSubmit,
     focusBioSignal = 0,
 }) {
-    const cachedPfp = usePfp(String(userData?.uid || ''), userData?.pfpVersion || 0);
-    const pfpUri = pfp || cachedPfp || '';
+    const fallbackPfp = resolvePhotoURL(userData, "");
+    const cachedPfp = usePfp(String(userData?.uid || ''), userData?.pfpVersion || 0, fallbackPfp);
+    const pfpUri = pfp || cachedPfp || fallbackPfp || '';
     // Derive counts from array lengths for accuracy
     const followersCount = Array.isArray(userData?.followers) ? userData.followers.length : 0;
     const followingCount = Array.isArray(userData?.following) ? userData.following.length : 0;

@@ -25,6 +25,7 @@ import { buildExerciseSummaries } from "../../utils/workoutSummary";
 import deletePost from "../../../backend/posts/deletePost";
 import deleteCompletedWorkout from "../../../backend/workouts/deleteCompletedWorkout";
 import { emitHexagonUpdate } from "../../utils/hexagonEvents";
+import { resolvePhotoURL } from "../../utils/profilePhoto";
 import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
 import { strong as hapticStrong } from "../../utils/haptics";
@@ -312,12 +313,7 @@ const SimpleFeedPost = ({
             if (!fromUid) return;
             const fromHandle = String(global?.userData?.handle || "");
             const fromName = String(global?.userData?.name || "");
-            const fromPfp = String(
-                global?.userData?.image ||
-                global?.userData?.pfp ||
-                global?.userData?.photoURL ||
-                ""
-            ).trim();
+            const fromPfp = resolvePhotoURL(global?.userData, "");
             const fromPfpVersion = Number(global?.userData?.pfpVersion ?? 0);
             await addDoc(collection(db, "workouts", wid, "events"), {
                 type: "cheer",
@@ -560,7 +556,7 @@ const SimpleFeedPost = ({
     const pfpUri = usePfp(
         data?.uid ? String(data.uid) : "",
         data?.pfpVersion ?? 0,
-        data?.pfp || data?.pfpUrl || data?.image || data?.photoURL || ""
+        resolvePhotoURL(data, "")
     );
 
     const likeCount = useMemo(() => (
@@ -604,7 +600,7 @@ const SimpleFeedPost = ({
                 const uid = entry?.uid ?? entry?.id ?? null;
                 const handle = entry?.handle ?? entry?.username ?? entry?.tag ?? "";
                 const name = entry?.name ?? entry?.displayName ?? "";
-                const avatar = entry?.pfp || entry?.pfpUrl || entry?.avatar || entry?.image || entry?.photoURL || entry?.photoUrl || null;
+                const avatar = resolvePhotoURL(entry, entry?.avatar || "");
 
                 return {
                     uid: uid ? String(uid) : null,

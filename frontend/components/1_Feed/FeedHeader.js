@@ -16,6 +16,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import FastImage from "react-native-fast-image";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { usePfp } from "../../helper/usePFPs";
+import { resolvePhotoURL } from "../../utils/profilePhoto";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import Svg, { Path } from "react-native-svg";
 import { getFeedHeaderStyles } from "../../helper/getFeedHeaderStyles";
@@ -106,7 +107,8 @@ const Highlighted = ({ text = "", query = "", style, highlightStyle }) => {
 /* --------------------------- ProfileCard --------------------------- */
 const ProfileCard = React.memo(({ user, query, onPress }) => {
     const avatarSize = s(44);
-    const pfpUri = usePfp(String(user?.uid || ""), user?.pfpVersion || 0) || user?.pfp || "";
+    const fallbackPfp = resolvePhotoURL(user, user?.pfp || "");
+    const pfpUri = usePfp(String(user?.uid || ""), user?.pfpVersion || 0, fallbackPfp) || fallbackPfp;
     const hasPfp = !!pfpUri;
 
     return (

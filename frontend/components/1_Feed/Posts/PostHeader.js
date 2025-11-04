@@ -4,6 +4,7 @@ import FastImage from "react-native-fast-image";
 import formatDate from "../../../helper/formatDate";
 import scaleSize, { ts } from "../../../helper/scaleSize";
 import { usePfp } from "../../../helper/usePFPs";
+import { resolvePhotoURL } from "../../../utils/profilePhoto";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../../theme/mfpDark";
 import { Weight } from "iconsax-react-native";
@@ -22,7 +23,7 @@ function PostHeader({
     const pfpUri = usePfp(
         data.uid,
         data.pfpVersion ?? 0,
-        data?.pfp || data?.pfpUrl || data?.image || data?.photoURL || data?.avatar || ""
+        resolvePhotoURL(data, "")
     );
 
     return (

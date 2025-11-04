@@ -4,6 +4,7 @@ import FastImage from "react-native-fast-image";
 import getDisplayTime from "../../helper/getDisplayTime";
 import { usePfp } from "../../helper/usePFPs";
 import theme from "../../theme/mfpDark";
+import { resolvePhotoURL } from "../../utils/profilePhoto";
 
 import scaleSize, { ts } from "../../helper/scaleSize";
 import { strong as haptic } from "../../utils/haptics";
@@ -131,14 +132,7 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
                         <Pfp
                             uid={user0?.uid}
                             version={user0?.pfpVersion ?? 0}
-                            fallbackUri={
-                                user0?.pfp ||
-                                user0?.pfpUrl ||
-                                user0?.image ||
-                                user0?.photoURL ||
-                                user0?.avatar ||
-                                ""
-                            }
+                            fallbackUri={resolvePhotoURL(user0, "")}
                             style={[
                                 styles.pfp,
                                 styles.topLeft,
@@ -148,14 +142,7 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
                         <Pfp
                             uid={user1?.uid}
                             version={user1?.pfpVersion ?? 0}
-                            fallbackUri={
-                                user1?.pfp ||
-                                user1?.pfpUrl ||
-                                user1?.image ||
-                                user1?.photoURL ||
-                                user1?.avatar ||
-                                ""
-                            }
+                            fallbackUri={resolvePhotoURL(user1, "")}
                             style={[
                                 styles.pfp,
                                 styles.bottomRight,
@@ -167,14 +154,7 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
                     <Pfp
                         uid={user0?.uid}
                         version={user0?.pfpVersion ?? 0}
-                        fallbackUri={
-                            user0?.pfp ||
-                            user0?.pfpUrl ||
-                            user0?.image ||
-                            user0?.photoURL ||
-                            user0?.avatar ||
-                            ""
-                        }
+                        fallbackUri={resolvePhotoURL(user0, "")}
                         style={[styles.single, SINGLE_PFP_STYLE]}
                     />
                 )}

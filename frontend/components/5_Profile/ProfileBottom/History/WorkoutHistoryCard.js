@@ -4,6 +4,7 @@ import WorkoutPanelCard from '../../../3_Workout/ui/WorkoutPanelCard';
 
 import scaleSize from "../../../../helper/scaleSize";
 import { buildExerciseSummaries } from "../../../../utils/workoutSummary";
+import { resolvePhotoURL } from "../../../../utils/profilePhoto";
 
 const toNumber = (n) => (Number(n || 0) || 0);
 
@@ -84,7 +85,8 @@ export default function WorkoutHistoryCard({ workout, style }) {
   const dateTime = formatWorkoutDateTime(ts);
   if (dateTime) metaParts.push(dateTime);
   const fallbackName = workout?.name ?? global?.userData?.name ?? 'You';
-  const pfpUri = workout?.pfp || workout?.pfpUrl || workout?.photoURL || workout?.photo || global?.userData?.image;
+  const viewerFallbackPfp = resolvePhotoURL(global?.userData, "");
+  const pfpUri = resolvePhotoURL(workout, viewerFallbackPfp) || viewerFallbackPfp;
   const durationMs = Number.isFinite(Number(workout?.duration)) && Number(workout?.duration) > 0
     ? Number(workout?.duration)
     : Math.max(0, (Date.now() - Number(workout?.created || 0)));

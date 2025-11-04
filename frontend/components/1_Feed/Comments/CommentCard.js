@@ -7,6 +7,7 @@ import getDisplayTimeDifference from '../../../helper/getDisplayTimeDifference';
 import FastImage from "react-native-fast-image";
 import { usePfp } from '../../../helper/usePFPs';
 import { useNavigation } from '@react-navigation/native';
+import { resolvePhotoURL } from '../../../utils/profilePhoto';
 
 import scaleSize from "../../../helper/scaleSize";
 import { strong as hapticStrong } from "../../../utils/haptics";
@@ -111,14 +112,7 @@ export default function CommentCard({
                     <Pfp
                         uid={data.uid}
                         version={data.pfpVersion ?? 0}
-                        fallbackUri={
-                            data?.pfp ||
-                            data?.pfpUrl ||
-                            data?.image ||
-                            data?.photoURL ||
-                            data?.avatar ||
-                            ""
-                        }
+                        fallbackUri={resolvePhotoURL(data, "")}
                         style={styles.pfp}
                     />
                 </View>

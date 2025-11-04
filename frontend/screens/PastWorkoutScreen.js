@@ -19,6 +19,7 @@ import EditingWorkoutModal from "../components/3_Workout/NewWorkout/EditingWorko
 import theme from "../theme/mfpDark";
 import scaleSize from "../helper/scaleSize";
 import { usePfp } from "../helper/usePFPs";
+import { resolvePhotoURL } from "../utils/profilePhoto";
 import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
 import updateCompletedWorkout from "../../backend/workouts/updateCompletedWorkout";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
@@ -221,12 +222,7 @@ const PastWorkoutScreen = () => {
             if (!fromUid) return;
             const fromHandle = String(global?.userData?.handle || "");
             const fromName = String(global?.userData?.name || "");
-            const fromPfp = String(
-                global?.userData?.image ||
-                global?.userData?.pfp ||
-                global?.userData?.photoURL ||
-                ""
-            ).trim();
+            const fromPfp = resolvePhotoURL(global?.userData, "");
             const fromPfpVersion = Number(global?.userData?.pfpVersion ?? 0);
             await addDoc(collection(db, "workouts", wid, "events"), {
                 type: "cheer",
@@ -380,10 +376,13 @@ const PastWorkoutScreen = () => {
         return "user";
     }, [owner?.handle, owner?.username, owner?.tag, owner?.name, workout?.handle, workout?.ownerHandle, workoutOwnerUid]);
 
+    const ownerFallbackPfp = resolvePhotoURL(owner, "");
+    const workoutFallbackPfp = resolvePhotoURL(workout, ownerFallbackPfp);
+    const fallbackPfp = workoutFallbackPfp || ownerFallbackPfp;
     const pfpUri = usePfp(
         workoutOwnerUid || "",
         owner?.pfpVersion ?? workout?.pfpVersion ?? 0,
-        owner?.pfp || owner?.pfpUrl || owner?.avatar || owner?.image || owner?.photoURL || ""
+        fallbackPfp
     );
 
     useEffect(() => {

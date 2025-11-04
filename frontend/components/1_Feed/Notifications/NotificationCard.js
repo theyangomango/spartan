@@ -17,6 +17,7 @@ import { subscribeUserData } from "../../../utils/userDataEvents";
 import { strong as haptic, withStrongPress } from "../../../utils/haptics";
 import { db } from "../../../../firebase.config";
 import VerifiedHandle from "../../common/VerifiedHandle";
+import { resolvePhotoURL } from "../../../utils/profilePhoto";
 
 /* -------- helpers -------- */
 const ellipsize = (str = "", max = 60) => {
@@ -122,12 +123,17 @@ const readUid = (value) => {
     return '';
 };
 
-const normalizeUserRef = (u = {}) => ({
-    uid: String(u?.uid || ''),
-    handle: u?.handle || '',
-    name: u?.name || '',
-    pfp: u?.pfp || '',
-});
+const normalizeUserRef = (u = {}) => {
+    const resolved = resolvePhotoURL(u, u?.pfp || '');
+    return {
+        uid: String(u?.uid || ''),
+        handle: u?.handle || '',
+        name: u?.name || '',
+        pfp: resolved,
+        photoURL: resolved,
+        image: resolved,
+    };
+};
 
 export default function NotificationCard({
     item,
@@ -143,7 +149,7 @@ export default function NotificationCard({
     const [followState, setFollowState] = useState('none');
     const [followBusy, setFollowBusy] = useState(false);
     const [inviteExpired, setInviteExpired] = useState(false);
-    const pfpUri = usePfp(item?.uid, item?.pfpVersion ?? 0, item?.pfp || "");
+    const pfpUri = usePfp(item?.uid, item?.pfpVersion ?? 0, resolvePhotoURL(item, item?.pfp || ""));
 
     const targetUid = useMemo(() => String(item?.uid || ''), [item?.uid]);
 

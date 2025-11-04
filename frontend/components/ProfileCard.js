@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { withStrongPress } from '../utils/haptics';
 import VerifiedHandle from './common/VerifiedHandle';
 import useUserVerified from '../hooks/useUserVerified';
+import { resolvePhotoURL } from '../utils/profilePhoto';
 
 const { height } = Dimensions.get('window');
 
@@ -34,7 +35,7 @@ const ProfileCard = ({ user, onSelect, isSelected, baseBg, selectedBg }) => {
     const pfpUri = usePfp(
         user.uid,
         user.pfpVersion ?? 0,
-        user?.pfp || user?.pfpUrl || user?.image || user?.photoURL || user?.avatar || ""
+        resolvePhotoURL(user, "")
     );
     const radius = SIZES.pfp / 2;
 
