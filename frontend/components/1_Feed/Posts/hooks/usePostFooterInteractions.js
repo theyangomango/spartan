@@ -5,7 +5,6 @@ import { strong as haptic } from '../../../../utils/haptics';
 import updateDoc from '../../../../../backend/helper/firebase/updateDoc';
 import arrayAppend from '../../../../../backend/helper/firebase/arrayAppend';
 import arrayErase from '../../../../../backend/helper/firebase/arrayErase';
-import sendNotification from '../../../../../backend/sendNotification';
 import scaleSize from '../../../../helper/scaleSize';
 import { getViewerUid } from '../../../../utils/userRefs';
 import { subscribeUserData } from '../../../../utils/userDataEvents';
@@ -143,26 +142,12 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
                                 handle: user.handle ?? '',
                                 name: user.name ?? '',
                                 pfp: user.image ?? user.pfp ?? user.pfpUrl ?? user.photoURL ?? '',
+                                pfpVersion: user.pfpVersion ?? user.pfpVer ?? 0,
                             },
                         ];
-
                         data.likes = updatedLikes;
                         data.likeCount = likeCount + 1;
                         updateDoc('posts', data.pid, { likeCount: data.likeCount, likes: updatedLikes });
-
-                        const actorUid = String(uid || '');
-                        const ownerUid = String(data.uid || '');
-                        if (actorUid && ownerUid && actorUid !== ownerUid) {
-                            sendNotification(data.uid, {
-                                uid,
-                                pfp: user.image,
-                                handle: user.handle,
-                                name: user.name,
-                                type: 'liked-post',
-                                pid: data.pid,
-                                timestamp: Date.now(),
-                            });
-                        }
                     }
                 } else {
                     const likesArray = Array.isArray(data.likes) ? data.likes : [];

@@ -119,7 +119,7 @@ export default function CommentCard({
             </Pressable>
 
             <View style={styles.card_texts_ctnr}>
-        <View style={styles.card_header}>
+                <View style={styles.card_header}>
                     <View style={styles.headerLeft}>
                         <VerifiedHandle
                             handle={data.handle}
@@ -131,16 +131,16 @@ export default function CommentCard({
                         <Text style={styles.time_text}>
                             · {getDisplayTimeDifference(data.timestamp, Date.now())}
                         </Text>
+                        {!isViewerAuthor && (
+                            <Pressable
+                                onPress={handlePressReport}
+                                hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
+                                style={styles.reportButton}
+                            >
+                                <MaterialCommunityIcons name="dots-horizontal" size={scaleSize(18)} color={theme.textSecondary} />
+                            </Pressable>
+                        )}
                     </View>
-                    {!isViewerAuthor && (
-                        <Pressable
-                            onPress={handlePressReport}
-                            hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
-                            style={styles.reportButton}
-                        >
-                            <MaterialCommunityIcons name="dots-horizontal" size={scaleSize(18)} color={theme.textSecondary} />
-                        </Pressable>
-                    )}
                 </View>
                 <View style={styles.content_text_ctnr}>
                     <Text style={styles.content_text}>{data.content}</Text>
@@ -259,6 +259,7 @@ const styles = StyleSheet.create({
     },
     reportButton: {
         padding: scaleSize(4),
+        marginLeft: scaleSize(4),
     },
     content_text_ctnr: {
         flexDirection: 'row',

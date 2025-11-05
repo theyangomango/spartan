@@ -199,6 +199,498 @@ const getUserDocs = async (uid) => {
     };
 };
 
+const LIKE_EVENT_TYPES = new Set(["liked-post", "liked-comment", "liked-story"]);
+const COMMENT_EVENT_TYPES = new Set(["comment", "replied-comment"]);
+
+const userRefCache = new Map();
+const userPrivateCache = new Map();
+
+const sanitizeNotificationEvent = (raw = {}) => {
+    const event = {};
+    const assign = (key, value, { allowEmpty = false } = {}) => {
+        if (value === undefined) return;
+        if (value === null) {
+            event[key] = null;
+            return;
+        }
+        if (typeof value === "number") {
+            if (Number.isFinite(value)) {
+                event[key] = value;
+            }
+            return;
+        }
+        if (typeof value === "boolean") {
+            event[key] = value;
+            return;
+        }
+        if (typeof value === "string") {
+            const str = value.trim();
+            if (str.length > 0 || allowEmpty) {
+                event[key] = str;
+            }
+            return;
+        }
+        if (Array.isArray(value) || typeof value === "object") {
+            try {
+                event[key] = JSON.parse(JSON.stringify(value));
+            } catch {
+                // skip unserializable value
+            }
+        }
+    };
+
+    assign("uid", raw.uid);
+    assign("handle", raw.handle, { allowEmpty: true });
+    assign("name", raw.name, { allowEmpty: true });
+    assign("pfp", raw.pfp, { allowEmpty: true });
+    assign("pfpVersion", raw.pfpVersion);
+    assign("pid", raw.pid);
+    assign("content", raw.content, { allowEmpty: true });
+    assign("commentKey", raw.commentKey, { allowEmpty: true });
+    assign("commentIndex", raw.commentIndex);
+    assign("commentId", raw.commentId, { allowEmpty: true });
+    assign("replyKey", raw.replyKey, { allowEmpty: true });
+    assign("parentCommentKey", raw.parentCommentKey, { allowEmpty: true });
+    assign("isReply", raw.isReply);
+    assign("metadata", raw.metadata);
+
+    const type = typeof raw.type === "string" ? raw.type.trim() : "";
+    event.type = type || "event";
+
+    const ts = Number(raw.timestamp);
+    event.timestamp = Number.isFinite(ts) ? ts : Date.now();
+
+    return event;
+};
+
+const counterUpdatesForType = (type) => {
+    const counters = {
+        notificationNewEvents: FieldValue.increment(1),
+    };
+    if (LIKE_EVENT_TYPES.has(type)) {
+        counters.notificationNewLikes = FieldValue.increment(1);
+    }
+    if (COMMENT_EVENT_TYPES.has(type)) {
+        counters.notificationNewComments = FieldValue.increment(1);
+    }
+    return counters;
+};
+
+const composePushMessage = (event) => {
+    const actor = event.handle || event.name || "Someone";
+    const snippet = (source) => {
+        if (typeof source !== "string") return "";
+        const trimmed = source.trim();
+        if (!trimmed) return "";
+        return `: ${trimmed.slice(0, 80)}`;
+    };
+
+    switch (event.type) {
+        case "liked-post":
+            return { title: "New like", body: `${actor} liked your post` };
+        case "liked-comment": {
+            const kind = event.isReply ? "reply" : "comment";
+            return { title: "New like", body: `${actor} liked your ${kind}${snippet(event.content)}` };
+        }
+        case "comment":
+            return { title: "New comment", body: `${actor}${snippet(event.content)}` };
+        case "replied-comment":
+            return { title: "New reply", body: `${actor}${snippet(event.content)}` };
+        default:
+            return { title: "New notification", body: `${actor} interacted with you` };
+    }
+};
+
+const getUserPrivateDataCached = async (uid) => {
+    const safeUid = String(uid || "").trim();
+    if (!safeUid) return null;
+
+    if (userPrivateCache.has(safeUid)) {
+        const cachedEntry = userPrivateCache.get(safeUid);
+        const cachedData = cachedEntry && typeof cachedEntry === "object" && "data" in cachedEntry
+            ? cachedEntry.data
+            : cachedEntry;
+        const fetchedAt = cachedEntry && typeof cachedEntry === "object" && "fetchedAt" in cachedEntry
+            ? Number(cachedEntry.fetchedAt) || 0
+            : 0;
+
+        const age = Date.now() - fetchedAt;
+        const isStale = age > 10000; // 10s TTL
+        const needsRefetch = isStale || (cachedData && cachedData.appForeground === true);
+
+        if (!needsRefetch) {
+            return cachedData;
+        }
+    }
+
+    try {
+        const snap = await adminDb.collection("usersPrivate").doc(safeUid).get();
+        const data = snap.exists ? (snap.data() || {}) : null;
+        userPrivateCache.set(safeUid, { data, fetchedAt: Date.now() });
+        return data;
+    } catch {
+        userPrivateCache.set(safeUid, { data: null, fetchedAt: Date.now() });
+        return null;
+    }
+};
+
+const resolveUserDetails = async (uid, fallback = {}) => {
+    const safeUid = String(uid || "").trim();
+    if (!safeUid) return null;
+
+    const mergeDetails = (primary = {}, secondary = {}) => {
+        const pick = (key) => {
+            const primaryValue = primary?.[key];
+            if (typeof primaryValue === "string") {
+                const trimmed = primaryValue.trim();
+                if (trimmed) return trimmed;
+                if (primaryValue === "" && secondary?.[key] === undefined) return "";
+            } else if (primaryValue !== undefined && primaryValue !== null) {
+                return primaryValue;
+            }
+            const secondaryValue = secondary?.[key];
+            if (typeof secondaryValue === "string") {
+                const trimmed = secondaryValue.trim();
+                if (trimmed) return trimmed;
+                if (secondaryValue === "") return "";
+            } else if (secondaryValue !== undefined && secondaryValue !== null) {
+                return secondaryValue;
+            }
+            return undefined;
+        };
+
+        const handle = pick("handle") || "";
+        const name = pick("name") || pick("displayName") || "";
+        const pfp = pick("pfp") || pick("photoURL") || pick("image") || "";
+        const pfpVersionRaw = pick("pfpVersion");
+        const pfpVersion = Number.isFinite(Number(pfpVersionRaw)) ? Number(pfpVersionRaw) : 0;
+
+        return {
+            uid: safeUid,
+            handle,
+            name: name || handle,
+            displayName: name || handle || "",
+            pfp,
+            photoURL: pfp || "",
+            image: pfp || "",
+            pfpVersion,
+        };
+    };
+
+    if (userRefCache.has(safeUid)) {
+        return mergeDetails(fallback, userRefCache.get(safeUid));
+    }
+
+    if (fallback && typeof fallback === "object") {
+        const mergedFromFallback = mergeDetails(fallback);
+        if ((mergedFromFallback.handle && mergedFromFallback.handle.trim()) ||
+            (mergedFromFallback.name && mergedFromFallback.name.trim()) ||
+            (mergedFromFallback.pfp && mergedFromFallback.pfp.trim())) {
+            userRefCache.set(safeUid, mergedFromFallback);
+            return mergedFromFallback;
+        }
+    }
+
+    try {
+        const docs = await getUserDocs(safeUid);
+        const base = docs ? normalizeUserRefPayload(safeUid, docs.publicData || {}, docs.privateData || {}) : { uid: safeUid };
+        userRefCache.set(safeUid, base);
+        return mergeDetails(fallback, base);
+    } catch {
+        const minimal = mergeDetails(fallback, { uid: safeUid });
+        userRefCache.set(safeUid, minimal);
+        return minimal;
+    }
+};
+
+const deriveCommentKey = (comment, index = 0, parentKey = "comment") => {
+    const prefix = parentKey || "comment";
+    if (!comment || typeof comment !== "object") {
+        return `${prefix}:idx:${index}`;
+    }
+    const candidates = [
+        comment.commentId,
+        comment.id,
+        comment.cid,
+        comment.key,
+        comment.timestamp,
+        comment.createdAt,
+        comment.created,
+        comment.replyId,
+    ];
+    for (const value of candidates) {
+        if (value === undefined || value === null) continue;
+        const str = String(value).trim();
+        if (str) return `${prefix}:${str}`;
+    }
+    const uid = coerceUidValue(comment) || "anon";
+    const content = typeof comment.content === "string" ? comment.content.trim().slice(0, 30) : "";
+    return `${prefix}:${uid}:${index}:${content}`;
+};
+
+const extractNewLikeEntries = (afterTarget, beforeTarget) => {
+    if (!afterTarget || typeof afterTarget !== "object") return [];
+    if (!beforeTarget || typeof beforeTarget !== "object") return [];
+    const beforeSet = new Set(
+        ensureArray(beforeTarget.likedUsers)
+            .map((entry) => coerceUidValue(entry))
+            .filter(Boolean)
+    );
+    const results = [];
+    ensureArray(afterTarget.likedUsers).forEach((entry) => {
+        const likerUid = coerceUidValue(entry);
+        if (!likerUid) return;
+        if (!beforeSet.has(likerUid)) {
+            results.push({ uid: likerUid, entry });
+        }
+    });
+    return results;
+};
+
+async function createUserNotification(targetUid, rawEvent) {
+    const safeUid = String(targetUid || "").trim();
+    if (!safeUid) return;
+
+    const event = sanitizeNotificationEvent(rawEvent);
+    if (!event.uid || event.uid === safeUid) return;
+
+    const notificationsRef = adminDb.collection("usersPrivate").doc(safeUid).collection("notifications");
+    await notificationsRef.add({
+        ...event,
+        read: false,
+        createdAt: FieldValue.serverTimestamp(),
+    });
+
+    const counters = counterUpdatesForType(event.type);
+    await adminDb.collection("usersPrivate").doc(safeUid).set(counters, { merge: true });
+
+    try {
+        const privateData = await getUserPrivateDataCached(safeUid);
+        if (!privateData) return;
+        if (privateData?.appForeground === true) return;
+        const wantsPush = privateData?.settings?.push !== false;
+        if (!wantsPush) return;
+        const expoTokenRaw = privateData?.expoPushToken;
+        const expoToken = typeof expoTokenRaw === "string" ? expoTokenRaw.trim() : "";
+        if (!expoToken || !expoToken.startsWith("ExponentPushToken")) return;
+
+        const { title, body } = composePushMessage(event);
+        if (!title && !body) return;
+
+        await fetch("https://exp.host/--/api/v2/push/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({
+                to: expoToken,
+                sound: "default",
+                title,
+                body,
+                data: {
+                    nidType: event.type,
+                    pid: event.pid || null,
+                    commentKey: event.commentKey || null,
+                    replyKey: event.replyKey || null,
+                    actorUid: event.uid,
+                },
+            }),
+        });
+    } catch (error) {
+        logger.error("Failed to send push notification", { targetUid: safeUid, error });
+    }
+}
+
+export const sendUserNotification = onCall({ region: "us-central1" }, async (request) => {
+    const auth = request.auth;
+    if (!auth?.uid) {
+        throw new HttpsError("unauthenticated", "Authentication required to send notifications.");
+    }
+
+    const data = request.data && typeof request.data === "object" ? request.data : {};
+    const targetUid = coerceUidValue(data.targetUid ?? data.uid ?? data.toUid);
+    if (!targetUid) {
+        throw new HttpsError("invalid-argument", "targetUid is required.");
+    }
+
+    const rawEvent = data.event && typeof data.event === "object" ? data.event : {};
+    const requestedActorUid = coerceUidValue(rawEvent.uid);
+    const callerUid = String(auth.uid);
+    const isAdminCaller = auth.token?.admin === true || auth.token?.role === "admin";
+
+    const actorUid = requestedActorUid || callerUid;
+    if (actorUid !== callerUid && !isAdminCaller) {
+        throw new HttpsError("permission-denied", "You are not allowed to impersonate another user.");
+    }
+
+    const fallbackActor = {
+        uid: actorUid,
+        handle: rawEvent.handle,
+        name: rawEvent.name,
+        pfp: rawEvent.pfp,
+        pfpVersion: rawEvent.pfpVersion,
+    };
+
+    const actorDetails = await resolveUserDetails(actorUid, fallbackActor) || { uid: actorUid };
+
+    await createUserNotification(targetUid, {
+        ...rawEvent,
+        uid: actorDetails.uid,
+        handle: actorDetails.handle,
+        name: actorDetails.name,
+        pfp: actorDetails.pfp,
+        pfpVersion: actorDetails.pfpVersion,
+    });
+
+    return { success: true };
+});
+
+// ---------------- Feed Notifications ---------------- //
+
+export const onPostEngagementUpdated = onDocumentWritten(
+    "posts/{pid}",
+    async (event) => {
+        const pid = String(event?.params?.pid || "");
+        try {
+            const beforeSnap = event.data?.before;
+            const afterSnap = event.data?.after;
+            if (!afterSnap?.exists) return;
+            if (!beforeSnap || !beforeSnap.exists) return;
+
+            const before = beforeSnap.data() || {};
+            const after = afterSnap.data() || {};
+
+            const ownerUid = coerceUidValue(after) || coerceUidValue(before);
+            if (!ownerUid) return;
+
+            const notifications = [];
+
+            const beforeLikesSet = new Set(
+                ensureArray(before.likes)
+                    .map((entry) => coerceUidValue(entry))
+                    .filter(Boolean)
+            );
+
+            ensureArray(after.likes).forEach((entry) => {
+                const likerUid = coerceUidValue(entry);
+                if (!likerUid || likerUid === ownerUid || beforeLikesSet.has(likerUid)) return;
+                const actorEntry = entry && typeof entry === "object" ? entry : { uid: likerUid };
+                notifications.push({
+                    targetUid: ownerUid,
+                    actorUid: likerUid,
+                    actorEntry,
+                    event: {
+                        type: "liked-post",
+                        pid,
+                        timestamp: Date.now(),
+                    },
+                });
+            });
+
+            const beforeCommentsMap = new Map();
+            ensureArray(before.comments).forEach((comment, index) => {
+                const key = deriveCommentKey(comment, index);
+                beforeCommentsMap.set(key, comment);
+            });
+
+            ensureArray(after.comments).forEach((comment, index) => {
+                const commentKey = deriveCommentKey(comment, index);
+                const prevComment = beforeCommentsMap.get(commentKey);
+                if (!prevComment) return;
+
+                const commentOwnerUid = coerceUidValue(comment);
+                if (!commentOwnerUid) return;
+
+                const commentContent = typeof comment?.content === "string" ? comment.content : "";
+
+                const commentLikes = extractNewLikeEntries(comment, prevComment);
+                commentLikes.forEach(({ uid: likerUid, entry }) => {
+                    if (!likerUid || likerUid === commentOwnerUid) return;
+                    const actorEntry = entry && typeof entry === "object" ? entry : { uid: likerUid };
+                    notifications.push({
+                        targetUid: commentOwnerUid,
+                        actorUid: likerUid,
+                        actorEntry,
+                        event: {
+                            type: "liked-comment",
+                            pid,
+                            commentKey,
+                            commentIndex: index,
+                            content: commentContent,
+                            isReply: false,
+                            timestamp: Date.now(),
+                        },
+                    });
+                });
+
+                const beforeRepliesMap = new Map();
+                ensureArray(prevComment?.replies).forEach((reply, replyIndex) => {
+                    const replyKey = deriveCommentKey(reply, replyIndex, `reply:${commentKey}`);
+                    beforeRepliesMap.set(replyKey, reply);
+                });
+
+                ensureArray(comment?.replies).forEach((reply, replyIndex) => {
+                    const replyKey = deriveCommentKey(reply, replyIndex, `reply:${commentKey}`);
+                    const prevReply = beforeRepliesMap.get(replyKey);
+                    if (!prevReply) return;
+
+                    const replyOwnerUid = coerceUidValue(reply);
+                    if (!replyOwnerUid) return;
+
+                    const replyContent = typeof reply?.content === "string" ? reply.content : "";
+                    const replyLikes = extractNewLikeEntries(reply, prevReply);
+                    replyLikes.forEach(({ uid: likerUid, entry }) => {
+                        if (!likerUid || likerUid === replyOwnerUid) return;
+                        const actorEntry = entry && typeof entry === "object" ? entry : { uid: likerUid };
+                        notifications.push({
+                            targetUid: replyOwnerUid,
+                            actorUid: likerUid,
+                            actorEntry,
+                            event: {
+                                type: "liked-comment",
+                                pid,
+                                commentKey,
+                                replyKey,
+                                parentCommentKey: commentKey,
+                                commentIndex: index,
+                                content: replyContent,
+                                isReply: true,
+                                timestamp: Date.now(),
+                            },
+                        });
+                    });
+                });
+            });
+
+            if (!notifications.length) return;
+
+            for (const note of notifications) {
+                if (!note?.targetUid || !note?.actorUid) continue;
+                if (note.targetUid === note.actorUid) continue;
+                try {
+                    const actorDetails = await resolveUserDetails(note.actorUid, note.actorEntry);
+                    if (!actorDetails || !actorDetails.uid) continue;
+                    await createUserNotification(note.targetUid, {
+                        ...note.event,
+                        uid: actorDetails.uid,
+                        handle: actorDetails.handle,
+                        name: actorDetails.name,
+                        pfp: actorDetails.pfp,
+                        pfpVersion: actorDetails.pfpVersion,
+                    });
+                } catch (error) {
+                    logger.error("Failed to queue like notification", {
+                        pid,
+                        targetUid: note?.targetUid,
+                        actorUid: note?.actorUid,
+                        error: error?.message || error,
+                    });
+                }
+            }
+        } catch (error) {
+            logger.error("onPostEngagementUpdated error", { pid, error: error?.message || error });
+        }
+    }
+);
+
 export const ensureUserProfile = onCall({ region: "us-central1" }, async (request) => {
     try {
         const auth = request.auth;
@@ -2276,8 +2768,11 @@ export const onChatMessageCreated = onDocumentCreated(
             if (!senderUid) return;
 
             // Load parent chat to find all participants
-            const chatDoc = await adminDb.doc(`messages/${cid}`).get();
-            if (!chatDoc.exists) return;
+            const chatDoc = await adminDb.collection("messages").doc(cid).get();
+            if (!chatDoc.exists) {
+                logger.warn("onChatMessageCreated missing chat doc", { cid });
+                return;
+            }
             const chat = chatDoc.data() || {};
             const memberUids = Array.isArray(chat?.memberUids)
                 ? chat.memberUids
@@ -2286,26 +2781,32 @@ export const onChatMessageCreated = onDocumentCreated(
 
             const recipients = (memberUids || []).filter((uid) => uid && uid !== senderUid);
             if (!recipients.length) return;
+            logger.info("onChatMessageCreated recipients", { cid, senderUid, recipients });
 
             // Fetch recipient push tokens and preferences
             const userDocs = await Promise.all(
-                recipients.map((uid) => adminDb.doc(`users/${uid}`).get().catch(() => null))
+                recipients.map((uid) => adminDb.collection("usersPrivate").doc(uid).get().catch(() => null))
             );
             const targets = [];
+            const skipForeground = [];
             userDocs.forEach((d, i) => {
                 try {
                     if (!d || !d.exists) return;
                     const data = d.data() || {};
                     const wantsPush = data?.settings?.push !== false;
+                    const isForeground = data?.appForeground === true;
                     const token = (data?.expoPushToken || "").trim();
-                    if (wantsPush && token && token.startsWith("ExponentPushToken")) {
+                    if (wantsPush && !isForeground && token && token.startsWith("ExponentPushToken")) {
                         targets.push({
                             uid: recipients[i],
                             token,
                         });
+                    } else if (isForeground) {
+                        skipForeground.push(recipients[i]);
                     }
                 } catch { }
             });
+            logger.info("onChatMessageCreated targets", { cid, targetCount: targets.length, skipForeground });
 
             // Build notification payload
             const senderName = message?.sender?.name || message?.sender?.handle || "Someone";
@@ -2341,7 +2842,7 @@ export const onChatMessageCreated = onDocumentCreated(
             // Increment simple unread aggregate for recipients
             await Promise.all(
                 recipients.map((uid) =>
-                    adminDb.doc(`users/${uid}`).set({ unreadMessagesCount: FieldValue.increment(1) }, { merge: true })
+                    adminDb.collection("usersPrivate").doc(uid).set({ unreadMessagesCount: FieldValue.increment(1) }, { merge: true })
                         .catch(() => { })
                 )
             );

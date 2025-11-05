@@ -20,6 +20,7 @@ import LabeledNumber from './LabeledNumber';
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
 import theme from '../../theme/mfpDark'
+import { setFooterSuppressed } from '../../state/footerSuppressionStore';
 
 export default function MacroGoalsSheet({
     index,
@@ -34,6 +35,18 @@ export default function MacroGoalsSheet({
 }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const sheetRef = useRef(null);
+    const footerSuppressionKeyRef = useRef(`macro-goals-sheet-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`);
+    const footerSuppressionKey = footerSuppressionKeyRef.current;
+
+    useEffect(() => {
+        const key = footerSuppressionKey;
+        const shouldSuppress = typeof index === 'number' && index >= 0;
+        setFooterSuppressed(key, shouldSuppress);
+    }, [footerSuppressionKey, index]);
+
+    useEffect(() => () => {
+        setFooterSuppressed(footerSuppressionKey, false);
+    }, [footerSuppressionKey]);
 
     /** Cross-fade between GOALS (0) and PERSONAL-INFO (1) */
     const modeAnim = useRef(new Animated.Value(0)).current;
@@ -604,7 +617,7 @@ const makeStyles = (COLORS) => {
     const fieldBg = '#2B2F3A';
 
     return StyleSheet.create({
-        sheetBackground: { backgroundColor: card, borderTopLeftRadius: scaleSize(24), borderTopRightRadius: scaleSize(24), borderWidth: StyleSheet.hairlineWidth, borderColor: hairline },
+        sheetBackground: { backgroundColor: theme.bg, borderTopLeftRadius: scaleSize(24), borderTopRightRadius: scaleSize(24), borderWidth: StyleSheet.hairlineWidth, borderColor: hairline },
         sheetHandleContainer: { paddingVertical: scaleSize(14), alignItems: 'center' },
         sheetHandle: { backgroundColor: 'rgba(255,255,255,0.9)', width: scaleSize(44), height: scaleSize(4), borderRadius: scaleSize(2) },
 
@@ -622,7 +635,7 @@ const makeStyles = (COLORS) => {
             paddingHorizontal: scaleSize(12),
             paddingVertical: scaleSize(7),
             borderRadius: scaleSize(999),
-            backgroundColor: fieldBg,
+            backgroundColor: theme.surface,
             borderWidth: scaleSize(1),
             borderColor: hairline,
         },
@@ -634,7 +647,7 @@ const makeStyles = (COLORS) => {
         inputBox: {
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: fieldBg,
+            backgroundColor: theme.surface,
             borderRadius: scaleSize(14),
             borderWidth: scaleSize(1),
             borderColor: hairline,
@@ -656,7 +669,7 @@ const makeStyles = (COLORS) => {
             paddingHorizontal: scaleSize(14),
             paddingVertical: scaleSize(16),
             borderRadius: scaleSize(14),
-            backgroundColor: fieldBg,
+            backgroundColor: theme.surface,
             borderWidth: scaleSize(1),
             borderColor: hairline,
             flexDirection: 'row',
@@ -670,7 +683,7 @@ const makeStyles = (COLORS) => {
             borderRadius: scaleSize(14),
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: fieldBg,
+            backgroundColor: theme.surface,
             borderWidth: scaleSize(1),
             borderColor: hairline,
             marginRight: scaleSize(10),
@@ -680,7 +693,7 @@ const makeStyles = (COLORS) => {
         sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: scaleSize(10), marginTop: scaleSize(18) },
         btn: { paddingVertical: scaleSize(12), paddingHorizontal: scaleSize(16), borderRadius: scaleSize(12) },
         // Give ghost button a clearer outline against the sheet
-        btnGhost: { backgroundColor: fieldBg, borderWidth: scaleSize(1), borderColor: hairline },
+        btnGhost: { backgroundColor: theme.surface, borderWidth: scaleSize(1), borderColor: hairline },
         btnPrimary: { backgroundColor: accent },
         btnText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(15) },
         btnGhostText: { color: text },

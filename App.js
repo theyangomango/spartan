@@ -13,7 +13,7 @@ import * as Device from 'expo-device';
 import { navigationRef } from './navigationRef';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createStackNavigator, CardStyleInterpolators, TransitionSpecs } from '@react-navigation/stack';
-import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions, Vibration, TextInput, LogBox } from 'react-native';
+import { Platform, Modal, View, Text, Pressable, StyleSheet, Dimensions, Vibration, TextInput, LogBox, AppState } from 'react-native';
 import { rs, ts } from './frontend/helper/scaleSize';
 import { useSharedValue, runOnUI, withTiming, Easing } from 'react-native-reanimated';
 import { Entypo, FontAwesome, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -25,7 +25,7 @@ import { enableScreens, enableFreeze } from 'react-native-screens';
 import { useFonts } from 'expo-font';
 import { customFonts } from './fonts';
 import { auth, db } from './firebase.config';
-import { doc, onSnapshot, collection, query, where, getDoc, getDocFromCache } from 'firebase/firestore';
+import { doc, onSnapshot, collection, query, where, getDoc, getDocFromCache, serverTimestamp } from 'firebase/firestore';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { initCommunityStats, refreshCommunityStats } from './frontend/logic/communityStats';
 import { ensureAuthBackgroundAsync } from './frontend/utils/authBackground';
@@ -161,6 +161,7 @@ export default function App() {
     const prevUnreadMsgRef = useRef(null);
     const lastBuzzAtRef = useRef(0);
     const lastNotificationBuzzAtRef = useRef(0); // dedupe foreground push vs unread snapshot
+    const appStateStatusRef = useRef(AppState.currentState || 'unknown');
     const logoutCleanupRef = useRef(null);
     const logoutResetTimerRef = useRef(null);
     const prevMessagesSigRef = useRef('');
@@ -1286,6 +1287,44 @@ export default function App() {
         } catch { }
         return () => { if (notifUnsubRef.current) { try { notifUnsubRef.current(); } catch { } notifUnsubRef.current = null; } };
     }, [global?.userData?.uid]);
+
+    // Track foreground/background to update server-side presence for chat push gating
+    useEffect(() => {
+        const uid = uidRef.current;
+        if (!uid) return;
+
+        const updatePresence = async (foreground) => {
+            try {
+                const updateDoc = require('./backend/helper/firebase/updateDoc').default;
+                const payload = foreground
+                    ? { appForeground: true, lastForegroundAt: serverTimestamp() }
+                    : { appForeground: false, lastBackgroundAt: serverTimestamp() };
+                await updateDoc('usersPrivate', uid, payload);
+            } catch { }
+        };
+
+        // Initial sync based on current app state
+        updatePresence(appStateStatusRef.current === 'active');
+
+        const handleAppStateChange = (nextState) => {
+            appStateStatusRef.current = nextState;
+            updatePresence(nextState === 'active');
+        };
+
+        const subscription = AppState.addEventListener
+            ? AppState.addEventListener('change', handleAppStateChange)
+            : null;
+
+        return () => {
+            if (uidRef.current === uid) {
+                updatePresence(false);
+            }
+            if (subscription?.remove) subscription.remove();
+            else {
+                try { AppState.removeEventListener?.('change', handleAppStateChange); } catch { }
+            }
+        };
+    }, [isAuthenticated, userReady]);
 
     const [appForceReady, setAppForceReady] = useState(false);
     useEffect(() => {

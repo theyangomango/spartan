@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
 import DismissableTextInput from '../common/DismissableTextInput';
+import theme from '../../theme/mfpDark'
 
 export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -81,11 +82,11 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                     </View>
                 </View>
 
-                {/* Weight */}
+                {/* Weight & Age */}
                 <View style={{ marginBottom: scaleSize(12) }}>
-                    <Text style={styles.inputLabel}>Weight</Text>
                     <View style={styles.row}>
                         <View style={{ flex: 1 }}>
+                            <Text style={styles.inputLabel}>Weight</Text>
                             <View style={styles.inputBox}>
                                 <DismissableTextInput
                                     keyboardType="number-pad"
@@ -100,15 +101,8 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                             </View>
                         </View>
                         <View style={{ width: scaleSize(12) }} />
-                        <View style={{ flex: 1 }} />
-                    </View>
-                </View>
-
-                {/* Age */}
-                <View style={{ marginBottom: scaleSize(12) }}>
-                    <Text style={styles.inputLabel}>Age</Text>
-                    <View style={styles.row}>
                         <View style={{ flex: 1 }}>
+                            <Text style={styles.inputLabel}>Age</Text>
                             <View style={styles.inputBox}>
                                 <DismissableTextInput
                                     keyboardType="number-pad"
@@ -123,8 +117,6 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                                 <Text style={styles.inputSuffix}>yrs</Text>
                             </View>
                         </View>
-                        <View style={{ width: scaleSize(12) }} />
-                        <View style={{ flex: 1 }} />
                     </View>
                 </View>
 
@@ -300,7 +292,7 @@ const makeStyles = (COLORS) => {
         inputLabel: { fontSize: scaleSize(13), color: subtext, marginBottom: scaleSize(6), fontFamily: 'Outfit_400Regular' },
         inputBox: {
             flexDirection: 'row', alignItems: 'center',
-            backgroundColor: fieldBg, borderRadius: scaleSize(14),
+            backgroundColor: theme.surface, borderRadius: scaleSize(14),
             borderWidth: scaleSize(1), borderColor: hairline,
             paddingHorizontal: scaleSize(12), paddingVertical: scaleSize(12),
             shadowColor: '#000', shadowOpacity: 0.05, shadowOffset: { width: 0, height: scaleSize(1) }, shadowRadius: scaleSize(4),
@@ -323,7 +315,7 @@ const makeStyles = (COLORS) => {
             paddingHorizontal: scaleSize(12),
             paddingVertical: scaleSize(7),
             borderRadius: scaleSize(999),
-            backgroundColor: fieldBg,
+            backgroundColor: theme.surface,
             borderWidth: scaleSize(1),
             borderColor: hairline,
         },
@@ -335,7 +327,7 @@ const makeStyles = (COLORS) => {
             paddingHorizontal: scaleSize(14),
             paddingVertical: scaleSize(18),
             borderRadius: scaleSize(14),
-            backgroundColor: fieldBg,
+            backgroundColor: theme.surface,
             borderWidth: scaleSize(1),
             borderColor: hairline,
             flexDirection: 'row',
@@ -349,7 +341,7 @@ const makeStyles = (COLORS) => {
             borderRadius: scaleSize(14),
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: fieldBg,
+            backgroundColor: theme.surface,
             borderWidth: scaleSize(1),
             borderColor: hairline,
             marginRight: scaleSize(10),

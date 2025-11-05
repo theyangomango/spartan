@@ -6,6 +6,7 @@ import NutritionSummaryCard from './NutritionSummaryCard';
 import MealsSection from './MealsSection';
 import { toDayKey } from '../../utils/date';
 import scaleSize from "../../helper/scaleSize";
+import theme from '../../theme/mfpDark'
 
 function MacroDayPage({
   screenWidth,

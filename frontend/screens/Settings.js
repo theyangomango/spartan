@@ -103,7 +103,7 @@ export default function Settings({ navigation }) {
         {/* Privacy section removed; food/macros privacy toggle removed */}
 
         <Text style={styles.section}>Support</Text>
-        <TouchableOpacity style={styles.link} onPress={() => Linking.openURL('mailto:support@spartan.app?subject=Spartan%20Support') }>
+        <TouchableOpacity style={styles.link} onPress={() => Linking.openURL('mailto:support@thespartan.app?subject=Spartan%20Support') }>
           <Text style={styles.linkText}>Contact support</Text>
           <Ionicons name="open-outline" size={18} color={theme.textSecondary} />
         </TouchableOpacity>

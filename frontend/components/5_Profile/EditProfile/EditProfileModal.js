@@ -15,26 +15,41 @@ function wScale(size) {
 }
 
 const EditProfileModal = ({ setPFP }) => {
-    const initialBio = (global.userData?.bio ?? '').toString();
+    const userData = (global?.userData && typeof global.userData === 'object') ? global.userData : {};
+    const initialBio = (userData?.bio ?? '').toString();
     const [bio, setBio] = useState(initialBio);
+    const displayName = (() => {
+        const name = typeof userData?.name === 'string' ? userData.name.trim() : '';
+        if (name) return name;
+        const given = typeof userData?.firstName === 'string' ? userData.firstName.trim() : '';
+        const family = typeof userData?.lastName === 'string' ? userData.lastName.trim() : '';
+        const combined = [given, family].filter(Boolean).join(' ').trim();
+        if (combined.length) return combined;
+        const fallback = typeof userData?.displayName === 'string' ? userData.displayName.trim() : '';
+        if (fallback) return fallback;
+        const handle = typeof userData?.handle === 'string' ? userData.handle.trim() : '';
+        return handle;
+    })();
 
     const handleBioBlur = () => {
-        if (global?.userData) {
-            global.userData.bio = bio;
+        if (userData) {
+            userData.bio = bio;
         }
-        updateDoc('usersPublic', global.userData.uid, { bio });
+        if (userData?.uid) {
+            updateDoc('usersPublic', userData.uid, { bio });
+        }
     };
 
     return (
         <View style={styles.mainContainer}>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
-                <ProfilePicture imageUri={global.userData.image} setPFP={setPFP} />
+                <ProfilePicture imageUri={userData.image} setPFP={setPFP} />
                 <Text style={styles.heading}>Personal Information</Text>
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Username</Text>
                     <DismissableTextInput
                         style={styles.non_editable_input_text}
-                        placeholder={global.userData.handle}
+                        placeholder={userData.handle}
                         placeholderTextColor={THEME.muted}
                         editable={false}
                         enableAccessory={false}
@@ -44,7 +59,8 @@ const EditProfileModal = ({ setPFP }) => {
                     <Text style={styles.label}>Name</Text>
                     <DismissableTextInput
                         style={styles.non_editable_input_text}
-                        placeholder={global.userData.name}
+                        value={displayName}
+                        placeholder={displayName}
                         editable={false}
                         placeholderTextColor={THEME.muted}
                         enableAccessory={false}
@@ -68,7 +84,7 @@ const EditProfileModal = ({ setPFP }) => {
                     <Text style={styles.label}>Email</Text>
                     <DismissableTextInput
                         style={styles.non_editable_input_text}
-                        placeholder={global.userData.email}
+                        placeholder={userData.email}
                         editable={false}
                         placeholderTextColor={THEME.muted}
                         enableAccessory={false}
@@ -78,7 +94,7 @@ const EditProfileModal = ({ setPFP }) => {
                     <Text style={styles.label}>Phone Number</Text>
                     <DismissableTextInput
                         style={styles.non_editable_input_text}
-                        placeholder={formatPhoneNumber(global.userData.phoneNumber)}
+                        placeholder={formatPhoneNumber(userData.phoneNumber)}
                         editable={false}
                         placeholderTextColor={THEME.muted}
                         enableAccessory={false}
