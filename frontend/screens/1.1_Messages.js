@@ -59,9 +59,6 @@ export default function Messages({ navigation, route }) {
                     if (__DEV__) {
                         const count = Array.isArray(result) ? result.length : 0;
                         console.log(`[messages] preload hydrated ${count} chats in ${Date.now() - start}ms`);
-                        if (count === 0) {
-                            console.warn('[messages] Preload completed with zero chats');
-                        }
                     }
                 })
                 .catch((error) => {
@@ -75,12 +72,6 @@ export default function Messages({ navigation, route }) {
             };
         }, [])
     );
-
-    useEffect(() => {
-        if (__DEV__ && hydrationAttemptedRef.current && !messagesLoading && chats.length === 0) {
-            console.warn('[messages] Chat list empty after hydration cycle');
-        }
-    }, [messagesLoading, chats.length]);
 
     // Load from route.params once (initial chat metadata)
     useEffect(() => {

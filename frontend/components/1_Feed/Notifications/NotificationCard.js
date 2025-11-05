@@ -140,7 +140,6 @@ export default function NotificationCard({
     onPressCard,
     onAcceptWorkoutInvite,
     onAcceptFollowRequest,
-    onDeclineFollowRequest,
     isFirst,
     isLast,
 }) {
@@ -268,7 +267,7 @@ export default function NotificationCard({
     const inviteAccepted = showAcceptAction && item?.inviteStatus === "accepted";
 
     const requestStatus = String(item?.requestStatus || '').toLowerCase();
-    const showFollowRequestActions = item?.type === "follow-request" && typeof onAcceptFollowRequest === "function" && typeof onDeclineFollowRequest === "function";
+    const showFollowRequestActions = item?.type === "follow-request" && typeof onAcceptFollowRequest === "function";
     const requestHandled = showFollowRequestActions && (requestStatus === 'accepted' || requestStatus === 'declined');
 
     useEffect(() => {
@@ -359,18 +358,6 @@ export default function NotificationCard({
         }
     };
 
-    const handleDeclineFollowRequest = async () => {
-        if (!showFollowRequestActions || respondingRequest || requestHandled) return;
-        try { haptic(); } catch {}
-        setRespondingRequest(true);
-        try {
-            await onDeclineFollowRequest();
-        } catch (err) {
-            console.log('decline follow request notification error', err);
-        } finally {
-            setRespondingRequest(false);
-        }
-    };
 
     const palette = useMemo(() => {
         const iconByType = {
@@ -434,10 +421,6 @@ export default function NotificationCard({
         solidButtonBg,
         solidButtonBgDisabled,
     } = palette;
-
-    const neutralButtonBg = withAlpha(BRAND_ACCENT, 0.12);
-    const neutralButtonBorder = withAlpha(BRAND_ACCENT, 0.3);
-    const neutralButtonText = mixHex(BRAND_ACCENT, "#F1F5FF", 0.25);
 
     const followingBg = withAlpha('#3CB179', 0.22);
     const followingBorder = withAlpha('#3CB179', 0.5);
@@ -544,19 +527,6 @@ export default function NotificationCard({
                             <Text style={[styles.actionLabel, { color: buttonTextActive }]}>
                                 {respondingRequest ? 'One moment…' : 'Accept'}
                             </Text>
-                        </Pressable>
-                        <Pressable
-                            style={[
-                                styles.actionButton,
-                                styles.requestActionBtn,
-                                { backgroundColor: neutralButtonBg, borderColor: neutralButtonBorder },
-                                respondingRequest && styles.requestActionDisabled,
-                            ]}
-                            onPress={handleDeclineFollowRequest}
-                            disabled={respondingRequest}
-                            hitSlop={10}
-                        >
-                            <Text style={[styles.actionLabel, { color: neutralButtonText }]}>Decline</Text>
                         </Pressable>
                     </>
                 )}

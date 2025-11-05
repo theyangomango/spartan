@@ -48,28 +48,30 @@ const EditProfileModal = ({ setPFP }) => {
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Username</Text>
                     <DismissableTextInput
-                        style={styles.non_editable_input_text}
+                        style={[styles.non_editable_input_text, styles.valueField]}
                         placeholder={userData.handle}
                         placeholderTextColor={THEME.muted}
                         editable={false}
                         enableAccessory={false}
                     />
+                    <Text style={styles.changeLink}>Change</Text>
                 </View>
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Name</Text>
                     <DismissableTextInput
-                        style={styles.non_editable_input_text}
+                        style={[styles.non_editable_input_text, styles.valueField]}
                         value={displayName}
                         placeholder={displayName}
                         editable={false}
                         placeholderTextColor={THEME.muted}
                         enableAccessory={false}
                     />
+                    <Text style={styles.changeLink}>Change</Text>
                 </View>
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Bio</Text>
                     <DismissableTextInput
-                        style={styles.editable_input_text}
+                        style={[styles.editable_input_text, styles.valueField]}
                         value={bio}
                         onChangeText={setBio}
                         onBlur={handleBioBlur}
@@ -83,7 +85,7 @@ const EditProfileModal = ({ setPFP }) => {
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Email</Text>
                     <DismissableTextInput
-                        style={styles.non_editable_input_text}
+                        style={[styles.non_editable_input_text, styles.valueField]}
                         placeholder={userData.email}
                         editable={false}
                         placeholderTextColor={THEME.muted}
@@ -93,7 +95,7 @@ const EditProfileModal = ({ setPFP }) => {
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Phone Number</Text>
                     <DismissableTextInput
-                        style={styles.non_editable_input_text}
+                        style={[styles.non_editable_input_text, styles.valueField]}
                         placeholder={formatPhoneNumber(userData.phoneNumber)}
                         editable={false}
                         placeholderTextColor={THEME.muted}
@@ -103,7 +105,7 @@ const EditProfileModal = ({ setPFP }) => {
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Password</Text>
                     <DismissableTextInput
-                        style={styles.non_editable_input_text}
+                        style={[styles.non_editable_input_text, styles.valueField]}
                         placeholder="********"
                         editable={false}
                         placeholderTextColor={THEME.muted}
@@ -152,17 +154,28 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_500Medium',
         width: '35%',
     },
+    changeLink: {
+        fontSize: scaleSize(13),
+        fontFamily: 'Outfit_500Medium',
+        color: THEME.primary,
+        textAlign: 'right',
+        marginLeft: scaleSize(wScale(12)),
+        minWidth: scaleSize(wScale(55)),
+    },
     non_editable_input_text: {
         fontSize: scaleSize(14),
-        color: THEME.textPrimary,
+        color: THEME.textSecondary,
         fontFamily: 'Outfit_500Medium',
-        width: '65%',
+        paddingRight: scaleSize(wScale(6)),
     },
     editable_input_text: {
         fontSize: scaleSize(14),
         color: THEME.textPrimary,
         fontFamily: 'Outfit_500Medium',
-        width: '65%',
+        paddingRight: scaleSize(wScale(6)),
+    },
+    valueField: {
+        flex: 1,
     }
 });
 

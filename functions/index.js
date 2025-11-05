@@ -167,19 +167,20 @@ const normalizeUserRefPayload = (uid, publicData = {}, fallbackData = {}) => {
     };
 };
 
-const removeArrayEntriesByUid = async (ref, field, uid) => {
+const removeArrayEntriesByUid = async (docRef, field, uid) => {
+    if (!docRef) return;
     const safeUid = String(uid || "").trim();
     if (!safeUid) return;
     await adminDb.runTransaction(async (tx) => {
-        const snap = await tx.get(ref);
-        if (!snap.exists) return;
+        const snap = await tx.get(docRef);
+        if (!snap || !snap.exists) return;
         const data = snap.data() || {};
         const current = ensureArray(data[field]);
         const filtered = current.filter((entry) => coerceUidValue(entry) !== safeUid);
         if (filtered.length !== current.length) {
-            tx.update(ref, { [field]: filtered });
+            tx.update(docRef, { [field]: filtered });
         }
-    });
+    }).catch(() => {});
 };
 
 const getUserDocs = async (uid) => {
@@ -187,15 +188,22 @@ const getUserDocs = async (uid) => {
     if (!safeUid) return null;
     const publicRef = adminDb.collection("usersPublic").doc(safeUid);
     const privateRef = adminDb.collection("usersPrivate").doc(safeUid);
-    const [publicSnap, privateSnap] = await Promise.all([publicRef.get(), privateRef.get()]);
+    const legacyRef = adminDb.collection("users").doc(safeUid);
+    const [publicSnap, privateSnap, legacySnap] = await Promise.all([
+        publicRef.get(),
+        privateRef.get(),
+        legacyRef.get().catch(() => null),
+    ]);
     return {
         uid: safeUid,
         publicRef,
         privateRef,
+        legacyRef,
         publicSnap,
         privateSnap,
         publicData: publicSnap.exists ? publicSnap.data() || {} : null,
         privateData: privateSnap.exists ? privateSnap.data() || {} : null,
+        legacyData: legacySnap && legacySnap.exists ? legacySnap.data() || {} : null,
     };
 };
 
@@ -296,6 +304,12 @@ const composePushMessage = (event) => {
             return { title: "New comment", body: `${actor}${snippet(event.content)}` };
         case "replied-comment":
             return { title: "New reply", body: `${actor}${snippet(event.content)}` };
+        case "follow":
+            return { title: "New follower", body: `${actor} followed you` };
+        case "follow-request":
+            return { title: "Follow request", body: `${actor} requested to follow you` };
+        case "follow-accepted":
+            return { title: "Follow request accepted", body: `${actor} accepted your follow request` };
         default:
             return { title: "New notification", body: `${actor} interacted with you` };
     }
@@ -843,7 +857,22 @@ export const followUserAction = onCall({ region: "us-central1" }, async (request
                 meDocs.privateRef.update({
                     followRequestsOut: FieldValue.arrayUnion(targetRefData),
                 }),
+                targetDocs.legacyRef.set({
+                    followRequestsIn: FieldValue.arrayUnion(meRefData),
+                }, { merge: true }).catch(() => {}),
+                meDocs.legacyRef.set({
+                    followRequestsOut: FieldValue.arrayUnion(targetRefData),
+                }, { merge: true }).catch(() => {}),
             ]);
+
+            await createUserNotification(targetUid, {
+                type: "follow-request",
+                uid: meRefData.uid,
+                handle: meRefData.handle,
+                name: meRefData.name,
+                pfp: meRefData.pfp,
+                pfpVersion: meRefData.pfpVersion,
+            });
             return { status: "requested", private: true };
         }
         return { status: alreadyFollower ? "following" : "requested", private: true };
@@ -863,12 +892,37 @@ export const followUserAction = onCall({ region: "us-central1" }, async (request
                 followingCount: FieldValue.increment(1),
             })
         );
+        updates.push(
+            targetDocs.legacyRef.set({
+                followers: FieldValue.arrayUnion(meRefData),
+                followerCount: FieldValue.increment(1),
+            }, { merge: true })
+        );
+        updates.push(
+            meDocs.legacyRef.set({
+                following: FieldValue.arrayUnion(targetRefData),
+                followingCount: FieldValue.increment(1),
+            }, { merge: true })
+        );
     }
     if (alreadyRequested) {
         updates.push(removeArrayEntriesByUid(targetDocs.privateRef, "followRequestsIn", meUid));
         updates.push(removeArrayEntriesByUid(meDocs.privateRef, "followRequestsOut", targetUid));
+        updates.push(removeArrayEntriesByUid(targetDocs.legacyRef, "followRequestsIn", meUid));
+        updates.push(removeArrayEntriesByUid(meDocs.legacyRef, "followRequestsOut", targetUid));
     }
     if (updates.length) await Promise.all(updates);
+
+    if (!alreadyFollower) {
+        await createUserNotification(targetUid, {
+            type: "follow",
+            uid: meRefData.uid,
+            handle: meRefData.handle,
+            name: meRefData.name,
+            pfp: meRefData.pfp,
+            pfpVersion: meRefData.pfpVersion,
+        });
+    }
 
     return { status: "following", private: false };
 });
@@ -885,6 +939,8 @@ export const cancelFollowRequestAction = onCall({ region: "us-central1" }, async
     await Promise.all([
         removeArrayEntriesByUid(meDocs.privateRef, "followRequestsOut", targetUid),
         removeArrayEntriesByUid(targetDocs.privateRef, "followRequestsIn", meUid),
+        removeArrayEntriesByUid(meDocs.legacyRef, "followRequestsOut", targetUid),
+        removeArrayEntriesByUid(targetDocs.legacyRef, "followRequestsIn", meUid),
     ]);
 
     return { status: "cancelled" };
@@ -931,8 +987,25 @@ export const respondFollowRequestAction = onCall({ region: "us-central1" }, asyn
                 following: FieldValue.arrayUnion(meRefData),
                 followingCount: FieldValue.increment(1),
             }),
+            meDocs.legacyRef.set({
+                followers: FieldValue.arrayUnion(requesterRefData),
+                followerCount: FieldValue.increment(1),
+            }, { merge: true }),
+            requesterDocs.legacyRef.set({
+                following: FieldValue.arrayUnion(meRefData),
+                followingCount: FieldValue.increment(1),
+            }, { merge: true }),
         ]);
     }
+
+    await createUserNotification(requesterUid, {
+        type: "follow-accepted",
+        uid: meRefData.uid,
+        handle: meRefData.handle,
+        name: meRefData.name,
+        pfp: meRefData.pfp,
+        pfpVersion: meRefData.pfpVersion,
+    });
 
     return { status: "accepted" };
 });
@@ -945,37 +1018,73 @@ export const unfollowUserAction = onCall({ region: "us-central1" }, async (reque
     if (!meDocs || !meDocs.publicData) throw new HttpsError("failed-precondition", "Caller profile is incomplete.");
     if (!targetDocs || !targetDocs.publicData) throw new HttpsError("not-found", "Target user not found.");
 
+    await adminDb.runTransaction(async (tx) => {
+        const [
+            mePublicSnap,
+            targetPublicSnap,
+            meLegacySnap,
+            targetLegacySnap,
+        ] = await Promise.all([
+            tx.get(meDocs.publicRef),
+            tx.get(targetDocs.publicRef),
+            tx.get(meDocs.legacyRef).catch(() => null),
+            tx.get(targetDocs.legacyRef).catch(() => null),
+        ]);
+
+        if (mePublicSnap && mePublicSnap.exists) {
+            const data = mePublicSnap.data() || {};
+            const following = ensureArray(data.following);
+            const filtered = following.filter((entry) => coerceUidValue(entry) !== targetUid);
+            if (filtered.length !== following.length || Number(data.followingCount) !== filtered.length) {
+                tx.update(meDocs.publicRef, {
+                    following: filtered,
+                    followingCount: filtered.length,
+                });
+            }
+        }
+
+        if (targetPublicSnap && targetPublicSnap.exists) {
+            const data = targetPublicSnap.data() || {};
+            const followers = ensureArray(data.followers);
+            const filtered = followers.filter((entry) => coerceUidValue(entry) !== meUid);
+            if (filtered.length !== followers.length || Number(data.followerCount) !== filtered.length) {
+                tx.update(targetDocs.publicRef, {
+                    followers: filtered,
+                    followerCount: filtered.length,
+                });
+            }
+        }
+
+        if (meLegacySnap && meLegacySnap.exists) {
+            const data = meLegacySnap.data() || {};
+            const following = ensureArray(data.following);
+            const filtered = following.filter((entry) => coerceUidValue(entry) !== targetUid);
+            if (filtered.length !== following.length || Number(data.followingCount) !== filtered.length) {
+                tx.update(meDocs.legacyRef, {
+                    following: filtered,
+                    followingCount: filtered.length,
+                });
+            }
+        }
+
+        if (targetLegacySnap && targetLegacySnap.exists) {
+            const data = targetLegacySnap.data() || {};
+            const followers = ensureArray(data.followers);
+            const filtered = followers.filter((entry) => coerceUidValue(entry) !== meUid);
+            if (filtered.length !== followers.length || Number(data.followerCount) !== filtered.length) {
+                tx.update(targetDocs.legacyRef, {
+                    followers: filtered,
+                    followerCount: filtered.length,
+                });
+            }
+        }
+    });
+
     await Promise.all([
-        adminDb.runTransaction(async (tx) => {
-            const meSnap = await tx.get(meDocs.publicRef);
-            if (meSnap.exists) {
-                const data = meSnap.data() || {};
-                const following = ensureArray(data.following);
-                const filtered = following.filter((entry) => coerceUidValue(entry) !== targetUid);
-                if (filtered.length !== following.length || data.followingCount !== filtered.length) {
-                    tx.update(meDocs.publicRef, {
-                        following: filtered,
-                        followingCount: filtered.length,
-                    });
-                }
-            }
-        }),
-        adminDb.runTransaction(async (tx) => {
-            const targetSnap = await tx.get(targetDocs.publicRef);
-            if (targetSnap.exists) {
-                const data = targetSnap.data() || {};
-                const followers = ensureArray(data.followers);
-                const filtered = followers.filter((entry) => coerceUidValue(entry) !== meUid);
-                if (filtered.length !== followers.length || data.followerCount !== filtered.length) {
-                    tx.update(targetDocs.publicRef, {
-                        followers: filtered,
-                        followerCount: filtered.length,
-                    });
-                }
-            }
-        }),
         removeArrayEntriesByUid(meDocs.privateRef, "followRequestsOut", targetUid),
         removeArrayEntriesByUid(targetDocs.privateRef, "followRequestsIn", meUid),
+        removeArrayEntriesByUid(meDocs.legacyRef, "followRequestsOut", targetUid),
+        removeArrayEntriesByUid(targetDocs.legacyRef, "followRequestsIn", meUid),
     ]);
 
     return { status: "unfollowed" };

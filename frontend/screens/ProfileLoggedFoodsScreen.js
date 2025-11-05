@@ -112,10 +112,20 @@ export default function ProfileLoggedFoodsScreen({ navigation, route }) {
         }
         let cancelled = false;
         setIsUserLoading(true);
-        readDoc("users", targetUid)
-            .then((doc) => {
+        Promise.all([
+            readDoc("usersPublic", targetUid).catch(() => null),
+            readDoc("usersPrivate", targetUid).catch(() => null),
+        ])
+            .then(([publicDoc, privateDoc]) => {
                 if (cancelled) return;
-                if (doc && doc.uid) setUserData(doc);
+                if (publicDoc || privateDoc) {
+                    setUserData((prev) => ({
+                        ...(prev && typeof prev === "object" ? prev : {}),
+                        uid: targetUid,
+                        ...(publicDoc || {}),
+                        ...(privateDoc || {}),
+                    }));
+                }
             })
             .catch(() => {})
             .finally(() => {

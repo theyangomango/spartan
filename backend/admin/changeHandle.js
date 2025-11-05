@@ -6,7 +6,7 @@
  * equivalent Firebase Admin credentials to be available in the environment.
  *
  * Usage:
- *   node backend/admin/changeUserHandle.js <currentHandle> <nextHandle> [--dry-run]
+ *   node backend/admin/changeHandle.js <currentHandle> <nextHandle> [--dry-run]
  */
 
 const path = require("path");
@@ -84,7 +84,7 @@ function parseArgs(argv) {
         }
     }
     if (flags.help || positional.length < 2) {
-        console.error("Usage: node backend/admin/changeUserHandle.js <currentHandle> <nextHandle> [--dry-run]");
+        console.error("Usage: node backend/admin/changeHandle.js <currentHandle> <nextHandle> [--dry-run]");
         process.exit(flags.help ? 0 : 1);
     }
     return { oldRaw: positional[0], newRaw: positional[1], dryRun: flags.dryRun };
@@ -267,7 +267,7 @@ async function main() {
         return;
     }
 
-    await runSwitchUserHandleScript(user.handle, newHandle);
+        await runSwitchUserHandleScript(user.handle, newHandle);
     await updateHandleRegistry(user.uid, oldHandleLower, newHandleLower);
     await refreshUserSearchIndex(user.uid, newHandle);
 
@@ -275,6 +275,6 @@ async function main() {
 }
 
 main().catch((error) => {
-    console.error("changeUserHandle failed:", error);
+    console.error("changeHandle failed:", error);
     process.exit(1);
 });

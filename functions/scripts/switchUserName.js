@@ -3,6 +3,7 @@ import { getFirestore, FieldValue } from "firebase-admin/firestore";
 
 const USERS_BATCH_SIZE = 200;
 const GENERIC_BATCH_SIZE = 200;
+const PRIMARY_USER_COLLECTION = "usersPublic";
 
 try {
   initializeApp();
@@ -296,6 +297,7 @@ async function findUserByHandle(rawHandle) {
     { field: "handle", value: handle },
     { field: "handle", value: `@${handle}` },
     { field: "handle", value: handle.toLowerCase() },
+    { field: "handleLower", value: handle.toLowerCase() },
     { field: "handle_lower", value: handle.toLowerCase() },
     { field: "username", value: handle },
     { field: "username_lower", value: handle.toLowerCase() },
@@ -307,12 +309,21 @@ async function findUserByHandle(rawHandle) {
     if (!value || tried.has(`${field}:${value}`)) continue;
     tried.add(`${field}:${value}`);
 
-    const snapshot = await db.collection("users").where(field, "==", value).limit(2).get();
+    const snapshot = await db.collection(PRIMARY_USER_COLLECTION).where(field, "==", value).limit(2).get();
     if (snapshot.empty) continue;
     if (snapshot.size > 1) {
-      throw new Error(`Multiple users matched by ${field} = "${value}". Aborting.`);
+      throw new Error(`Multiple ${PRIMARY_USER_COLLECTION} docs matched by ${field} = "${value}". Aborting.`);
     }
     return snapshot.docs[0];
+  }
+
+  const handleDoc = await db.collection("userHandles").doc(handle.toLowerCase()).get();
+  if (handleDoc.exists) {
+    const uid = String(handleDoc.data()?.uid || "").trim();
+    if (uid) {
+      const direct = await db.collection(PRIMARY_USER_COLLECTION).doc(uid).get();
+      if (direct.exists) return direct;
+    }
   }
 
   throw new Error(`No user found for handle "${rawHandle}".`);
@@ -320,20 +331,20 @@ async function findUserByHandle(rawHandle) {
 
 async function resolveUserDoc(identifier) {
   if (!identifier) throw new Error("Identifier is required.");
-  const direct = await db.collection("users").doc(identifier).get();
+  const direct = await db.collection(PRIMARY_USER_COLLECTION).doc(identifier).get();
   if (direct.exists) return direct;
   return findUserByHandle(identifier);
 }
 
 async function processUsers(targetUid) {
-  console.log("[users] scanning...");
+  console.log(`[${PRIMARY_USER_COLLECTION}] scanning...`);
   const ids = [];
   let processed = 0;
   let mutated = 0;
   let lastDoc = null;
 
   while (true) {
-    let query = db.collection("users").orderBy("__name__").limit(USERS_BATCH_SIZE);
+    let query = db.collection(PRIMARY_USER_COLLECTION).orderBy("__name__").limit(USERS_BATCH_SIZE);
     if (lastDoc) query = query.startAfter(lastDoc);
 
     const snapshot = await query.get();
@@ -370,6 +381,23 @@ async function processUsers(targetUid) {
         if (data.name === undefined || data.name === null || data.name === "") {
           data.name = newName;
           docChanged = true;
+        }
+
+        if (typeof data.displayName === "string") {
+          if (!data.displayName.trim()) {
+            data.displayName = newName;
+            docChanged = true;
+          }
+        } else {
+          data.displayName = newName;
+          docChanged = true;
+        }
+
+        if (typeof data.display_name === "string") {
+          if (!data.display_name.trim()) {
+            data.display_name = newName;
+            docChanged = true;
+          }
         }
 
         if (typeof data.name_lower === "string") {
@@ -415,7 +443,7 @@ async function processUsers(targetUid) {
     lastDoc = snapshot.docs[snapshot.docs.length - 1];
   }
 
-  console.log(`[users] processed ${processed} docs, updated ${mutated}`);
+  console.log(`[${PRIMARY_USER_COLLECTION}] processed ${processed} docs, updated ${mutated}`);
   return { ids, mutated };
 }
 
@@ -536,16 +564,16 @@ async function processMessages() {
   return { ids, mutated };
 }
 
-async function processUserSubcollection(userIds, subcollection) {
+async function processUserSubcollection(userIds, baseCollection, subcollection) {
   if (!Array.isArray(userIds) || userIds.length === 0) return;
   let totalMutated = 0;
   for (const uid of userIds) {
-    const path = `users/${uid}/${subcollection}`;
+    const path = `${baseCollection}/${uid}/${subcollection}`;
     const { mutated } = await processCollection(path, { label: path, quiet: true, logOnlyIfChanged: true });
     totalMutated += mutated;
   }
   if (totalMutated > 0) {
-    console.log(`[users/*/${subcollection}] updated ${totalMutated} docs`);
+    console.log(`[${baseCollection}/*/${subcollection}] updated ${totalMutated} docs`);
   }
 }
 
@@ -637,7 +665,7 @@ async function main() {
     });
   }
 
-  await processUserSubcollection(userIds, "notifications");
+  await processUserSubcollection(userIds, "usersPrivate", "notifications");
 
   console.log("✅ Name switch complete.");
 }
