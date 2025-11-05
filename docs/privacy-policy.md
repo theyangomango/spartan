@@ -6,7 +6,7 @@ This Privacy Policy explains how Spartan ("Spartan," "we," "us," or "our") colle
 
 Owner/Operator: Yiming Bai (operating Spartan)
 
-Contact: yangbai@thespartan.app
+Contact: support@thespartan.app
 
 Governing Law: Texas, USA (venue: Collin County, Texas)
 
@@ -74,7 +74,7 @@ We retain your information for as long as your account is active or as needed to
 
 ## Your Rights and Choices
 
-- Access, correction, deletion: You may request access to, correction of, or deletion of your personal information by contacting us at privacy@thespartan.app or yangbai@thespartan.app.
+- Access, correction, deletion: You may request access to, correction of, or deletion of your personal information by contacting us at privacy@thespartan.app or support@thespartan.app.
 - Push notifications: Control in iOS Settings.
 - EU/UK rights: You may have rights to data portability, restriction, or objection to certain processing, and to withdraw consent where processing is based on consent.
 - California (U.S.) rights: Spartan does not sell or share personal information as defined by the CCPA/CPRA. California residents can request access and deletion and will not be discriminated against for exercising rights.
@@ -101,4 +101,4 @@ We may update this Policy from time to time. If we make material changes, we wil
 
 If you have questions or requests regarding this Policy or your data, contact us at:
 
-- Email: yangbai@thespartan.app
+- Email: support@thespartan.app

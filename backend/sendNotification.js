@@ -2,6 +2,14 @@ import { collection, addDoc, doc, getDoc } from "firebase/firestore";
 import incrementDocValue from "./helper/firebase/incrementDocValue";
 import { db } from "../firebase.config";
 
+const isPermissionError = (error) => {
+    if (!error) return false;
+    const code = error?.code || error?.name || "";
+    if (code === "permission-denied") return true;
+    const message = String(error?.message || "").toLowerCase();
+    return message.includes("permission") || message.includes("insufficient");
+};
+
 const sanitizeEventPayload = (event = {}) => {
     if (!event || typeof event !== "object") return {};
 
@@ -60,32 +68,46 @@ const sanitizeEventPayload = (event = {}) => {
     return cleaned;
 };
 
+const runCounterUpdates = async (uid, eventType) => {
+    const tasks = [];
+    const pushIncrement = (key) => {
+        tasks.push(
+            incrementDocValue("usersPrivate", uid, key).catch((err) => {
+                if (!isPermissionError(err)) throw err;
+            })
+        );
+    };
+
+    switch (eventType) {
+        case "liked-post":
+        case "liked-comment":
+        case "liked-story":
+            pushIncrement("notificationNewLikes");
+            break;
+        case "comment":
+        case "replied-comment":
+            pushIncrement("notificationNewComments");
+            break;
+        case "workout-invite":
+        case "follow":
+        case "follow-request":
+        case "follow-accepted":
+            // keep below overall events counter
+            break;
+        default:
+            break;
+    }
+    pushIncrement("notificationNewEvents");
+
+    if (tasks.length > 0) {
+        await Promise.all(tasks);
+    }
+};
+
 export default async function sendNotification(uid, rawEvent) {
     const event = rawEvent && typeof rawEvent === "object" ? rawEvent : {};
 
-    // Increment notification counters
-    switch (event.type) {
-        case 'liked-post':
-        case 'liked-comment':
-        case 'liked-story':
-            incrementDocValue('usersPrivate', uid, 'notificationNewLikes');
-            break;
-        case 'comment':
-        case 'replied-comment':
-            incrementDocValue('usersPrivate', uid, 'notificationNewComments');
-            break;
-        case 'workout-invite':
-            // leave counters unchanged for now (only contributes to general events)
-            break;
-        case 'follow':
-        case 'follow-request':
-        // falls through to overall events counter only
-            break;
-        case 'follow-accepted':
-            // overall events counter only
-            break;
-    }
-    incrementDocValue('usersPrivate', uid, 'notificationNewEvents');
+    await runCounterUpdates(uid, event.type);
 
     const sanitizedEvent = sanitizeEventPayload(event);
     if (!sanitizedEvent.uid && event?.uid != null) {
@@ -105,10 +127,17 @@ export default async function sendNotification(uid, rawEvent) {
 
     // Add event to the user's notifications subcollection
     const notificationsRef = collection(db, 'usersPrivate', uid, 'notifications');
-    await addDoc(notificationsRef, {
-        ...sanitizedEvent,
-        read: false,
-    });
+    try {
+        await addDoc(notificationsRef, {
+            ...sanitizedEvent,
+            read: false,
+        });
+    } catch (err) {
+        if (isPermissionError(err)) {
+            return;
+        }
+        throw err;
+    }
 
     // Try push notification via Expo (best-effort, no throw)
     try {

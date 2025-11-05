@@ -20,7 +20,7 @@ export default function TermsOfService({ navigation }) {
         <Text style={styles.p}>These Terms govern your use of the Spartan iOS application and related services (the "Service"). By using the Service, you agree to these Terms.</Text>
 
         <Text style={styles.h}>Owner and Contact</Text>
-        <Text style={styles.p}>Owner/Operator: Yiming Bai (operating Spartan){'\n'}Email: yangbai@thespartan.app</Text>
+        <Text style={styles.p}>Owner/Operator: Yiming Bai (operating Spartan){'\n'}Email: support@thespartan.app</Text>
 
         <Text style={styles.h}>Governing Law and Venue</Text>
         <Text style={styles.p}>Texas law governs these Terms. You agree to the exclusive jurisdiction and venue of courts in Collin County, Texas, for disputes related to the Service.</Text>
@@ -68,14 +68,14 @@ export default function TermsOfService({ navigation }) {
         <Text style={styles.p}>Spartan and its licensors own the Service and related IP, excluding your User Content. Do not copy, modify, distribute, or create derivative works of the Service.</Text>
 
         <Text style={styles.h}>10. DMCA and Reporting</Text>
-        <Text style={styles.p}>To report copyright infringement, email yangbai@thespartan.app with your contact info, description of the work and allegedly infringing content, location, a good‑faith statement, a statement under penalty of perjury of authorization, and your signature. We may remove content and terminate repeat infringers.</Text>
-        <Text style={styles.p}>Report harassment/safety issues via yangbai@thespartan.app or in‑app reporting if available.</Text>
+        <Text style={styles.p}>To report copyright infringement, email support@thespartan.app with your contact info, description of the work and allegedly infringing content, location, a good‑faith statement, a statement under penalty of perjury of authorization, and your signature. We may remove content and terminate repeat infringers.</Text>
+        <Text style={styles.p}>Report harassment/safety issues via support@thespartan.app or in‑app reporting if available.</Text>
 
         <Text style={styles.h}>11. Payments</Text>
         <Text style={styles.p}>Spartan does not currently process payments or charge subscription fees within the app.</Text>
 
         <Text style={styles.h}>12. Termination</Text>
-        <Text style={styles.p}>You can stop using the Service at any time and request account deletion via yangbai@thespartan.app. We may suspend or terminate access with or without notice for violations or risk to users or the Service.</Text>
+        <Text style={styles.p}>You can stop using the Service at any time and request account deletion via support@thespartan.app. We may suspend or terminate access with or without notice for violations or risk to users or the Service.</Text>
 
         <Text style={styles.h}>13. Disclaimers and Limitation of Liability</Text>
         <Text style={styles.p}>The Service is provided "AS IS" and "AS AVAILABLE" without warranties of any kind. Spartan does not guarantee any health, fitness, or nutrition outcomes. To the maximum extent permitted by law, Spartan and its owners/affiliates/service providers are not liable for indirect, incidental, special, consequential, exemplary, or punitive damages; any loss of data, revenue, profits, or goodwill; or any personal injury or property damage, arising from or relating to use of the Service or your activities. Our total liability is limited to the greater of $100 or amounts you paid to us in the 12 months preceding the claim. Any claim must be filed within one (1) year after it accrues.</Text>
@@ -97,7 +97,7 @@ export default function TermsOfService({ navigation }) {
         <Text style={styles.li}>• Class Action/Jury Waiver (where permitted): Disputes must be brought individually; you waive any right to a jury trial.</Text>
 
         <Text style={styles.h}>17. Contact</Text>
-        <Text style={styles.p}>Email: yangbai@thespartan.app</Text>
+        <Text style={styles.p}>Email: support@thespartan.app</Text>
 
         <View style={{ height: scaleSize(24) }} />
       </ScrollView>

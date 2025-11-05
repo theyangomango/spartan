@@ -26,6 +26,7 @@ import ReactionPopover from "../components/1.2_Chat/ReactionPopover";
 import MediaViewerModal from "../components/1.2_Chat/MediaViewerModal";
 
 import sendMessageV2 from "../../backend/messages/sendMessageV2";
+import registerChatParticipants from "../../backend/messages/registerChatParticipants";
 import toggleReactionV2 from "../../backend/messages/toggleReactionV2";
 import uploadMediaAssets from "../../backend/storage/uploadMediaAssets";
 import * as ImagePicker from "expo-image-picker";
@@ -71,6 +72,46 @@ const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAv
 
 const COLORS = { surface: theme.surface, primary: theme.primary, hairline: theme.hairline, bg: theme.bg, text: theme.textPrimary, subtext: theme.textSecondary, field: theme.field };
 
+const normalizeParticipant = (raw) => {
+    if (!raw || typeof raw !== "object") return null;
+    const uidCandidate =
+        raw.uid ||
+        raw.id ||
+        raw.userUid ||
+        raw.profileUid ||
+        raw.memberUid ||
+        raw.creatorUid ||
+        raw.creatorUID;
+    const uid = typeof uidCandidate === "string" || typeof uidCandidate === "number"
+        ? String(uidCandidate).trim()
+        : "";
+    if (!uid) return null;
+    const handle = typeof raw.handle === "string"
+        ? raw.handle
+        : (typeof raw.username === "string" ? raw.username : "");
+    const name = typeof raw.name === "string"
+        ? raw.name
+        : (typeof raw.displayName === "string"
+            ? raw.displayName
+            : (handle || ""));
+    const photo =
+        (typeof raw.pfp === "string" && raw.pfp) ||
+        (typeof raw.image === "string" && raw.image) ||
+        (typeof raw.photoURL === "string" && raw.photoURL) ||
+        "";
+    const pfpVersion = Number(raw?.pfpVersion ?? raw?.imageVersion ?? 0) || 0;
+    return {
+        uid,
+        handle,
+        name,
+        displayName: name,
+        pfp: photo,
+        image: photo,
+        photoURL: photo,
+        pfpVersion,
+    };
+};
+
 export default function Chat({ navigation, route }) {
     const insets = useSafeAreaInsets();
     const params = route?.params || {};
@@ -101,6 +142,7 @@ export default function Chat({ navigation, route }) {
     const { openReportSheet, reportSheetNode } = useReportContentSheet();
 
     const flatRef = useRef(null);
+    const registrationKeyRef = useRef("");
     const messagesRaw = useChatMessages(chatCid);
     const currentUid = global?.userData?.uid || null;
     const blockedSet = useMemo(
@@ -170,6 +212,50 @@ export default function Chat({ navigation, route }) {
         const memberUids = Array.isArray(data?.memberUids) ? data.memberUids.map((uid) => String(uid || "")).filter(Boolean) : [];
         return Array.from(new Set([...headerUids, ...memberUids]));
     }, [headerUsersExcludingSelf, data?.memberUids]);
+
+    useEffect(() => {
+        if (!chatCid || !currentUid) return;
+
+        const participantsMap = new Map();
+        const push = (entry) => {
+            const normalized = normalizeParticipant(entry);
+            if (!normalized) return;
+            if (!participantsMap.has(normalized.uid)) {
+                participantsMap.set(normalized.uid, normalized);
+            }
+        };
+
+        const selfRef = normalizeParticipant({
+            uid: currentUid,
+            handle: global?.userData?.handle || "",
+            name: global?.userData?.name || global?.userData?.displayName || "",
+            pfp: global?.userData?.image || global?.userData?.pfp || global?.userData?.photoURL || "",
+            pfpVersion: global?.userData?.pfpVersion || global?.userData?.imageVersion || 0,
+        });
+        if (selfRef) push(selfRef);
+
+        const candidateLists = [
+            Array.isArray(data?.users) ? data.users : [],
+            Array.isArray(headerUsersExcludingSelf) ? headerUsersExcludingSelf : [],
+            Array.isArray(params?.participants) ? params.participants : [],
+        ];
+        candidateLists.forEach((list) => {
+            list.forEach((item) => push(item));
+        });
+
+        const participants = Array.from(participantsMap.values());
+        if (participants.length < 2) return;
+        if (!participants.some((p) => p.uid === String(currentUid))) return;
+
+        const key = JSON.stringify(participants.map((p) => [p.uid, p.handle, p.name, p.pfpVersion]));
+        if (registrationKeyRef.current === key) return;
+        registrationKeyRef.current = key;
+
+        registerChatParticipants({ cid: chatCid, participants }).catch((err) => {
+            console.log("[chat] register participants failed", err?.message || err);
+            registrationKeyRef.current = "";
+        });
+    }, [chatCid, currentUid, data?.users, headerUsersExcludingSelf, params?.participants]);
 
     const isThreadBlocked = useMemo(() => {
         if (!currentUid) return false;

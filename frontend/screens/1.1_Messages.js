@@ -411,12 +411,14 @@ export default function Messages({ navigation, route }) {
 
         // Append this chat reference to every participant's user doc so it shows up for all
         const allParticipants = [...dedupedUsers, selfUser];
-        await Promise.all(
-            allParticipants.map((u) => {
-                const otherUsers = allParticipants.filter((x) => x.uid !== u.uid);
-                return arrayAppend("users", u.uid, "messages", { mid: cid, otherUsers });
-            })
-        );
+        try {
+            await arrayAppend("users", selfUser.uid, "messages", {
+                mid: cid,
+                otherUsers: dedupedUsers,
+            });
+        } catch (err) {
+            console.log("[createChat] failed to append chat ref for self", err?.message || err);
+        }
 
         const newChat = await createChat(userData.uid, allParticipants, cid);
         const chatObj = ensureChatCached({ ...newChat, content: [] });

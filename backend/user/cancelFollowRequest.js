@@ -1,20 +1,26 @@
-import arrayErase from "../helper/firebase/arrayErase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../firebase.config";
 
-const normalizeRef = (u) => ({
-    uid: String(u?.uid || u?.id || ''),
-    handle: u?.handle || u?.username || '',
-    name: u?.name || u?.displayName || '',
-    pfp: u?.pfp || u?.image || u?.photoURL || '',
-});
+const cancelCallable = httpsCallable(functions, "cancelFollowRequestAction");
+
+const coerceUid = (value) => {
+    if (!value && value !== 0) return "";
+    if (typeof value === "string" || typeof value === "number") return String(value).trim();
+    if (typeof value === "object") {
+        return coerceUid(value.uid || value.id || value.userUid || value.profileUid);
+    }
+    return "";
+};
 
 export default async function cancelFollowRequest(this_user, user) {
-    const meRef = normalizeRef(this_user);
-    const otherRef = normalizeRef(user);
+    const targetUid = coerceUid(user);
+    if (!targetUid) return false;
 
-    if (!meRef.uid || !otherRef.uid) return false;
-
-    let mutated = false;
-    try { await arrayErase('usersPrivate', meRef.uid, 'followRequestsOut', otherRef); mutated = true; } catch {}
-    try { await arrayErase('usersPrivate', otherRef.uid, 'followRequestsIn', meRef); mutated = true; } catch {}
-    return mutated;
+    try {
+        await cancelCallable({ targetUid });
+        return true;
+    } catch (error) {
+        console.log("cancelFollowRequest callable error", error?.message || error);
+        return false;
+    }
 }

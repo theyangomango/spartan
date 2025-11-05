@@ -89,6 +89,116 @@ async function upsertSearchIndex(uid, { displayName, handle, isPrivate }) {
     }
 }
 
+const UID_KEYS = [
+    "uid",
+    "id",
+    "userUid",
+    "memberUid",
+    "profileUid",
+    "followUid",
+    "followerUid",
+    "ownerUid",
+    "creatorUid",
+    "creatorUID",
+];
+
+const coerceUidValue = (input) => {
+    if (input === null || input === undefined) return "";
+    if (typeof input === "string" || typeof input === "number") {
+        const value = String(input).trim();
+        return value || "";
+    }
+    if (typeof input !== "object") return "";
+    for (const key of UID_KEYS) {
+        if (Object.prototype.hasOwnProperty.call(input, key)) {
+            const coerced = coerceUidValue(input[key]);
+            if (coerced) return coerced;
+        }
+    }
+    return "";
+};
+
+const ensureArray = (value) => (Array.isArray(value) ? value : []);
+
+const ensureUidArray = (list) => {
+    const out = new Set();
+    ensureArray(list).forEach((entry) => {
+        const uid = coerceUidValue(entry);
+        if (uid) out.add(uid);
+    });
+    return Array.from(out);
+};
+
+const normalizeUserRefPayload = (uid, publicData = {}, fallbackData = {}) => {
+    const safeUid = String(uid || "").trim();
+    if (!safeUid) return null;
+
+    const handle =
+        (typeof publicData?.handle === "string" && publicData.handle) ||
+        (typeof fallbackData?.handle === "string" && fallbackData.handle) ||
+        "";
+    const display =
+        (typeof publicData?.displayName === "string" && publicData.displayName) ||
+        (typeof publicData?.name === "string" && publicData.name) ||
+        (typeof fallbackData?.displayName === "string" && fallbackData.displayName) ||
+        (typeof fallbackData?.name === "string" && fallbackData.name) ||
+        "";
+    const photo =
+        (typeof publicData?.photoURL === "string" && publicData.photoURL) ||
+        (typeof publicData?.pfp === "string" && publicData.pfp) ||
+        (typeof publicData?.image === "string" && publicData.image) ||
+        (typeof fallbackData?.photoURL === "string" && fallbackData.photoURL) ||
+        (typeof fallbackData?.pfp === "string" && fallbackData.pfp) ||
+        (typeof fallbackData?.image === "string" && fallbackData.image) ||
+        "";
+    const pfpVersion =
+        Number(publicData?.pfpVersion ?? publicData?.imageVersion ?? fallbackData?.pfpVersion ?? fallbackData?.imageVersion ?? 0) || 0;
+
+    const name = display || handle || "";
+    return {
+        uid: safeUid,
+        handle: handle || "",
+        name,
+        displayName: display || name,
+        pfp: photo || "",
+        image: photo || "",
+        photoURL: photo || "",
+        pfpVersion,
+    };
+};
+
+const removeArrayEntriesByUid = async (ref, field, uid) => {
+    const safeUid = String(uid || "").trim();
+    if (!safeUid) return;
+    await adminDb.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) return;
+        const data = snap.data() || {};
+        const current = ensureArray(data[field]);
+        const filtered = current.filter((entry) => coerceUidValue(entry) !== safeUid);
+        if (filtered.length !== current.length) {
+            tx.update(ref, { [field]: filtered });
+        }
+    });
+};
+
+const getUserDocs = async (uid) => {
+    const safeUid = String(uid || "").trim();
+    if (!safeUid) return null;
+    const publicRef = adminDb.collection("usersPublic").doc(safeUid);
+    const privateRef = adminDb.collection("usersPrivate").doc(safeUid);
+    const [publicSnap, privateSnap] = await Promise.all([publicRef.get(), privateRef.get()]);
+    return {
+        uid: safeUid,
+        publicRef,
+        privateRef,
+        publicSnap,
+        privateSnap,
+        publicData: publicSnap.exists ? publicSnap.data() || {} : null,
+        privateData: privateSnap.exists ? privateSnap.data() || {} : null,
+    };
+};
+
 export const ensureUserProfile = onCall({ region: "us-central1" }, async (request) => {
     try {
         const auth = request.auth;
@@ -188,6 +298,310 @@ export const ensureUserProfile = onCall({ region: "us-central1" }, async (reques
         logger.error("ensureUserProfile failure", error);
         throw new HttpsError("internal", "Failed to ensure user profile.");
     }
+});
+
+const validateFollowTarget = (callerUid, targetUid) => {
+    if (!callerUid) throw new HttpsError("unauthenticated", "Authentication required.");
+    const normalizedTarget = coerceUidValue(targetUid);
+    if (!normalizedTarget) throw new HttpsError("invalid-argument", "targetUid is required.");
+    if (normalizedTarget === callerUid) {
+        throw new HttpsError("failed-precondition", "You cannot perform this action on yourself.");
+    }
+    return normalizedTarget;
+};
+
+export const followUserAction = onCall({ region: "us-central1" }, async (request) => {
+    const meUid = request.auth?.uid;
+    const targetUid = validateFollowTarget(meUid, request.data?.targetUid ?? request.data?.uid);
+
+    const [meDocs, targetDocs] = await Promise.all([getUserDocs(meUid), getUserDocs(targetUid)]);
+    if (!meDocs || !meDocs.publicData) throw new HttpsError("failed-precondition", "Caller profile is incomplete.");
+    if (!targetDocs || !targetDocs.publicData) throw new HttpsError("not-found", "Target user not found.");
+
+    const meRefData = normalizeUserRefPayload(meUid, meDocs.publicData, meDocs.privateData);
+    const targetRefData = normalizeUserRefPayload(targetUid, targetDocs.publicData, targetDocs.privateData);
+    if (!meRefData || !targetRefData) {
+        throw new HttpsError("failed-precondition", "Unable to build profile references.");
+    }
+
+    const targetBlocked = new Set([
+        ...ensureUidArray(targetDocs.privateData?.blockedUidList),
+        ...ensureUidArray(targetDocs.privateData?.blocked),
+    ]);
+    if (targetBlocked.has(meUid)) throw new HttpsError("failed-precondition", "You are blocked by this user.");
+
+    const meBlocked = new Set([
+        ...ensureUidArray(meDocs.privateData?.blockedUidList),
+        ...ensureUidArray(meDocs.privateData?.blocked),
+    ]);
+    if (meBlocked.has(targetUid)) throw new HttpsError("failed-precondition", "You have blocked this user.");
+
+    const followers = ensureArray(targetDocs.publicData.followers);
+    const alreadyFollower = followers.some((entry) => coerceUidValue(entry) === meUid);
+    const pendingRequests = ensureArray(targetDocs.privateData?.followRequestsIn);
+    const alreadyRequested = pendingRequests.some((entry) => coerceUidValue(entry) === meUid);
+    const isPrivate = !!targetDocs.publicData?.isPrivate;
+
+    if (isPrivate) {
+        if (!alreadyFollower && !alreadyRequested) {
+            await Promise.all([
+                targetDocs.privateRef.update({
+                    followRequestsIn: FieldValue.arrayUnion(meRefData),
+                }),
+                meDocs.privateRef.update({
+                    followRequestsOut: FieldValue.arrayUnion(targetRefData),
+                }),
+            ]);
+            return { status: "requested", private: true };
+        }
+        return { status: alreadyFollower ? "following" : "requested", private: true };
+    }
+
+    const updates = [];
+    if (!alreadyFollower) {
+        updates.push(
+            targetDocs.publicRef.update({
+                followers: FieldValue.arrayUnion(meRefData),
+                followerCount: FieldValue.increment(1),
+            })
+        );
+        updates.push(
+            meDocs.publicRef.update({
+                following: FieldValue.arrayUnion(targetRefData),
+                followingCount: FieldValue.increment(1),
+            })
+        );
+    }
+    if (alreadyRequested) {
+        updates.push(removeArrayEntriesByUid(targetDocs.privateRef, "followRequestsIn", meUid));
+        updates.push(removeArrayEntriesByUid(meDocs.privateRef, "followRequestsOut", targetUid));
+    }
+    if (updates.length) await Promise.all(updates);
+
+    return { status: "following", private: false };
+});
+
+export const cancelFollowRequestAction = onCall({ region: "us-central1" }, async (request) => {
+    const meUid = request.auth?.uid;
+    const targetUid = validateFollowTarget(meUid, request.data?.targetUid ?? request.data?.uid);
+
+    const [meDocs, targetDocs] = await Promise.all([getUserDocs(meUid), getUserDocs(targetUid)]);
+    if (!meDocs || !targetDocs) {
+        throw new HttpsError("not-found", "User record missing.");
+    }
+
+    await Promise.all([
+        removeArrayEntriesByUid(meDocs.privateRef, "followRequestsOut", targetUid),
+        removeArrayEntriesByUid(targetDocs.privateRef, "followRequestsIn", meUid),
+    ]);
+
+    return { status: "cancelled" };
+});
+
+export const respondFollowRequestAction = onCall({ region: "us-central1" }, async (request) => {
+    const meUid = request.auth?.uid;
+    if (!meUid) throw new HttpsError("unauthenticated", "Authentication required.");
+
+    const requesterUid = coerceUidValue(request.data?.requesterUid ?? request.data?.uid ?? request.data?.requester?.uid);
+    if (!requesterUid) throw new HttpsError("invalid-argument", "requesterUid is required.");
+    if (requesterUid === meUid) throw new HttpsError("failed-precondition", "Invalid requester.");
+
+    const decisionRaw = String(request.data?.decision ?? request.data?.action ?? "").toLowerCase();
+    if (!["accept", "decline"].includes(decisionRaw)) {
+        throw new HttpsError("invalid-argument", "decision must be 'accept' or 'decline'.");
+    }
+
+    const [meDocs, requesterDocs] = await Promise.all([getUserDocs(meUid), getUserDocs(requesterUid)]);
+    if (!meDocs || !meDocs.publicData) throw new HttpsError("failed-precondition", "Caller profile is incomplete.");
+    if (!requesterDocs || !requesterDocs.publicData) throw new HttpsError("not-found", "Requester not found.");
+
+    const requesterRefData = normalizeUserRefPayload(requesterUid, requesterDocs.publicData, requesterDocs.privateData);
+    const meRefData = normalizeUserRefPayload(meUid, meDocs.publicData, meDocs.privateData);
+
+    await Promise.all([
+        removeArrayEntriesByUid(meDocs.privateRef, "followRequestsIn", requesterUid),
+        removeArrayEntriesByUid(requesterDocs.privateRef, "followRequestsOut", meUid),
+    ]);
+
+    if (decisionRaw === "decline") {
+        return { status: "declined" };
+    }
+
+    const followers = ensureArray(meDocs.publicData.followers);
+    const alreadyFollower = followers.some((entry) => coerceUidValue(entry) === requesterUid);
+    if (!alreadyFollower) {
+        await Promise.all([
+            meDocs.publicRef.update({
+                followers: FieldValue.arrayUnion(requesterRefData),
+                followerCount: FieldValue.increment(1),
+            }),
+            requesterDocs.publicRef.update({
+                following: FieldValue.arrayUnion(meRefData),
+                followingCount: FieldValue.increment(1),
+            }),
+        ]);
+    }
+
+    return { status: "accepted" };
+});
+
+export const unfollowUserAction = onCall({ region: "us-central1" }, async (request) => {
+    const meUid = request.auth?.uid;
+    const targetUid = validateFollowTarget(meUid, request.data?.targetUid ?? request.data?.uid);
+
+    const [meDocs, targetDocs] = await Promise.all([getUserDocs(meUid), getUserDocs(targetUid)]);
+    if (!meDocs || !meDocs.publicData) throw new HttpsError("failed-precondition", "Caller profile is incomplete.");
+    if (!targetDocs || !targetDocs.publicData) throw new HttpsError("not-found", "Target user not found.");
+
+    await Promise.all([
+        adminDb.runTransaction(async (tx) => {
+            const meSnap = await tx.get(meDocs.publicRef);
+            if (meSnap.exists) {
+                const data = meSnap.data() || {};
+                const following = ensureArray(data.following);
+                const filtered = following.filter((entry) => coerceUidValue(entry) !== targetUid);
+                if (filtered.length !== following.length || data.followingCount !== filtered.length) {
+                    tx.update(meDocs.publicRef, {
+                        following: filtered,
+                        followingCount: filtered.length,
+                    });
+                }
+            }
+        }),
+        adminDb.runTransaction(async (tx) => {
+            const targetSnap = await tx.get(targetDocs.publicRef);
+            if (targetSnap.exists) {
+                const data = targetSnap.data() || {};
+                const followers = ensureArray(data.followers);
+                const filtered = followers.filter((entry) => coerceUidValue(entry) !== meUid);
+                if (filtered.length !== followers.length || data.followerCount !== filtered.length) {
+                    tx.update(targetDocs.publicRef, {
+                        followers: filtered,
+                        followerCount: filtered.length,
+                    });
+                }
+            }
+        }),
+        removeArrayEntriesByUid(meDocs.privateRef, "followRequestsOut", targetUid),
+        removeArrayEntriesByUid(targetDocs.privateRef, "followRequestsIn", meUid),
+    ]);
+
+    return { status: "unfollowed" };
+});
+
+export const registerChatParticipantsAction = onCall({ region: "us-central1" }, async (request) => {
+    const callerUid = request.auth?.uid;
+    if (!callerUid) throw new HttpsError("unauthenticated", "Authentication required.");
+
+    const cid = String(request.data?.cid || request.data?.chatId || "").trim();
+    if (!cid) throw new HttpsError("invalid-argument", "cid is required.");
+
+    const rawParticipants = ensureArray(request.data?.participants);
+    const participantMap = new Map();
+    rawParticipants.forEach((entry) => {
+        const uid = coerceUidValue(entry);
+        if (!uid) return;
+        if (!participantMap.has(uid)) participantMap.set(uid, entry || {});
+    });
+
+    const chatRef = adminDb.collection("messages").doc(cid);
+    const chatSnap = await chatRef.get();
+    if (!chatSnap.exists) {
+        throw new HttpsError("not-found", "Chat thread not found.");
+    }
+    const chatData = chatSnap.data() || {};
+    const existingUsers = ensureArray(chatData.users);
+    existingUsers.forEach((entry) => {
+        const uid = coerceUidValue(entry);
+        if (!uid) return;
+        if (!participantMap.has(uid)) participantMap.set(uid, entry || {});
+    });
+    const existingMembers = ensureUidArray(chatData.memberUids || chatData.members || chatData.memberUidList);
+    existingMembers.forEach((uid) => {
+        if (!participantMap.has(uid)) participantMap.set(uid, {});
+    });
+
+    if (!participantMap.size) {
+        throw new HttpsError("invalid-argument", "participants array is required.");
+    }
+    if (!participantMap.has(callerUid) && !existingMembers.includes(callerUid)) {
+        throw new HttpsError("permission-denied", "Caller must be part of this conversation.");
+    }
+    const participantUids = Array.from(participantMap.keys());
+    if (participantUids.length > 50) {
+        throw new HttpsError("invalid-argument", "Too many participants.");
+    }
+    if (existingMembers.length && !existingMembers.includes(callerUid)) {
+        throw new HttpsError("permission-denied", "Caller is not a current member of this chat.");
+    }
+
+    const publicRefs = participantUids.map((uid) => adminDb.collection("usersPublic").doc(uid));
+    const publicSnaps = await adminDb.getAll(...publicRefs);
+    const publicByUid = new Map();
+    publicSnaps.forEach((snap) => {
+        if (snap.exists) {
+            publicByUid.set(snap.id, snap.data() || {});
+        }
+    });
+
+    const participantRecords = participantUids
+        .map((uid) => {
+            const publicData = publicByUid.get(uid) || {};
+            const fallback = participantMap.get(uid) || {};
+            return normalizeUserRefPayload(uid, publicData, fallback);
+        })
+        .filter(Boolean);
+
+    if (!participantRecords.length) {
+        throw new HttpsError("failed-precondition", "Unable to resolve participant profiles.");
+    }
+
+    const finalMemberUids = participantRecords.map((rec) => rec.uid);
+    if (!finalMemberUids.includes(callerUid)) {
+        throw new HttpsError("permission-denied", "Caller must remain in the participant list.");
+    }
+
+    const chatPayload = {
+        users: participantRecords,
+        memberUids: finalMemberUids,
+        userCount: participantRecords.length,
+        isGroup: participantRecords.length > 2,
+    };
+    await chatRef.set(chatPayload, { merge: true });
+
+    await Promise.all(
+        participantRecords.map(async (participant) => {
+            const { uid } = participant;
+            const others = participantRecords
+                .filter((rec) => rec.uid !== uid)
+                .map((rec) => ({
+                    uid: rec.uid,
+                    handle: rec.handle || "",
+                    name: rec.displayName || rec.name || rec.handle || "",
+                    pfp: rec.pfp || "",
+                }));
+            const entry = { mid: cid, otherUsers: others };
+            const privateRef = adminDb.collection("usersPrivate").doc(uid);
+            await adminDb.runTransaction(async (tx) => {
+                const snap = await tx.get(privateRef);
+                if (!snap.exists) {
+                    tx.set(privateRef, { messages: [entry] }, { merge: true });
+                    return;
+                }
+                const data = snap.data() || {};
+                const messages = ensureArray(data.messages).filter((value) => value && typeof value === "object");
+                const idx = messages.findIndex((record) => String(record?.mid || "") === cid);
+                if (idx >= 0) messages[idx] = entry;
+                else messages.push(entry);
+                tx.update(privateRef, { messages });
+            });
+        })
+    );
+
+    return {
+        cid,
+        participantCount: participantRecords.length,
+    };
 });
 
 export const setUserHandle = onCall({ region: "us-central1" }, async (request) => {

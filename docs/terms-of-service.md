@@ -6,7 +6,7 @@ These Terms of Service ("Terms") govern your use of the Spartan iOS application 
 
 Owner/Operator: Yiming Bai (operating Spartan)
 
-Contact: yangbai@thespartan.app
+Contact: support@thespartan.app
 
 Governing Law; Venue: Texas law governs these Terms, without regard to conflicts of laws. You agree to the exclusive jurisdiction and venue of state and federal courts located in Collin County, Texas, for any dispute arising out of or relating to the Service or these Terms.
 
@@ -76,9 +76,9 @@ Spartan and its licensors own the Service and all related intellectual property 
 
 ## 10. DMCA and Reporting
 
-If you believe content infringes your copyright, send a notice to yangbai@thespartan.app including: (a) your contact information; (b) a description of the work and the allegedly infringing content; (c) the location (URL or in‑app path); (d) a statement of good‑faith belief; (e) a statement under penalty of perjury that you are authorized; and (f) your signature. We may remove content and, in appropriate circumstances, terminate repeat infringers.
+If you believe content infringes your copyright, send a notice to support@thespartan.app including: (a) your contact information; (b) a description of the work and the allegedly infringing content; (c) the location (URL or in‑app path); (d) a statement of good‑faith belief; (e) a statement under penalty of perjury that you are authorized; and (f) your signature. We may remove content and, in appropriate circumstances, terminate repeat infringers.
 
-To report harassment, safety, or other violations, contact yangbai@thespartan.app or use in‑app reporting if available.
+To report harassment, safety, or other violations, contact support@thespartan.app or use in‑app reporting if available.
 
 ## 11. Payments
 
@@ -86,7 +86,7 @@ Spartan does not currently process payments or charge subscription fees within t
 
 ## 12. Termination
 
-You may stop using the Service at any time. You may request account deletion by emailing support@thespartan.app or yangbai@thespartan.app. We may suspend or terminate your access at any time with or without notice for any reason, including violations of these Terms or risk to the Service or users.
+You may stop using the Service at any time. You may request account deletion by emailing support@thespartan.app. We may suspend or terminate your access at any time with or without notice for any reason, including violations of these Terms or risk to the Service or users.
 
 ## 13. Disclaimers and Limitation of Liability
 
@@ -122,4 +122,4 @@ Class Action and Jury Trial Waiver (where permitted by law): To the fullest exte
 
 ## 17. Contact
 
-Email: yangbai@thespartan.app
+Email: support@thespartan.app

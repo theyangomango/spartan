@@ -1,20 +1,26 @@
-import arrayErase from "../helper/firebase/arrayErase";
+import { httpsCallable } from "firebase/functions";
+import { functions } from "../../firebase.config";
 
-const normalizeRef = (u) => ({
-    uid: String(u?.uid || u?.id || ''),
-    handle: u?.handle || u?.username || '',
-    name: u?.name || u?.displayName || '',
-    pfp: u?.pfp || u?.image || u?.photoURL || '',
-});
+const respondCallable = httpsCallable(functions, "respondFollowRequestAction");
+
+const coerceUid = (value) => {
+    if (!value && value !== 0) return "";
+    if (typeof value === "string" || typeof value === "number") return String(value).trim();
+    if (typeof value === "object") {
+        return coerceUid(value.uid || value.id || value.userUid || value.profileUid);
+    }
+    return "";
+};
 
 export default async function declineFollowRequest(this_user, requester) {
-    const meRef = normalizeRef(this_user);
-    const otherRef = normalizeRef(requester);
+    const requesterUid = coerceUid(requester);
+    if (!requesterUid) return { status: "error", reason: "missing-uid" };
 
-    if (!meRef.uid || !otherRef.uid) return { status: 'error', reason: 'missing-uid' };
-
-    try { await arrayErase('usersPrivate', meRef.uid, 'followRequestsIn', otherRef); } catch {}
-    try { await arrayErase('usersPrivate', otherRef.uid, 'followRequestsOut', meRef); } catch {}
-
-    return { status: 'declined' };
+    try {
+        const response = await respondCallable({ requesterUid, decision: "decline" });
+        return response?.data || { status: "declined" };
+    } catch (error) {
+        console.log("declineFollowRequest callable error", error?.message || error);
+        throw error;
+    }
 }

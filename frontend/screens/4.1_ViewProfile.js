@@ -86,25 +86,40 @@ export default function ViewProfile({ navigation, route }) {
     }, [user]);
 
     async function getFullUserData() {
-        const [publicData, privateData] = await Promise.all([
-            readDoc('usersPublic', user.uid),
-            readDoc('usersPrivate', user.uid),
-        ]);
-        const merged = {
-            ...(publicData || {}),
-            ...(privateData || {}),
-        };
-        setProfileUserData(merged);
+        if (!user?.uid) return;
         try {
-            const meUid = String(global?.userData?.uid || '');
-            const theirBlockedUids = ensureUidArray((privateData?.blockedUidList || privateData?.blocked));
-            const theyBlockedMe = theirBlockedUids.includes(meUid);
-            const myBlockedBy = ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy);
-            const uid = coerceUid(publicData) || coerceUid(privateData) || coerceUid(user);
-            const inMyBlockedBy = uid ? myBlockedBy.includes(uid) : false;
-            setBlockedFromViewing(Boolean(theyBlockedMe || inMyBlockedBy));
-        } catch {
-            setBlockedFromViewing(false);
+            const targetUid = String(user.uid);
+            const viewerUid = (() => {
+                try { return String(global?.userData?.uid || ""); } catch { return ""; }
+            })();
+            const isViewingSelf = viewerUid && viewerUid === targetUid;
+
+            const publicData = await readDoc("usersPublic", targetUid).catch(() => null);
+            const privateData = isViewingSelf
+                ? await readDoc("usersPrivate", targetUid).catch(() => null)
+                : null;
+
+            const merged = {
+                ...(user || {}),
+                ...(publicData || {}),
+                ...(isViewingSelf && privateData ? privateData : {}),
+            };
+            if (!merged.uid) merged.uid = targetUid;
+            setProfileUserData(merged);
+
+            try {
+                const meUid = viewerUid;
+                const theirBlockedUids = ensureUidArray((privateData?.blockedUidList || privateData?.blocked));
+                const theyBlockedMe = Boolean(privateData && theirBlockedUids.includes(meUid));
+                const myBlockedBy = ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy);
+                const uid = coerceUid(publicData) || coerceUid(privateData) || coerceUid(user);
+                const inMyBlockedBy = uid ? myBlockedBy.includes(uid) : false;
+                setBlockedFromViewing(Boolean(theyBlockedMe || inMyBlockedBy));
+            } catch {
+                setBlockedFromViewing(false);
+            }
+        } catch (err) {
+            console.log("getFullUserData error", err?.message || err);
         }
     }
 
@@ -149,10 +164,6 @@ export default function ViewProfile({ navigation, route }) {
         await arrayAppend('usersPrivate', selfUser.uid, 'messages', {
             mid: cid,
             otherUsers: [otherUser]
-        });
-        await arrayAppend('usersPrivate', otherUid, 'messages', {
-            mid: cid,
-            otherUsers: [selfUser]
         });
 
         const newChat = await createChat(selfUser.uid, [otherUser, selfUser], cid);
