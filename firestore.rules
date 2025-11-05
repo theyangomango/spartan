@@ -130,29 +130,25 @@ service cloud.firestore {
         );
     }
 
-    function listIncludes(listValue, item) {
-      return listValue.size() > 0
-        && (
-          listValue[0] == item
-          || listIncludes(listValue.slice(1, listValue.size()), item)
-        );
-    }
-
-    function listDifferenceSafe(listA, listB) {
-      return listA.size() == 0
-        ? []
-        : (
-          listIncludes(listB, listA[0])
-            ? listDifferenceSafe(listA.slice(1, listA.size()), listB)
-            : listUnion([listA[0]], listDifferenceSafe(listA.slice(1, listA.size()), listB))
-        );
+    function sameMembers(listA, listB) {
+      return listA.size() == listB.size()
+        && listA.hasAll(listB)
+        && listB.hasAll(listA);
     }
 
     function canUpdateTribeMembership() {
       let before = resource != null ? asList(resource.data.members) : [];
       let after = request.resource != null ? asList(request.resource.data.members) : [];
-      let added = listDifferenceSafe(after, before);
-      let removed = listDifferenceSafe(before, after);
+
+      let addedSelf = after.size() == before.size() + 1
+        && after.hasAll(before)
+        && after.hasAny([request.auth.uid])
+        && !before.hasAny([request.auth.uid]);
+      let removedSelf = before.size() == after.size() + 1
+        && before.hasAll(after)
+        && before.hasAny([request.auth.uid])
+        && !after.hasAny([request.auth.uid]);
+      let unchanged = sameMembers(before, after);
 
       return signedIn()
         && resource != null
@@ -160,13 +156,7 @@ service cloud.firestore {
         && request.writeFields.hasOnly(['members', 'updatedAt'])
         && after is list
         && before is list
-        && added.size() <= 1
-        && removed.size() <= 1
-        && (
-          (added.size() == 0 && removed.size() == 0)
-          || (added.size() == 1 && removed.size() == 0 && added[0] == request.auth.uid)
-          || (removed.size() == 1 && added.size() == 0 && removed[0] == request.auth.uid)
-        );
+        && (unchanged || addedSelf || removedSelf);
     }
 
     match /usersPrivate/{uid} {

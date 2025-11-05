@@ -1058,10 +1058,11 @@ useEffect(() => {
             }
 
             const nextMembers = [...existingMembers, uid];
-            tx.update(tribeRef, {
-                members: nextMembers,
-                updatedAt: serverTimestamp(),
-            });
+            tx.set(
+                tribeRef,
+                { members: nextMembers, updatedAt: new Date() },
+                { merge: true }
+            );
             return "joined";
         }).catch((err) => {
             if (err?.message === "tribe:blocked_conflict") {
@@ -1100,10 +1101,11 @@ useEffect(() => {
             const data = tribeSnap.data() || {};
             const existingMembers = ensureUidArray(data.members);
             const nextMembers = existingMembers.filter((memberUid) => memberUid !== uid);
-            tx.update(tribeRef, {
-                members: nextMembers,
-                updatedAt: serverTimestamp(),
-            });
+            tx.set(
+                tribeRef,
+                { members: nextMembers, updatedAt: new Date() },
+                { merge: true }
+            );
         }).catch((err) => {
             console.log("leave tribe failed", err?.message || err);
         });
