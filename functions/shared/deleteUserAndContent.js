@@ -1,9 +1,15 @@
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { getAuth } from "firebase-admin/auth";
+import { ensureHandleAvailable, propagateHandleChange } from "./handlePropagation.js";
+import { buildOldNamesSet, propagateNameChange } from "./namePropagation.js";
 
 const USERS_BATCH_SIZE = 400;
 const DELETE_BATCH_SIZE = 500;
+const DELETED_USER_DISPLAY_NAME = "Deleted User";
+const DELETED_USER_HANDLE_LABEL = "Deleted User";
+const DELETED_USER_HANDLE_BASE = "deleteduser";
+const DELETED_USER_PFP = "https://ui-avatars.com/api/?name=Deleted+User&background=29263A&color=FFFFFF&size=256";
 
 try {
   initializeApp();
@@ -676,10 +682,73 @@ async function purgeMessageContent(cid, uid, batchSize = DELETE_BATCH_SIZE) {
   return deleted;
 }
 
+function buildDeletedChatUser(original, uid) {
+  const stubUid = `deleted:${uid}`;
+  const prevVersion =
+    Number(original?.pfpVersion ?? original?.imageVersion ?? original?.avatarVersion ?? 0) || 0;
+
+  return {
+    uid: stubUid,
+    removedUid: uid,
+    handle: DELETED_USER_HANDLE_LABEL,
+    username: DELETED_USER_HANDLE_LABEL,
+    name: DELETED_USER_HANDLE_LABEL,
+    displayName: DELETED_USER_HANDLE_LABEL,
+    photoURL: DELETED_USER_PFP,
+    photoUrl: DELETED_USER_PFP,
+    image: DELETED_USER_PFP,
+    pfp: DELETED_USER_PFP,
+    avatar: DELETED_USER_PFP,
+    pfpUrl: DELETED_USER_PFP,
+    pfpVersion: prevVersion,
+    imageVersion: prevVersion,
+    deleted: true,
+  };
+}
+
+function sanitizeChatUsers(usersArr, uid) {
+  if (!Array.isArray(usersArr)) {
+    return { value: [], changed: false, placeholders: 0 };
+  }
+
+  let changed = false;
+  let placeholders = 0;
+  let found = false;
+
+  const sanitized = usersArr.map((entry) => {
+    const entryUid = getUidFromEntry(entry);
+    if (entryUid === uid) {
+      found = true;
+      placeholders += 1;
+      changed = true;
+      return buildDeletedChatUser(entry, uid);
+    }
+    if (entryUid === `deleted:${uid}` && entry?.deleted) {
+      found = true;
+      return entry;
+    }
+    if (entryUid === `deleted:${uid}`) {
+      found = true;
+      changed = true;
+      return buildDeletedChatUser(entry, uid);
+    }
+    return entry;
+  });
+
+  if (!found) {
+    sanitized.push(buildDeletedChatUser({}, uid));
+    changed = true;
+    placeholders += 1;
+  }
+
+  return { value: sanitized, changed, placeholders };
+}
+
 async function removeUserFromMessages(uid) {
   let updatedChats = 0;
   let deletedChats = 0;
   let removedMessages = 0;
+  let placeholdersApplied = 0;
 
   while (true) {
     const snapshot = await db
@@ -693,16 +762,22 @@ async function removeUserFromMessages(uid) {
     for (const docSnap of snapshot.docs) {
       const cid = docSnap.id;
       const data = docSnap.data() || {};
-      const memberUids = Array.isArray(data?.memberUids) ? data.memberUids : [];
+      const memberUids = Array.isArray(data?.memberUids) ? data.memberUids.map(toStringSafe) : [];
+      const nextMemberUids = memberUids.filter((m) => m && m !== uid);
       const usersArr = Array.isArray(data?.users) ? data.users : [];
 
-      const nextMemberUids = memberUids.filter((m) => toStringSafe(m) !== uid);
-      const nextUsers = usersArr.filter((entry) => getUidFromEntry(entry) !== uid);
+      const { value: sanitizedUsers, changed: usersChanged, placeholders } = sanitizeChatUsers(
+        usersArr,
+        uid
+      );
+      placeholdersApplied += placeholders;
 
       const memberChanged = nextMemberUids.length !== memberUids.length;
-      const usersChanged = nextUsers.length !== usersArr.length;
 
-      if (nextMemberUids.length <= 1) {
+      const messageRemovals = await purgeMessageContent(cid, uid);
+      removedMessages += messageRemovals;
+
+      if (!nextMemberUids.length) {
         const removed = await deleteCollectionByPath(`messages/${cid}/content`);
         removedMessages += removed;
         await docSnap.ref.delete().catch(() => docSnap.ref.set({ deleted: true }, { merge: true }));
@@ -711,13 +786,11 @@ async function removeUserFromMessages(uid) {
         continue;
       }
 
-      const messageRemovals = await purgeMessageContent(cid, uid);
-      removedMessages += messageRemovals;
-
       if (memberChanged || usersChanged) {
         const payload = {
           ...(memberChanged ? { memberUids: nextMemberUids } : {}),
-          ...(usersChanged ? { users: nextUsers } : {}),
+          ...(usersChanged ? { users: sanitizedUsers } : {}),
+          userCount: nextMemberUids.length,
           updatedAt: FieldValue.serverTimestamp(),
         };
         await docSnap.ref.set(payload, { merge: true });
@@ -728,7 +801,7 @@ async function removeUserFromMessages(uid) {
     await sleep(50);
   }
 
-  return { updatedChats, deletedChats, removedMessages };
+  return { updatedChats, deletedChats, removedMessages, placeholdersApplied };
 }
 
 async function cleanTribes(uid) {
@@ -747,7 +820,8 @@ async function cleanTribes(uid) {
     const members = Array.isArray(data?.members) ? data.members : [];
     const nextMembers = members.filter((memberUid) => toStringSafe(memberUid) !== uid);
 
-    if (!nextMembers.length) {
+    const isOwner = toStringSafe(data?.ownerUid) === uid;
+    if (!nextMembers.length || isOwner) {
       await docSnap.ref.delete();
       deleted += 1;
       continue;
@@ -757,10 +831,6 @@ async function cleanTribes(uid) {
       members: nextMembers,
       updatedAt: FieldValue.serverTimestamp(),
     };
-
-    if (toStringSafe(data?.ownerUid) === uid) {
-      updates.ownerUid = nextMembers[0] || null;
-    }
 
     await docSnap.ref.set(updates, { merge: true });
     updated += 1;
@@ -796,6 +866,122 @@ function resolveHandleFromData(data, fallback) {
   return "";
 }
 
+async function assignDeletedName(uid, userData) {
+  try {
+    const oldNames = buildOldNamesSet({
+      userData: userData || {},
+      explicitOldName: userData?.displayName || userData?.name || "",
+    });
+    await propagateNameChange({
+      uid,
+      oldNames,
+      newName: DELETED_USER_DISPLAY_NAME,
+    });
+    return true;
+  } catch (error) {
+    console.warn(`[warn] Failed to propagate deleted name for ${uid}:`, error?.message || error);
+    return false;
+  }
+}
+
+async function setHandleDocuments(uid, handle) {
+  if (!handle) return;
+  const normalized = normaliseHandle(handle);
+  if (!normalized) return;
+  const now = FieldValue.serverTimestamp();
+  await Promise.all([
+    db.collection("users").doc(uid).set(
+      {
+        handle: normalized,
+        handleLower: normalized.toLowerCase(),
+        updatedAt: now,
+      },
+      { merge: true }
+    ),
+    db.collection("usersPublic").doc(uid).set(
+      {
+        handle: normalized,
+        handleLower: normalized.toLowerCase(),
+        updatedAt: now,
+      },
+      { merge: true }
+    ),
+  ]);
+}
+
+async function assignDeletedHandle(uid, currentHandle) {
+  const existingHandle = normaliseHandle(currentHandle);
+  let candidateHandle = null;
+  let attempt = 0;
+
+  while (attempt < 20) {
+    const suffix = attempt === 0 ? "" : `${attempt}`;
+    const candidate = normaliseHandle(`${DELETED_USER_HANDLE_BASE}${suffix}`);
+    if (!candidate) {
+      attempt += 1;
+      continue;
+    }
+    try {
+      await ensureHandleAvailable(candidate, uid);
+      if (existingHandle) {
+        await propagateHandleChange({ uid, oldHandle: existingHandle, newHandle: candidate });
+      }
+      await setHandleDocuments(uid, candidate);
+      await db.collection("userHandles").doc(candidate.toLowerCase()).set({
+        uid,
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      candidateHandle = candidate;
+      break;
+    } catch (error) {
+      const message = String(error?.message || "");
+      if (
+        message.includes("conflicts") ||
+        message.includes("reserved") ||
+        message.includes("Handle") ||
+        message.includes("non-empty")
+      ) {
+        attempt += 1;
+        continue;
+      }
+      console.warn(`[warn] Failed to assign deleted handle candidate "${candidate}" for ${uid}:`, message || error);
+      throw error;
+    }
+  }
+
+  if (!candidateHandle) {
+    const fallback = normaliseHandle(`${DELETED_USER_HANDLE_BASE}${Date.now().toString(36)}`);
+    try {
+      await ensureHandleAvailable(fallback, uid);
+      if (existingHandle) {
+        await propagateHandleChange({ uid, oldHandle: existingHandle, newHandle: fallback });
+      }
+      await setHandleDocuments(uid, fallback);
+      await db.collection("userHandles").doc(fallback.toLowerCase()).set({
+        uid,
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      candidateHandle = fallback;
+    } catch (error) {
+      console.warn(`[warn] Failed to assign fallback deleted handle for ${uid}:`, error?.message || error);
+      return null;
+    }
+  }
+
+  return candidateHandle;
+}
+
+async function applyDeletedIdentity(uid, { userData, resolvedHandle }) {
+  const nameChanged = await assignDeletedName(uid, userData);
+  let newHandle = null;
+  try {
+    newHandle = await assignDeletedHandle(uid, resolveHandleFromData(userData, resolvedHandle));
+  } catch (error) {
+    console.warn(`[warn] Failed to propagate deleted handle for ${uid}:`, error?.message || error);
+  }
+  return { nameChanged, newHandle };
+}
+
 async function deleteUserCore(uid, { userDocSnap = null, handleHint = "" } = {}) {
   let docSnap = userDocSnap;
   if (!docSnap) {
@@ -804,10 +990,17 @@ async function deleteUserCore(uid, { userDocSnap = null, handleHint = "" } = {})
 
   const userExists = docSnap?.exists;
   const userData = userExists ? docSnap.data() || {} : {};
-  const resolvedHandle = resolveHandleFromData(userData, handleHint);
+  let resolvedHandle = resolveHandleFromData(userData, handleHint);
   const handleLowerCandidates = gatherHandleLowerCandidates(userData, resolvedHandle, handleHint);
 
   console.log(`Found user ${uid} (${resolvedHandle || "unknown handle"}). Beginning purge...`);
+
+  const identityResult = await applyDeletedIdentity(uid, { userData, resolvedHandle });
+  if (identityResult?.newHandle) {
+    const lowered = normaliseHandle(identityResult.newHandle)?.toLowerCase();
+    if (lowered) handleLowerCandidates.push(lowered);
+    resolvedHandle = identityResult.newHandle;
+  }
 
   const removedPosts = await deleteUserPosts(uid);
   const removedWorkouts = await deleteUserWorkouts(uid);
@@ -844,6 +1037,8 @@ async function deleteUserCore(uid, { userDocSnap = null, handleHint = "" } = {})
   }
 
   console.log(`\n✅ Account removal summary for ${resolvedHandle || uid}:`);
+  console.log(`   • Placeholder name applied: ${identityResult?.nameChanged ? "yes" : "no"}`);
+  console.log(`   • Placeholder handle: ${identityResult?.newHandle || "(unchanged)"}`);
   console.log(`   • Posts deleted: ${removedPosts.length}`);
   console.log(`   • Workouts deleted: ${removedWorkouts.length}`);
   console.log(`   • Global post list removals: ${postCleanup.removedFromGlobal}`);
@@ -852,6 +1047,7 @@ async function deleteUserCore(uid, { userDocSnap = null, handleHint = "" } = {})
   console.log(`   • Message chats updated: ${messageCleanup.updatedChats}`);
   console.log(`   • Message chats deleted: ${messageCleanup.deletedChats}`);
   console.log(`   • Individual messages purged: ${messageCleanup.removedMessages}`);
+  console.log(`   • Chat placeholders applied: ${messageCleanup.placeholdersApplied}`);
   console.log(`   • Tribes updated: ${tribeCleanup.updated}`);
   console.log(`   • Tribes deleted: ${tribeCleanup.deleted}`);
   console.log(`   • Other user documents scrubbed: ${touchedUsers}`);
@@ -880,6 +1076,7 @@ async function deleteUserCore(uid, { userDocSnap = null, handleHint = "" } = {})
     chatsUpdated: messageCleanup.updatedChats,
     chatsDeleted: messageCleanup.deletedChats,
     messagesPurged: messageCleanup.removedMessages,
+    chatPlaceholdersApplied: messageCleanup.placeholdersApplied,
     tribesUpdated: tribeCleanup.updated,
     tribesDeleted: tribeCleanup.deleted,
     otherUsersScrubbed: touchedUsers,
@@ -892,6 +1089,8 @@ async function deleteUserCore(uid, { userDocSnap = null, handleHint = "" } = {})
     privateFoodEntriesDeleted: privateArtifacts.foodEntriesDeleted,
     handleRegistryEntriesRemoved: handleDocsDeleted,
     handleCandidatesConsidered: handleLowerCandidates,
+    placeholderNameApplied: Boolean(identityResult?.nameChanged),
+    placeholderHandle: identityResult?.newHandle || null,
     searchIndexDeleted,
     authDeleted,
     userDocDeleted: userExists,

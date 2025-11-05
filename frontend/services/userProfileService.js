@@ -1,11 +1,9 @@
 import { httpsCallable } from 'firebase/functions';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { Image } from 'react-native';
 import { auth, db, functions } from '../../firebase.config';
-import DEFAULT_PFP from '../assets/DEFAULT_PFP.png';
 import { emitUserDataUpdate } from '../utils/userDataEvents';
 
-const DEFAULT_PFP_URI = Image.resolveAssetSource(DEFAULT_PFP)?.uri || '';
+const DEFAULT_PFP_REMOTE_URL = 'https://firebasestorage.googleapis.com/v0/b/spartan-8a55f.appspot.com/o/pfps%2FDEFAULT_PFP.png?alt=media';
 
 const ensureProfileCallable = httpsCallable(functions, 'ensureUserProfile');
 const setHandleCallable = httpsCallable(functions, 'setUserHandle');
@@ -73,14 +71,14 @@ async function ensureUserProfileFallback(options = {}) {
 
   const basePublic = publicSnap.exists() ? publicSnap.data() || {} : {};
   const resolvedName = displayName || basePublic.displayName || basePublic.name || '';
-  const resolvedPhoto = photoURL || basePublic.photoURL || DEFAULT_PFP_URI;
+  const resolvedPhoto = photoURL || basePublic.photoURL || DEFAULT_PFP_REMOTE_URL;
   const nextPublic = {
     ...basePublic,
     uid,
     displayName: resolvedName,
     name: resolvedName,
     photoURL: resolvedPhoto,
-    image: resolvedPhoto || basePublic.image || DEFAULT_PFP_URI,
+    image: resolvedPhoto || basePublic.image || DEFAULT_PFP_REMOTE_URL,
     isPrivate: typeof basePublic.isPrivate === 'boolean' ? basePublic.isPrivate : false,
     followersCount: Number.isFinite(basePublic.followersCount) ? basePublic.followersCount : 0,
     followingCount: Number.isFinite(basePublic.followingCount) ? basePublic.followingCount : 0,
@@ -197,7 +195,7 @@ export async function prepareProfileForAuth(options = {}) {
     || publicData?.image
     || legacyData?.photoURL
     || legacyData?.image
-    || DEFAULT_PFP_URI;
+    || DEFAULT_PFP_REMOTE_URL;
   const email = options.email || user.email || '';
   const phoneNumber = options.phoneNumber || privateData?.phoneNumber || legacyData?.phoneNumber || '';
   const emailVerified = options.emailVerified ?? user.emailVerified ?? false;
@@ -225,7 +223,7 @@ export async function prepareProfileForAuth(options = {}) {
 export async function finalizeUserProfile({ handle, profile } = {}) {
   const payload = {
     displayName: profile?.displayName || '',
-    photoURL: profile?.photoURL || '',
+    photoURL: profile?.photoURL || DEFAULT_PFP_REMOTE_URL,
     email: profile?.email || '',
     phoneNumber: profile?.phoneNumber || '',
     emailVerified: profile?.emailVerified,
@@ -266,10 +264,10 @@ export async function finalizeUserProfile({ handle, profile } = {}) {
 
   if (!ensure.publicProfile) ensure.publicProfile = {};
   if (!ensure.publicProfile.photoURL) {
-    ensure.publicProfile.photoURL = DEFAULT_PFP_URI;
+    ensure.publicProfile.photoURL = DEFAULT_PFP_REMOTE_URL;
   }
   if (!ensure.publicProfile.image) {
-    ensure.publicProfile.image = DEFAULT_PFP_URI;
+    ensure.publicProfile.image = DEFAULT_PFP_REMOTE_URL;
   }
 
   return ensure;

@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { SafeAreaView, View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
 import scaleSize, { ts } from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc as fsUpdateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
-import { auth, db } from '../../firebase.config';
+import { httpsCallable } from 'firebase/functions';
+import { auth, db, functions } from '../../firebase.config';
 import useUserDoc from '../hooks/useUserDoc';
 import theme from '../theme/mfpDark';
 
@@ -47,6 +48,9 @@ export default function Settings({ navigation }) {
     } catch {}
   }, [user?.settings]);
 
+  const deleteCallableRef = useRef(null);
+  const deleteInFlightRef = useRef(false);
+
   const persistSetting = useCallback(async (path, value) => {
     try {
       if (!uid) return;
@@ -74,6 +78,83 @@ export default function Settings({ navigation }) {
     persistSetting('settings.push', next);
   }, [persistSetting]);
 
+  const logoutAndReset = useCallback(() => {
+    Promise.resolve()
+      .then(() => {
+        if (global?.logout) {
+          return global.logout();
+        }
+        return signOut(auth).catch(() => {});
+      })
+      .catch((err) => {
+        console.warn('settings: delete-account logout failed', err?.message || err);
+      });
+    try {
+      navigation.reset({ index: 0, routes: [{ name: 'SignUp' }] });
+    } catch (err) {
+      console.warn('settings: navigation reset failed', err?.message || err);
+    }
+  }, [navigation]);
+
+  const triggerDeletion = useCallback(() => {
+    if (deleteInFlightRef.current) return;
+    deleteInFlightRef.current = true;
+
+    const currentUid = typeof global?.userData?.uid === 'string' ? global.userData.uid : '';
+    if (!currentUid) {
+      Alert.alert(
+        'Account unavailable',
+        'We could not determine your account. Please log in again and retry account deletion.'
+      );
+      deleteInFlightRef.current = false;
+      return;
+    }
+
+    if (!deleteCallableRef.current) {
+      deleteCallableRef.current = httpsCallable(functions, 'deleteOwnAccount');
+    }
+
+    const handleHint = typeof global?.userData?.handle === 'string' ? global.userData.handle : '';
+
+    deleteCallableRef.current({ uid: currentUid, handle: handleHint })
+      .catch((error) => {
+        console.error('settings: delete-account callable failed', error);
+        const errorCode = typeof error?.code === 'string' ? error.code : '';
+        if (errorCode.includes('not-found')) {
+          return null;
+        }
+        Alert.alert(
+          'Account deletion issue',
+          'We were unable to remove your account automatically. Please contact support so we can finish the deletion.',
+          [
+            { text: 'Contact support', onPress: () => Linking.openURL('mailto:support@thespartan.app?subject=Account%20Deletion%20Issue') },
+            { text: 'OK' },
+          ]
+        );
+        return null;
+      })
+      .finally(() => {
+        deleteInFlightRef.current = false;
+      });
+
+    logoutAndReset();
+  }, [logoutAndReset]);
+
+  const confirmDelete = useCallback(() => {
+    Alert.alert(
+      'Delete account',
+      'This will permanently delete your account and all associated data, including posts, workouts, messages, and followers. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: triggerDeletion,
+        },
+      ]
+    );
+  }, [triggerDeletion]);
+
   // sound toggle removed from UI
 
   return (
@@ -92,7 +173,7 @@ export default function Settings({ navigation }) {
           <Text style={styles.linkText}>Private profile</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('DeleteAccount', { transition: 'slide-from-right' })}>
+        <TouchableOpacity style={styles.link} onPress={confirmDelete}>
           <Text style={styles.linkText}>Delete account</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>

@@ -38,11 +38,39 @@ function sanitizeDisplayName(input) {
     return trimmed.slice(0, 60);
 }
 
+const SAFE_PHOTO_DATA_PREFIX = /^data:image\/(png|jpeg|jpg|webp);base64,/i;
+const SAFE_PHOTO_EXTRA_SCHEMES = new Set(["asset:", "file:", "content:"]);
+
 function sanitizePhotoUrl(url) {
     if (typeof url !== "string") return "";
     const trimmed = url.trim();
     if (!trimmed) return "";
-    return /^https?:\/\//i.test(trimmed) ? trimmed : "";
+
+    if (/^https?:\/\//i.test(trimmed)) {
+        return trimmed;
+    }
+
+    const lower = trimmed.toLowerCase();
+
+    if (SAFE_PHOTO_DATA_PREFIX.test(trimmed)) {
+        const base64Part = trimmed.slice(trimmed.indexOf(",") + 1).replace(/\s+/g, "");
+        if (!/^[0-9a-z+/=]+$/i.test(base64Part)) return "";
+        if (base64Part.length > 200000) return ""; // keep data URIs reasonably small (~150 KB)
+        return trimmed;
+    }
+
+    try {
+        const parsed = new URL(trimmed);
+        if (SAFE_PHOTO_EXTRA_SCHEMES.has(parsed.protocol)) {
+            return trimmed;
+        }
+    } catch {
+        if (lower.startsWith("asset:/") || lower.startsWith("asset://")) {
+            return trimmed;
+        }
+    }
+
+    return "";
 }
 
 function coerceBoolean(value, fallback = false) {

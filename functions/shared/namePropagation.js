@@ -1,7 +1,13 @@
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { findUserByHandle } from "./handlePropagation.js";
 
-const db = getFirestore();
+let cachedDb = null;
+function getDb() {
+  if (!cachedDb) {
+    cachedDb = getFirestore();
+  }
+  return cachedDb;
+}
 
 const USERS_BATCH_SIZE = 200;
 const GENERIC_BATCH_SIZE = 200;
@@ -206,13 +212,13 @@ async function processUsers(uid) {
   let lastDoc = null;
 
   while (true) {
-    let query = db.collection(PRIMARY_USER_COLLECTION).orderBy("__name__").limit(USERS_BATCH_SIZE);
+    let query = getDb().collection(PRIMARY_USER_COLLECTION).orderBy("__name__").limit(USERS_BATCH_SIZE);
     if (lastDoc) query = query.startAfter(lastDoc);
 
     const snapshot = await query.get();
     if (snapshot.empty) break;
 
-    const batch = db.batch();
+    const batch = getDb().batch();
     let writes = 0;
 
     for (const docSnap of snapshot.docs) {
@@ -300,13 +306,13 @@ async function processCollection(path, { label = path, limit = GENERIC_BATCH_SIZ
   let lastDoc = null;
 
   while (true) {
-    let query = db.collection(path).orderBy("__name__").limit(limit);
+    let query = getDb().collection(path).orderBy("__name__").limit(limit);
     if (lastDoc) query = query.startAfter(lastDoc);
 
     const snapshot = await query.get();
     if (snapshot.empty) break;
 
-    const batch = db.batch();
+    const batch = getDb().batch();
     let writes = 0;
 
     for (const docSnap of snapshot.docs) {
@@ -342,13 +348,13 @@ async function processCollection(path, { label = path, limit = GENERIC_BATCH_SIZ
 
 async function processGlobalDocs() {
   console.log("[global] scanning...");
-  const snapshot = await db.collection("global").get();
+  const snapshot = await getDb().collection("global").get();
   if (snapshot.empty) {
     console.log("[global] no documents found.");
     return { mutated: 0 };
   }
 
-  const batch = db.batch();
+  const batch = getDb().batch();
   let mutated = 0;
   for (const docSnap of snapshot.docs) {
     const data = docSnap.data();
@@ -377,13 +383,13 @@ async function processMessages() {
   let lastDoc = null;
 
   while (true) {
-    let query = db.collection("messages").orderBy("__name__").limit(GENERIC_BATCH_SIZE);
+    let query = getDb().collection("messages").orderBy("__name__").limit(GENERIC_BATCH_SIZE);
     if (lastDoc) query = query.startAfter(lastDoc);
 
     const snapshot = await query.get();
     if (snapshot.empty) break;
 
-    const batch = db.batch();
+    const batch = getDb().batch();
     let writes = 0;
 
     for (const docSnap of snapshot.docs) {
@@ -451,7 +457,7 @@ export function buildOldNamesSet({ userData, explicitOldName }) {
 
 export async function resolveUserDoc(identifier) {
   if (!identifier) throw new Error("Identifier is required.");
-  const direct = await db.collection(PRIMARY_USER_COLLECTION).doc(identifier).get();
+  const direct = await getDb().collection(PRIMARY_USER_COLLECTION).doc(identifier).get();
   if (direct.exists) return direct;
   try {
     return await findUserByHandle(identifier);
