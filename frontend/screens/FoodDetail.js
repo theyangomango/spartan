@@ -343,9 +343,9 @@ export default function FoodDetail({ navigation, route }) {
                 {/* Number of Servings */}
                 <View style={styles.rowWrap}>
                     <Text style={styles.rowLabel}>Number of Servings</Text>
-                    <View style={styles.inputWrap}>
+                    <View style={[styles.inputWrap, readOnly && styles.inputWrapReadOnly]}>
                         <Pressable
-                            style={[styles.stepBtn, styles.stepLeft]}
+                            style={[styles.stepBtn, styles.stepLeft, readOnly && styles.stepBtnDisabled]}
                             onPress={!readOnly ? () => { try { haptic(); } catch { } adjust(-0.5); } : undefined}
                             disabled={readOnly}
                         >
@@ -369,7 +369,7 @@ export default function FoodDetail({ navigation, route }) {
                             pointerEvents={readOnly ? 'none' : 'auto'}
                         />
                         <Pressable
-                            style={[styles.stepBtn, styles.stepRight]}
+                            style={[styles.stepBtn, styles.stepRight, readOnly && styles.stepBtnDisabled]}
                             onPress={!readOnly ? () => { try { haptic(); } catch { } adjust(+0.5); } : undefined}
                             disabled={readOnly}
                         >
@@ -388,7 +388,7 @@ export default function FoodDetail({ navigation, route }) {
                                 key={opt}
                                 onPress={!readOnly ? () => { try { haptic(); } catch { } setMeal(opt); } : undefined}
                                 disabled={readOnly}
-                                style={[styles.mealChip, meal === opt && styles.mealChipActive]}
+                                style={[styles.mealChip, meal === opt && styles.mealChipActive, readOnly && meal !== opt && styles.mealChipReadOnly]}
                             >
                                 <Text style={[styles.mealChipText, meal === opt && styles.mealChipTextActive]}>{opt}</Text>
                             </Pressable>
@@ -771,6 +771,7 @@ const styles = StyleSheet.create({
         borderWidth: scaleSize(1),
         borderColor: COLORS.hairline,
     },
+    inputWrapReadOnly: { backgroundColor: theme.surface },
     input: {
         width: scaleSize(80),
         color: COLORS.text,
@@ -780,6 +781,7 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(8),
     },
     stepBtn: { width: scaleSize(36), height: scaleSize(36), alignItems: 'center', justifyContent: 'center' },
+    stepBtnDisabled: {},
     stepLeft: { borderRightWidth: 1, borderRightColor: COLORS.hairline },
     stepRight: { borderLeftWidth: 1, borderLeftColor: COLORS.hairline },
     mealChipsRow: { flexDirection: 'row', gap: scaleSize(8) },
@@ -791,6 +793,7 @@ const styles = StyleSheet.create({
         borderColor: COLORS.hairline,
         backgroundColor: theme.field,
     },
+    mealChipReadOnly: { backgroundColor: theme.surface },
     mealChipActive: { backgroundColor: 'rgba(45,158,255,0.16)', borderColor: theme.primaryHairline },
     mealChipText: { color: COLORS.text, fontFamily: 'Outfit_700Bold', fontSize: scaleSize(12) },
     mealChipTextActive: { color: theme.primary },

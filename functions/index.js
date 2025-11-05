@@ -7,6 +7,7 @@ import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/fire
 import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { deleteUserAndContentByUid } from "./shared/deleteUserAndContent.js";
+import { propagateHandleChange } from "./shared/handlePropagation.js";
 
 setGlobalOptions({
     region: "us-central1",
@@ -1235,6 +1236,7 @@ export const setUserHandle = onCall({ region: "us-central1" }, async (request) =
         const handleLower = sanitized.toLowerCase();
         const now = FieldValue.serverTimestamp();
 
+        let previousHandle = null;
         await adminDb.runTransaction(async (tx) => {
             const publicRef = adminDb.collection("usersPublic").doc(uid);
             const publicSnap = await tx.get(publicRef);
@@ -1242,14 +1244,19 @@ export const setUserHandle = onCall({ region: "us-central1" }, async (request) =
                 throw new HttpsError("failed-precondition", "User profile not initialized.");
             }
 
+            const publicData = publicSnap.data() || {};
+            const rawCurrentHandle = typeof publicData.handle === "string" ? publicData.handle.trim() : "";
+            previousHandle = rawCurrentHandle || null;
+            const currentHandleLower = rawCurrentHandle
+                ? rawCurrentHandle.toLowerCase()
+                : (typeof publicData.handleLower === "string" ? publicData.handleLower : null);
+
             const handleRef = adminDb.collection("userHandles").doc(handleLower);
             const handleSnap = await tx.get(handleRef);
             const existingUid = handleSnap.exists ? handleSnap.data()?.uid : null;
             if (existingUid && existingUid !== uid) {
                 throw new HttpsError("already-exists", "Handle is already taken.");
             }
-
-            const currentHandleLower = publicSnap.data()?.handleLower || null;
             const handleDoc = { uid, updatedAt: now };
             if (!handleSnap.exists) {
                 handleDoc.createdAt = now;
@@ -1279,6 +1286,15 @@ export const setUserHandle = onCall({ region: "us-central1" }, async (request) =
             handleLower,
             updatedAt: FieldValue.serverTimestamp(),
         }, { merge: true });
+
+        if (previousHandle && previousHandle.toLowerCase() !== sanitized) {
+            try {
+                await propagateHandleChange({ uid, oldHandle: previousHandle, newHandle: sanitized });
+            } catch (propagationError) {
+                logger.error("propagateHandleChange failure", { uid, error: propagationError });
+                throw new HttpsError("internal", "Failed to update existing content with new handle.");
+            }
+        }
 
         return { handle: sanitized };
     } catch (error) {

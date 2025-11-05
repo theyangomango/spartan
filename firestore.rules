@@ -42,6 +42,25 @@ service cloud.firestore {
       return signedIn() && asList(listValue).hasAny([request.auth.uid]);
     }
 
+    function isWorkoutMember(data) {
+      return signedIn()
+        && data != null
+        && (
+          (data.members != null && asList(data.members).hasAny([request.auth.uid]))
+          || (data.users != null && asList(data.users).hasAny([request.auth.uid]))
+        );
+    }
+
+    function actorMatchesAuth(data) {
+      return signedIn()
+        && data != null
+        && (
+          (data.uid != null && request.auth.uid == data.uid)
+          || (data.fromUid != null && request.auth.uid == data.fromUid)
+          || (data.userUid != null && request.auth.uid == data.userUid)
+        );
+    }
+
     function isChatMember(cid) {
       return signedIn()
         && exists(/databases/$(database)/documents/messages/$(cid))
@@ -168,8 +187,8 @@ service cloud.firestore {
         && (
           ownerMatchesResource()
           || ownerMatchesRequest()
-          || (request.resource.data.members != null
-            && asList(request.resource.data.members).hasAny([request.auth.uid]))
+          || (request.resource != null && isWorkoutMember(request.resource.data))
+          || (resource != null && isWorkoutMember(resource.data))
           || isAdmin()
         );
       allow delete: if ownerMatchesResource() || isAdmin();
@@ -182,8 +201,9 @@ service cloud.firestore {
 
       match /events/{eventId} {
         allow read: if signedIn();
-        allow create, update, delete: if signedIn()
-          && request.resource.data.uid == request.auth.uid;
+        allow create, update, delete: if actorMatchesAuth(request.resource != null ? request.resource.data : null)
+          || (resource != null && actorMatchesAuth(resource.data))
+          || isAdmin();
       }
     }
 
