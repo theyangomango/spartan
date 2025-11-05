@@ -212,13 +212,31 @@ async function refreshUserSearchIndex(uid) {
     await db.collection("userSearchIndex").doc(uid).set(payload, { merge: true });
 }
 
+async function applyNameUpdate(uid, newName) {
+    const db = ensureDb();
+    const now = FieldValue.serverTimestamp();
+    await Promise.all([
+        db.collection("usersPublic").doc(uid).set({
+            displayName: newName,
+            name: newName,
+            updatedAt: now,
+        }, { merge: true }),
+        db.collection("users").doc(uid).set({
+            displayName: newName,
+            name: newName,
+            updatedAt: now,
+        }, { merge: true }),
+    ]);
+}
+
 async function main() {
     try {
         const { identifier, newNameRaw, oldName, dryRun } = parseArgs(process.argv);
-        const newName = normaliseName(newNameRaw);
-        if (!newName) {
+        const normalizedInput = normaliseName(newNameRaw);
+        if (!normalizedInput) {
             throw new Error("New name must be non-empty.");
         }
+        const newName = normalizedInput.slice(0, 60);
 
         const target = await findUserByIdentifier(identifier);
         const { uid, data } = target;
@@ -240,7 +258,9 @@ async function main() {
             return;
         }
 
-        const explicitOld = oldName || "";
+        await applyNameUpdate(uid, newName);
+
+        const explicitOld = oldName || existingName || "";
         await runSwitchUserNameScript(identifier, newName, explicitOld);
 
         await refreshUserSearchIndex(uid);

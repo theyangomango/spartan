@@ -71,6 +71,12 @@ const EditProfileModal = ({ setPFP }) => {
         });
     };
 
+    const onChangeNamePress = () => {
+        navigation.navigate('ChangeName', {
+            initialName: displayName,
+        });
+    };
+
     return (
         <View style={styles.mainContainer}>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -105,7 +111,15 @@ const EditProfileModal = ({ setPFP }) => {
                         placeholderTextColor={THEME.muted}
                         enableAccessory={false}
                     />
-                    <Text style={styles.changeLink}>Change</Text>
+                    <TouchableOpacity
+                        onPress={onChangeNamePress}
+                        style={styles.changeButton}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Change name"
+                    >
+                        <Text style={styles.changeLink}>Change</Text>
+                    </TouchableOpacity>
                 </View>
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Bio</Text>

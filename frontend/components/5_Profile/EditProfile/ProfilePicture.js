@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Image, StyleSheet, TouchableOpacity } from "react-native";
 import { Entypo } from '@expo/vector-icons';
 import THEME from "../../../theme/mfpDark";
@@ -8,7 +8,16 @@ import { pickAndUploadProfilePhoto } from "../../../utils/pickAndUploadProfilePh
 
 
 const ProfilePicture = ({ imageUri, setPFP }) => {
-    const [profileImage, setProfileImage] = useState(imageUri);
+    const [profileImage, setProfileImage] = useState(() => {
+        return typeof imageUri === 'string' && imageUri.trim().length ? imageUri : null;
+    });
+
+    useEffect(() => {
+        if (typeof imageUri !== 'string') return;
+        const trimmed = imageUri.trim();
+        if (!trimmed.length) return;
+        setProfileImage((prev) => (prev === trimmed ? prev : trimmed));
+    }, [imageUri]);
 
     const pickImage = async () => {
         const result = await pickAndUploadProfilePhoto({
@@ -28,7 +37,7 @@ const ProfilePicture = ({ imageUri, setPFP }) => {
     return (
         <TouchableOpacity onPress={withStrongPress(pickImage)}>
             <View style={styles.pfpContainer}>
-                <Image source={{ uri: profileImage }} style={styles.profilePicture} />
+                <Image source={{ uri: profileImage || undefined }} style={styles.profilePicture} />
                 <View style={styles.cameraIconContainer}>
                     <Entypo name="camera" size={16} color="#fff" />
                 </View>

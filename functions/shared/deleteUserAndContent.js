@@ -186,6 +186,145 @@ async function deleteUserWorkouts(uid, batchSize = DELETE_BATCH_SIZE) {
   return removedList;
 }
 
+function gatherHandleLowerCandidates(userData = {}, resolvedHandle = "", handleHint = "") {
+  const candidates = [
+    userData?.handle,
+    userData?.handleLower,
+    userData?.handle_lower,
+    userData?.username,
+    userData?.usernameLower,
+    userData?.username_lower,
+    userData?.tag,
+    userData?.tagLower,
+    userData?.tag_lower,
+    resolvedHandle,
+    handleHint,
+  ];
+
+  const set = new Set();
+  candidates.forEach((value) => {
+    const normalized = normaliseHandle(value);
+    if (normalized) {
+      set.add(normalized.toLowerCase());
+    }
+  });
+  return Array.from(set);
+}
+
+async function deleteHandleRegistryEntries(uid, handleLowers = []) {
+  if (!Array.isArray(handleLowers) || !handleLowers.length) return 0;
+  let removed = 0;
+  for (const handleLower of handleLowers) {
+    if (!handleLower) continue;
+    const safeLower = normaliseHandle(handleLower).toLowerCase();
+    if (!safeLower) continue;
+    const handleRef = db.collection("userHandles").doc(safeLower);
+    try {
+      const snap = await handleRef.get();
+      if (!snap.exists) continue;
+      const docUid = String(snap.data()?.uid || "").trim();
+      if (docUid && docUid !== uid) continue;
+      await handleRef.delete();
+      removed += 1;
+    } catch (error) {
+      console.warn(`[warn] Failed to delete userHandles/${safeLower}:`, error?.message || error);
+    }
+  }
+  return removed;
+}
+
+async function deleteUserSearchIndexDoc(uid) {
+  const ref = db.collection("userSearchIndex").doc(uid);
+  try {
+    const snap = await ref.get();
+    if (!snap.exists) return false;
+    await ref.delete();
+    return true;
+  } catch (error) {
+    console.warn(`[warn] Failed to delete userSearchIndex/${uid}:`, error?.message || error);
+    return false;
+  }
+}
+
+async function deleteUserPublicDoc(uid) {
+  const ref = db.collection("usersPublic").doc(uid);
+  try {
+    const snap = await ref.get();
+    if (!snap.exists) return false;
+    await ref.delete();
+    return true;
+  } catch (error) {
+    console.warn(`[warn] Failed to delete usersPublic/${uid}:`, error?.message || error);
+    return false;
+  }
+}
+
+async function deleteUsersPrivateArtifacts(uid, batchSize = DELETE_BATCH_SIZE) {
+  const basePath = `usersPrivate/${uid}`;
+  const result = {
+    notificationsDeleted: 0,
+    recentFoodsDeleted: 0,
+    foodLogDaysDeleted: 0,
+    foodEntriesDeleted: 0,
+    docDeleted: false,
+  };
+
+  try {
+    result.notificationsDeleted = await deleteCollectionByPath(`${basePath}/notifications`, batchSize);
+  } catch (error) {
+    console.warn(`[warn] Failed to delete notifications for ${basePath}:`, error?.message || error);
+  }
+
+  try {
+    result.recentFoodsDeleted = await deleteCollectionByPath(`${basePath}/recentFoods`, batchSize);
+  } catch (error) {
+    console.warn(`[warn] Failed to delete recent foods for ${basePath}:`, error?.message || error);
+  }
+
+  try {
+    const logsRef = db.collection(`${basePath}/foodLogs`);
+    while (true) {
+      const snapshot = await logsRef.orderBy("__name__").limit(batchSize).get();
+      if (snapshot.empty) break;
+
+      for (const docSnap of snapshot.docs) {
+        const entriesPath = `${basePath}/foodLogs/${docSnap.id}/entries`;
+        try {
+          const removedEntries = await deleteCollectionByPath(entriesPath, batchSize);
+          result.foodEntriesDeleted += removedEntries;
+        } catch (error) {
+          console.warn(
+            `[warn] Failed to delete food log entries at ${entriesPath}:`,
+            error?.message || error
+          );
+        }
+      }
+
+      const batch = db.batch();
+      snapshot.docs.forEach((docSnap) => batch.delete(docSnap.ref));
+      await batch.commit();
+
+      result.foodLogDaysDeleted += snapshot.size;
+      await sleep(50);
+    }
+  } catch (error) {
+    console.warn(`[warn] Failed to delete foodLogs for ${basePath}:`, error?.message || error);
+  }
+
+  try {
+    const privateRef = db.collection("usersPrivate").doc(uid);
+    const snap = await privateRef.get();
+    if (snap.exists) {
+      await privateRef.delete();
+      result.docDeleted = true;
+    }
+  } catch (error) {
+    console.warn(`[warn] Failed to delete usersPrivate/${uid}:`, error?.message || error);
+  }
+
+  return result;
+}
+
 async function cleanGlobalPosts(pidList, uid) {
   if (!pidList.length && !uid) return { removedFromGlobal: 0, removedFromOwnerMap: 0 };
 
@@ -355,17 +494,25 @@ function filterUidMap(map, targetUid) {
   return { changed: true, value: next };
 }
 
-async function scrubUserReferences(uid, removedPostIds) {
-  const pidSet = new Set((removedPostIds || []).map(toStringSafe));
-  let processed = 0;
+async function scrubUserCollection(collectionName, uid, pidSet) {
   let lastDoc = null;
   let updatedDocs = 0;
 
   while (true) {
-    let query = db.collection("users").orderBy("__name__").limit(USERS_BATCH_SIZE);
+    let query = db.collection(collectionName).orderBy("__name__").limit(USERS_BATCH_SIZE);
     if (lastDoc) query = query.startAfter(lastDoc);
 
-    const snapshot = await query.get();
+    let snapshot;
+    try {
+      snapshot = await query.get();
+    } catch (error) {
+      console.warn(
+        `[warn] Failed to scan ${collectionName} while scrubbing references:`,
+        error?.message || error
+      );
+      break;
+    }
+
     if (snapshot.empty) break;
 
     const batch = db.batch();
@@ -472,20 +619,38 @@ async function scrubUserReferences(uid, removedPostIds) {
       if (touched) {
         batch.set(docSnap.ref, updates, { merge: true });
         writes += 1;
-        updatedDocs += 1;
       }
     });
 
     if (writes) {
-      await batch.commit();
+      try {
+        await batch.commit();
+        updatedDocs += writes;
+      } catch (error) {
+        console.warn(
+          `[warn] Failed to commit updates to ${collectionName}:`,
+          error?.message || error
+        );
+      }
       await sleep(50);
     }
 
-    processed += snapshot.size;
     lastDoc = snapshot.docs[snapshot.docs.length - 1];
   }
 
   return updatedDocs;
+}
+
+async function scrubUserReferences(uid, removedPostIds) {
+  const pidSet = new Set((removedPostIds || []).map(toStringSafe));
+  const collections = ["users", "usersPublic", "usersPrivate"];
+  let totalUpdated = 0;
+
+  for (const collectionName of collections) {
+    totalUpdated += await scrubUserCollection(collectionName, uid, pidSet);
+  }
+
+  return totalUpdated;
 }
 
 async function purgeMessageContent(cid, uid, batchSize = DELETE_BATCH_SIZE) {
@@ -640,6 +805,7 @@ async function deleteUserCore(uid, { userDocSnap = null, handleHint = "" } = {})
   const userExists = docSnap?.exists;
   const userData = userExists ? docSnap.data() || {} : {};
   const resolvedHandle = resolveHandleFromData(userData, handleHint);
+  const handleLowerCandidates = gatherHandleLowerCandidates(userData, resolvedHandle, handleHint);
 
   console.log(`Found user ${uid} (${resolvedHandle || "unknown handle"}). Beginning purge...`);
 
@@ -652,6 +818,22 @@ async function deleteUserCore(uid, { userDocSnap = null, handleHint = "" } = {})
   const tribeCleanup = await cleanTribes(uid);
   const touchedUsers = await scrubUserReferences(uid, removedPosts);
   const removedFromGlobalUsers = await removeFromGlobalUsers(uid);
+  const searchIndexDeleted = await deleteUserSearchIndexDoc(uid);
+  const handleDocsDeleted = await deleteHandleRegistryEntries(uid, handleLowerCandidates);
+  const publicProfileDeleted = await deleteUserPublicDoc(uid);
+  const privateArtifacts = await deleteUsersPrivateArtifacts(uid).catch((error) => {
+    console.warn(
+      `[warn] Failed to delete usersPrivate artifacts for ${uid}:`,
+      error?.message || error
+    );
+    return {
+      notificationsDeleted: 0,
+      recentFoodsDeleted: 0,
+      foodLogDaysDeleted: 0,
+      foodEntriesDeleted: 0,
+      docDeleted: false,
+    };
+  });
 
   const authDeleted = await deleteAuthUser(uid);
 
@@ -674,6 +856,14 @@ async function deleteUserCore(uid, { userDocSnap = null, handleHint = "" } = {})
   console.log(`   • Tribes deleted: ${tribeCleanup.deleted}`);
   console.log(`   • Other user documents scrubbed: ${touchedUsers}`);
   console.log(`   • Removed from global users registry: ${removedFromGlobalUsers ? "yes" : "no"}`);
+  console.log(`   • Public profile deleted: ${publicProfileDeleted ? "yes" : "no"}`);
+  console.log(`   • Private profile deleted: ${privateArtifacts.docDeleted ? "yes" : "no"}`);
+  console.log(`   • Private notifications deleted: ${privateArtifacts.notificationsDeleted}`);
+  console.log(`   • Private recent foods deleted: ${privateArtifacts.recentFoodsDeleted}`);
+  console.log(`   • Private food log days deleted: ${privateArtifacts.foodLogDaysDeleted}`);
+  console.log(`   • Private food entries deleted: ${privateArtifacts.foodEntriesDeleted}`);
+  console.log(`   • Handle registry entries removed: ${handleDocsDeleted}`);
+  console.log(`   • Search index deleted: ${searchIndexDeleted ? "yes" : "no"}`);
   console.log(`   • Auth account deleted: ${authDeleted ? "yes" : "not found/failed"}`);
 
   const completionLabel = resolvedHandle || normaliseHandle(handleHint) || uid;
@@ -694,6 +884,15 @@ async function deleteUserCore(uid, { userDocSnap = null, handleHint = "" } = {})
     tribesDeleted: tribeCleanup.deleted,
     otherUsersScrubbed: touchedUsers,
     removedFromGlobalUsers,
+    publicProfileDeleted,
+    privateProfileDeleted: Boolean(privateArtifacts.docDeleted),
+    privateNotificationsDeleted: privateArtifacts.notificationsDeleted,
+    privateRecentFoodsDeleted: privateArtifacts.recentFoodsDeleted,
+    privateFoodLogDaysDeleted: privateArtifacts.foodLogDaysDeleted,
+    privateFoodEntriesDeleted: privateArtifacts.foodEntriesDeleted,
+    handleRegistryEntriesRemoved: handleDocsDeleted,
+    handleCandidatesConsidered: handleLowerCandidates,
+    searchIndexDeleted,
     authDeleted,
     userDocDeleted: userExists,
   };

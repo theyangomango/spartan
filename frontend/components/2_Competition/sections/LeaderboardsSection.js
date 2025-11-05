@@ -27,7 +27,6 @@ import {
     arrayUnion,
     arrayRemove,
     getDocs,
-    getDoc,
 } from "firebase/firestore";
 
 import useStableSafeAreaInsets from "../../../hooks/useStableSafeAreaInsets";
@@ -155,16 +154,6 @@ function membershipListsMatch(previousEntries, currentIds) {
     return true;
 }
 
-function attachGlobalRanks(list, entries, snapshotValid) {
-    if (!Array.isArray(list)) return [];
-    if (!snapshotValid) return list.map((user) => ({ ...user, lastRank: null }));
-    const rankMap = buildRankMap(entries);
-    return list.map((user) => {
-        const uid = coerceUid(user);
-        return { ...user, lastRank: rankMap.get(uid) ?? null };
-    });
-}
-
 function attachScopedRanks(list, entries, currentIds, snapshotValid) {
     if (!Array.isArray(list)) return [];
     if (!snapshotValid) return list.map((user) => ({ ...user, lastRank: null }));
@@ -263,14 +252,14 @@ export default function LeaderboardsSection({ navigation }) {
 
     const [userList, setUserList] = useState(persisted.userList ?? LAST_USERLIST);
     const [comparedExercise, setComparedExercise] = useState("Overall");
-    const fallbackScope = LAST_SCOPE === "Global" ? "Following" : LAST_SCOPE;
-    const sanitizedInitialScope =
-        persisted.scope === "Global" ? "Following" : persisted.scope;
-    // const [scope, setScope] = useState(persisted.scope ?? LAST_SCOPE);
+    const fallbackScope = LAST_SCOPE === "Tribe" ? "Tribe" : "Following";
+    const sanitizedInitialScope = persisted.scope === "Tribe" ? "Tribe" : "Following";
     const [scope, setScope] = useState(sanitizedInitialScope ?? fallbackScope);
 
     useEffect(() => {
-        if (persisted?.scope === "All Followers" || persisted?.scope === "Global") {
+        if (persisted?.scope === "Tribe") {
+            setScope("Tribe");
+        } else {
             setScope("Following");
         }
     }, [persisted?.scope]);
@@ -283,7 +272,6 @@ export default function LeaderboardsSection({ navigation }) {
     const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
 
     const [snapshotMeta, setSnapshotMeta] = useState(null);
-    const [globalSnapshot, setGlobalSnapshot] = useState(null);
 
     useEffect(() => {
         const ref = doc(db, "leaderboardMeta", "currentSnapshot");
@@ -302,27 +290,6 @@ export default function LeaderboardsSection({ navigation }) {
         );
         return unsubscribe;
     }, []);
-
-    useEffect(() => {
-        const snapshotId = snapshotMeta?.snapshotId;
-        if (!snapshotId) {
-            setGlobalSnapshot(null);
-            return;
-        }
-        const ref = doc(db, "leaderboardSnapshots", snapshotId);
-        getDoc(ref)
-            .then((snap) => {
-                try {
-                    setGlobalSnapshot(snap.exists() ? snap.data() || null : null);
-                } catch {
-                    setGlobalSnapshot(null);
-                }
-            })
-            .catch((err) => {
-                console.warn("failed to load global leaderboard snapshot", err?.message || err);
-                setGlobalSnapshot(null);
-            });
-    }, [snapshotMeta?.snapshotId]);
 
     const [comparedMetric, setComparedMetric] = useState("1RM");
     const exerciseStatKey = comparedMetric === "1RM" ? "1RM" : comparedMetric;
@@ -569,12 +536,7 @@ export default function LeaderboardsSection({ navigation }) {
                 }
                 return;
             }
-            if (type === "following" || type === "followers") {
-                setScope("Following");
-            } else {
-                // setScope("Global");
-                setScope("Following");
-            }
+            setScope("Following");
             if (lastView.exercise) setComparedExercise(String(lastView.exercise));
             if (lastView.metric) setComparedMetric(String(lastView.metric));
             if (lastView.bodyFocus && BODY_FOCUS_LABEL_MAP[lastView.bodyFocus]) {
@@ -678,7 +640,6 @@ export default function LeaderboardsSection({ navigation }) {
         const all = usersRef.current || [];
         const hexFocusKey = typeof bodyFocus === "string" && bodyFocus ? bodyFocus : null;
         const snapshotId = snapshotMeta?.snapshotId || null;
-        const globalSnapshotId = globalSnapshot?.snapshotId || null;
 
         const viewerUid = getViewerUid();
 
@@ -759,65 +720,32 @@ export default function LeaderboardsSection({ navigation }) {
 
         const usingHexFocus = !!hexFocusKey;
 
-        if (scope === "Following") {
-            const base = all.filter((usr) => followingSet.has(String(usr?.uid || "")));
-            const visible = filterBlockedVisibility(base);
-            if (usingHexFocus) {
-                const arr = Array.isArray(visible)
-                    ? visible.map((user) => {
-                          const { value } = getLeaderboardValue(user, {
-                              mode: "hex",
-                              key: hexFocusKey,
-                          });
-                          return {
-                              ...user,
-                              __hexValue: Number.isFinite(value) ? value : 0,
-                          };
-                      })
-                    : [];
-                arr.sort(
-                    (a, b) => (Number(b.__hexValue ?? 0) || 0) - (Number(a.__hexValue ?? 0) || 0)
-                );
-                const previous = followingHexSnapshots?.[hexFocusKey];
-                const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
-                setUserList(attachScopedRanks(arr, previous?.entries, followingIdsArray, snapshotValid));
-            } else {
-                const ranked = rankUsers(visible, comparedExercise, comparedMetric);
-                const previous = followingExerciseSnapshots?.[comparedExercise];
-                const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
-                setUserList(attachScopedRanks(ranked, previous?.entries, followingIdsArray, snapshotValid));
-            }
+        const base = all.filter((usr) => followingSet.has(String(usr?.uid || "")));
+        const visible = filterBlockedVisibility(base);
+        if (usingHexFocus) {
+            const arr = Array.isArray(visible)
+                ? visible.map((user) => {
+                      const { value } = getLeaderboardValue(user, {
+                          mode: "hex",
+                          key: hexFocusKey,
+                      });
+                      return {
+                          ...user,
+                          __hexValue: Number.isFinite(value) ? value : 0,
+                      };
+                  })
+                : [];
+            arr.sort(
+                (a, b) => (Number(b.__hexValue ?? 0) || 0) - (Number(a.__hexValue ?? 0) || 0)
+            );
+            const previous = followingHexSnapshots?.[hexFocusKey];
+            const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
+            setUserList(attachScopedRanks(arr, previous?.entries, followingIdsArray, snapshotValid));
         } else {
-            const visible = filterBlockedVisibility(all);
-            if (usingHexFocus) {
-                const arr = Array.isArray(visible)
-                    ? visible.map((user) => {
-                          const { value } = getLeaderboardValue(user, {
-                              mode: "hex",
-                              key: hexFocusKey,
-                          });
-                          return {
-                              ...user,
-                              __hexValue: Number.isFinite(value) ? value : 0,
-                          };
-                      })
-                    : [];
-                arr.sort(
-                    (a, b) => (Number(b.__hexValue ?? 0) || 0) - (Number(a.__hexValue ?? 0) || 0)
-                );
-                const entries = Array.isArray(globalSnapshot?.hex?.[hexFocusKey])
-                    ? globalSnapshot.hex[hexFocusKey]
-                    : [];
-                const snapshotValid = Boolean(snapshotId && globalSnapshotId === snapshotId);
-                setUserList(attachGlobalRanks(arr, entries, snapshotValid));
-            } else {
-                const ranked = rankUsers(visible, comparedExercise, comparedMetric);
-                const entries = Array.isArray(globalSnapshot?.exercises?.[comparedExercise])
-                    ? globalSnapshot.exercises[comparedExercise]
-                    : [];
-                const snapshotValid = Boolean(snapshotId && globalSnapshotId === snapshotId);
-                setUserList(attachGlobalRanks(ranked, entries, snapshotValid));
-            }
+            const ranked = rankUsers(visible, comparedExercise, comparedMetric);
+            const previous = followingExerciseSnapshots?.[comparedExercise];
+            const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
+            setUserList(attachScopedRanks(ranked, previous?.entries, followingIdsArray, snapshotValid));
         }
     }, [
         bodyFocus,
@@ -827,10 +755,8 @@ export default function LeaderboardsSection({ navigation }) {
         activeComparison,
         comparedExercise,
         comparedMetric,
-        scope,
         selectedTribeId,
         snapshotMeta?.snapshotId,
-        globalSnapshot,
         global?.userData?.following,
         global?.userData?.lastRanks,
     ]);
@@ -1118,7 +1044,7 @@ export default function LeaderboardsSection({ navigation }) {
             };
         } else {
             payload = {
-                type: scope === "Following" ? "following" : "global",
+                type: "following",
                 exercise: comparedExercise,
                 metric: comparedMetric || "1RM",
                 bodyFocus,
@@ -1133,7 +1059,7 @@ export default function LeaderboardsSection({ navigation }) {
         } catch {
             //
         }
-    }, [selectedTribeId, activeComparison, scope, comparedExercise, comparedMetric, bodyFocus]);
+    }, [selectedTribeId, activeComparison, comparedExercise, comparedMetric, bodyFocus]);
 
     const bodyFocusLabel = useMemo(
         () => BODY_FOCUS_LABEL_MAP[bodyFocus] || BODY_FOCUS_LABEL_MAP[DEFAULT_BODY_FOCUS],
@@ -1142,19 +1068,16 @@ export default function LeaderboardsSection({ navigation }) {
 
     const scopeLabel = useMemo(() => {
         if (selectedTribeId) return "Tribe";
-        // return scope === "Following" ? "Following" : "Global";
         return "Following";
-    }, [selectedTribeId /* , scope */]);
+    }, [selectedTribeId]);
 
     const scopeSubtitle = useMemo(() => {
         if (selectedTribeId) {
             const name = currentTribe?.name;
             return name ? String(name) : null;
         }
-        if (scope === "Following") return "People you follow";
-        // if (scope === "Global") return "All athletes";
-        return null;
-    }, [selectedTribeId, currentTribe, scope]);
+        return "People you follow";
+    }, [selectedTribeId, currentTribe]);
 
     const hexFocusKey = useMemo(
         () => (typeof bodyFocus === "string" && bodyFocus ? bodyFocus : DEFAULT_BODY_FOCUS),
@@ -1502,11 +1425,6 @@ export default function LeaderboardsSection({ navigation }) {
                 selectedTribeId={selectedTribeId}
                 scope={scope}
                 onClose={() => setTribeMenuVisible(false)}
-                /* onSelectGlobal={() => {
-                    setSelectedTribeId(null);
-                    setScope("Global");
-                    setTribeMenuVisible(false);
-                }} */
                 onSelectFollowing={() => {
                     setSelectedTribeId(null);
                     setScope("Following");

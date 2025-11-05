@@ -8,6 +8,7 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { deleteUserAndContentByUid } from "./shared/deleteUserAndContent.js";
 import { propagateHandleChange } from "./shared/handlePropagation.js";
+import { propagateNameChange, buildOldNamesSet, normaliseName as normalizeDisplayName } from "./shared/namePropagation.js";
 
 setGlobalOptions({
     region: "us-central1",
@@ -31,9 +32,9 @@ const fatsecretSearchCache = new Map(); // normalizedQuery|max|page -> { value, 
 const HANDLE_REGEX = /^[a-z0-9_.]{6,20}$/;
 
 function sanitizeDisplayName(input) {
-    if (typeof input !== "string") return "Spartan Athlete";
+    if (typeof input !== "string") return "New User";
     const trimmed = input.trim();
-    if (!trimmed) return "Spartan Athlete";
+    if (!trimmed) return "New User";
     return trimmed.slice(0, 60);
 }
 
@@ -1301,6 +1302,93 @@ export const setUserHandle = onCall({ region: "us-central1" }, async (request) =
         if (error instanceof HttpsError) throw error;
         logger.error("setUserHandle failure", error);
         throw new HttpsError("internal", "Failed to set handle.");
+    }
+});
+
+export const setUserDisplayName = onCall({ region: "us-central1" }, async (request) => {
+    try {
+        if (!request.auth?.uid) {
+            throw new HttpsError("unauthenticated", "Authentication required.");
+        }
+        const uid = request.auth.uid;
+        const rawName = request.data?.name;
+        if (typeof rawName !== "string") {
+            throw new HttpsError("invalid-argument", "Name is required.");
+        }
+        const sanitized = normalizeDisplayName(rawName);
+        if (!sanitized) {
+            throw new HttpsError("invalid-argument", "Name must be non-empty.");
+        }
+        const limited = sanitized.slice(0, 60);
+        const now = FieldValue.serverTimestamp();
+
+        let previousName = null;
+        let previousLower = null;
+        let oldNames = [];
+        let isPrivateFlag = false;
+        let currentHandle = "";
+
+        await adminDb.runTransaction(async (tx) => {
+            const publicRef = adminDb.collection("usersPublic").doc(uid);
+            const publicSnap = await tx.get(publicRef);
+            if (!publicSnap.exists) {
+                throw new HttpsError("failed-precondition", "User profile not initialized.");
+            }
+
+            const publicData = publicSnap.data() || {};
+            previousName = normalizeDisplayName(
+                publicData.displayName || publicData.name || publicData.fullName || publicData.full_name || ""
+            );
+            previousLower = previousName ? previousName.toLowerCase() : null;
+            isPrivateFlag = Boolean(publicData.isPrivate);
+            currentHandle = typeof publicData.handle === "string" ? publicData.handle : "";
+
+            oldNames = buildOldNamesSet({
+                userData: publicData,
+                explicitOldName: normalizeDisplayName(request.data?.oldName || ""),
+            });
+
+            if (!oldNames.length && previousName) {
+                oldNames = [{ original: previousName, lower: previousName.toLowerCase() }];
+            }
+
+            tx.update(publicRef, {
+                displayName: limited,
+                name: limited,
+                updatedAt: now,
+            });
+
+            tx.set(adminDb.collection("users").doc(uid), {
+                displayName: limited,
+                name: limited,
+                updatedAt: now,
+            }, { merge: true });
+        });
+
+        if (previousLower && previousLower === limited.toLowerCase()) {
+            return { name: limited };
+        }
+
+        const publicSnap = await adminDb.collection("usersPublic").doc(uid).get();
+        const publicData = publicSnap.data() || {};
+        await upsertSearchIndex(uid, {
+            displayName: limited,
+            handle: publicData.handle || currentHandle || "",
+            isPrivate: coerceBoolean(publicData.isPrivate, isPrivateFlag),
+        });
+
+        try {
+            await propagateNameChange({ uid, oldNames, newName: limited });
+        } catch (propagationError) {
+            logger.error("propagateNameChange failure", { uid, error: propagationError });
+            throw new HttpsError("internal", "Failed to update existing content with new name.");
+        }
+
+        return { name: limited };
+    } catch (error) {
+        if (error instanceof HttpsError) throw error;
+        logger.error("setUserDisplayName failure", error);
+        throw new HttpsError("internal", "Failed to update name.");
     }
 });
 

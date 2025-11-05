@@ -9,6 +9,7 @@ const DEFAULT_PFP_URI = Image.resolveAssetSource(DEFAULT_PFP)?.uri || '';
 
 const ensureProfileCallable = httpsCallable(functions, 'ensureUserProfile');
 const setHandleCallable = httpsCallable(functions, 'setUserHandle');
+const setDisplayNameCallable = httpsCallable(functions, 'setUserDisplayName');
 
 const FUNCTION_NOT_FOUND = 'functions/not-found';
 const HANDLE_REGEX = /^[a-z0-9_.]{6,20}$/;
@@ -26,7 +27,7 @@ function coerceDisplayName(...values) {
       return value.trim();
     }
   }
-  return 'Spartan Athlete';
+  return 'New User';
 }
 
 function collectProviders(base = [], extra = []) {
@@ -302,4 +303,67 @@ export async function updateUserHandle(handle) {
   }
   emitUserDataUpdate();
   return { handle: sanitized };
+}
+
+async function setDisplayNameFallback(name) {
+  const user = auth.currentUser;
+  if (!user?.uid) {
+    throw new Error('Missing authenticated user for name update.');
+  }
+  const uid = user.uid;
+  const normalized = typeof name === 'string' ? name.trim() : '';
+  if (!normalized) {
+    throw new Error('Name is required.');
+  }
+  const now = new Date();
+  const publicRef = doc(db, 'usersPublic', uid);
+  const usersRef = doc(db, 'users', uid);
+  await Promise.all([
+    setDoc(publicRef, {
+      displayName: normalized,
+      name: normalized,
+      updatedAt: now,
+    }, { merge: true }),
+    setDoc(usersRef, {
+      displayName: normalized,
+      name: normalized,
+      updatedAt: now,
+    }, { merge: true }),
+  ]);
+  try {
+    if (global?.userData && typeof global.userData === 'object') {
+      global.userData.displayName = normalized;
+      global.userData.name = normalized;
+    }
+  } catch {
+    // ignore
+  }
+  emitUserDataUpdate();
+  return { name: normalized };
+}
+
+export async function updateUserName(name) {
+  const trimmed = typeof name === 'string' ? name.trim() : '';
+  if (!trimmed) {
+    throw new Error('Name is required.');
+  }
+  const limited = trimmed.slice(0, 60);
+  try {
+    await setDisplayNameCallable({ name: limited });
+  } catch (error) {
+    if (isFunctionsNotFound(error)) {
+      return setDisplayNameFallback(limited);
+    }
+    throw error;
+  }
+  try {
+    if (global?.userData && typeof global.userData === 'object') {
+      global.userData.displayName = limited;
+      global.userData.name = limited;
+    }
+  } catch {
+    // ignore
+  }
+  emitUserDataUpdate();
+  return { name: limited };
 }

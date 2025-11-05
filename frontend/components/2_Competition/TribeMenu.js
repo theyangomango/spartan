@@ -33,11 +33,10 @@ const TribeMenu = ({
     visible,
     tribes = [],
     selectedTribeId,
-    scope,                // "Global", "Following", and tribe scopes
+    scope,                // "Following" and tribe scopes
     anchor,
     onClose,
-    // onSelectGlobal,
-    onSelectFollowing,    // NEW (renamed from onSelectFollowers)
+    onSelectFollowing,
     onSelectTribe,
     onCreatePress,
     onJoinPress,
@@ -76,17 +75,6 @@ const TribeMenu = ({
                 {/* CARD */}
                 <View style={[styles.menuCard, positioning]}>
                     <Text style={styles.menuTitle}>Tribes</Text>
-
-                    {/* Global tribe temporarily disabled */}
-                    {/*
-                    <RNBounceable style={styles.menuItem} onPress={withStrongPress(onSelectGlobal)}>
-                        <Ionicons name="earth-outline" size={ICON_ITEM} color="#EAEAEA" />
-                        <Text style={styles.menuItemText}>Global</Text>
-                        {!selectedTribeId && scope === "Global" && (
-                            <Ionicons name="checkmark" size={ICON_CHECK} color="#2D9EFF" style={{ marginLeft: "auto" }} />
-                        )}
-                    </RNBounceable>
-                    */}
 
                     {/* Following */}
                     <RNBounceable style={styles.menuItem} onPress={withStrongPress(onSelectFollowing)}>

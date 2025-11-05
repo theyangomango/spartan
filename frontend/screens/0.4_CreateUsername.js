@@ -18,11 +18,14 @@ import scaleSize from '../helper/scaleSize';
 import useAuthBackgroundSource from '../hooks/useAuthBackgroundSource';
 import { sanitizeHandle, USERNAME_REGEX, claimHandle } from '../utils/usernameRegistration';
 import { refreshAuthStatus } from '../state/authStatusController';
+import { completePendingSocialSignup } from '../auth/completeSocialSignup';
 
 const CreateUsername = ({ navigation, route }) => {
   const nextRoute = route?.params?.nextRoute || 'Tabs';
   const initialHandle = sanitizeHandle(route?.params?.initialHandle) || '';
   const pendingProfile = route?.params?.pendingProfile || null;
+  const pendingSocialAuth = route?.params?.pendingSocialAuth || null;
+  const resolvedProfile = pendingProfile || pendingSocialAuth?.profile || null;
   const [handle, setHandle] = useState(initialHandle);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -62,7 +65,15 @@ const CreateUsername = ({ navigation, route }) => {
     setSaving(true);
     Keyboard.dismiss();
     try {
-      await claimHandle(normalized, pendingProfile || undefined);
+      if (pendingSocialAuth) {
+        await completePendingSocialSignup({
+          handle: normalized,
+          profile: resolvedProfile || undefined,
+          socialAuth: pendingSocialAuth,
+        });
+      } else {
+        await claimHandle(normalized, pendingProfile || undefined);
+      }
       await refreshAuthStatus().catch(() => {});
       navigation.reset({ index: 0, routes: [{ name: nextRoute }] });
     } catch (err) {
@@ -71,7 +82,7 @@ const CreateUsername = ({ navigation, route }) => {
     } finally {
       setSaving(false);
     }
-  }, [handle, navigation, nextRoute, saving]);
+  }, [handle, navigation, nextRoute, pendingProfile, pendingSocialAuth, resolvedProfile, saving]);
 
   const showSpinner = saving;
 

@@ -41,7 +41,7 @@ export default function ProfileInfo({
         const fallback = typeof userData?.displayName === 'string' ? userData.displayName.trim() : '';
         if (fallback) return fallback;
         const handle = typeof userData?.handle === 'string' ? userData.handle.trim() : '';
-        return handle || 'Spartan Athlete';
+        return handle || 'New User';
     })();
 
     useEffect(() => {

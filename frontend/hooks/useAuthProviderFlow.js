@@ -13,6 +13,18 @@ export default function useAuthProviderFlow(navigation) {
     const lastSignInTime = result?.user?.metadata?.lastSignInTime || null;
     const isReturningUser = result?.isNewUser === false
       || (creationTime && lastSignInTime && creationTime !== lastSignInTime);
+    const pendingSocialAuth = result?.pendingSocialAuth || null;
+
+    if (pendingSocialAuth) {
+      navigation.navigate('CreateUsername', {
+        uid,
+        initialHandle: result?.publicProfile?.handle || '',
+        pendingProfile: result?.pendingProfile || pendingSocialAuth?.profile || null,
+        pendingSocialAuth,
+        nextRoute: 'Tabs',
+      });
+      return;
+    }
 
     if (result?.requiresHandle && uid && !isReturningUser) {
       markPendingHandle({

@@ -1858,7 +1858,7 @@ const completedWorkouts = useMemo(
             emitUserDataUpdate();
 
             try {
-                await updateDoc("users", uid, { progress: nextProgress });
+                await updateDoc("usersPrivate", uid, { progress: nextProgress });
                 emitUserDataUpdate();
                 return true;
             } catch (error) {

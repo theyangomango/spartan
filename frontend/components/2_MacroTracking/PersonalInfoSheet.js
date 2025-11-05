@@ -110,7 +110,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                                     value={String(age)}
                                     onChangeText={(t) => setGoalForm((s) => ({ ...s, age: onlyDigits(t).slice(0, 3) }))}
                                     style={styles.input}
-                                    placeholder="25"
+                                    placeholder="0"
                                     placeholderTextColor={styles.placeholder.color}
                                     maxLength={3}
                                 />
