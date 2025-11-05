@@ -23,11 +23,13 @@ import { resolvePhotoURL } from "../utils/profilePhoto";
 import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
 import updateCompletedWorkout from "../../backend/workouts/updateCompletedWorkout";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
+import { emitUserDataUpdate } from "../utils/userDataEvents";
 import isThisUser from "../helper/isThisUser";
 import { strong as hapticStrong } from "../utils/haptics";
 import VerifiedHandle from "../components/common/VerifiedHandle";
 import useUserVerified from "../hooks/useUserVerified";
 import { db } from "../../firebase.config";
+import { invalidateFeedCacheForUser } from "../helper/feedCache";
 
 const HEADER_ICON_SIZE = scaleSize(20);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -705,6 +707,7 @@ const PastWorkoutScreen = () => {
             })();
 
             setWorkout(updatedEntry);
+            invalidateFeedCacheForUser(uid);
 
             try {
                 if (global?.userData) {
@@ -717,6 +720,7 @@ const PastWorkoutScreen = () => {
                     if (Number.isFinite(result.statsTotalWorkouts)) global.userData.statsTotalWorkouts = result.statsTotalWorkouts;
                     if (result.workoutsByDate) global.userData.workoutsByDate = result.workoutsByDate;
                     emitHexagonUpdate();
+                    emitUserDataUpdate();
                 }
             } catch (syncError) {
                 console.warn("[PastWorkoutScreen] Failed to sync global user data after update", syncError);

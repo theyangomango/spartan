@@ -8,7 +8,9 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import HexagonalStats from "./HexagonalStats";
 import scaleSize from "../../../helper/scaleSize";
+import { usePfp } from "../../../helper/usePFPs";
 import { withStrongPress } from "../../../utils/haptics";
+import { resolvePhotoURL } from "../../../utils/profilePhoto";
 import { sanitizeStatsForViewer, canViewWorkout } from "../../../utils/workoutPrivacy";
 import UserStatsExerciseCard from "./UserStatsExerciseCard";
 import UserStatsExerciseDetailScreen from "./UserStatsExerciseDetailScreen";
@@ -37,6 +39,31 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
     })();
     const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
     const isVisible = !!visible;
+    const fallbackPfp = useMemo(() => resolvePhotoURL(user, user?.pfp || ""), [user]);
+    const pfpVersion = useMemo(() => {
+        const candidates = [
+            user?.pfpVersion,
+            user?.imageVersion,
+            user?.photoVersion,
+            user?.pfp_version,
+            user?.pfpVer,
+            user?.version,
+        ];
+        for (const candidate of candidates) {
+            const num = Number(candidate);
+            if (Number.isFinite(num) && num > 0) return num;
+        }
+        return 0;
+    }, [
+        user?.pfpVersion,
+        user?.imageVersion,
+        user?.photoVersion,
+        user?.pfp_version,
+        user?.pfpVer,
+        user?.version,
+    ]);
+    const pfpUri = usePfp(String(user?.uid || ""), pfpVersion, fallbackPfp) || fallbackPfp;
+    const hasPfp = typeof pfpUri === "string" && pfpUri.length > 0;
     useEffect(() => {
         if (!deferExercises) return;
         let task;
@@ -374,14 +401,25 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
             {/* Header */}
             <View style={styles.header}>
                 <Pressable onPress={withStrongPress(toViewProfile)} style={styles.headerLeft} hitSlop={10}>
-                    <FastImage
-                        source={{
-                            uri: user.image,
-                            priority: FastImage.priority.normal,
-                            cache: FastImage.cacheControl.immutable,
-                        }}
-                        style={styles.pfp}
-                    />
+                    {hasPfp ? (
+                        <FastImage
+                            source={{
+                                uri: pfpUri,
+                                priority: FastImage.priority.normal,
+                                cache: FastImage.cacheControl.immutable,
+                            }}
+                            style={styles.pfp}
+                            resizeMode={FastImage.resizeMode.cover}
+                        />
+                    ) : (
+                        <View style={[styles.pfp, styles.pfpFallback]}>
+                            <MaterialCommunityIcons
+                                name="account-circle-outline"
+                                size={scaleSize(28)}
+                                color="#64748B"
+                            />
+                        </View>
+                    )}
                     <View style={{ flex: 1 }}>
                         <VerifiedHandle
                             handle={user.handle}

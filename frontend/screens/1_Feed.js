@@ -41,6 +41,7 @@ import { toMillis as toMillisSafe } from "../utils/friends";
 import deletePost from "../../backend/posts/deletePost";
 import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
+import { emitUserDataUpdate } from "../utils/userDataEvents";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import { strong as hapticStrong } from "../utils/haptics";
 import FeedSnapshotCard from "../components/1_Feed/FeedSnapshotCard";
@@ -377,32 +378,11 @@ export default function Feed({ navigation, route }) {
             let workoutError = null;
             let workoutResult = null;
 
-            try {
-                await deletePost(pid, safeUid);
-            } catch (error) {
-                postError = error;
-                console.error("handleDeletePost: deletePost failed", error);
-            }
-
-            if (!postError && safeUid && global?.userData && String(global.userData.uid) === safeUid) {
-                try {
-                    if (Array.isArray(global.userData.posts)) {
-                        global.userData.posts = global.userData.posts
-                            .map((value) => (value == null ? value : String(value)))
-                            .filter((value) => value && value !== pid);
-                    }
-                    if (typeof global.userData.postCount === "number") {
-                        global.userData.postCount = Math.max(0, global.userData.postCount - 1);
-                    }
-                } catch (error) {
-                    console.warn("handleDeletePost: failed to update global userData cache", error);
-                }
-            }
-
-            if (!postError && canDeleteLinkedWorkout && safeUid) {
+            if (canDeleteLinkedWorkout && safeUid) {
                 try {
                     const res = await deleteCompletedWorkout(safeUid, workoutDeleteIdentifier);
                     workoutResult = res;
+                    invalidateFeedCacheForUser(safeUid);
                     if (res?.ok && global?.userData && String(global.userData.uid) === safeUid) {
                         try {
                             global.userData.completedWorkouts = Array.isArray(res.completedWorkouts) ? res.completedWorkouts : [];
@@ -413,6 +393,8 @@ export default function Feed({ navigation, route }) {
                             global.userData.statsTotalHours = res.statsTotalHours || 0;
                             global.userData.statsTotalWorkouts = res.statsTotalWorkouts || 0;
                             global.userData.workoutsByDate = res.workoutsByDate || {};
+                            emitHexagonUpdate();
+                            emitUserDataUpdate();
                         } catch (error) {
                             console.warn("handleDeletePost: failed to update workout stats cache", error);
                         }
@@ -423,8 +405,27 @@ export default function Feed({ navigation, route }) {
                 }
             }
 
-            if (workoutResult?.ok) {
-                emitHexagonUpdate();
+            try {
+                await deletePost(pid, safeUid);
+                if (safeUid) invalidateFeedCacheForUser(safeUid);
+                if (safeUid && global?.userData && String(global.userData.uid) === safeUid) {
+                    try {
+                        if (Array.isArray(global.userData.posts)) {
+                            global.userData.posts = global.userData.posts
+                                .map((value) => (value == null ? value : String(value)))
+                                .filter((value) => value && value !== pid);
+                        }
+                        if (typeof global.userData.postCount === "number") {
+                            global.userData.postCount = Math.max(0, global.userData.postCount - 1);
+                        }
+                        emitUserDataUpdate();
+                    } catch (error) {
+                        console.warn("handleDeletePost: failed to update global userData cache", error);
+                    }
+                }
+            } catch (error) {
+                postError = error;
+                console.error("handleDeletePost: deletePost failed", error);
             }
 
             if (postError) {
@@ -432,7 +433,7 @@ export default function Feed({ navigation, route }) {
             } else if (workoutError) {
                 Alert.alert(
                     "Workout removal incomplete",
-                    "The post was deleted, but the workout is still in your history. Please retry from the workout details screen."
+                    "The workout could not be removed from your history. Please retry from the workout details screen."
                 );
             }
 
@@ -454,7 +455,7 @@ export default function Feed({ navigation, route }) {
                 },
             ]
         );
-    }, [listData, deletingPostPid, deletePost, deleteCompletedWorkout, emitHexagonUpdate]);
+    }, [listData, deletingPostPid, deletePost, deleteCompletedWorkout, emitHexagonUpdate, emitUserDataUpdate]);
 
     const handleEditPost = useCallback(async (index) => {
         if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
@@ -1042,3 +1043,4 @@ const styles = StyleSheet.create({
         lineHeight: scaleSize(18),
     },
 });
+import { invalidateFeedCacheForUser } from "../helper/feedCache";

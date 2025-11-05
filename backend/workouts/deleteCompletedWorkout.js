@@ -401,10 +401,17 @@ export default async function deleteCompletedWorkout(uid, identifier) {
                 workoutDeletedAt: Date.now(),
             });
         } catch (error) {
-            console.warn("deleteCompletedWorkout: failed to update linked post", {
-                postPid,
-                error,
-            });
+            if (error?.code === "permission-denied" || error?.code === "not-found") {
+                console.warn("deleteCompletedWorkout: linked post already removed or inaccessible", {
+                    postPid,
+                    code: error?.code,
+                });
+            } else {
+                console.warn("deleteCompletedWorkout: failed to update linked post", {
+                    postPid,
+                    error,
+                });
+            }
         }
     }
 

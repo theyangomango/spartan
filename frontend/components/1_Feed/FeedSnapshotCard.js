@@ -377,9 +377,9 @@ const styles = StyleSheet.create({
         letterSpacing: 0.15,
     },
     subtitle: {
-        fontFamily: "Outfit_400Regular",
+        fontFamily: "Outfit_600SemiBold",
         fontSize: scaled(11),
-        color: "rgba(234, 240, 247, 0.65)",
+        color: "rgba(234, 240, 247, 0.56)",
         marginTop: scaleSize(2),
     },
     workoutCountText: {

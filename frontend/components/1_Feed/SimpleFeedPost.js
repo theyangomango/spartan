@@ -33,7 +33,8 @@ import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../../../firebase.config";
 import useReportContentSheet from "../../hooks/useReportContentSheet";
 import { getViewerUid } from "../../utils/userRefs";
-import { subscribeUserData } from "../../utils/userDataEvents";
+import { subscribeUserData, emitUserDataUpdate } from "../../utils/userDataEvents";
+import { invalidateFeedCacheForUser } from "../../helper/feedCache";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -910,28 +911,7 @@ const SimpleFeedPost = ({
                 let workoutError = null;
                 let workoutResult = null;
 
-                try {
-                    await deletePost(postPid, targetUid);
-                    if (targetUid && global?.userData && String(global.userData.uid) === targetUid) {
-                        try {
-                            if (Array.isArray(global.userData.posts)) {
-                                global.userData.posts = global.userData.posts
-                                    .map((value) => (value == null ? value : String(value)))
-                                    .filter((value) => value && value !== postPid);
-                            }
-                            if (typeof global.userData.postCount === "number") {
-                                global.userData.postCount = Math.max(0, global.userData.postCount - 1);
-                            }
-                        } catch (error) {
-                            console.warn("SimpleFeedPost: failed to update cached global.userData posts", error);
-                        }
-                    }
-                } catch (error) {
-                    postError = error;
-                    console.error("SimpleFeedPost: deletePost failed", error);
-                }
-
-                if (canAutoDeleteWorkout && workoutDeleteIdentifier && !postError) {
+                if (canAutoDeleteWorkout && workoutDeleteIdentifier) {
                     try {
                         const res = await deleteCompletedWorkout(targetUid, workoutDeleteIdentifier);
                         workoutResult = res;
@@ -945,18 +925,40 @@ const SimpleFeedPost = ({
                                 global.userData.statsTotalHours = res.statsTotalHours || 0;
                                 global.userData.statsTotalWorkouts = res.statsTotalWorkouts || 0;
                                 global.userData.workoutsByDate = res.workoutsByDate || {};
+                                emitHexagonUpdate();
+                                emitUserDataUpdate();
                             } catch (error) {
                                 console.warn("SimpleFeedPost: failed to update cached workout stats after deletion", error);
                             }
                         }
+                        invalidateFeedCacheForUser(targetUid);
                     } catch (error) {
                         workoutError = error;
                         console.error("SimpleFeedPost: deleteCompletedWorkout failed", error);
                     }
                 }
 
-                if (workoutResult?.ok) {
-                    emitHexagonUpdate();
+                try {
+                    await deletePost(postPid, targetUid);
+                    invalidateFeedCacheForUser(targetUid);
+                    if (targetUid && global?.userData && String(global.userData.uid) === targetUid) {
+                        try {
+                            if (Array.isArray(global.userData.posts)) {
+                                global.userData.posts = global.userData.posts
+                                    .map((value) => (value == null ? value : String(value)))
+                                    .filter((value) => value && value !== postPid);
+                            }
+                            if (typeof global.userData.postCount === "number") {
+                                global.userData.postCount = Math.max(0, global.userData.postCount - 1);
+                            }
+                            emitUserDataUpdate();
+                        } catch (error) {
+                            console.warn("SimpleFeedPost: failed to update cached global.userData posts", error);
+                        }
+                    }
+                } catch (error) {
+                    postError = error;
+                    console.error("SimpleFeedPost: deletePost failed", error);
                 }
 
                 if (postError) {

@@ -65,6 +65,10 @@ const styles = StyleSheet.create({
         marginRight: scaledSize(12),
         backgroundColor: "#e8eef7",
     },
+    pfpFallback: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     handle: {
         fontSize: scaleSize(17),
         fontFamily: "Outfit_600SemiBold",
