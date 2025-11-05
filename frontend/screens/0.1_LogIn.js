@@ -99,7 +99,7 @@ const LogIn = ({ navigation }) => {
                             style={styles.appleButton}
                         />
                         <AuthButton
-                            text="Log in with Email / Username"
+                            text="Log in with Email / Phone"
                             onPress={toUserLogInCredentials}
                             style={styles.primaryButton}
                             textStyle={styles.primaryButtonText}

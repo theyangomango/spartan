@@ -85,11 +85,13 @@ const NewUserCreation = ({ navigation }) => {
       await updateProfile(user, { displayName: trimmedName });
       const ensure = await finalizeUserProfile({
         handle: sanitizedHandle,
-        displayName: trimmedName,
-        email: isEmail ? trimmedEmail : '',
-        phoneNumber: phoneDigits,
-        emailVerified: false,
-        providerId: 'password',
+        profile: {
+          displayName: trimmedName,
+          email: isEmail ? trimmedEmail : '',
+          phoneNumber: phoneDigits,
+          emailVerified: false,
+          providerId: 'password',
+        },
       });
 
       navigation.reset({ index: 0, routes: [{ name: 'Tabs', params: { transition: 'none' } }] });

@@ -5,6 +5,7 @@ import { setGlobalOptions } from "firebase-functions/v2";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { deleteUserAndContentByUid } from "./shared/deleteUserAndContent.js";
 import { propagateHandleChange } from "./shared/handlePropagation.js";
@@ -19,6 +20,7 @@ setGlobalOptions({
 // Initialize Admin SDK once per instance
 try { initializeApp(); } catch { }
 const adminDb = getFirestore();
+const adminAuth = getAuth();
 
 // Secrets must be configured via Firebase/Google Secret Manager
 const FATSECRET_KEY = defineSecret("FATSECRET_KEY");
@@ -781,6 +783,7 @@ export const ensureUserProfile = onCall({ region: "us-central1" }, async (reques
 
         const publicPayload = {
             displayName,
+            name: displayName,
             photoURL,
             isPrivate,
             bio,
@@ -1417,6 +1420,78 @@ export const setUserDisplayName = onCall({ region: "us-central1" }, async (reque
         if (error instanceof HttpsError) throw error;
         logger.error("setUserDisplayName failure", error);
         throw new HttpsError("internal", "Failed to update name.");
+    }
+});
+
+export const resolveLoginIdentifier = onCall({ region: "us-central1" }, async (request) => {
+    try {
+        const rawValue = request.data?.identifier;
+        if (typeof rawValue !== "string") {
+            throw new HttpsError("invalid-argument", "Identifier is required.");
+        }
+
+        const trimmed = rawValue.trim();
+        if (!trimmed) {
+            throw new HttpsError("invalid-argument", "Identifier is required.");
+        }
+
+        const lower = trimmed.toLowerCase();
+        const digitsOnly = trimmed.replace(/\D/g, "");
+        const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+        const sanitizedHandle = lower.replace(/[^a-z0-9_.]/g, "");
+        const isHandleCandidate = sanitizedHandle === lower && sanitizedHandle.length > 0;
+
+        if (isHandleCandidate) {
+            const handleSnap = await adminDb.collection("userHandles").doc(sanitizedHandle).get();
+            if (handleSnap.exists) {
+                const uid = String(handleSnap.data()?.uid || "").trim();
+                if (!uid) {
+                    throw new HttpsError("not-found", "No account matches that username.");
+                }
+                try {
+                    const userRecord = await adminAuth.getUser(uid);
+                    const loginEmail = (userRecord.email || "").trim();
+                    if (!loginEmail) {
+                        throw new HttpsError("failed-precondition", "Account cannot sign in with a password.");
+                    }
+                    const resolvedType = loginEmail.toLowerCase().endsWith("@phone.spartan.app") ? "phone" : "email";
+                    return {
+                        loginEmail: loginEmail.toLowerCase(),
+                        type: "username",
+                        resolvedType,
+                    };
+                } catch (error) {
+                    if (error?.code === "auth/user-not-found") {
+                        throw new HttpsError("not-found", "No account matches that username.");
+                    }
+                    logger.error("resolveLoginIdentifier username lookup failure", { handle: sanitizedHandle, error });
+                    throw new HttpsError("internal", "Failed to resolve username.");
+                }
+            }
+
+            const hasLettersOrSymbols = /[a-z_.]/.test(sanitizedHandle);
+            if (hasLettersOrSymbols || digitsOnly.length < 8) {
+                throw new HttpsError("not-found", "No account matches that username.");
+            }
+        }
+
+        if (emailPattern.test(lower)) {
+            return { loginEmail: lower, type: "email", resolvedType: "email" };
+        }
+
+        if (digitsOnly.length >= 8) {
+            return {
+                loginEmail: `${digitsOnly}@phone.spartan.app`,
+                type: "phone",
+                resolvedType: "phone",
+            };
+        }
+
+        throw new HttpsError("invalid-argument", "Enter a valid email, phone number, or username.");
+    } catch (error) {
+        if (error instanceof HttpsError) throw error;
+        logger.error("resolveLoginIdentifier failure", error);
+        throw new HttpsError("internal", "Failed to resolve login identifier.");
     }
 });
 

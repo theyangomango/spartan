@@ -1,45 +1,27 @@
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../../firebase.config';
 import { prepareProfileForAuth } from '../services/userProfileService';
-import { extractEmailFromIdToken, shouldDeferByEmail } from './socialAuthUtils';
 
 const PROVIDER_ID = 'google.com';
 
-function buildPendingProfile(profile = {}) {
-  return {
-    displayName: profile?.name || '',
-    photoURL: profile?.picture || '',
-    email: profile?.email || '',
-    emailVerified: true,
-    providerId: PROVIDER_ID,
-  };
-}
+const HANDLE_FIELDS = ['handle', 'handleLower', 'handle_lower', 'username', 'usernameLower', 'username_lower', 'tag', 'tagLower', 'tag_lower'];
+
+const resolveHandle = (...sources) => {
+  for (const source of sources) {
+    if (!source || typeof source !== 'object') continue;
+    for (const field of HANDLE_FIELDS) {
+      const value = source[field];
+      if (typeof value === 'string' && value.trim()) {
+        return value.trim();
+      }
+    }
+  }
+  return '';
+};
 
 export async function signInWithGoogleResponse({ profile, tokens }) {
   if (!tokens?.idToken) {
     throw new Error('Missing Google ID token.');
-  }
-
-  const email = profile?.email || extractEmailFromIdToken(tokens.idToken);
-  const deferAuth = await shouldDeferByEmail(email);
-  if (deferAuth) {
-    const pendingProfile = buildPendingProfile(profile);
-    return {
-      user: null,
-      isNewUser: true,
-      requiresHandle: true,
-      publicProfile: null,
-      pendingProfile,
-      provider: 'google',
-      pendingSocialAuth: {
-        providerId: PROVIDER_ID,
-        tokens: {
-          idToken: tokens.idToken,
-          accessToken: tokens.accessToken || '',
-        },
-        profile: pendingProfile,
-      },
-    };
   }
 
   const credential = GoogleAuthProvider.credential(tokens.idToken, tokens.accessToken);
@@ -60,12 +42,18 @@ export async function signInWithGoogleResponse({ profile, tokens }) {
   };
 
   const prepared = await prepareProfileForAuth(profilePayload);
+  const existingHandle = resolveHandle(prepared?.publicProfile, prepared?.legacyProfile, prepared?.privateProfile, profilePayload, profile);
+  const requiresHandle = isNewUser === false ? false : (!existingHandle && !!prepared?.requiresHandle);
+  let publicProfile = prepared?.publicProfile || null;
+  if (publicProfile && existingHandle && !publicProfile.handle) {
+    publicProfile = { ...publicProfile, handle: existingHandle };
+  }
 
   return {
     user,
     isNewUser,
-    requiresHandle: !!prepared?.requiresHandle,
-    publicProfile: prepared?.publicProfile || null,
+    requiresHandle,
+    publicProfile,
     pendingProfile: prepared?.pendingProfile || null,
     provider: 'google',
   };

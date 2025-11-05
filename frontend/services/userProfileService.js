@@ -11,6 +11,21 @@ const setDisplayNameCallable = httpsCallable(functions, 'setUserDisplayName');
 
 const FUNCTION_NOT_FOUND = 'functions/not-found';
 const HANDLE_REGEX = /^[a-z0-9_.]{6,20}$/;
+const HANDLE_KEYS = ['handle', 'handleLower', 'handle_lower', 'username', 'usernameLower', 'username_lower', 'tag', 'tagLower', 'tag_lower'];
+
+function resolveHandle(...sources) {
+  for (const source of sources) {
+    if (!source || typeof source !== 'object') continue;
+    for (const key of HANDLE_KEYS) {
+      const value = source[key];
+      if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (trimmed) return trimmed;
+      }
+    }
+  }
+  return '';
+}
 
 function isFunctionsNotFound(error) {
   if (!error) return false;
@@ -86,6 +101,14 @@ async function ensureUserProfileFallback(options = {}) {
   };
   if (!basePublic.createdAt) nextPublic.createdAt = now;
 
+  const existingHandle = resolveHandle(basePublic, options);
+  if (existingHandle && !nextPublic.handle) {
+    nextPublic.handle = existingHandle;
+  }
+  if (existingHandle && !nextPublic.handleLower) {
+    nextPublic.handleLower = existingHandle.toLowerCase();
+  }
+
   const basePrivate = privateSnap.exists() ? privateSnap.data() || {} : {};
   const nextPrivate = {
     ...basePrivate,
@@ -120,7 +143,7 @@ async function ensureUserProfileFallback(options = {}) {
 
   return {
     uid,
-    requiresHandle: !nextPublic.handle,
+    requiresHandle: !resolveHandle(nextPublic),
     publicProfile: nextPublic,
   };
 }
@@ -147,8 +170,16 @@ async function setUserHandleFallback(handle) {
 
   await Promise.all([
     setDoc(handleRef, { uid, updatedAt: now }, { merge: true }),
-    setDoc(doc(db, 'usersPublic', uid), { handle: normalized, handleLower, updatedAt: now }, { merge: true }),
-    setDoc(doc(db, 'users', uid), { handle: normalized, handleLower, updatedAt: now }, { merge: true }),
+    setDoc(doc(db, 'usersPublic', uid), {
+      handle: normalized,
+      handleLower,
+      updatedAt: now,
+    }, { merge: true }),
+    setDoc(doc(db, 'users', uid), {
+      handle: normalized,
+      handleLower,
+      updatedAt: now,
+    }, { merge: true }),
   ]);
 
   return { handle: normalized };
@@ -179,34 +210,44 @@ export async function prepareProfileForAuth(options = {}) {
   const privateData = privateSnap?.exists() ? privateSnap.data() || {} : null;
   const legacyData = legacySnap?.exists() ? legacySnap.data() || {} : null;
 
-  const handle = publicData?.handle || legacyData?.handle || '';
+  const handle = resolveHandle(publicData, legacyData, privateData, options, global?.userData);
   const requiresHandle = !handle;
+
+  const publicProfile = publicData ? { ...publicData } : null;
+  if (publicProfile && handle && !publicProfile.handle) {
+    publicProfile.handle = handle;
+  }
+
+  const legacyProfile = legacyData ? { ...legacyData } : null;
+  if (legacyProfile && handle && !legacyProfile.handle) {
+    legacyProfile.handle = handle;
+  }
 
   const displayName = options.displayName
     || user.displayName
-    || publicData?.displayName
-    || publicData?.name
-    || legacyData?.displayName
-    || legacyData?.name
+    || publicProfile?.displayName
+    || publicProfile?.name
+    || legacyProfile?.displayName
+    || legacyProfile?.name
     || '';
   const photoURL = options.photoURL
     || user.photoURL
-    || publicData?.photoURL
-    || publicData?.image
-    || legacyData?.photoURL
-    || legacyData?.image
+    || publicProfile?.photoURL
+    || publicProfile?.image
+    || legacyProfile?.photoURL
+    || legacyProfile?.image
     || DEFAULT_PFP_REMOTE_URL;
   const email = options.email || user.email || '';
-  const phoneNumber = options.phoneNumber || privateData?.phoneNumber || legacyData?.phoneNumber || '';
+  const phoneNumber = options.phoneNumber || privateData?.phoneNumber || legacyProfile?.phoneNumber || '';
   const emailVerified = options.emailVerified ?? user.emailVerified ?? false;
   const providerId = options.providerId || user.providerData?.[0]?.providerId || '';
 
   return {
     uid,
     requiresHandle,
-    publicProfile: publicData,
+    publicProfile,
     privateProfile: privateData,
-    legacyProfile: legacyData,
+    legacyProfile,
     pendingProfile: requiresHandle
       ? {
           displayName,

@@ -1,47 +1,29 @@
 import { OAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../../firebase.config';
 import { prepareProfileForAuth } from '../services/userProfileService';
-import { extractEmailFromIdToken, shouldDeferByEmail } from './socialAuthUtils';
 
 const appleProvider = new OAuthProvider('apple.com');
 
 const PROVIDER_ID = 'apple.com';
 
-function buildPendingProfile(credential = {}) {
-  return {
-    displayName: resolveDisplayName(credential) || '',
-    photoURL: '',
-    email: credential?.email || '',
-    emailVerified: true,
-    providerId: PROVIDER_ID,
-  };
-}
+const HANDLE_FIELDS = ['handle', 'handleLower', 'handle_lower', 'username', 'usernameLower', 'username_lower', 'tag', 'tagLower', 'tag_lower'];
+
+const resolveHandle = (...sources) => {
+  for (const source of sources) {
+    if (!source || typeof source !== 'object') continue;
+    for (const field of HANDLE_FIELDS) {
+      const value = source[field];
+      if (typeof value === 'string' && value.trim()) {
+        return value.trim();
+      }
+    }
+  }
+  return '';
+};
 
 export async function signInWithAppleCredential({ credential, rawNonce }) {
   if (!credential?.identityToken) {
     throw new Error('Missing Apple identity token.');
-  }
-
-  const email = credential?.email || extractEmailFromIdToken(credential.identityToken);
-  const deferAuth = await shouldDeferByEmail(email);
-  if (deferAuth) {
-    const pendingProfile = buildPendingProfile(credential);
-    return {
-      user: null,
-      isNewUser: true,
-      requiresHandle: true,
-      publicProfile: null,
-      pendingProfile,
-      provider: 'apple',
-      pendingSocialAuth: {
-        providerId: PROVIDER_ID,
-        credential: {
-          identityToken: credential.identityToken,
-        },
-        rawNonce: rawNonce || null,
-        profile: pendingProfile,
-      },
-    };
   }
 
   const firebaseCredential = appleProvider.credential({
@@ -61,12 +43,18 @@ export async function signInWithAppleCredential({ credential, rawNonce }) {
   };
 
   const prepared = await prepareProfileForAuth(profilePayload);
+  const existingHandle = resolveHandle(prepared?.publicProfile, prepared?.legacyProfile, prepared?.privateProfile, profilePayload, credential);
+  const requiresHandle = isNewUser === false ? false : (!existingHandle && !!prepared?.requiresHandle);
+  let publicProfile = prepared?.publicProfile || null;
+  if (publicProfile && existingHandle && !publicProfile.handle) {
+    publicProfile = { ...publicProfile, handle: existingHandle };
+  }
 
   return {
     user,
     isNewUser,
-    requiresHandle: !!prepared?.requiresHandle,
-    publicProfile: prepared?.publicProfile || null,
+    requiresHandle,
+    publicProfile,
     pendingProfile: prepared?.pendingProfile || null,
     provider: 'apple',
   };

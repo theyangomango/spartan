@@ -4,7 +4,8 @@ import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWitho
 import { Octicons, Feather } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { auth } from '../../firebase.config';
+import { httpsCallable } from 'firebase/functions';
+import { auth, functions } from '../../firebase.config';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -15,18 +16,18 @@ function scaleSize(size) {
 }
 
 const UserLogInCredentials = ({ navigation }) => {
-    const [emailOrPhone, setEmailOrPhone] = useState('');
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [busy, setBusy] = useState(false);
 
-    const emailOrPhoneInputRef = useRef(null);
+    const identifierInputRef = useRef(null);
 
     // Ensure keyboard is always open
     useEffect(() => {
         const showSubscription = Keyboard.addListener('keyboardDidHide', () => {
             if (Platform.OS === 'android') {
-                emailOrPhoneInputRef.current?.focus();
+                identifierInputRef.current?.focus();
             }
         });
 
@@ -40,32 +41,62 @@ const UserLogInCredentials = ({ navigation }) => {
     }
 
     async function logIn() {
-    const input = emailOrPhone.trim().toLowerCase();
-    const enteredPassword = password.trim();
-    setErrorMsg('');
+        if (busy) return;
 
-    if (!input || !enteredPassword) {
-        setErrorMsg('Enter your email and password.');
-        return;
-    }
+        const trimmedIdentifier = identifier.trim();
+        const enteredPassword = password.trim();
+        setErrorMsg('');
 
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(input)) {
-        setErrorMsg('Enter a valid email address.');
-        return;
-    }
+        if (!trimmedIdentifier || !enteredPassword) {
+            setErrorMsg('Enter your email, phone number, or username and password.');
+            return;
+        }
 
         setBusy(true);
+        let loginEmail = '';
+        let resolvedType = 'email';
+        const lowerIdentifier = trimmedIdentifier.toLowerCase();
+        const digitsOnly = trimmedIdentifier.replace(/\D/g, '');
+        const emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+        const phonePattern = /^[0-9+()\s.-]+$/;
+
         try {
-            const result = await signInWithEmailAndPassword(auth, input, enteredPassword);
-            if (!result.user?.emailVerified) {
+            if (emailPattern.test(lowerIdentifier)) {
+                loginEmail = lowerIdentifier;
+                resolvedType = 'email';
+            } else if (phonePattern.test(trimmedIdentifier) && digitsOnly.length >= 8) {
+                loginEmail = `${digitsOnly}@phone.spartan.app`;
+                resolvedType = 'phone';
+            } else {
+                const resolveCallable = httpsCallable(functions, 'resolveLoginIdentifier');
+                const response = await resolveCallable({ identifier: trimmedIdentifier });
+                const data = response?.data || {};
+                loginEmail = String(data.loginEmail || '').trim().toLowerCase();
+                resolvedType = data.resolvedType || data.type || (loginEmail.endsWith('@phone.spartan.app') ? 'phone' : 'email');
+            }
+
+            if (!loginEmail) {
+                setErrorMsg('Enter a valid email, phone number, or username.');
+                return;
+            }
+
+            const result = await signInWithEmailAndPassword(auth, loginEmail, enteredPassword);
+            const requiresVerification = resolvedType !== 'phone' && !loginEmail.endsWith('@phone.spartan.app');
+
+            if (requiresVerification && !result.user?.emailVerified) {
                 setErrorMsg('Verify your email before continuing.');
                 try { await signOut(auth); } catch { }
                 return;
             }
+
             navigation.reset({ index: 0, routes: [{ name: 'Tabs' }] });
         } catch (error) {
             const code = error?.code || '';
-            if (code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+            if (code === 'functions/not-found') {
+                setErrorMsg('No account matches that username.');
+            } else if (code === 'functions/invalid-argument') {
+                setErrorMsg('Enter a valid email, phone number, or username.');
+            } else if (code === 'auth/user-not-found' || code === 'auth/wrong-password') {
                 setErrorMsg('Invalid credentials. Please try again.');
             } else if (code === 'auth/too-many-requests') {
                 setErrorMsg('Too many attempts. Try again later.');
@@ -88,14 +119,14 @@ const UserLogInCredentials = ({ navigation }) => {
 
                 <View style={styles.formWrapper}>
                     <View style={styles.formContainer}>
-                        <Text style={styles.title}>Email</Text>
+                        <Text style={styles.title}>Email / Phone Number / Username</Text>
                         <TextInput
-                            ref={emailOrPhoneInputRef}
+                            ref={identifierInputRef}
                             style={styles.input}
-                            placeholder="Enter your email"
+                            placeholder="Enter your email, phone number, or username"
                             placeholderTextColor={theme.textSecondary}
-                            value={emailOrPhone}
-                            onChangeText={setEmailOrPhone}
+                            value={identifier}
+                            onChangeText={setIdentifier}
                             keyboardType="email-address"
                             autoCapitalize='none'
                             autoFocus={true}
@@ -115,8 +146,8 @@ const UserLogInCredentials = ({ navigation }) => {
 
                     <View style={styles.footerContainer}>
                         {!!errorMsg && <Text style={styles.errorText}>{errorMsg}</Text>}
-                        <RNBounceable style={styles.button} onPress={logIn}>
-                            <Text style={styles.auth_button_text}>Continue</Text>
+                        <RNBounceable style={styles.button} onPress={logIn} disabled={busy}>
+                            <Text style={styles.auth_button_text}>{busy ? 'Logging in…' : 'Continue'}</Text>
                         </RNBounceable>
                     </View>
                 </View>
