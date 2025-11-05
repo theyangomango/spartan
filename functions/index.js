@@ -310,8 +310,20 @@ const composePushMessage = (event) => {
             return { title: "Follow request", body: `${actor} requested to follow you` };
         case "follow-accepted":
             return { title: "Follow request accepted", body: `${actor} accepted your follow request` };
+        case "mention":
+            return { title: "New mention", body: `${actor} mentioned you${snippet(event.content)}` };
+        case "workout-invite":
+            return { title: "Workout invite", body: `${actor} invited you to a workout` };
+        case "friend-workout-started":
+            return { title: "Workout started", body: `${actor} started a workout` };
         default:
-            return { title: "New notification", body: `${actor} interacted with you` };
+            if (event.message && typeof event.message === "string") {
+                return { title: "Notification", body: event.message };
+            }
+            if (event.type && typeof event.type === "string") {
+                return { title: "Notification", body: `${actor} ${event.type}` };
+            }
+            return { title: "Notification", body: `${actor} interacted with you` };
     }
 };
 

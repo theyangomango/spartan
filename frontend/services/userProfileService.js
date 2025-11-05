@@ -3,6 +3,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Image } from 'react-native';
 import { auth, db, functions } from '../../firebase.config';
 import DEFAULT_PFP from '../assets/DEFAULT_PFP.png';
+import { emitUserDataUpdate } from '../utils/userDataEvents';
 
 const DEFAULT_PFP_URI = Image.resolveAssetSource(DEFAULT_PFP)?.uri || '';
 
@@ -10,6 +11,7 @@ const ensureProfileCallable = httpsCallable(functions, 'ensureUserProfile');
 const setHandleCallable = httpsCallable(functions, 'setUserHandle');
 
 const FUNCTION_NOT_FOUND = 'functions/not-found';
+const HANDLE_REGEX = /^[a-z0-9_.]{6,20}$/;
 
 function isFunctionsNotFound(error) {
   if (!error) return false;
@@ -270,4 +272,34 @@ export async function finalizeUserProfile({ handle, profile } = {}) {
   }
 
   return ensure;
+}
+
+export async function updateUserHandle(handle) {
+  const trimmed = typeof handle === 'string' ? handle.trim() : '';
+  if (!trimmed) {
+    throw new Error('Handle is required.');
+  }
+  const sanitized = trimmed.replace(/[^a-zA-Z0-9_.]/g, '').toLowerCase().slice(0, 20);
+  if (!HANDLE_REGEX.test(sanitized)) {
+    throw new Error('Username must be 6–20 characters (a–z, 0–9, _ or .).');
+  }
+  try {
+    await setHandleCallable({ handle: sanitized });
+  } catch (error) {
+    if (isFunctionsNotFound(error)) {
+      await setUserHandleFallback(sanitized);
+    } else {
+      throw error;
+    }
+  }
+  try {
+    if (global?.userData && typeof global.userData === 'object') {
+      global.userData.handle = sanitized;
+      global.userData.handleLower = sanitized.toLowerCase();
+    }
+  } catch {
+    // ignore global mutations
+  }
+  emitUserDataUpdate();
+  return { handle: sanitized };
 }

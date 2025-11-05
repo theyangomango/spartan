@@ -1,11 +1,13 @@
-import React, { useState } from "react";
-import { StyleSheet, View, ScrollView, Text, Dimensions } from "react-native";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View, ScrollView, Text, Dimensions, TouchableOpacity } from "react-native";
 import ProfilePicture from "./ProfilePicture";
 import formatPhoneNumber from "../../../helper/formatPhoneNumber";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import THEME from "../../../theme/mfpDark";
 import scaleSize from "../../../helper/scaleSize";
 import DismissableTextInput from "../../common/DismissableTextInput";
+import { useNavigation } from "@react-navigation/native";
+import { subscribeUserData, emitUserDataUpdate } from "../../../utils/userDataEvents";
 
 const { width: screenWidth } = Dimensions.get('window');
 const scale = screenWidth / 375; // Base screen width assumed as 375
@@ -15,8 +17,10 @@ function wScale(size) {
 }
 
 const EditProfileModal = ({ setPFP }) => {
-    const userData = (global?.userData && typeof global.userData === 'object') ? global.userData : {};
-    const initialBio = (userData?.bio ?? '').toString();
+    const navigation = useNavigation();
+    const initialUser = (global?.userData && typeof global.userData === 'object') ? { ...global.userData } : {};
+    const [userData, setUserData] = useState(initialUser);
+    const initialBio = (initialUser?.bio ?? '').toString();
     const [bio, setBio] = useState(initialBio);
     const displayName = (() => {
         const name = typeof userData?.name === 'string' ? userData.name.trim() : '';
@@ -31,13 +35,40 @@ const EditProfileModal = ({ setPFP }) => {
         return handle;
     })();
 
+    useEffect(() => {
+        const unsubscribe = subscribeUserData((nextUser) => {
+            if (!nextUser || typeof nextUser !== 'object') return;
+            setUserData({ ...nextUser });
+            setBio((prev) => {
+                const updated = (nextUser?.bio ?? '').toString();
+                return prev === updated ? prev : updated;
+            });
+        });
+        return unsubscribe;
+    }, []);
+
     const handleBioBlur = () => {
-        if (userData) {
-            userData.bio = bio;
+        setUserData((prev) => {
+            if (!prev || typeof prev !== 'object') return prev;
+            return { ...prev, bio };
+        });
+        try {
+            if (global?.userData && typeof global.userData === 'object') {
+                global.userData.bio = bio;
+            }
+        } catch {
+            // ignore global mutation failures
         }
         if (userData?.uid) {
             updateDoc('usersPublic', userData.uid, { bio });
         }
+        emitUserDataUpdate();
+    };
+
+    const onChangeHandlePress = () => {
+        navigation.navigate('ChangeUsername', {
+            initialHandle: typeof userData?.handle === 'string' ? userData.handle : '',
+        });
     };
 
     return (
@@ -54,7 +85,15 @@ const EditProfileModal = ({ setPFP }) => {
                         editable={false}
                         enableAccessory={false}
                     />
-                    <Text style={styles.changeLink}>Change</Text>
+                    <TouchableOpacity
+                        onPress={onChangeHandlePress}
+                        style={styles.changeButton}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Change username"
+                    >
+                        <Text style={styles.changeLink}>Change</Text>
+                    </TouchableOpacity>
                 </View>
                 <View style={styles.inputContainer}>
                     <Text style={styles.label}>Name</Text>
@@ -159,8 +198,12 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_500Medium',
         color: THEME.primary,
         textAlign: 'right',
-        marginLeft: scaleSize(wScale(12)),
+    },
+    changeButton: {
         minWidth: scaleSize(wScale(55)),
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+        marginLeft: scaleSize(wScale(12)),
     },
     non_editable_input_text: {
         fontSize: scaleSize(14),
