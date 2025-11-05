@@ -30,6 +30,7 @@ import VerifiedHandle from "../components/common/VerifiedHandle";
 import useUserVerified from "../hooks/useUserVerified";
 import { db } from "../../firebase.config";
 import { invalidateFeedCacheForUser } from "../helper/feedCache";
+import { exercises as EXERCISE_LIBRARY } from "../components/3_Workout/NewWorkout/SelectExercise/EXERCISES";
 
 const HEADER_ICON_SIZE = scaleSize(20);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -154,6 +155,77 @@ const pickFirstString = (...values) => {
         if (typeof value !== "string") continue;
         const trimmed = value.trim();
         if (trimmed) return trimmed;
+    }
+    return "";
+};
+
+const EXERCISE_META_LOOKUP = (() => {
+    const map = new Map();
+    const register = (rawName, meta) => {
+        const normalized = typeof rawName === "string" ? rawName.trim().toLowerCase() : "";
+        if (!normalized || map.has(normalized)) return;
+        map.set(normalized, meta);
+    };
+    (Array.isArray(EXERCISE_LIBRARY) ? EXERCISE_LIBRARY : []).forEach((exercise) => {
+        if (!exercise) return;
+        const name = typeof exercise.name === "string" ? exercise.name.trim() : "";
+        if (!name) return;
+        register(name, exercise);
+        const simplified = name.replace(/\s*\(([^)]+)\)\s*/g, "").trim();
+        if (simplified && simplified !== name) register(simplified, exercise);
+    });
+    return map;
+})();
+
+const findExerciseMeta = (rawName) => {
+    if (typeof rawName !== "string") return null;
+    const normalized = rawName.trim().toLowerCase();
+    if (!normalized) return null;
+    const direct = EXERCISE_META_LOOKUP.get(normalized);
+    if (direct) return direct;
+    const simplified = normalized.replace(/\s*\(([^)]+)\)\s*/g, "").trim();
+    if (simplified && simplified !== normalized) {
+        return EXERCISE_META_LOOKUP.get(simplified) || null;
+    }
+    return null;
+};
+
+const extractEquipmentLabel = (value) => {
+    if (value == null) return "";
+    if (typeof value === "string") {
+        return value.trim();
+    }
+    if (Array.isArray(value)) {
+        const joined = value
+            .map((item) => extractEquipmentLabel(item))
+            .filter(Boolean)
+            .join(", ");
+        return joined.trim();
+    }
+    if (typeof value === "object") {
+        const candidates = [
+            value.label,
+            value.name,
+            value.title,
+            value.type,
+            value.category,
+            value.value,
+        ];
+        for (const candidate of candidates) {
+            if (candidate && candidate !== value) {
+                const label = extractEquipmentLabel(candidate);
+                if (label) return label;
+            }
+        }
+        return "";
+    }
+    return String(value).trim();
+};
+
+const resolveEquipmentLabel = (...candidates) => {
+    for (const candidate of candidates) {
+        const label = extractEquipmentLabel(candidate);
+        if (label) return label;
     }
     return "";
 };
@@ -442,7 +514,7 @@ const PastWorkoutScreen = () => {
 
     const isOwner = Boolean(viewerUid && workoutOwnerUid && viewerUid === workoutOwnerUid);
     const canEditWorkout = Boolean(isOwner && !isLiveWorkout);
-    const [deletingWorkout, setDeletingWorkout] = useState(false);
+    // const [deletingWorkout, setDeletingWorkout] = useState(false);
     const [editingVisible, setEditingVisible] = useState(false);
     const startEditingFromRoute = Boolean(route.params?.startEditing);
 
@@ -602,11 +674,35 @@ const PastWorkoutScreen = () => {
                 basePayload.equipment = exercise.equipmentType;
             }
 
+            const catalogMeta = findExerciseMeta(name);
+            if (catalogMeta) {
+                if (!basePayload.muscleGroup && catalogMeta.muscleGroup) {
+                    basePayload.muscleGroup = catalogMeta.muscleGroup;
+                }
+                if (!basePayload.muscle && catalogMeta.muscleGroup) {
+                    basePayload.muscle = catalogMeta.muscleGroup;
+                }
+            }
+
+            const equipmentLabel = resolveEquipmentLabel(
+                basePayload.equipment,
+                basePayload.equipmentType,
+                exercise?.equipment,
+                exercise?.equipmentType,
+                catalogMeta?.equipment
+            );
+            if (equipmentLabel) {
+                basePayload.equipment = equipmentLabel;
+            } else {
+                delete basePayload.equipment;
+            }
+
             navigation.navigate("ExerciseDetail", { exercise: basePayload });
         },
         [navigation]
     );
 
+    /*
     const performDeleteWorkout = useCallback(async () => {
         if (!canEditWorkout || deletingWorkout) return;
         const uid = viewerUid;
@@ -638,7 +734,7 @@ const PastWorkoutScreen = () => {
                         global.userData.workoutsByDate = result.workoutsByDate || {};
                     }
                 } catch {
-                    /* no-op */
+                    // no-op
                 }
                 emitHexagonUpdate();
                 navigation.goBack();
@@ -663,6 +759,7 @@ const PastWorkoutScreen = () => {
             },
         ]);
     }, [canEditWorkout, deletingWorkout, performDeleteWorkout]);
+    */
 
     const handleSaveEditedWorkout = useCallback(async (updatedWorkout) => {
         if (!canEditWorkout || !updatedWorkout) return;
@@ -748,7 +845,7 @@ const PastWorkoutScreen = () => {
 
             ],
         );
-    }, [handleRequestDeleteWorkout, canEditWorkout]);
+    }, [canEditWorkout]);
 
     const handleCheer = useCallback(() => {
         try { hapticStrong(); } catch { }
@@ -766,6 +863,7 @@ const PastWorkoutScreen = () => {
                     {isLiveWorkout ? "Workout in Progress" : "Workout Details"}
                 </Text>
                 <View style={styles.headerRight}>
+                    {/* 
                     {canEditWorkout ? (
                         <Pressable
                             onPress={handleRequestDeleteWorkout}
@@ -780,6 +878,7 @@ const PastWorkoutScreen = () => {
                             />
                         </Pressable>
                     ) : null}
+                    */}
                 </View>
             </View>
 
@@ -848,12 +947,11 @@ const PastWorkoutScreen = () => {
                                                 style={styles.moreButton}
                                                 onPress={handlePressDetailMenu}
                                                 hitSlop={{ top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(6), right: scaleSize(6) }}
-                                                disabled={deletingWorkout}
                                             >
                                                 <MaterialCommunityIcons
                                                     name="dots-vertical"
                                                     size={scaleSize(20)}
-                                                    color={deletingWorkout ? theme.textSecondary : theme.textPrimary}
+                                                    color={theme.textPrimary}
                                                 />
                                             </Pressable>
                                         ) : null}

@@ -17,6 +17,7 @@ import theme from '../theme/mfpDark';
 import scaleSize from '../helper/scaleSize';
 import useAuthBackgroundSource from '../hooks/useAuthBackgroundSource';
 import { sanitizeHandle, USERNAME_REGEX, claimHandle } from '../utils/usernameRegistration';
+import { refreshAuthStatus } from '../state/authStatusController';
 
 const CreateUsername = ({ navigation, route }) => {
   const nextRoute = route?.params?.nextRoute || 'Tabs';
@@ -62,6 +63,7 @@ const CreateUsername = ({ navigation, route }) => {
     Keyboard.dismiss();
     try {
       await claimHandle(normalized, pendingProfile || undefined);
+      await refreshAuthStatus().catch(() => {});
       navigation.reset({ index: 0, routes: [{ name: nextRoute }] });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to save username.';

@@ -31,6 +31,8 @@ import { initCommunityStats, refreshCommunityStats } from './frontend/logic/comm
 import { ensureAuthBackgroundAsync } from './frontend/utils/authBackground';
 import { emitUserDataUpdate } from './frontend/utils/userDataEvents';
 import { withLegacyPhotoFields } from './frontend/utils/profilePhoto';
+import { prepareProfileForAuth } from './frontend/services/userProfileService';
+import { registerAuthStatusController } from './frontend/state/authStatusController';
 
 /* Screens */
 import SignUp from './frontend/screens/0.0_SignUp';
@@ -164,6 +166,98 @@ export default function App() {
     const prevMessagesSigRef = useRef('');
     const latestUserPublicRef = useRef(null);
     const latestUserPrivateRef = useRef(null);
+    const pendingHandleRef = useRef(null);
+
+    const markPendingHandle = useCallback((payload = {}) => {
+        const existing = pendingHandleRef.current || {};
+        const next = {
+            uid: payload?.uid || existing.uid || auth.currentUser?.uid || null,
+            provider: payload?.provider ?? existing.provider ?? null,
+            pendingProfile: payload?.pendingProfile ?? existing.pendingProfile ?? null,
+            initialHandle: typeof payload?.initialHandle === 'string'
+                ? payload.initialHandle
+                : (existing.initialHandle || ''),
+            nextRoute: payload?.nextRoute || existing.nextRoute || 'Tabs',
+            timestamp: Date.now(),
+        };
+        pendingHandleRef.current = next;
+        setIsAuthenticated(false);
+        return next;
+    }, []);
+
+    const clearPendingHandle = useCallback(() => {
+        pendingHandleRef.current = null;
+        const user = auth.currentUser;
+        setIsAuthenticated(Boolean(user));
+    }, []);
+
+    const ensureUsernameFlow = useCallback((payload = {}) => {
+        try {
+            const nav = navigationRef.current;
+            if (!nav?.isReady?.()) return;
+            const params = {
+                uid: payload?.uid || auth.currentUser?.uid || null,
+                initialHandle: payload?.initialHandle || '',
+                pendingProfile: payload?.pendingProfile || null,
+                nextRoute: payload?.nextRoute || 'Tabs',
+            };
+            nav.navigate('CreateUsername', { ...params, merge: true });
+        } catch { }
+    }, []);
+
+    const refreshAuthStatus = useCallback(async () => {
+        const user = auth.currentUser;
+        if (!user) {
+            pendingHandleRef.current = null;
+            setIsAuthenticated(false);
+            return;
+        }
+        try {
+            const prepared = await prepareProfileForAuth();
+            if (prepared?.requiresHandle) {
+                const providerId = prepared?.pendingProfile?.providerId
+                    || prepared?.publicProfile?.providerId
+                    || user.providerData?.[0]?.providerId
+                    || null;
+                if (providerId === 'password') {
+                    clearPendingHandle();
+                    return;
+                }
+                const next = markPendingHandle({
+                    uid: user.uid,
+                    pendingProfile: prepared?.pendingProfile || null,
+                    initialHandle: prepared?.publicProfile?.handle || '',
+                    provider: providerId,
+                    nextRoute: 'Tabs',
+                });
+                ensureUsernameFlow(next);
+            } else {
+                clearPendingHandle();
+            }
+        } catch {
+            clearPendingHandle();
+        }
+    }, [clearPendingHandle, ensureUsernameFlow, markPendingHandle]);
+
+    useEffect(() => {
+        const unregister = registerAuthStatusController({
+            markPendingHandle,
+            clearPendingHandle,
+            refreshAuthStatus,
+            getPendingHandle: () => pendingHandleRef.current,
+        });
+        return unregister;
+    }, [clearPendingHandle, markPendingHandle, refreshAuthStatus]);
+
+    useEffect(() => {
+        if (!authChecked) return;
+        const nav = navigationRef.current;
+        if (!nav?.isReady?.()) return;
+        const pending = pendingHandleRef.current;
+        if (pending) {
+            ensureUsernameFlow(pending);
+        }
+    }, [authChecked, ensureUsernameFlow]);
 
     const animateFooterVisibility = useCallback((visible) => {
         if (footerVisibilityTargetRef.current === visible && footerVisibilitySV.value === (visible ? 1 : 0)) {
@@ -398,6 +492,7 @@ export default function App() {
             prevMessagesSigRef.current = '';
             resetMessagesState();
             stopNotificationsListener();
+            pendingHandleRef.current = null;
         };
 
         const unsub = onAuthStateChanged(auth, (firebaseUser) => {
@@ -407,6 +502,7 @@ export default function App() {
             if (!nextUid) {
                 handleLogoutSideEffects(prevUid);
                 setIsAuthenticated(false);
+                pendingHandleRef.current = null;
                 setAuthChecked(true);
                 return;
             }
@@ -424,8 +520,13 @@ export default function App() {
             try { global.__lastKnownUid = nextUid; } catch { }
             try { delete global.__userDocHydrated; } catch { }
             prevMessagesSigRef.current = '';
-            setIsAuthenticated(true);
-            setAuthChecked(true);
+            refreshAuthStatus()
+                .catch(() => {
+                    clearPendingHandle();
+                })
+                .finally(() => {
+                    setAuthChecked(true);
+                });
         });
 
         global.logout = async () => {
@@ -436,7 +537,7 @@ export default function App() {
             try { unsub(); } catch { }
             try { delete global.logout; } catch { }
         };
-    }, []);
+    }, [clearPendingHandle, refreshAuthStatus]);
 
     // Hydrate global.userData as early as possible when authenticated
     // Foreground notification behavior (show banner + play sound)

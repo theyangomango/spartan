@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { markPendingHandle, clearPendingHandle } from '../state/authStatusController';
 
 const DEFAULT_ERROR = 'Unable to sign in. Try again.';
 
@@ -14,6 +15,13 @@ export default function useAuthProviderFlow(navigation) {
       || (creationTime && lastSignInTime && creationTime !== lastSignInTime);
 
     if (result?.requiresHandle && uid && !isReturningUser) {
+      markPendingHandle({
+        uid,
+        provider: result?.provider || null,
+        pendingProfile: result?.pendingProfile || null,
+        initialHandle: result?.publicProfile?.handle || '',
+        nextRoute: 'Tabs',
+      });
       navigation.navigate('CreateUsername', {
         uid,
         initialHandle: result?.publicProfile?.handle || '',
@@ -22,6 +30,7 @@ export default function useAuthProviderFlow(navigation) {
       });
       return;
     }
+    clearPendingHandle();
     if (uid) {
       navigation.reset({ index: 0, routes: [{ name: 'Tabs' }] });
       return;
