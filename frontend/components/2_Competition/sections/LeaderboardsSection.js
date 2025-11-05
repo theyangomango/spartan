@@ -27,6 +27,7 @@ import {
     arrayUnion,
     arrayRemove,
     getDocs,
+    runTransaction,
 } from "firebase/firestore";
 
 import useStableSafeAreaInsets from "../../../hooks/useStableSafeAreaInsets";
@@ -74,6 +75,8 @@ const BODY_FOCUS_LABEL_MAP = BODY_FOCUS_OPTIONS.reduce((acc, opt) => {
     acc[opt.value] = opt.label;
     return acc;
 }, {});
+const BODYWEIGHT_BLOCK_MESSAGE =
+    "This tribe’s comparison is normalized by bodyweight. Please enter your weight to view rankings.";
 
 const STAGE_VERTICAL_OFFSET = scaleSize(0);
 
@@ -254,15 +257,18 @@ export default function LeaderboardsSection({ navigation }) {
     const [comparedExercise, setComparedExercise] = useState("Overall");
     const fallbackScope = LAST_SCOPE === "Tribe" ? "Tribe" : "Following";
     const sanitizedInitialScope = persisted.scope === "Tribe" ? "Tribe" : "Following";
-    const [scope, setScope] = useState(sanitizedInitialScope ?? fallbackScope);
+const [scope, setScope] = useState(sanitizedInitialScope ?? fallbackScope);
+const persistedScopeRef = useRef(sanitizedInitialScope ?? fallbackScope);
 
-    useEffect(() => {
-        if (persisted?.scope === "Tribe") {
-            setScope("Tribe");
-        } else {
-            setScope("Following");
+useEffect(() => {
+    const targetScope = persisted?.scope === "Tribe" ? "Tribe" : "Following";
+    if (targetScope !== persistedScopeRef.current) {
+        persistedScopeRef.current = targetScope;
+        if (scope !== targetScope) {
+            setScope(targetScope);
         }
-    }, [persisted?.scope]);
+    }
+}, [persisted?.scope, scope]);
 
     const [usersLoaded, setUsersLoaded] = useState(false);
     const [tribesHydrated, setTribesHydrated] = useState(false);
@@ -333,10 +339,11 @@ export default function LeaderboardsSection({ navigation }) {
     const [comparisonManagerVisible, setComparisonManagerVisible] = useState(false);
     const [activeCompIndex, setActiveCompIndex] = useState(0);
 
-    useEffect(() => {
-        LAST_SCOPE = scope;
-        setPersisted({ scope });
-    }, [scope]);
+useEffect(() => {
+    LAST_SCOPE = scope;
+    persistedScopeRef.current = scope;
+    setPersisted({ scope });
+}, [scope]);
     useEffect(() => {
         LAST_SELECTED_TRIBE_ID = selectedTribeId;
         setPersisted({ selectedTribeId });
@@ -524,23 +531,42 @@ export default function LeaderboardsSection({ navigation }) {
 
             const type = String(lastView.type || "").toLowerCase();
             if (type === "tribe" && lastView.tribeId) {
-                setScope("Tribe");
-                setSelectedTribeId(String(lastView.tribeId));
+                setScope((prev) => (prev === "Tribe" ? prev : "Tribe"));
+                setSelectedTribeId((prev) => {
+                    const next = String(lastView.tribeId);
+                    return prev === next ? prev : next;
+                });
                 if (lastView.comparison) {
                     try {
                         const idx = Number(lastView.comparisonIndex || 0);
-                        if (Number.isFinite(idx)) setActiveCompIndex(Math.max(0, idx));
+                        if (Number.isFinite(idx)) {
+                            setActiveCompIndex((prev) => {
+                                const next = Math.max(0, idx);
+                                return prev === next ? prev : next;
+                            });
+                        }
                     } catch {
                         //
                     }
                 }
                 return;
             }
-            setScope("Following");
-            if (lastView.exercise) setComparedExercise(String(lastView.exercise));
-            if (lastView.metric) setComparedMetric(String(lastView.metric));
+            setScope((prev) => (prev === "Following" ? prev : "Following"));
+            if (lastView.exercise)
+                setComparedExercise((prev) => {
+                    const next = String(lastView.exercise);
+                    return prev === next ? prev : next;
+                });
+            if (lastView.metric)
+                setComparedMetric((prev) => {
+                    const next = String(lastView.metric);
+                    return prev === next ? prev : next;
+                });
             if (lastView.bodyFocus && BODY_FOCUS_LABEL_MAP[lastView.bodyFocus]) {
-                setBodyFocus(String(lastView.bodyFocus));
+                setBodyFocus((prev) => {
+                    const next = String(lastView.bodyFocus);
+                    return prev === next ? prev : next;
+                });
             }
         };
 
@@ -555,6 +581,7 @@ export default function LeaderboardsSection({ navigation }) {
     }, []);
 
     const [blockedReason, setBlockedReason] = useState(null);
+    const viewerWeight = Number(global?.userData?.personalInfo?.weight || 0);
 
     const handleToggleFocusMenu = useCallback(() => {
         if (isBodyFocusMenuVisible) {
@@ -576,20 +603,44 @@ export default function LeaderboardsSection({ navigation }) {
 
     useEffect(() => {
         if (isBodyFocusMenuVisible) return;
-        setFocusMenuAnchor({
-            x: SIZES.headerPaddingHorizontal,
-            y: 0,
-            width: 0,
-            height: 0,
+        setFocusMenuAnchor((prev) => {
+            const reset = {
+                x: SIZES.headerPaddingHorizontal,
+                y: 0,
+                width: 0,
+                height: 0,
+            };
+            if (
+                prev &&
+                prev.x === reset.x &&
+                prev.y === reset.y &&
+                prev.width === reset.width &&
+                prev.height === reset.height
+            ) {
+                return prev;
+            }
+            return reset;
         });
     }, [isBodyFocusMenuVisible]);
     useEffect(() => {
         if (tribeMenuVisible) return;
-        setTribeMenuAnchor({
-            x: SIZES.headerPaddingHorizontal,
-            y: 0,
-            width: 0,
-            height: 0,
+        setTribeMenuAnchor((prev) => {
+            const reset = {
+                x: SIZES.headerPaddingHorizontal,
+                y: 0,
+                width: 0,
+                height: 0,
+            };
+            if (
+                prev &&
+                prev.x === reset.x &&
+                prev.y === reset.y &&
+                prev.width === reset.width &&
+                prev.height === reset.height
+            ) {
+                return prev;
+            }
+            return reset;
         });
     }, [tribeMenuVisible]);
 
@@ -787,30 +838,26 @@ export default function LeaderboardsSection({ navigation }) {
     ]);
 
     useEffect(() => {
-        if (activeCompIndex >= tribeComparisons.length) setActiveCompIndex(0);
+        if (tribeComparisons.length === 0) {
+            if (activeCompIndex !== 0) setActiveCompIndex(0);
+            return;
+        }
+        const maxIndex = Math.max(0, tribeComparisons.length - 1);
+        const clamped = Math.min(Math.max(0, activeCompIndex), maxIndex);
+        if (clamped !== activeCompIndex) {
+            setActiveCompIndex(clamped);
+        }
     }, [tribeComparisons.length, activeCompIndex]);
 
     const rankedDisplay = useMemo(() => userList || [], [userList]);
 
     useEffect(() => {
-        if (!isCustomTribe) {
-            setBlockedReason(null);
-            return;
+        const requiresBodyweight = Boolean(isCustomTribe && activeComparison?.normalizeByBodyweight);
+        const nextReason = requiresBodyweight && !(viewerWeight > 0) ? BODYWEIGHT_BLOCK_MESSAGE : null;
+        if (blockedReason !== nextReason) {
+            setBlockedReason(nextReason);
         }
-        const needsBW = !!(activeComparison && activeComparison.normalizeByBodyweight);
-        if (!needsBW) {
-            setBlockedReason(null);
-            return;
-        }
-        const myW = Number(global?.userData?.personalInfo?.weight || 0);
-        if (myW > 0) {
-            setBlockedReason(null);
-        } else {
-            setBlockedReason(
-                "This tribe’s comparison is normalized by bodyweight. Please enter your weight to view rankings."
-            );
-        }
-    }, [isCustomTribe, selectedTribeId, activeComparison]);
+    }, [isCustomTribe, selectedTribeId, activeComparison?.normalizeByBodyweight, viewerWeight, blockedReason]);
 
     const openModal = () => setSelectExerciseModalVisible(true);
     const closeModal = () => setSelectExerciseModalVisible(false);
@@ -900,15 +947,25 @@ export default function LeaderboardsSection({ navigation }) {
     useEffect(() => {
         const pi = global?.userData?.personalInfo;
         if (!pi) return;
-        setInfoForm((s) => ({
-            ...s,
-            gender: pi.gender ?? s.gender,
-            activity: pi.activity ?? s.activity,
-            goal: pi.goal ?? s.goal,
-            weight: pi.weight != null ? String(pi.weight) : s.weight,
-            heightFt: pi.heightFt != null ? String(pi.heightFt) : s.heightFt,
-            heightIn: pi.heightIn != null ? String(pi.heightIn) : s.heightIn,
-        }));
+        setInfoForm((prev) => {
+            const next = {
+                ...prev,
+                gender: pi.gender ?? prev.gender,
+                activity: pi.activity ?? prev.activity,
+                goal: pi.goal ?? prev.goal,
+                weight: pi.weight != null ? String(pi.weight) : prev.weight,
+                heightFt: pi.heightFt != null ? String(pi.heightFt) : prev.heightFt,
+                heightIn: pi.heightIn != null ? String(pi.heightIn) : prev.heightIn,
+            };
+            const changed =
+                next.gender !== prev.gender ||
+                next.activity !== prev.activity ||
+                next.goal !== prev.goal ||
+                next.weight !== prev.weight ||
+                next.heightFt !== prev.heightFt ||
+                next.heightIn !== prev.heightIn;
+            return changed ? next : prev;
+        });
     }, [global?.userData?.personalInfo]);
 
     const savePersonalInfo = useCallback(async () => {
@@ -974,22 +1031,59 @@ export default function LeaderboardsSection({ navigation }) {
         const d = snap.docs[0];
         const target = { id: d.id, ...d.data() };
 
-        const myBlocked = new Set(ensureUidArray(global?.userData?.blockedUidList || global?.userData?.blocked));
-        const myBlockedBy = new Set(ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy));
-        const targetMembers = ensureUidArray(target?.members);
-        const conflict = targetMembers.some((memberUid) => myBlocked.has(memberUid) || myBlockedBy.has(memberUid));
-        if (conflict) {
-            Alert.alert(
-                "Cannot Join Tribe",
-                "You cannot join this tribe because it contains someone you have blocked or who has blocked you."
+        const tribeRef = doc(db, "tribes", target.id);
+        const membershipStatus = await runTransaction(db, async (tx) => {
+            const tribeSnap = await tx.get(tribeRef);
+            if (!tribeSnap.exists()) {
+                throw new Error("tribe:not_found");
+            }
+            const data = tribeSnap.data() || {};
+            const existingMembers = ensureUidArray(data.members);
+
+            const myBlocked = new Set(
+                ensureUidArray(global?.userData?.blockedUidList || global?.userData?.blocked)
             );
+            const myBlockedBy = new Set(
+                ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy)
+            );
+            const conflict = existingMembers.some(
+                (memberUid) => myBlocked.has(memberUid) || myBlockedBy.has(memberUid)
+            );
+            if (conflict) {
+                throw new Error("tribe:blocked_conflict");
+            }
+
+            if (existingMembers.includes(uid)) {
+                return "already-member";
+            }
+
+            const nextMembers = [...existingMembers, uid];
+            tx.update(tribeRef, {
+                members: nextMembers,
+                updatedAt: serverTimestamp(),
+            });
+            return "joined";
+        }).catch((err) => {
+            if (err?.message === "tribe:blocked_conflict") {
+                Alert.alert(
+                    "Cannot Join Tribe",
+                    "You cannot join this tribe because it contains someone you have blocked or who has blocked you."
+                );
+                return "conflict";
+            }
+            if (err?.message === "tribe:not_found") {
+                Alert.alert("Cannot Join Tribe", "This tribe is no longer available.");
+                return "missing";
+            }
+            console.log("join tribe failed", err?.message || err);
+            Alert.alert("Cannot Join Tribe", "We couldn’t join this tribe. Please try again.");
+            return "error";
+        });
+
+        if (membershipStatus === "conflict" || membershipStatus === "missing" || membershipStatus === "error") {
             return;
         }
 
-        await updateDoc(doc(db, "tribes", target.id), {
-            members: arrayUnion(uid),
-            updatedAt: serverTimestamp(),
-        });
         await updateDoc(doc(db, "usersPrivate", uid), { tribeIds: arrayUnion(target.id) }).catch(() => {});
         setJoinModalVisible(false);
         setJoinCode("");
@@ -999,9 +1093,19 @@ export default function LeaderboardsSection({ navigation }) {
     const handleLeaveTribe = async () => {
         const uid = global?.userData?.uid;
         if (!uid || !selectedTribeId) return;
-        await updateDoc(doc(db, "tribes", selectedTribeId), {
-            members: arrayRemove(uid),
-            updatedAt: serverTimestamp(),
+        const tribeRef = doc(db, "tribes", selectedTribeId);
+        await runTransaction(db, async (tx) => {
+            const tribeSnap = await tx.get(tribeRef);
+            if (!tribeSnap.exists()) return;
+            const data = tribeSnap.data() || {};
+            const existingMembers = ensureUidArray(data.members);
+            const nextMembers = existingMembers.filter((memberUid) => memberUid !== uid);
+            tx.update(tribeRef, {
+                members: nextMembers,
+                updatedAt: serverTimestamp(),
+            });
+        }).catch((err) => {
+            console.log("leave tribe failed", err?.message || err);
         });
         await updateDoc(doc(db, "usersPrivate", uid), { tribeIds: arrayRemove(selectedTribeId) }).catch(() => {});
         setManageModalVisible(false);
@@ -1446,11 +1550,8 @@ export default function LeaderboardsSection({ navigation }) {
                     setTribeMenuVisible(false);
 
                     if (needsBW) {
-                        const myW = Number(global?.userData?.personalInfo?.weight || 0);
-                        if (!(myW > 0)) {
-                            setBlockedReason(
-                                "This tribe’s comparison is normalized by bodyweight. Please enter your weight to view rankings."
-                            );
+                        if (!(viewerWeight > 0)) {
+                            setBlockedReason(BODYWEIGHT_BLOCK_MESSAGE);
                             requestAnimationFrame(() => setPersonalSheetIndex(1));
                         } else {
                             setBlockedReason(null);
