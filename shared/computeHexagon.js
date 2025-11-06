@@ -11,6 +11,7 @@ import computeHexagonCore, {
   GROUP_WR,
   normalizeEquipment,
 } from "./hexagon/computeHexagonCore.js";
+import { resolveMetaUsingCatalog } from "./hexagon/exerciseCatalogMeta.js";
 
 export {
   computeHexagonAlgorithm,
@@ -23,8 +24,10 @@ export {
   normalizeEquipment,
 };
 
+export const resolveMetaWithCatalog = (name) => resolveMetaUsingCatalog(name, defaultResolveMeta);
+
 export function computeHexagonFromStats(params = {}, options = {}) {
-  const { resolveMeta = defaultResolveMeta, includeDebug = false, ...rest } = options || {};
+  const { resolveMeta = resolveMetaWithCatalog, includeDebug = false, ...rest } = options || {};
   return computeHexagonCore(params, {
     resolveMeta,
     includeDebug,

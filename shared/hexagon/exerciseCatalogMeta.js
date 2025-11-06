@@ -54,3 +54,16 @@ export const lookupCatalogMeta = (name) => {
 export const hasCatalogMeta = (name) => lookupCatalogMeta(name) != null;
 
 export const catalogEntryCount = catalogMetaByName.size;
+
+export const resolveMetaUsingCatalog = (name, fallbackResolver) => {
+  const fallback = typeof fallbackResolver === "function" ? fallbackResolver(name) : { group: null, equipment: "" };
+  const catalog = lookupCatalogMeta(name);
+  if (!catalog) return fallback || { group: null, equipment: "" };
+  const base = fallback && typeof fallback === "object" ? fallback : { group: null, equipment: "" };
+  return {
+    ...base,
+    ...catalog,
+    group: catalog.group ?? base.group ?? null,
+    equipment: catalog.equipment ?? base.equipment ?? "",
+  };
+};

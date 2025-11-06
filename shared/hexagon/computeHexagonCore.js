@@ -1,8 +1,6 @@
 // shared/hexagon/computeHexagonCore.js
 // Canonical hexagon computation used across client and backend environments.
 
-import { lookupCatalogMeta } from "./exerciseCatalogMeta.js";
-
 export const GROUP_KEYS = ["shoulders", "chest", "arms", "legs", "back", "abs"];
 
 export const FULL_BODY_DIST = {
@@ -109,17 +107,8 @@ export function familyAnchorFor(name, group) {
 }
 
 export function defaultResolveMeta(name) {
-  const original = String(name || "").trim();
-  if (!original) return { group: null, equipment: "" };
-  const n = original.toLowerCase();
-
-  const catalog = lookupCatalogMeta(original);
-  if (catalog) {
-    return {
-      group: catalog.group ?? null,
-      equipment: catalog.equipment ?? "",
-    };
-  }
+  const n = String(name || "").toLowerCase();
+  if (!n) return { group: null, equipment: "" };
 
   const group =
     /shoulder|overhead|press|raise|shrug|upright row/.test(n)
