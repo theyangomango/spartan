@@ -89,9 +89,8 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
     const prevOverallNumber = Number(prevOverallRaw);
     const prevOverall = Number.isFinite(prevOverallNumber) ? formatHexStat(prevOverallNumber) : null;
     const ovrChanged = prevOverall !== null && prevOverall !== overall;
-    const joinedLabel = formatJoinDate(
-        user?.joined
-    );
+    const joinedSource = user?.joined ?? user?.createdAt ?? user?.usersPublic?.createdAt ?? user?.created;
+    const joinedLabel = formatJoinDate(joinedSource);
 
     // ---------- Exercise detail (sets) overlay state ----------
     const [detailName, setDetailName] = useState(null); // exercise name

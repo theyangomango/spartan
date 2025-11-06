@@ -29,6 +29,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
                         isVerified={isVerified}
                         textStyle={styles.handle_text}
                         numberOfLines={1}
+                        iconTranslateY={-1}
                         containerStyle={styles.handleInner}
                     />
                     {/* <ArrowDown2

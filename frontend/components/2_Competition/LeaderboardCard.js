@@ -115,6 +115,7 @@ export default function LeaderboardCard({
                             preserveTextAlignment
                             textStyle={[styles.handle_text, { fontSize: scaleSize(FONT_HANDLE) }]}
                             numberOfLines={1}
+                            iconTranslateY={-1}
                             iconSize={scaleSize(15)}
                             containerStyle={styles.handle_row}
                         />

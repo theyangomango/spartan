@@ -160,10 +160,17 @@ const getExercisesGrouped = (user) => {
 const toDate = (d) => {
     if (!d) return null;
     if (d instanceof Date) return d;
-    if (typeof d === "object" && Number.isFinite(d.seconds)) return new Date(d.seconds * 1000);
+    if (typeof d?.toDate === "function") {
+        const fromTimestamp = d.toDate();
+        if (fromTimestamp instanceof Date && !Number.isNaN(fromTimestamp.getTime())) {
+            return fromTimestamp;
+        }
+    }
+    const secondsValue = Number(d?.seconds ?? d?._seconds);
+    if (Number.isFinite(secondsValue)) return new Date(secondsValue * 1000);
     if (typeof d === "number") return new Date(d);
     const parsed = new Date(d);
-    return isNaN(parsed.getTime()) ? null : parsed;
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
 };
 
 const formatJoinDate = (raw) => {

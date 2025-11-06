@@ -20,6 +20,7 @@ export default function VerifiedHandle({
     iconColor = theme.primary,
     iconSize,
     iconStyle,
+    iconTranslateY,
     numberOfLines = 1,
     ellipsizeMode = "tail",
     textProps = {},
@@ -42,9 +43,23 @@ export default function VerifiedHandle({
     }, [iconSize, resolvedFontSize]);
 
     const iconVerticalOffset = useMemo(() => {
+        if (isFiniteNumber(iconTranslateY)) return iconTranslateY;
         const lift = resolvedFontSize * 0.15;
         return -Math.min(Math.max(lift, 2), 3);
-    }, [resolvedFontSize]);
+    }, [iconTranslateY, resolvedFontSize]);
+
+    const iconMergedStyle = useMemo(() => {
+        const flattened = StyleSheet.flatten(iconStyle) || {};
+        const propTransforms = Array.isArray(flattened.transform) ? flattened.transform : [];
+        return [
+            styles.icon,
+            iconStyle,
+            {
+                marginRight: resolvedMargin,
+                transform: [...propTransforms, { translateY: iconVerticalOffset }],
+            },
+        ];
+    }, [iconStyle, resolvedMargin, iconVerticalOffset]);
 
     if (!handle?.length) {
         return (
@@ -66,14 +81,7 @@ export default function VerifiedHandle({
                     size={iconFinalSize}
                     color={iconColor}
                     variant="Bold"
-                    style={[
-                        styles.icon,
-                        iconStyle,
-                        {
-                            marginRight: resolvedMargin,
-                            transform: [{ translateY: iconVerticalOffset }],
-                        },
-                    ]}
+                    style={iconMergedStyle}
                     />
             ) : preserveTextAlignment ? (
                 <></>
