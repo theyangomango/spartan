@@ -964,35 +964,7 @@ export default function App() {
 
             const publicData = latestUserPublicRef.current || {};
             const privateData = latestUserPrivateRef.current || {};
-            const mergedFromSnapshots = withLegacyPhotoFields({ uid, ...publicData, ...privateData });
-
-            const previousGlobal = (() => {
-                try {
-                    return global?.userData && typeof global.userData === 'object' ? global.userData : null;
-                } catch {
-                    return null;
-                }
-            })();
-
-            let mergedProgress = mergedFromSnapshots?.progress;
-            const hasSnapshotWeightEntries = Array.isArray(mergedProgress?.weightEntries);
-            if (!hasSnapshotWeightEntries) {
-                // Preserve optimistic weight entries until Firestore includes them.
-                const previousEntries = Array.isArray(previousGlobal?.progress?.weightEntries)
-                    ? previousGlobal.progress.weightEntries
-                    : null;
-                if (Array.isArray(previousEntries) && previousEntries.length > 0) {
-                    mergedProgress = {
-                        ...(mergedProgress || {}),
-                        weightEntries: previousEntries.slice(),
-                    };
-                }
-            }
-
-            const mergedData = { ...mergedFromSnapshots };
-            if (mergedProgress !== undefined) {
-                mergedData.progress = mergedProgress;
-            }
+            const mergedData = withLegacyPhotoFields({ uid, ...publicData, ...privateData });
 
             try {
                 global.userData = mergedData;

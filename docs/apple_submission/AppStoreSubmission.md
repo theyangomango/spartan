@@ -10,15 +10,17 @@ Stay accountable with Spartan - share workouts, climb the leaderboard, and push 
 
 ### Description (≤4,000 characters)
 
-Spartan is the collaborative training platform built for lifters who push each other harder. Log every set, see how your friends are progressing, and rally around shared goals with leaderboards, streaks, and live feedback that keep the whole squad motivated.
+Spartan is the training clubhouse for lifters who stay motivated by each other. From logging sets to hyping PRs, Spartan keeps every teammate in sync so the whole crew levels up together.
 
-- Log workouts fast with templated exercise flows, personal best callouts, and rich notes for each set.  
-- Drop highlights, photos, and clips into the feed so teammates can react, cheer, and offer coaching on the spot.  
-- Track weekly volume, PR streaks, and movement trends to understand what's working before your next session.  
-- Join private or team leaderboards to stack points, settle challenges, and celebrate the grind together.  
-- Dive into detailed stats on any workout you've completed, complete with exercise histories and comparisons.
+We make it effortless to capture your work, rally your squad, and spot what’s working before the next session. Tap into leaderboards, streaks, and real-time updates that turn accountability into daily momentum.
 
-Whether you're dialing in a comp cycle or just keeping your crew accountable, Spartan keeps every rep connected and every win celebrated.
+- **Log faster, push harder.** Create workouts with templated flows, plate math, and personal-best callouts that keep you moving instead of menu diving.  
+- **Share the grind in the feed.** Drop videos, photos, and highlights so friends can react, coach, and celebrate in real time.  
+- **Track the metrics that matter.** Follow weekly volume, movement trends, PR streaks, and macro targets in a single connected dashboard.  
+- **Compete with your crew.** Spin up private or team leaderboards, settle challenges, and keep score of every rep that moves you up the ranks.  
+- **Review every set with receipts.** Dive into exercise histories, compare past sessions, and replay the workouts that delivered your biggest wins.
+
+Spartan keeps the reps honest, the stats transparent, and the team energy high—whether you’re peaking for a meet or just keeping the squad accountable.
 
 ### Keywords (≤100 characters total, comma-separated)
 
