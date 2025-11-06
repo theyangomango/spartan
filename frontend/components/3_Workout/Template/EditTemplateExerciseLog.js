@@ -1,7 +1,7 @@
 import React, { useState, useRef, useMemo } from "react";
 import { View, StyleSheet, Text, Pressable, Image, Animated } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
-import { Entypo } from '@expo/vector-icons';
+import { Entypo, MaterialCommunityIcons } from '@expo/vector-icons';
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import ExerciseOptionsPanel from "../NewWorkout/Tracking/ExerciseOptionsPanel";
 import TemplateSetRow from "./TemplateSetRow";
@@ -10,6 +10,7 @@ import { withStrongPress } from "../../../utils/haptics";
 import workoutTypography from "../shared/workoutTypography";
 import ExerciseAvatar from "../../common/ExerciseAvatar";
 import { computeDisplayNumbers } from "../shared/setTypeUtils";
+import { resolveExerciseWeighting } from "../../../utils/bodyweight";
 
 
 export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, updateSets, sets, replaceExercise, deleteExercise, readOnly = false }) {
@@ -78,6 +79,12 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
     }
 
     const displayNumbers = useMemo(() => computeDisplayNumbers(sets), [sets]);
+    const exerciseWeighting = useMemo(() => resolveExerciseWeighting(name), [name]);
+    const weightIcon = useMemo(() => {
+        if (exerciseWeighting === "weighted bodyweight") return "plus-thick";
+        if (exerciseWeighting === "assisted bodyweight") return "minus-thick";
+        return null;
+    }, [exerciseWeighting]);
 
     return (
         <View style={styles.main_ctnr}>
@@ -122,7 +129,17 @@ export default function EditTemplateExerciseLog({ name, muscle, exerciseIndex, u
                     <Text style={workoutTypography.columnLabel}>Previous</Text>
                 </View>
                 <View style={styles.weight_unit_ctnr}>
-                    <Text style={workoutTypography.columnLabel}>lbs</Text>
+                    <View style={styles.weight_label}>
+                        {weightIcon && (
+                            <MaterialCommunityIcons
+                                name={weightIcon}
+                                size={scaleSize(15)}
+                                color={theme.primary}
+                                style={styles.weight_icon}
+                            />
+                        )}
+                        <Text style={workoutTypography.columnLabel}>lbs</Text>
+                    </View>
                 </View>
                 <View style={styles.reps_ctnr}>
                     <Text style={workoutTypography.columnLabel}>Reps</Text>
@@ -222,6 +239,13 @@ const styles = StyleSheet.create({
     weight_unit_ctnr: {
         width: '18%',
         alignItems: 'center',
+    },
+    weight_label: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    weight_icon: {
+        marginRight: scaleSize(4),
     },
     reps_ctnr: {
         width: '18%',

@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "
 import { View, StyleSheet, Text, Pressable, Animated, LayoutAnimation, Platform, UIManager } from "react-native";
 import * as Haptics from "expo-haptics";
 import RNBounceable from "@freakycoder/react-native-bounceable";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import SetRow from "./SetRow";
 import theme from "../../../../theme/mfpDark";
 import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
@@ -11,6 +12,7 @@ import scaleSize from "../../../../helper/scaleSize";
 import workoutTypography from "../../shared/workoutTypography";
 import ExerciseAvatar from "../../../common/ExerciseAvatar";
 import { computeDisplayNumbers } from "../../shared/setTypeUtils";
+import { resolveExerciseWeighting } from "../../../../utils/bodyweight";
 const ENABLE_LAYOUT_ANIM = false;
 const SYNC_DEBOUNCE_MS = 80;
 const RAF_FALLBACK_MS = 24;
@@ -154,6 +156,13 @@ function ExerciseLog({
     const fadeAnim = useRef(new Animated.Value(1)).current;
     const optionsAnchorRef = useRef(null);
     const autoPrefilledIdsRef = useRef(new Set());
+
+    const exerciseWeighting = useMemo(() => resolveExerciseWeighting(name), [name]);
+    const weightIcon = useMemo(() => {
+        if (exerciseWeighting === "weighted bodyweight") return "plus-thick";
+        if (exerciseWeighting === "assisted bodyweight") return "minus-thick";
+        return null;
+    }, [exerciseWeighting]);
 
     useEffect(() => {
         autoPrefilledIdsRef.current = new Set();
@@ -367,7 +376,19 @@ function ExerciseLog({
             <Animated.View style={[styles.labels, { opacity: fadeAnim }]}>
                 <View style={styles.set_col}><Text style={workoutTypography.columnLabel}>Set</Text></View>
                 <View style={styles.prev_col}><Text style={workoutTypography.columnLabel}>Previous</Text></View>
-                <View style={styles.w_col}><Text style={workoutTypography.columnLabel}>lbs</Text></View>
+                <View style={styles.w_col}>
+                    <View style={styles.weightLabelWrapper}>
+                        {weightIcon && (
+                            <MaterialCommunityIcons
+                                name={weightIcon}
+                                size={scaleSize(15)}
+                                color={theme.primary}
+                                style={styles.weightLabelIcon}
+                            />
+                        )}
+                        <Text style={workoutTypography.columnLabel}>lbs</Text>
+                    </View>
+                </View>
                 <View style={styles.r_col}><Text style={workoutTypography.columnLabel}>Reps</Text></View>
             </Animated.View>
 
@@ -450,6 +471,8 @@ const styles = StyleSheet.create({
     set_col: { marginLeft: "5%", width: "8%", alignItems: "center" },
     prev_col: { width: "38%", alignItems: "center" },
     w_col: { width: "18%", alignItems: "center" },
+    weightLabelWrapper: { flexDirection: "row", alignItems: "center" },
+    weightLabelIcon: { marginRight: scaleSize(4) },
     r_col: { width: "18%", alignItems: "center" },
     add_set_btn_ctnr: { paddingHorizontal: scaleSize(20) },
     add_set_btn: {

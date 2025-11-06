@@ -6,6 +6,7 @@ import scaleSize from "../../helper/scaleSize";
 import workoutTypography from "../3_Workout/shared/workoutTypography";
 import ExerciseAvatar from "../common/ExerciseAvatar";
 import { computeDisplayNumbers, formatSetLabel, normalizeSetType } from "../3_Workout/shared/setTypeUtils";
+import { resolveExerciseWeighting } from "../../utils/bodyweight";
 
 const formatNumber = (value, fallback = "0") => {
   const num = Number(value);
@@ -66,6 +67,16 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0, onPress }) => {
   }, [exercise?.previousSets, exercise?.previous]);
 
   const displayNumbers = useMemo(() => computeDisplayNumbers(sets), [sets]);
+  const equipment = exercise?.equipment;
+  const exerciseWeighting = useMemo(
+    () => resolveExerciseWeighting(name, equipment),
+    [name, equipment]
+  );
+  const weightIcon = useMemo(() => {
+    if (exerciseWeighting === "weighted bodyweight") return "plus-thick";
+    if (exerciseWeighting === "assisted bodyweight") return "minus-thick";
+    return null;
+  }, [exerciseWeighting]);
 
   return (
     <View style={styles.mainContainer}>
@@ -90,7 +101,19 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0, onPress }) => {
       <View style={styles.labelsRow}>
         <View style={styles.setColumn}><Text style={workoutTypography.columnLabel}>Set</Text></View>
         <View style={styles.previousColumn}><Text style={workoutTypography.columnLabel}>Previous</Text></View>
-        <View style={styles.weightColumn}><Text style={workoutTypography.columnLabel}>lbs</Text></View>
+        <View style={styles.weightColumn}>
+          <View style={styles.weightLabel}>
+            {weightIcon && (
+              <MaterialCommunityIcons
+                name={weightIcon}
+                size={scaleSize(15)}
+                color={theme.primary}
+                style={styles.weightIcon}
+              />
+            )}
+            <Text style={workoutTypography.columnLabel}>lbs</Text>
+          </View>
+        </View>
         <View style={styles.repsColumn}><Text style={workoutTypography.columnLabel}>Reps</Text></View>
         <View style={styles.doneColumn} />
       </View>
@@ -203,6 +226,13 @@ const styles = StyleSheet.create({
   weightColumn: {
     width: "18%",
     alignItems: "center",
+  },
+  weightLabel: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  weightIcon: {
+    marginRight: scaleSize(4),
   },
   repsColumn: {
     width: "18%",

@@ -18,12 +18,28 @@ const buildLookup = (predicate) => {
 const BODYWEIGHT_NAME_SET = buildLookup(
   (ex) =>
     String(ex?.equipment || "").toLowerCase().includes("body weight") ||
-    String(ex?.equipment || "").toLowerCase().includes("bodyweight")
+    String(ex?.equipment || "").toLowerCase().includes("bodyweight") ||
+    String(ex?.weighted || "").toLowerCase() === "weighted bodyweight"
 );
 
-const BODYWEIGHT_ASSISTED_NAME_SET = buildLookup((ex) =>
-  String(ex?.name || "").toLowerCase().includes("assisted")
-);
+const BODYWEIGHT_ASSISTED_NAME_SET = buildLookup((ex) => {
+  const nameLc = String(ex?.name || "").toLowerCase();
+  if (String(ex?.weighted || "").toLowerCase() === "assisted bodyweight") return true;
+  return nameLc.includes("assisted");
+});
+
+const EXERCISE_WEIGHTING_MAP = (() => {
+  const map = new Map();
+  (EXERCISE_DEFS || []).forEach((exercise) => {
+    if (!exercise || typeof exercise !== "object") return;
+    const name = String(exercise?.name || "").trim().toLowerCase();
+    if (!name) return;
+    const weighting = String(exercise?.weighted || "").trim().toLowerCase();
+    if (!weighting) return;
+    map.set(name, weighting);
+  });
+  return map;
+})();
 
 const toKey = (value) => String(value || "").trim().toLowerCase();
 
@@ -31,6 +47,10 @@ export function inferBodyweightMode(name, equipment) {
   const nameKey = toKey(name);
   const equipKey = toKey(equipment);
   if (!nameKey && !equipKey) return null;
+
+  const weighted = EXERCISE_WEIGHTING_MAP.get(nameKey);
+  if (weighted === "assisted bodyweight") return "assisted";
+  if (weighted === "weighted bodyweight") return "bodyweight";
 
   if (BODYWEIGHT_ASSISTED_NAME_SET.has(nameKey) || nameKey.includes("assisted")) {
     return "assisted";
@@ -138,3 +158,15 @@ export function getCurrentUserBodyweight(fallback = BODYWEIGHT_DEFAULT_LB) {
 
 export const isBodyweightMode = (mode) => mode === "bodyweight";
 export const isBodyweightAssistedMode = (mode) => mode === "assisted";
+
+export function resolveExerciseWeighting(name, equipment) {
+  const nameKey = toKey(name);
+  const fromDefs = nameKey ? EXERCISE_WEIGHTING_MAP.get(nameKey) : null;
+  if (fromDefs === "weighted bodyweight") return "weighted bodyweight";
+  if (fromDefs === "assisted bodyweight") return "assisted bodyweight";
+
+  const inferred = inferBodyweightMode(name, equipment);
+  if (inferred === "assisted") return "assisted bodyweight";
+  if (inferred === "bodyweight") return "weighted bodyweight";
+  return "standard";
+}
