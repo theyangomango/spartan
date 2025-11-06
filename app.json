@@ -17,7 +17,7 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.yangbai.spartan",
       "buildNumber": "30",
       "usesAppleSignIn": true,
