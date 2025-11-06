@@ -206,18 +206,8 @@ const sanitizeEntries = (rawEntries) => {
 
 const selectWeightEntrySource = (user) => {
     if (!user || typeof user !== "object") return [];
-
-    const candidates = [
-        user?.progress?.weightEntries,
-        user?.weightEntries,
-        user?.bodyweightLog,
-    ];
-
-    const nonEmpty = candidates.find((list) => Array.isArray(list) && list.length > 0);
-    if (nonEmpty) return nonEmpty;
-
-    const firstArray = candidates.find((list) => Array.isArray(list));
-    return firstArray || [];
+    const entries = user?.progress?.weightEntries;
+    return Array.isArray(entries) ? entries : [];
 };
 
 const resolveWorkoutTimestamp = (workout) => {
@@ -1350,10 +1340,10 @@ const completedWorkouts = useMemo(
         return map;
     }, [completedWorkouts]);
 
-    const entries = useMemo(() => {
-        const list = selectWeightEntrySource(userData);
-        return sanitizeEntries(list);
-    }, [userData]);
+    const entries = useMemo(
+        () => sanitizeEntries(selectWeightEntrySource(userData)),
+        [userData?.progress?.weightEntries]
+    );
 
     const latestEntry = entries.length ? entries[entries.length - 1] : null;
     const latestWeightText = formatWeightValue(latestEntry?.weight);
@@ -1832,8 +1822,7 @@ const completedWorkouts = useMemo(
 
     const getCurrentSanitizedEntries = useCallback(() => {
         const currentUser = userRef.current;
-        const list = selectWeightEntrySource(currentUser);
-        return sanitizeEntries(list);
+        return sanitizeEntries(selectWeightEntrySource(currentUser));
     }, []);
 
     const persistEntries = useCallback(
@@ -1861,7 +1850,11 @@ const completedWorkouts = useMemo(
 
             try {
                 if (global?.userData && typeof global.userData === "object") {
-                    global.userData = { ...global.userData, progress: nextProgress, ...publicWeightFields };
+                    global.userData = {
+                        ...global.userData,
+                        progress: nextProgress,
+                        ...publicWeightFields,
+                    };
                 } else if (typeof global !== "undefined") {
                     global.userData = nextUserData;
                 }

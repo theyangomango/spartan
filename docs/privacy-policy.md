@@ -1,6 +1,6 @@
 # Spartan Privacy Policy
 
-Last updated: 2025-03-16
+Last updated: 2025-11-06
 
 This Privacy Policy explains how Spartan ("Spartan," "we," "us," or "our") collects, uses, and shares information about you when you use our iOS application and related services (the "Service").
 
@@ -69,6 +69,7 @@ We may share information as follows:
   - Posts: visible to your followers by default (not public to all users).
   - Private accounts: you may switch to a private profile so only approved followers can see your posts, workouts, and progress.
   - Leaderboards and competitions: usernames and scores are publicly visible in-app.
+  - Bodyweight-normalized tribes: if you join a tribe leaderboard that normalizes scores by bodyweight, we share your latest logged bodyweight with that tribe’s members so normalized rankings can be computed. No additional health metrics are disclosed for this feature.
   - Direct messages: designed to be private between participants. Messages are transmitted to Firebase over HTTPS and stored on our Firebase databases without end-to-end encryption, so authorized team members and processors may access them when needed for security, abuse handling, or legal compliance. Metadata (e.g., time sent, participants) may be processed for delivery and safety.
 - Legal and safety: to comply with law, respond to legal requests, or protect rights, safety, and security.
 - Business transfers: in connection with a merger, acquisition, or asset sale, subject to this Policy.

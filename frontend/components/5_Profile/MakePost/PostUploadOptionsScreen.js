@@ -99,12 +99,20 @@ export default function PostOptionsScreen({ navigation, route }) {
         return Array.isArray(incoming) ? incoming.filter(Boolean) : [];
     }, [route?.params?.images, isEditing, editingMediaEntries]);
     const workoutParam = route?.params?.workout;
+    const editingHasWorkoutPid = isEditing && Boolean(editingPost?.workoutPid);
+    const editingHasWorkoutObject = isEditing && Boolean(editingPost?.workout);
+    const hasWorkoutAttachment = useMemo(() => {
+        if (workoutParam && typeof workoutParam === 'object') return true;
+        if (!isEditing) return false;
+        if (editingWorkoutName) return true;
+        if (editingHasWorkoutPid) return true;
+        if (editingHasWorkoutObject) return true;
+        return false;
+    }, [workoutParam, isEditing, editingWorkoutName, editingHasWorkoutPid, editingHasWorkoutObject]);
 
-    const initialCaption = (isEditing && editingWorkoutName)
-        ? ''
-        : (isEditing && typeof editingPost?.caption === 'string')
-            ? editingPost.caption
-            : '';
+    const initialCaption = (isEditing && typeof editingPost?.caption === 'string')
+        ? editingPost.caption
+        : '';
     const [caption, setCaption] = useState(initialCaption);
     const [isSharing, setIsSharing] = useState(false);
     const [honestyVisible, setHonestyVisible] = useState(false);
@@ -424,7 +432,7 @@ export default function PostOptionsScreen({ navigation, route }) {
         if (isSharing || sharePromiseRef.current) return;
 
         const trimmedCaption = caption.trim();
-        if (!trimmedCaption) {
+        if (!hasWorkoutAttachment && !trimmedCaption) {
             Alert.alert('Caption required', 'Please enter a caption before saving.');
             return;
         }
@@ -493,34 +501,40 @@ export default function PostOptionsScreen({ navigation, route }) {
                     if (!latest) throw new Error('Post not found');
 
                     const now = Date.now();
-                    const commentsRaw = Array.isArray(latest.comments) ? latest.comments : [];
+                    const commentsRaw = Array.isArray(latest.comments)
+                        ? latest.comments.filter(Boolean)
+                        : [];
                     const hadCaption = commentsRaw.some((comment) => comment?.isCaption);
-                    const updatedComments = commentsRaw.map((comment) => (
-                        comment?.isCaption
-                            ? { ...comment, content: trimmedCaption, timestamp: now }
-                            : { ...comment }
-                    ));
+                    const hasCaptionText = Boolean(trimmedCaption);
 
-                    if (!hadCaption) {
-                        const authorHandleRaw = typeof latest.handle === 'string' ? latest.handle : (global?.userData?.handle || '');
-                        const normalizedHandle = authorHandleRaw.startsWith('@') ? authorHandleRaw.slice(1) : authorHandleRaw;
-                        const authorPfp = resolvePhotoURL(latest, userImage);
-                        updatedComments.unshift({
-                            content: trimmedCaption,
-                            handle: normalizedHandle,
-                            isCaption: true,
-                            pfp: authorPfp,
-                            timestamp: now,
-                            uid: latest.uid || global?.userData?.uid || null,
-                        });
+                    let updatedComments;
+                    if (hasCaptionText) {
+                        updatedComments = commentsRaw.map((comment) => (
+                            comment?.isCaption
+                                ? { ...comment, content: trimmedCaption, timestamp: now }
+                                : { ...comment }
+                        ));
+
+                        if (!hadCaption) {
+                            const authorHandleRaw = typeof latest.handle === 'string' ? latest.handle : (global?.userData?.handle || '');
+                            const normalizedHandle = authorHandleRaw.startsWith('@') ? authorHandleRaw.slice(1) : authorHandleRaw;
+                            const authorPfp = resolvePhotoURL(latest, userImage);
+                            updatedComments.unshift({
+                                content: trimmedCaption,
+                                handle: normalizedHandle,
+                                isCaption: true,
+                                pfp: authorPfp,
+                                timestamp: now,
+                                uid: latest.uid || global?.userData?.uid || null,
+                            });
+                        }
+                    } else {
+                        updatedComments = commentsRaw
+                            .filter((comment) => !comment?.isCaption)
+                            .map((comment) => ({ ...comment }));
                     }
 
-                    let commentCount = Number(latest.commentCount);
-                    if (!Number.isFinite(commentCount)) {
-                        commentCount = updatedComments.length;
-                    } else if (!hadCaption) {
-                        commentCount += 1;
-                    }
+                    const commentCount = updatedComments.length;
 
                     await updateDoc('posts', pid, {
                         caption: trimmedCaption,
@@ -582,8 +596,8 @@ export default function PostOptionsScreen({ navigation, route }) {
         requestAnimationFrame(exitScreen);
     }
 
-    const shareDisabled = (!isEditing && caption.trim().length === 0) || isSharing;
-    const captionPlaceholder = editingWorkoutName ? "What's popping (optional)" : "What's popping?";
+    const shareDisabled = (!isEditing && !hasWorkoutAttachment && caption.trim().length === 0) || isSharing;
+    const captionPlaceholder = hasWorkoutAttachment ? "What's popping (optional)" : "What's popping?";
 
     return (
         <View style={styles.main_ctnr}>
