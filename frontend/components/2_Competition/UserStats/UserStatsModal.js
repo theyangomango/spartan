@@ -462,7 +462,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                         {hexOverlay ? (typeof hexOverlay === 'function' ? hexOverlay() : hexOverlay) : null}
                     </View>
                     <Text style={styles.hexDescription}>
-                        Scores are calculated based on your logged lifts—i.e. a 100 lb dumbbell press is weighted more than a 100 lb barbell press.
+                        Scores are calculated based on your logged lifts—e.g. a 225 lb back squat impacts your score more than a 225 lb barbell row.
                     </Text>
                 </View>
 

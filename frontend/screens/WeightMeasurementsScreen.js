@@ -84,6 +84,22 @@ const sanitizeEntries = (rawEntries) => {
         .sort((a, b) => a.recordedAt - b.recordedAt);
 };
 
+const selectWeightEntrySource = (user) => {
+    if (!user || typeof user !== "object") return [];
+
+    const candidates = [
+        user?.progress?.weightEntries,
+        user?.weightEntries,
+        user?.bodyweightLog,
+    ];
+
+    const nonEmpty = candidates.find((list) => Array.isArray(list) && list.length > 0);
+    if (nonEmpty) return nonEmpty;
+
+    const firstArray = candidates.find((list) => Array.isArray(list));
+    return firstArray || [];
+};
+
 const normalizeToMinute = (value) => dayjs(value).second(0).millisecond(0).toDate();
 
 const clampDateToNow = (value) => {
@@ -414,11 +430,7 @@ export default function WeightMeasurementsScreen() {
     const preferredUnit = useMemo(() => resolvePreferredWeightUnit(userData), [userData]);
 
     const entries = useMemo(() => {
-        const list =
-            userData?.progress?.weightEntries ||
-            userData?.weightEntries ||
-            userData?.bodyweightLog ||
-            [];
+        const list = selectWeightEntrySource(userData);
         return sanitizeEntries(list);
     }, [userData]);
 
@@ -433,11 +445,7 @@ export default function WeightMeasurementsScreen() {
 
     const getCurrentSanitizedEntries = useCallback(() => {
         const currentUser = userRef.current;
-        const list =
-            currentUser?.progress?.weightEntries ||
-            currentUser?.weightEntries ||
-            currentUser?.bodyweightLog ||
-            [];
+        const list = selectWeightEntrySource(currentUser);
         return sanitizeEntries(list);
     }, []);
 
