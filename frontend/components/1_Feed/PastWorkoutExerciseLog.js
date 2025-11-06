@@ -8,6 +8,14 @@ import ExerciseAvatar from "../common/ExerciseAvatar";
 import { computeDisplayNumbers, formatSetLabel, normalizeSetType } from "../3_Workout/shared/setTypeUtils";
 import { resolveExerciseWeighting } from "../../utils/bodyweight";
 
+const normalizePrev = (value) => {
+  if (!value || typeof value !== "object") return null;
+  const weight = Number(value?.weight) || 0;
+  const reps = Number(value?.reps) || 0;
+  if (!weight && !reps) return null;
+  return { weight, reps };
+};
+
 const formatNumber = (value, fallback = "0") => {
   const num = Number(value);
   if (!Number.isFinite(num)) return fallback;
@@ -120,7 +128,9 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0, onPress }) => {
 
       {sets.length > 0 ? (
         sets.map((set, idx) => {
-          const previous = previousSets[idx];
+          const previous =
+            normalizePrev(previousSets[idx]) ??
+            normalizePrev(set?.prev);
           const done = !!(set?.isDone || set?.done || set?.completed);
           const displayNumber = displayNumbers[idx] ?? (idx + 1);
           const normalizedType = normalizeSetType(set?.type);

@@ -210,7 +210,7 @@ export function useGroupViewing({
             }
         }
 
-        const pending = getDoc(doc(db, "users", key))
+        const pending = getDoc(doc(db, "usersPublic", key))
             .then((snap) => {
                 const data = snap.exists() ? snap.data() : {};
                 const profile = sanitizeParticipant({
@@ -314,7 +314,7 @@ export function useGroupViewing({
         if (activeCacheRef.current.has(key)) return;
         if (workoutPrefetchPendingRef.current.has(key)) return;
 
-        const pending = getDoc(doc(db, "users", key))
+        const pending = getDoc(doc(db, "usersPublic", key))
             .then((snap) => {
                 const data = snap.exists() ? snap.data() : {};
                 const nextWorkout = data?.currentWorkout || null;
@@ -402,7 +402,7 @@ export function useGroupViewing({
 
         let unsub = null;
         try {
-            unsub = onSnapshot(doc(db, "users", key), (snap) => {
+            unsub = onSnapshot(doc(db, "usersPublic", key), (snap) => {
                 const data = snap.data() || {};
                 const nextWorkout = data?.currentWorkout || null;
                 const nextStats = isSelf ? (data?.statsExercises || {}) : {};

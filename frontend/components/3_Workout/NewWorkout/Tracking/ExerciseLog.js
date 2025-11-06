@@ -329,6 +329,34 @@ function ExerciseLog({
         flushNextFrame(next);
     });
 
+    useEffect(() => {
+        if (readOnly) return;
+        const current = setsRef.current || [];
+        if (!current.length) return;
+
+        const next = current.slice();
+        let mutated = false;
+
+        for (let i = 0; i < current.length; i++) {
+            const row = current[i];
+            if (!row) continue;
+            if (row.prev != null) continue;
+
+            const fallbackPrev = Array.isArray(previousSets) ? previousSets[i] : null;
+            const normalizedPrev = normalizePrevCandidate(fallbackPrev);
+            if (!normalizedPrev) continue;
+
+            next[i] = { ...row, prev: normalizedPrev };
+            mutated = true;
+        }
+
+        if (mutated) {
+            setDraft(next);
+            setsRef.current = next;
+            flushNextFrame(next);
+        }
+    }, [previousSets, readOnly, flushNextFrame]);
+
     const toggleIsDoneById = useCallback((sid, nextStateParam) => {
         const cur = setsRef.current || [];
         const idx = cur.findIndex((s) => s?.id === sid);
