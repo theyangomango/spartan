@@ -1,4 +1,4 @@
-import React, { memo, useCallback, useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { View, StyleSheet, Text, Pressable, Dimensions, LayoutAnimation, Platform, UIManager, Keyboard } from "react-native";
 import * as Haptics from "expo-haptics";
 import scaleSize from "../../../../helper/scaleSize";
@@ -10,6 +10,44 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import theme from "../../../../theme/mfpDark";
 import workoutTypography from "../../shared/workoutTypography";
 import { formatSetLabel, normalizeSetType } from "../../shared/setTypeUtils";
+
+const normalizePrev = (value) => {
+    if (!value || typeof value !== "object") return null;
+    const weight = Number(value?.weight) || 0;
+    const reps = Number(value?.reps) || 0;
+    if (!weight && !reps) return null;
+    return { weight, reps };
+};
+
+const formatCount = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return null;
+    if (Number.isInteger(num)) return String(num);
+    return num.toFixed(2).replace(/\.?0+$/, "");
+};
+
+const buildPreviousDisplay = (value, weighting) => {
+    const normalized = normalizePrev(value);
+    if (!normalized) return null;
+
+    const reps = Number(normalized.reps) || 0;
+    const weightVal = Number(normalized.weight) || 0;
+    const absWeight = Math.abs(weightVal);
+
+    const repsLabel = reps > 0 ? formatCount(reps) : null;
+
+    let weightLabel = null;
+    if (weighting === "weighted bodyweight") {
+        weightLabel = absWeight > 0 ? `+${formatCount(absWeight)} lb` : "Bodyweight";
+    } else if (weighting === "assisted bodyweight") {
+        weightLabel = absWeight > 0 ? `-${formatCount(absWeight)} lb` : "Bodyweight";
+    } else if (absWeight > 0) {
+        weightLabel = `${formatCount(weightVal)} lb`;
+    }
+
+    if (!repsLabel && !weightLabel) return null;
+    return { repsLabel, weightLabel };
+};
 
 const { height: screenHeight } = Dimensions.get("window");
 const ENABLE_LAYOUT_ANIM = false;
@@ -34,6 +72,7 @@ function SetRow({
     itemKey,
     onFocusInput, // optional: notify parent when an input is focused
     displayNumber,
+    weighting,
 }) {
     const rawWeight = set?.weight ?? "";
     const rawReps = set?.reps ?? "";
@@ -42,6 +81,13 @@ function SetRow({
 
     const displayWeight = (!doneLocal && (rawWeight === 0 || rawWeight === "0")) ? "" : rawWeight;
     const displayReps = (!doneLocal && (rawReps === 0 || rawReps === "0")) ? "" : rawReps;
+
+    const previousDisplay = useMemo(
+        () =>
+            buildPreviousDisplay(previousSet, weighting) ??
+            buildPreviousDisplay(set?.prev, weighting),
+        [previousSet, set, weighting]
+    );
 
     const handleDeleteSwipe = useCallback(() => {
         if (readOnly) return;
@@ -105,9 +151,30 @@ function SetRow({
                     </Pressable>
 
                     <View style={styles.previous_ctnr}>
-                        <Text style={[workoutTypography.previousStat, doneLocal && { color: "#afafaf" }]}>
-                            {previousSet ? `${previousSet.reps} x ${previousSet.weight}lbs` : "—"}
-                        </Text>
+                        {previousDisplay ? (
+                            <View style={styles.previous_value_row}>
+                                {previousDisplay.repsLabel ? (
+                                    <Text style={doneLocal ? [workoutTypography.previousStat, styles.previous_text_done] : workoutTypography.previousStat}>
+                                        {previousDisplay.repsLabel}
+                                    </Text>
+                                ) : null}
+                                {previousDisplay.repsLabel && previousDisplay.weightLabel ? (
+                                    <MaterialCommunityIcons
+                                        name="close-thick"
+                                        size={scaleSize(12)}
+                                        color={doneLocal ? "#afafaf" : "#FFFFFF"}
+                                        style={styles.previous_multiply_icon}
+                                    />
+                                ) : null}
+                                {previousDisplay.weightLabel ? (
+                                    <Text style={doneLocal ? [workoutTypography.previousStat, styles.previous_text_done] : workoutTypography.previousStat}>
+                                        {previousDisplay.weightLabel}
+                                    </Text>
+                                ) : null}
+                            </View>
+                        ) : (
+                            <Text style={doneLocal ? [workoutTypography.previousStat, styles.previous_text_done] : workoutTypography.previousStat}>—</Text>
+                        )}
                     </View>
 
                     {/* Keep grey visuals, just block focus when read-only */}
@@ -180,6 +247,7 @@ const rowEqual = (prev, next) => {
     if ((pp.weight || 0) !== (np.weight || 0)) return false;
     if ((pp.reps || 0) !== (np.reps || 0)) return false;
     if (!!prev.readOnly !== !!next.readOnly) return false;
+    if ((prev.weighting || null) !== (next.weighting || null)) return false;
     return true;
 };
 
@@ -221,6 +289,9 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     previous_ctnr: { width: "38%", alignItems: "center", justifyContent: "center" },
+    previous_value_row: { flexDirection: "row", alignItems: "center" },
+    previous_multiply_icon: { marginHorizontal: scaleSize(4) },
+    previous_text_done: { color: "#afafaf" },
     weight_unit_ctnr: { width: "18%", alignItems: "center" },
     reps_ctnr: { width: "18%", alignItems: "center" },
     set_ctnr_typed: { backgroundColor: theme.field },

@@ -438,6 +438,7 @@ function ExerciseLog({
                             readOnly={readOnly}
                             onFocusInput={() => { try { onStatFocus?.(exerciseIndex, index); } catch {} }}
                             displayNumber={displayNumbers[index]}
+                            weighting={exerciseWeighting}
                         />
                     );
                 })}

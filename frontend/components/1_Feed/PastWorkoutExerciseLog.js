@@ -51,17 +51,27 @@ const formatReps = (set) => {
   return "—";
 };
 
-const formatPreviousLabel = (set) => {
-  if (!set || typeof set !== "object") return "—";
-  const weightLabel = formatWeight(set);
-  const repsLabel = formatReps(set);
-  if (weightLabel === "—" && repsLabel === "—") return "—";
-  if (weightLabel === "Bodyweight") {
-    return repsLabel === "—" ? "Bodyweight" : `Bodyweight x ${repsLabel}`;
+const buildPreviousDisplay = (value, weighting) => {
+  const normalized = normalizePrev(value);
+  if (!normalized) return null;
+
+  const reps = Number(normalized.reps) || 0;
+  const weightVal = Number(normalized.weight) || 0;
+  const absWeight = Math.abs(weightVal);
+
+  const repsLabel = reps > 0 ? formatNumber(reps) : null;
+
+  let weightLabel = null;
+  if (weighting === "weighted bodyweight") {
+    weightLabel = absWeight > 0 ? `+${formatNumber(absWeight)} lb` : "Bodyweight";
+  } else if (weighting === "assisted bodyweight") {
+    weightLabel = absWeight > 0 ? `-${formatNumber(absWeight)} lb` : "Bodyweight";
+  } else if (absWeight > 0) {
+    weightLabel = `${formatNumber(weightVal)} lb`;
   }
-  if (weightLabel !== "—" && repsLabel !== "—") return `${weightLabel} x ${repsLabel}`;
-  if (weightLabel !== "—") return weightLabel;
-  return repsLabel;
+
+  if (!repsLabel && !weightLabel) return null;
+  return { repsLabel, weightLabel };
 };
 
 const PastWorkoutExerciseLog = ({ exercise, index = 0, onPress }) => {
@@ -129,8 +139,8 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0, onPress }) => {
       {sets.length > 0 ? (
         sets.map((set, idx) => {
           const previous =
-            normalizePrev(previousSets[idx]) ??
-            normalizePrev(set?.prev);
+            buildPreviousDisplay(previousSets[idx], exerciseWeighting) ??
+            buildPreviousDisplay(set?.prev, exerciseWeighting);
           const done = !!(set?.isDone || set?.done || set?.completed);
           const displayNumber = displayNumbers[idx] ?? (idx + 1);
           const normalizedType = normalizeSetType(set?.type);
@@ -138,6 +148,7 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0, onPress }) => {
           const pillStyle = normalizedType ? [styles.setPill, typePillBg(normalizedType)] : styles.setPill;
           const letterStyle = normalizedType ? [workoutTypography.setNumber, workoutTypography.setLetter, typePillText(normalizedType)] : workoutTypography.setNumber;
           const previousStyle = done ? [workoutTypography.previousStat, styles.previousValueTextDone] : workoutTypography.previousStat;
+          const previousIconColor = done ? "#afafaf" : "#FFFFFF";
           return (
             <View style={[styles.statRow, done && styles.doneRow]} key={`${name}-set-${idx}`}>
               <View style={pillStyle}>
@@ -145,9 +156,30 @@ const PastWorkoutExerciseLog = ({ exercise, index = 0, onPress }) => {
               </View>
 
               <View style={styles.previousValueContainer}>
-                <Text style={previousStyle} numberOfLines={1}>
-                  {formatPreviousLabel(previous)}
-                </Text>
+                {previous ? (
+                  <View style={styles.previousValueRow}>
+                    {previous.repsLabel ? (
+                      <Text style={previousStyle} numberOfLines={1}>
+                        {previous.repsLabel}
+                      </Text>
+                    ) : null}
+                    {previous.repsLabel && previous.weightLabel ? (
+                      <MaterialCommunityIcons
+                        name="close-thick"
+                        size={scaleSize(12)}
+                        color={previousIconColor}
+                        style={styles.previousMultiplyIcon}
+                      />
+                    ) : null}
+                    {previous.weightLabel ? (
+                      <Text style={previousStyle} numberOfLines={1}>
+                        {previous.weightLabel}
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : (
+                  <Text style={previousStyle}>—</Text>
+                )}
               </View>
 
               <View style={styles.weightValueContainer}>
@@ -276,6 +308,13 @@ const styles = StyleSheet.create({
     width: "38%",
     alignItems: "center",
     justifyContent: "center",
+  },
+  previousValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  previousMultiplyIcon: {
+    marginHorizontal: scaleSize(4),
   },
   previousValueTextDone: {
     color: "#afafaf",
