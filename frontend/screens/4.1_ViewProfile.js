@@ -21,7 +21,8 @@ import unblockUser from "../../backend/user/unblockUser";
 import { useFocusEffect } from "@react-navigation/native";
 import { clearFooterSuppression } from "../state/footerSuppressionStore";
 import { countLoggedFoods } from "../utils/loggedFoods";
-
+import { db } from "../../firebase.config";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import scaleSize from "../helper/scaleSize";
 import { coerceUid, ensureUidArray, normalizeUserRef } from "../utils/userRefs";
 import useReportContentSheet from "../hooks/useReportContentSheet";
@@ -146,28 +147,92 @@ export default function ViewProfile({ navigation, route }) {
             pfp: u?.pfp || u?.image || u?.photoURL || '',
         });
 
+        const selfUser = normalizeRef(global?.userData || {});
+        const otherUser = normalizeRef(profileUserData || user || {});
+        const selfUid = selfUser.uid;
+        const otherUid = otherUser.uid;
+        if (!selfUid || !otherUid) return;
+
+        const navigateToChat = (chatData, participants = []) => {
+            const others = Array.isArray(participants) && participants.length > 0 ? participants : [otherUser];
+            navigation.navigate('Chat', { data: chatData, usersExcludingSelf: others });
+        };
+
         const list = Array.isArray(global?.userData?.messages) ? global.userData.messages : [];
         for (const msg of list) {
-            if (Array.isArray(msg?.otherUsers) && msg.otherUsers.length === 1 && String(msg.otherUsers[0]?.uid) === String(user?.uid)) { // This DM
-                const chatData = await readDoc('messages', msg.mid);
-                navigation.navigate('Chat', { data: chatData, usersExcludingSelf: msg.otherUsers });
-                return;
+            const others = Array.isArray(msg?.otherUsers) ? msg.otherUsers : [];
+            if (others.length === 1 && String(others[0]?.uid) === otherUid && msg?.mid) {
+                const chatData = await readDoc('messages', msg.mid).catch(() => null);
+                if (chatData) {
+                    navigateToChat(chatData, others);
+                    return;
+                }
             }
         }
 
-        const selfUser = normalizeRef(global?.userData || {});
-        const otherUser = normalizeRef(profileUserData || user || {});
-        const otherUid = otherUser.uid;
-        if (!selfUser.uid || !otherUid) return;
+        const findRemoteChat = async () => {
+            try {
+                const messagesRef = collection(db, 'messages');
+                const q = query(messagesRef, where('memberUids', 'array-contains', selfUid), limit(50));
+                const snapshot = await getDocs(q);
+                for (const docSnap of snapshot.docs) {
+                    const data = docSnap.data() || {};
+                    const memberUids = ensureUidArray(
+                        data.memberUids ||
+                        data.members ||
+                        data.memberUidList ||
+                        data.users ||
+                        []
+                    );
+                    if (!memberUids.includes(selfUid) || !memberUids.includes(otherUid)) continue;
+                    const isGroup = data.isGroup === true || memberUids.length > 2;
+                    if (isGroup) continue;
+                    const chatData = { ...data, cid: data.cid || docSnap.id };
+                    const participants = Array.isArray(chatData.users)
+                        ? chatData.users
+                            .map((entry) => normalizeRef(entry))
+                            .filter((entry) => entry.uid && entry.uid !== selfUid)
+                        : [];
+                    const safeParticipants = participants.length > 0 ? participants : [otherUser];
+                    try {
+                        const prev = Array.isArray(global?.userData?.messages) ? [...global.userData.messages] : [];
+                        const entry = { mid: chatData.cid, otherUsers: safeParticipants };
+                        const idx = prev.findIndex((record) => String(record?.mid || "") === entry.mid);
+                        if (idx >= 0) prev[idx] = entry;
+                        else prev.push(entry);
+                        global.userData.messages = prev;
+                    } catch {}
+                    return { chatData, participants: safeParticipants };
+                }
+            } catch (err) {
+                console.log('[ViewProfile] remote chat lookup failed', err?.message || err);
+            }
+            return null;
+        };
+
+        const remoteChat = await findRemoteChat();
+        if (remoteChat?.chatData) {
+            navigateToChat(remoteChat.chatData, remoteChat.participants);
+            return;
+        }
 
         const cid = makeID();
-        await arrayAppend('usersPrivate', selfUser.uid, 'messages', {
+        try {
+            const prev = Array.isArray(global?.userData?.messages) ? [...global.userData.messages] : [];
+            const entry = { mid: cid, otherUsers: [otherUser] };
+            const idx = prev.findIndex((record) => String(record?.mid || "") === cid);
+            if (idx >= 0) prev[idx] = entry;
+            else prev.push(entry);
+            global.userData.messages = prev;
+        } catch {}
+
+        await arrayAppend('usersPrivate', selfUid, 'messages', {
             mid: cid,
             otherUsers: [otherUser]
         });
 
-        const newChat = await createChat(selfUser.uid, [otherUser, selfUser], cid);
-        navigation.navigate('Chat', { data: newChat, usersExcludingSelf: [otherUser] });
+        const newChat = await createChat(selfUid, [otherUser, selfUser], cid);
+        navigateToChat(newChat, [otherUser]);
     }
 
     async function goBack() {

@@ -10,6 +10,7 @@ import {
   TouchableWithoutFeedback,
   View,
 } from 'react-native';
+import RNBounceable from '@freakycoder/react-native-bounceable';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
@@ -72,6 +73,8 @@ const ChangeName = ({ navigation, route }) => {
     }
   }, [name, navigation, saving]);
 
+  const showSpinner = saving;
+
   return (
     <ImageBackground
       source={backgroundSource}
@@ -82,9 +85,9 @@ const ChangeName = ({ navigation, route }) => {
       <SafeAreaView style={styles.safeArea}>
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
           <View style={styles.container}>
-            <TouchableOpacity onPress={handleBack} style={styles.backButton} hitSlop={12}>
+            <RNBounceable onPress={handleBack} style={styles.backButton} hitSlop={12}>
               <Ionicons name="chevron-back" size={24} color={theme.textSecondary} />
-            </TouchableOpacity>
+            </RNBounceable>
 
             <View style={styles.content}>
               <View style={styles.heading}>
@@ -96,26 +99,34 @@ const ChangeName = ({ navigation, route }) => {
 
               <View style={styles.form}>
                 <Text style={styles.label}>Name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={name}
-                  onChangeText={onChangeText}
-                  placeholder="Your name"
-                  placeholderTextColor={theme.textSecondary}
-                  autoCapitalize="words"
-                  autoCorrect
-                  returnKeyType="done"
-                  onSubmitEditing={onSubmit}
-                />
+                <View style={styles.inputWrapper}>
+                  <Ionicons
+                    name="person-circle-outline"
+                    size={scaleSize(18)}
+                    color={theme.textSecondary}
+                    style={styles.inputIcon}
+                  />
+                  <TextInput
+                    style={styles.input}
+                    value={name}
+                    onChangeText={onChangeText}
+                    placeholder="Your name"
+                    placeholderTextColor={theme.textSecondary}
+                    autoCapitalize="words"
+                    autoCorrect
+                    returnKeyType="done"
+                    onSubmitEditing={onSubmit}
+                  />
+                </View>
                 <Text style={[styles.helperText, error && styles.errorText]}>{helperText}</Text>
               </View>
 
               <TouchableOpacity
-                style={[styles.ctaButton, saving && styles.ctaButtonBusy]}
+                style={[styles.ctaButton, showSpinner && styles.ctaButtonBusy]}
                 onPress={onSubmit}
-                disabled={saving}
+                disabled={showSpinner}
               >
-                {saving ? (
+                {showSpinner ? (
                   <ActivityIndicator color="#ffffff" />
                 ) : (
                   <Text style={styles.ctaButtonText}>Save</Text>
@@ -142,31 +153,39 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
-    paddingHorizontal: scaleSize(24),
-    paddingTop: scaleSize(32),
+    justifyContent: 'flex-start',
+    paddingHorizontal: scaleSize(28),
+    paddingTop: scaleSize(96),
   },
   backButton: {
-    padding: scaleSize(6),
-    width: scaleSize(40),
-    marginBottom: scaleSize(12),
+    position: 'absolute',
+    top: scaleSize(18),
+    left: scaleSize(20),
+    padding: scaleSize(8),
+    zIndex: 10,
   },
   content: {
     flex: 1,
+    justifyContent: 'flex-start',
   },
   heading: {
-    marginBottom: scaleSize(28),
+    alignItems: 'center',
+    marginBottom: scaleSize(24),
   },
   title: {
-    fontSize: scaleSize(24),
+    fontSize: scaleSize(26),
     fontFamily: 'Poppins_700Bold',
     color: theme.textPrimary,
-    marginBottom: scaleSize(10),
+    marginBottom: scaleSize(12),
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: scaleSize(14),
     fontFamily: 'Nunito_600SemiBold',
     color: '#f2f6ffdd',
-    lineHeight: scaleSize(20),
+    textAlign: 'center',
+    lineHeight: scaleSize(22),
+    marginHorizontal: scaleSize(36),
   },
   form: {
     width: '100%',
@@ -177,42 +196,53 @@ const styles = StyleSheet.create({
     fontSize: scaleSize(14.5),
     marginBottom: scaleSize(8),
   },
-  input: {
+  inputWrapper: {
     width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: scaleSize(12),
     paddingHorizontal: scaleSize(14),
     borderRadius: scaleSize(12),
-    backgroundColor: theme.fieldDeep,
-    borderWidth: scaleSize(1),
-    borderColor: theme.fieldBorder,
-    fontFamily: 'Outfit_600SemiBold',
+    backgroundColor: theme.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: theme.hairline,
+  },
+  inputIcon: {
+    marginRight: scaleSize(8),
+  },
+  input: {
+    flex: 1,
+    fontFamily: 'Outfit_500Medium',
+    fontSize: scaleSize(15),
     color: theme.textPrimary,
-    fontSize: scaleSize(18),
   },
   helperText: {
+    marginTop: scaleSize(12),
+    fontFamily: 'Outfit_400Regular',
     fontSize: scaleSize(12.5),
-    fontFamily: 'Nunito_600SemiBold',
-    color: theme.textSecondary,
-    marginTop: scaleSize(10),
+    color: '#f0f0f0cc',
+    textAlign: 'center',
   },
   errorText: {
-    color: theme.error,
+    color: '#fca5a5',
   },
   ctaButton: {
-    marginTop: scaleSize(32),
+    marginTop: scaleSize(36),
+    width: '100%',
     backgroundColor: theme.primary,
+    borderRadius: scaleSize(12),
     paddingVertical: scaleSize(14),
-    borderRadius: scaleSize(16),
     alignItems: 'center',
     justifyContent: 'center',
   },
   ctaButtonBusy: {
-    opacity: 0.7,
+    opacity: 0.65,
   },
   ctaButtonText: {
-    fontFamily: 'Poppins_600SemiBold',
     color: '#ffffff',
-    fontSize: scaleSize(16),
+    fontFamily: 'Nunito_800ExtraBold',
+    fontSize: scaleSize(14),
+    letterSpacing: scaleSize(0.4),
   },
 });
 
