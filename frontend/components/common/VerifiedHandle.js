@@ -41,7 +41,10 @@ export default function VerifiedHandle({
         return Math.max(10, resolvedFontSize * 1.02);
     }, [iconSize, resolvedFontSize]);
 
-    const gapWidth = useMemo(() => iconFinalSize + resolvedMargin, [iconFinalSize, resolvedMargin]);
+    const iconVerticalOffset = useMemo(() => {
+        const lift = resolvedFontSize * 0.15;
+        return -Math.min(Math.max(lift, 2), 3);
+    }, [resolvedFontSize]);
 
     if (!handle?.length) {
         return (
@@ -68,10 +71,10 @@ export default function VerifiedHandle({
                         iconStyle,
                         {
                             marginRight: resolvedMargin,
-                            transform: [{ translateY: resolvedFontSize * 0.02 }],
+                            transform: [{ translateY: iconVerticalOffset }],
                         },
                     ]}
-                />
+                    />
             ) : preserveTextAlignment ? (
                 <></>
             ) : null}
