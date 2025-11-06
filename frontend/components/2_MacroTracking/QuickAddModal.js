@@ -46,7 +46,16 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
         return Number.isFinite(v) && v > 0 ? v : 1;
     };
 
+    const canSubmit = useMemo(() => {
+        const validName = Boolean(name?.trim());
+        const trimmedCalories = String(calories || '').trim();
+        if (!validName || !trimmedCalories) return false;
+        const parsedCalories = Number(trimmedCalories.replace(',', '.'));
+        return Number.isFinite(parsedCalories) && parsedCalories >= 0;
+    }, [name, calories]);
+
     const submit = () => {
+        if (!canSubmit) return;
         try { haptic(); } catch {}
         const cals = Math.max(0, num(calories));
         const prot = Math.max(0, num(protein));
@@ -181,8 +190,8 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                         <RNBounceable style={[styles.modalBtn, styles.cancelBtn]} onPress={close}>
                             <Text style={[styles.modalBtnText, styles.cancelBtnText]}>Cancel</Text>
                         </RNBounceable>
-                        <RNBounceable style={[styles.modalBtn, styles.confirmBtn]} onPress={submit}>
-                            <Text style={[styles.modalBtnText, styles.confirmBtnText]}>Add</Text>
+                        <RNBounceable style={[styles.modalBtn, styles.confirmBtn, !canSubmit && styles.confirmBtnDisabled]} onPress={submit} disabled={!canSubmit}>
+                            <Text style={[styles.modalBtnText, styles.confirmBtnText, !canSubmit && styles.confirmBtnTextDisabled]}>Add</Text>
                         </RNBounceable>
                     </View>
                 </Pressable>
@@ -229,7 +238,9 @@ const makeStyles = (COLORS) =>
         modalBtn: { paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(16), borderRadius: scaleSize(10) },
         cancelBtn: {backgroundColor: require('../../theme/mfpDark').MFP_DARK.fieldDeep },
         confirmBtn: { backgroundColor: '#55A8FF' },
+        confirmBtnDisabled: { backgroundColor: '#55A8FF55' },
         modalBtnText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(14) },
         cancelBtnText: { color: COLORS?.text || '#E5E7EB' },
         confirmBtnText: { color: '#fff' },
+        confirmBtnTextDisabled: { color: 'rgba(255,255,255,0.7)' },
     });
