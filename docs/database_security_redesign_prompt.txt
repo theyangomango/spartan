@@ -7,7 +7,7 @@ Objectives
 - Preserve app functionality while protecting private-user data from non-followers.
 
 Phase 1 – Foundations
-1. Enable Firebase Auth providers (email/password, Google, Apple) with email verification.
+1. Enable Firebase Auth providers (email/password, Google, Apple) without requiring email verification.
 2. Remove AsyncStorage UID hacks; rely on Firebase Auth state observers throughout the client.
 3. Scaffold two collections: `usersPublic` (safe-to-share profile fields, search index flags, `isPrivate` boolean) and `usersPrivate` (emails, auth metadata, device tokens, blocked lists).
 4. Purge all legacy user accounts, posts, workouts, media, and related aggregates so the relaunch starts from an empty dataset.

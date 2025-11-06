@@ -50,6 +50,7 @@ const UPLOAD_ERROR_COPY = {
     UNRESOLVED_ASSET_URI: "We couldn't access that item. Download it to your device first, then try again.",
     ASSET_READ_FAILED: "We couldn't read the selected file. Please choose a different one.",
     ASSET_EMPTY: "The selected file appears to be empty. Please pick a different one.",
+    VIDEO_NOT_ALLOWED: "Videos can't be shared in chat yet. Please pick images instead.",
 };
 
 const resolveUploadErrorMessage = (error) => {
@@ -355,14 +356,31 @@ export default function Chat({ navigation, route }) {
         }
         const res = await ImagePicker.launchImageLibraryAsync({
             allowsMultipleSelection: true,
-            mediaTypes: ImagePicker.MediaTypeOptions.All,
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
             selectionLimit: MAX_ATTACHMENTS,
             quality: 0.9,
-            videoMaxDuration: 60,
         });
         if (res.canceled) return;
 
-        const normalized = (res.assets || []).map((asset, idx) => ({
+        const pickedAssets = Array.isArray(res.assets) ? res.assets : [];
+        const isImageAsset = (asset) => {
+            const type = typeof asset?.type === "string" ? asset.type.toLowerCase() : "";
+            const mime = typeof asset?.mimeType === "string" ? asset.mimeType.toLowerCase() : "";
+            if (type.includes("video") || mime.startsWith("video/")) return false;
+            if (type.includes("image") || mime.startsWith("image/")) return true;
+            return true; // default to allow unknown types from the image picker
+        };
+        const imageAssets = pickedAssets.filter(isImageAsset);
+
+        if (!imageAssets.length) {
+            Alert.alert("Images only", "Videos can't be shared in chat yet. Please pick images instead.");
+            return;
+        }
+        if (imageAssets.length < pickedAssets.length) {
+            Alert.alert("Images only", "We added your images but skipped videos, which aren't supported here.");
+        }
+
+        const normalized = imageAssets.map((asset, idx) => ({
             ...asset,
             localId: `${asset.assetId || asset.id || asset.uri || "asset"}-${Date.now()}-${idx}`,
         }));

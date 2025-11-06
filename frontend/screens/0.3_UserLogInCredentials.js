@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TextInput, Dimensions, Keyboard, TouchableWithoutFeedback, Platform } from 'react-native';
 import { Octicons, Feather } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { auth, functions } from '../../firebase.config';
 
@@ -80,14 +80,7 @@ const UserLogInCredentials = ({ navigation }) => {
                 return;
             }
 
-            const result = await signInWithEmailAndPassword(auth, loginEmail, enteredPassword);
-            const requiresVerification = resolvedType !== 'phone' && !loginEmail.endsWith('@phone.spartan.app');
-
-            if (requiresVerification && !result.user?.emailVerified) {
-                setErrorMsg('Verify your email before continuing.');
-                try { await signOut(auth); } catch { }
-                return;
-            }
+            await signInWithEmailAndPassword(auth, loginEmail, enteredPassword);
 
             navigation.reset({ index: 0, routes: [{ name: 'Tabs' }] });
         } catch (error) {

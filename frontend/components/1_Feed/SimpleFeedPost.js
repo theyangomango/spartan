@@ -568,11 +568,9 @@ const SimpleFeedPost = ({
             : toNumber(data?.likeCount)
     ), [data?.likes, data?.likeCount]);
 
-    const commentCount = useMemo(() => (
-        Array.isArray(data?.comments)
-            ? Math.max(0, data.comments.length - 1)
-            : toNumber(data?.commentCount)
-    ), [data?.comments, data?.commentCount]);
+    const commentCount = Array.isArray(data?.comments)
+        ? data.comments.length
+        : toNumber(data?.commentCount);
 
     const {
         isLiked,

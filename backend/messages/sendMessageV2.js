@@ -29,21 +29,27 @@ const sanitizeSender = (rawSender = {}) => {
 
 const sanitizeMedia = (items = []) => {
     if (!Array.isArray(items)) return [];
-    return items
-        .map((item) => {
-            if (!item || typeof item !== "object") return null;
-            const type = item.type === "video" ? "video" : "image";
-            const url = toSafeString(item.url || item.uri).trim();
-            if (!url) return null;
-            const sanitized = { type, url };
-            const thumb = toSafeString(item.thumbnailUrl || item.thumbnail).trim();
-            if (thumb) sanitized.thumbnailUrl = thumb;
-            if (Number.isFinite(item.duration)) sanitized.duration = item.duration;
-            if (Number.isFinite(item.width)) sanitized.width = item.width;
-            if (Number.isFinite(item.height)) sanitized.height = item.height;
-            return sanitized;
-        })
-        .filter(Boolean);
+    const sanitized = [];
+    for (const item of items) {
+        if (!item || typeof item !== "object") continue;
+        const rawType = typeof item.type === "string" ? item.type.toLowerCase() : "";
+        const rawMime = typeof item.mimeType === "string" ? item.mimeType.toLowerCase() : "";
+        if (rawType.includes("video") || rawMime.startsWith("video/")) {
+            const err = new Error("Videos can't be shared in chat.");
+            err.code = "VIDEO_NOT_ALLOWED";
+            throw err;
+        }
+        const url = toSafeString(item.url || item.uri).trim();
+        if (!url) continue;
+        const sanitizedItem = { type: "image", url };
+        const thumb = toSafeString(item.thumbnailUrl || item.thumbnail).trim();
+        if (thumb) sanitizedItem.thumbnailUrl = thumb;
+        if (Number.isFinite(item.duration)) sanitizedItem.duration = item.duration;
+        if (Number.isFinite(item.width)) sanitizedItem.width = item.width;
+        if (Number.isFinite(item.height)) sanitizedItem.height = item.height;
+        sanitized.push(sanitizedItem);
+    }
+    return sanitized;
 };
 
 const sanitizeReplyPreview = (preview) => {

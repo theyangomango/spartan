@@ -145,10 +145,20 @@ const safeContentType = (explicit, kind, fileExt) => {
 const buildStoragePath = ({ cid, uid, timestamp, index, ext }) =>
     `messages/${cid}/${uid}/${timestamp}_${index}.${ext}`;
 
-async function uploadSingleAsset({ asset, cid, uid, index, timestamp }) {
+async function uploadSingleAsset({ asset, cid, uid, index, timestamp, allowVideos }) {
     const { type, mimeType, width, height, duration } = asset || {};
+    const rawType = typeof type === "string" ? type.toLowerCase() : "";
+    const rawMime = typeof mimeType === "string" ? mimeType.toLowerCase() : "";
+    const isVideo = rawType.includes("video") || rawMime.startsWith("video/");
+    const kind = isVideo ? "video" : "image";
+
+    if (!allowVideos && kind === "video") {
+        const err = new Error("Video attachments are not permitted in chat.");
+        err.code = "VIDEO_NOT_ALLOWED";
+        throw err;
+    }
+
     const resolvedUri = await resolveAssetUri(asset);
-    const kind = type === "video" ? "video" : "image";
     const extGuess = guessExtension(asset, resolvedUri);
     const fileExt = extGuess || (kind === "video" ? DEFAULTS.videoExt : DEFAULTS.imageExt);
     const contentType = safeContentType(mimeType, kind, fileExt);
@@ -186,7 +196,7 @@ async function uploadSingleAsset({ asset, cid, uid, index, timestamp }) {
  *    url, storagePath, mimeType, width, height, duration?, type: 'image'|'video', thumbnailUrl?
  *  }
  */
-export default async function uploadMediaAssets({ cid, uid, assets }) {
+export default async function uploadMediaAssets({ cid, uid, assets, allowVideos = false }) {
     const list = sanitizeAssets(assets);
     if (!list.length) return [];
 
@@ -199,6 +209,7 @@ export default async function uploadMediaAssets({ cid, uid, assets }) {
                 uid,
                 index,
                 timestamp,
+                allowVideos,
             })
         )
     );

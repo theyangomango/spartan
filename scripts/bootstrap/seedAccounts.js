@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Seeds Firebase Auth + Firestore with baseline admin/test accounts.
- * Accounts are created via Firebase Auth to ensure proper tokens and email verification flow.
+ * Accounts are created via Firebase Auth to ensure proper tokens without relying on email verification.
  *
  * Usage:
  *   GOOGLE_APPLICATION_CREDENTIALS=serviceAccount.json \

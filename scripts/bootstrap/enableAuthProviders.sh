@@ -7,16 +7,15 @@ set -euo pipefail
 
 PROJECT_ID="${FIREBASE_PROJECT:-spartan-8a55f}"
 
-echo "Enabling email/password provider (email verification required)…"
+echo "Enabling email/password provider…"
 firebase auth:providers:update email \
   --project "$PROJECT_ID" \
   --enable \
   --email-link-sign-in disabled \
-  --password-enabled true \
-  --reset-email-template '{"subject":"Verify your Spartan account","body":"Click the link to verify your Spartan account."}'
+  --password-enabled true
 
-echo "Enforcing email verification for new signups…"
-firebase auth:settings:update --project "$PROJECT_ID" --allow-create-user true --allow-password-user-link true --allow-email-verified-only true
+echo "Allowing sign-in for unverified email accounts…"
+firebase auth:settings:update --project "$PROJECT_ID" --allow-create-user true --allow-password-user-link true --allow-email-verified-only false
 
 echo "Enabling Google provider…"
 firebase auth:providers:update google.com --project "$PROJECT_ID" --enable

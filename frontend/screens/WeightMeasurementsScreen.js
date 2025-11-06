@@ -23,10 +23,11 @@ import dayjs from "dayjs";
 import theme from "../theme/mfpDark";
 import makeID from "../../backend/helper/makeID";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
-import { emitUserDataUpdate, subscribeUserData } from "../utils/userDataEvents";
+import { subscribeUserData } from "../utils/userDataEvents";
 import { derivePublicWeightFields } from "../utils/weightEntries";
 import { scaleSize, ts } from "../components/2_Competition/layoutConstants";
 import { strong as hapticStrong } from "../utils/haptics";
+import { deleteField } from "firebase/firestore";
 
 const resolvePreferredWeightUnit = (user) => {
     const rawUnit =
@@ -84,10 +85,32 @@ const sanitizeEntries = (rawEntries) => {
         .sort((a, b) => a.recordedAt - b.recordedAt);
 };
 
+const normalizeEntryCollection = (source) => {
+    if (!source) return [];
+    if (Array.isArray(source)) return source;
+    if (typeof source === "object") {
+        return Object.values(source).filter(Boolean);
+    }
+    return [];
+};
+
 const selectWeightEntrySource = (user) => {
     if (!user || typeof user !== "object") return [];
-    const entries = user?.progress?.weightEntries;
-    return Array.isArray(entries) ? entries : [];
+    const candidates = [
+        user?.progress?.weightEntries,
+        user?.weightEntries,
+        user?.bodyweightEntries,
+        user?.bodyweightLog,
+        user?.progress?.bodyweightEntries,
+    ];
+
+    let firstObserved = null;
+    for (const candidate of candidates) {
+        const normalized = normalizeEntryCollection(candidate);
+        if (!firstObserved && normalized.length >= 0) firstObserved = normalized;
+        if (normalized.length > 0) return normalized;
+    }
+    return firstObserved || [];
 };
 
 const normalizeToMinute = (value) => dayjs(value).second(0).millisecond(0).toDate();
@@ -419,10 +442,7 @@ export default function WeightMeasurementsScreen() {
 
     const preferredUnit = useMemo(() => resolvePreferredWeightUnit(userData), [userData]);
 
-    const entries = useMemo(
-        () => sanitizeEntries(selectWeightEntrySource(userData)),
-        [userData?.progress?.weightEntries]
-    );
+    const entries = useMemo(() => sanitizeEntries(selectWeightEntrySource(userData)), [userData]);
 
     const sortedEntries = useMemo(
         () => [...entries].sort((a, b) => b.recordedAt - a.recordedAt),
@@ -447,61 +467,26 @@ export default function WeightMeasurementsScreen() {
                 return false;
             }
 
-            const previousSnapshot = currentUser ? { ...currentUser } : null;
-            const nextProgress = {
-                ...(currentUser?.progress || {}),
-                weightEntries: nextEntriesSanitized,
-            };
-            const publicWeightFields = derivePublicWeightFields(nextEntriesSanitized);
-            const nextUserData = {
-                ...(currentUser || {}),
-                progress: nextProgress,
-                ...publicWeightFields,
-            };
+            const sanitizedEntries = sanitizeEntries(nextEntriesSanitized);
+            const publicWeightFields = derivePublicWeightFields(sanitizedEntries);
 
             setIsSaving(true);
 
             try {
-                if (global?.userData && typeof global.userData === "object") {
-                    global.userData = {
-                        ...global.userData,
-                        progress: nextProgress,
-                        ...publicWeightFields,
-                    };
-                } else if (typeof global !== "undefined") {
-                    global.userData = nextUserData;
-                }
-            } catch {}
-
-            userRef.current = nextUserData;
-            setUserData(nextUserData);
-            emitUserDataUpdate();
-
-            try {
                 await Promise.all([
-                    updateDoc("usersPrivate", uid, { progress: nextProgress }),
+                    updateDoc("usersPrivate", uid, {
+                        "progress.weightEntries": sanitizedEntries,
+                        weightEntries: deleteField(),
+                        bodyweightEntries: deleteField(),
+                        bodyweightLog: deleteField(),
+                    }),
                     updateDoc("usersPublic", uid, publicWeightFields),
                 ]);
-                emitUserDataUpdate();
                 return true;
             } catch (error) {
                 const message =
                     error?.message ||
                     "Something went wrong while saving your measurement. Please try again.";
-
-                if (previousSnapshot) {
-                    try {
-                        if (global?.userData && typeof global.userData === "object") {
-                            global.userData = previousSnapshot;
-                        } else if (typeof global !== "undefined") {
-                            global.userData = previousSnapshot;
-                        }
-                    } catch {}
-
-                    userRef.current = previousSnapshot;
-                    setUserData(previousSnapshot);
-                    emitUserDataUpdate();
-                }
 
                 Alert.alert("Unable to save measurement", message);
                 return false;
