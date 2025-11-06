@@ -214,7 +214,7 @@ export default function LeaderboardModal({
 
     const renderItem = ({ item, index }) => {
         const isBW = normalizeByBodyweight;
-        const missingBW = !!(isBW && item?.__noWeightForBW);
+
         let rawValue;
         if (isTribeFocused) {
             rawValue = typeof item?._tribeValue === "number" ? item._tribeValue : 0;
@@ -226,6 +226,12 @@ export default function LeaderboardModal({
         }
 
         const value = Number.isFinite(rawValue) ? rawValue : 0;
+        const hasTribeValue = Number.isFinite(item?._tribeValue) && item._tribeValue !== null;
+        const missingBW = usingHexFocus
+            ? false
+            : isBW
+            ? !hasTribeValue && !!item?.__noWeightForBW
+            : false;
 
         const bestSet = usingHexFocus ? null : item?.statsExercises?.[exercise]?.bestSet;
         const cardMetric = usingHexFocus ? "Hex" : metric;

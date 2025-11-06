@@ -136,6 +136,23 @@ service cloud.firestore {
         && listB.hasAll(listA);
     }
 
+    function tribeHasMember(data) {
+      return data != null
+        && (
+          (data.members != null && hasMember(data.members))
+          || (data.memberIds != null && hasMember(data.memberIds))
+        );
+    }
+
+    function memberCanEditTribeComparisons() {
+      return signedIn()
+        && request.writeFields.hasOnly(['comparisons', 'comparison', 'updatedAt'])
+        && (
+          (resource != null && tribeHasMember(resource.data))
+          || (request.resource != null && tribeHasMember(request.resource.data))
+        );
+    }
+
     function canUpdateTribeMembership() {
       let before = resource != null ? asList(resource.data.members) : [];
       let after = request.resource != null ? asList(request.resource.data.members) : [];
@@ -272,11 +289,17 @@ service cloud.firestore {
     match /tribes/{tribeId} {
       allow read: if signedIn();
       allow create: if signedIn() && request.resource.data.ownerUid == request.auth.uid;
-      allow update, delete: if signedIn() && (
+      allow update: if signedIn() && (
         request.auth.uid == resource.data.ownerUid ||
         (request.resource != null && request.auth.uid == request.resource.data.ownerUid) ||
         isAdmin() ||
-        canUpdateTribeMembership()
+        canUpdateTribeMembership() ||
+        memberCanEditTribeComparisons()
+      );
+      allow delete: if signedIn() && (
+        request.auth.uid == resource.data.ownerUid ||
+        (request.resource != null && request.auth.uid == request.resource.data.ownerUid) ||
+        isAdmin()
       );
     }
 

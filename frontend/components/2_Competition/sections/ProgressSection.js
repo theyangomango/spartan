@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
     Alert,
     Animated,
+    Keyboard,
     KeyboardAvoidingView,
     Modal,
     PanResponder,
@@ -24,6 +25,7 @@ import theme from "../../../theme/mfpDark";
 import makeID from "../../../../backend/helper/makeID";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import { emitUserDataUpdate, subscribeUserData } from "../../../utils/userDataEvents";
+import { derivePublicWeightFields } from "../../../utils/weightEntries";
 import { DEVICE_WIDTH, scaleSize, ts } from "../layoutConstants";
 import { chartPointerStyles, chartTypography, chartCardTypography, chartCardLayout } from "../../charts/chartStyles";
 import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from "react-native-svg";
@@ -979,6 +981,7 @@ const AddMeasurementModal = ({
     const openPicker = useCallback(
         (mode) => {
             const safeMode = mode === "time" ? "time" : "date";
+            Keyboard.dismiss();
             if (Platform.OS === "android") {
                 DateTimePickerAndroid.open({
                     mode: safeMode,
@@ -1280,7 +1283,7 @@ const ManageMeasurementsModal = ({
     );
 };
 
-export default function ProgressSection() {
+export default function ProgressSection({ scrollSignal = 0 }) {
     const [userData, setUserData] = useState(() => {
         try {
             return global?.userData || null;
@@ -1290,6 +1293,7 @@ export default function ProgressSection() {
     });
     const userRef = useRef(userData);
     const navigation = useNavigation();
+    const scrollRef = useRef(null);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [activeIndex, setActiveIndex] = useState(null);
@@ -1838,16 +1842,18 @@ const completedWorkouts = useMemo(
                 ...(currentUser?.progress || {}),
                 weightEntries: nextEntriesSanitized,
             };
+            const publicWeightFields = derivePublicWeightFields(nextEntriesSanitized);
             const nextUserData = {
                 ...(currentUser || {}),
                 progress: nextProgress,
+                ...publicWeightFields,
             };
 
             setIsSaving(true);
 
             try {
                 if (global?.userData && typeof global.userData === "object") {
-                    global.userData = { ...global.userData, progress: nextProgress };
+                    global.userData = { ...global.userData, progress: nextProgress, ...publicWeightFields };
                 } else if (typeof global !== "undefined") {
                     global.userData = nextUserData;
                 }
@@ -1858,7 +1864,10 @@ const completedWorkouts = useMemo(
             emitUserDataUpdate();
 
             try {
-                await updateDoc("usersPrivate", uid, { progress: nextProgress });
+                await Promise.all([
+                    updateDoc("usersPrivate", uid, { progress: nextProgress }),
+                    updateDoc("usersPublic", uid, publicWeightFields),
+                ]);
                 emitUserDataUpdate();
                 return true;
             } catch (error) {
@@ -2346,9 +2355,24 @@ const completedWorkouts = useMemo(
         [clearWeightHideTimeout, clearVolumeHideTimeout, clearRepsHideTimeout, clearPersonalRecordHideTimeout]
     );
 
+    useEffect(() => {
+        if (!scrollSignal) return;
+        const ref = scrollRef.current;
+        if (!ref) return;
+        const timeout = setTimeout(() => {
+            try {
+                ref.scrollToEnd({ animated: true });
+            } catch {
+                // ignore scroll errors
+            }
+        }, 120);
+        return () => clearTimeout(timeout);
+    }, [scrollSignal]);
+
     return (
         <>
             <ScrollView
+                ref={scrollRef}
                 style={styles.scroll}
                 contentContainerStyle={styles.container}
                 showsVerticalScrollIndicator={false}

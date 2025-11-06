@@ -851,6 +851,27 @@ export const ensureUserProfile = onCall({ region: "us-central1" }, async (reques
     }
 });
 
+const resolveCallableUser = async (request) => {
+    const authUid = request.auth?.uid;
+    if (authUid) return { uid: authUid, source: "context" };
+
+    const candidate = typeof request.data?.idToken === "string" ? request.data.idToken.trim() : "";
+    if (!candidate) {
+        throw new HttpsError("unauthenticated", "Authentication required.");
+    }
+
+    try {
+        const decoded = await adminAuth.verifyIdToken(candidate);
+        if (!decoded?.uid) {
+            throw new HttpsError("unauthenticated", "Invalid authentication token.");
+        }
+        return { uid: decoded.uid, source: "token", decoded };
+    } catch (error) {
+        logger.warn("resolveCallableUser verifyIdToken failed", error?.message || error);
+        throw new HttpsError("unauthenticated", "Invalid authentication token.");
+    }
+};
+
 const validateFollowTarget = (callerUid, targetUid) => {
     if (!callerUid) throw new HttpsError("unauthenticated", "Authentication required.");
     const normalizedTarget = coerceUidValue(targetUid);
@@ -859,6 +880,81 @@ const validateFollowTarget = (callerUid, targetUid) => {
         throw new HttpsError("failed-precondition", "You cannot perform this action on yourself.");
     }
     return normalizedTarget;
+};
+
+const performUnfollow = async (sourceDocs, targetDocs) => {
+    if (!sourceDocs?.uid || !targetDocs?.uid) return;
+    const sourceUid = sourceDocs.uid;
+    const targetUid = targetDocs.uid;
+
+    await adminDb.runTransaction(async (tx) => {
+        const [
+            sourcePublicSnap,
+            targetPublicSnap,
+            sourceLegacySnap,
+            targetLegacySnap,
+        ] = await Promise.all([
+            tx.get(sourceDocs.publicRef),
+            tx.get(targetDocs.publicRef),
+            tx.get(sourceDocs.legacyRef).catch(() => null),
+            tx.get(targetDocs.legacyRef).catch(() => null),
+        ]);
+
+        if (sourcePublicSnap && sourcePublicSnap.exists) {
+            const data = sourcePublicSnap.data() || {};
+            const following = ensureArray(data.following);
+            const filtered = following.filter((entry) => coerceUidValue(entry) !== targetUid);
+            if (filtered.length !== following.length || Number(data.followingCount) !== filtered.length) {
+                tx.update(sourceDocs.publicRef, {
+                    following: filtered,
+                    followingCount: filtered.length,
+                });
+            }
+        }
+
+        if (targetPublicSnap && targetPublicSnap.exists) {
+            const data = targetPublicSnap.data() || {};
+            const followers = ensureArray(data.followers);
+            const filtered = followers.filter((entry) => coerceUidValue(entry) !== sourceUid);
+            if (filtered.length !== followers.length || Number(data.followerCount) !== filtered.length) {
+                tx.update(targetDocs.publicRef, {
+                    followers: filtered,
+                    followerCount: filtered.length,
+                });
+            }
+        }
+
+        if (sourceLegacySnap && sourceLegacySnap.exists) {
+            const data = sourceLegacySnap.data() || {};
+            const following = ensureArray(data.following);
+            const filtered = following.filter((entry) => coerceUidValue(entry) !== targetUid);
+            if (filtered.length !== following.length || Number(data.followingCount) !== filtered.length) {
+                tx.update(sourceDocs.legacyRef, {
+                    following: filtered,
+                    followingCount: filtered.length,
+                });
+            }
+        }
+
+        if (targetLegacySnap && targetLegacySnap.exists) {
+            const data = targetLegacySnap.data() || {};
+            const followers = ensureArray(data.followers);
+            const filtered = followers.filter((entry) => coerceUidValue(entry) !== sourceUid);
+            if (filtered.length !== followers.length || Number(data.followerCount) !== filtered.length) {
+                tx.update(targetDocs.legacyRef, {
+                    followers: filtered,
+                    followerCount: filtered.length,
+                });
+            }
+        }
+    });
+
+    await Promise.all([
+        removeArrayEntriesByUid(sourceDocs.privateRef, "followRequestsOut", targetUid),
+        removeArrayEntriesByUid(targetDocs.privateRef, "followRequestsIn", sourceUid),
+        removeArrayEntriesByUid(sourceDocs.legacyRef, "followRequestsOut", targetUid),
+        removeArrayEntriesByUid(targetDocs.legacyRef, "followRequestsIn", sourceUid),
+    ]);
 };
 
 export const followUserAction = onCall({ region: "us-central1" }, async (request) => {
@@ -1063,76 +1159,305 @@ export const unfollowUserAction = onCall({ region: "us-central1" }, async (reque
     if (!meDocs || !meDocs.publicData) throw new HttpsError("failed-precondition", "Caller profile is incomplete.");
     if (!targetDocs || !targetDocs.publicData) throw new HttpsError("not-found", "Target user not found.");
 
-    await adminDb.runTransaction(async (tx) => {
-        const [
-            mePublicSnap,
-            targetPublicSnap,
-            meLegacySnap,
-            targetLegacySnap,
-        ] = await Promise.all([
-            tx.get(meDocs.publicRef),
-            tx.get(targetDocs.publicRef),
-            tx.get(meDocs.legacyRef).catch(() => null),
-            tx.get(targetDocs.legacyRef).catch(() => null),
-        ]);
-
-        if (mePublicSnap && mePublicSnap.exists) {
-            const data = mePublicSnap.data() || {};
-            const following = ensureArray(data.following);
-            const filtered = following.filter((entry) => coerceUidValue(entry) !== targetUid);
-            if (filtered.length !== following.length || Number(data.followingCount) !== filtered.length) {
-                tx.update(meDocs.publicRef, {
-                    following: filtered,
-                    followingCount: filtered.length,
-                });
-            }
-        }
-
-        if (targetPublicSnap && targetPublicSnap.exists) {
-            const data = targetPublicSnap.data() || {};
-            const followers = ensureArray(data.followers);
-            const filtered = followers.filter((entry) => coerceUidValue(entry) !== meUid);
-            if (filtered.length !== followers.length || Number(data.followerCount) !== filtered.length) {
-                tx.update(targetDocs.publicRef, {
-                    followers: filtered,
-                    followerCount: filtered.length,
-                });
-            }
-        }
-
-        if (meLegacySnap && meLegacySnap.exists) {
-            const data = meLegacySnap.data() || {};
-            const following = ensureArray(data.following);
-            const filtered = following.filter((entry) => coerceUidValue(entry) !== targetUid);
-            if (filtered.length !== following.length || Number(data.followingCount) !== filtered.length) {
-                tx.update(meDocs.legacyRef, {
-                    following: filtered,
-                    followingCount: filtered.length,
-                });
-            }
-        }
-
-        if (targetLegacySnap && targetLegacySnap.exists) {
-            const data = targetLegacySnap.data() || {};
-            const followers = ensureArray(data.followers);
-            const filtered = followers.filter((entry) => coerceUidValue(entry) !== meUid);
-            if (filtered.length !== followers.length || Number(data.followerCount) !== filtered.length) {
-                tx.update(targetDocs.legacyRef, {
-                    followers: filtered,
-                    followerCount: filtered.length,
-                });
-            }
-        }
-    });
-
-    await Promise.all([
-        removeArrayEntriesByUid(meDocs.privateRef, "followRequestsOut", targetUid),
-        removeArrayEntriesByUid(targetDocs.privateRef, "followRequestsIn", meUid),
-        removeArrayEntriesByUid(meDocs.legacyRef, "followRequestsOut", targetUid),
-        removeArrayEntriesByUid(targetDocs.legacyRef, "followRequestsIn", meUid),
-    ]);
+    await performUnfollow(meDocs, targetDocs);
 
     return { status: "unfollowed" };
+});
+
+const RELATIONSHIP_ARRAY_FIELDS = [
+    "followers",
+    "following",
+    "friends",
+    "friendsList",
+    "followingList",
+    "followersList",
+];
+
+const RELATIONSHIP_MAP_FIELDS = ["friendsMap", "followersMap", "followingMap"];
+
+const removeMapEntryByUid = async (docRef, field, uid) => {
+    if (!docRef) return;
+    const safeUid = coerceUidValue(uid);
+    if (!safeUid) return;
+    await adminDb.runTransaction(async (tx) => {
+        const snap = await tx.get(docRef).catch(() => null);
+        if (!snap || !snap.exists) return;
+        const data = snap.data() || {};
+        const map = data[field];
+        if (!map || typeof map !== "object") return;
+        if (!Object.prototype.hasOwnProperty.call(map, safeUid)) return;
+        const clone = { ...map };
+        delete clone[safeUid];
+        tx.update(docRef, { [field]: clone });
+    }).catch(() => {});
+};
+
+const pruneMessagesByUid = async (docRef, uid) => {
+    if (!docRef) return;
+    const safeUid = coerceUidValue(uid);
+    if (!safeUid) return;
+    await adminDb.runTransaction(async (tx) => {
+        const snap = await tx.get(docRef).catch(() => null);
+        if (!snap || !snap.exists) return;
+        const data = snap.data() || {};
+        const messages = ensureArray(data.messages);
+        if (!messages.length) return;
+        const filtered = messages.filter((entry) => {
+            if (!entry) return false;
+            const others = ensureArray(entry.otherUsers);
+            return !others.some((userEntry) => coerceUidValue(userEntry) === safeUid);
+        });
+        if (filtered.length === messages.length) return;
+        tx.update(docRef, { messages: filtered });
+    }).catch(() => {});
+};
+
+const hideChatsBetweenUsers = async (uidA, uidB) => {
+    const safeA = coerceUidValue(uidA);
+    const safeB = coerceUidValue(uidB);
+    if (!safeA || !safeB) return;
+
+    const chatsRef = adminDb.collection("messages");
+    const snap = await chatsRef.where("memberUids", "array-contains", safeA).get();
+    const writes = [];
+    snap.forEach((docSnap) => {
+        const data = docSnap.data() || {};
+        const members = ensureUidArray(data.memberUids || data.memberUidList || data.members);
+        if (!members.includes(safeB)) return;
+        const hiddenExisting = ensureArray(data.hiddenFor).map((value) => coerceUidValue(value)).filter(Boolean);
+        const hiddenSet = new Set(hiddenExisting);
+        let changed = false;
+        [safeA, safeB].forEach((uid) => {
+            if (!hiddenSet.has(uid)) {
+                hiddenSet.add(uid);
+                changed = true;
+            }
+        });
+        if (!data.isGroup && ensureArray(data.users).length === 2 && !data.isBlockedThread) {
+            changed = true;
+        }
+        if (!changed && data.isBlockedThread) {
+            // Still ensure the set reflects latest members.
+            if (hiddenExisting.length !== hiddenSet.size) changed = true;
+        }
+        if (!changed) return;
+        const payload = {
+            hiddenFor: Array.from(hiddenSet),
+            isBlockedThread: true,
+        };
+        writes.push(docSnap.ref.set(payload, { merge: true }));
+    });
+    if (writes.length) {
+        await Promise.all(writes);
+    }
+};
+
+const removeUsersFromCommonTribes = async (uidA, uidB) => {
+    const safeA = coerceUidValue(uidA);
+    const safeB = coerceUidValue(uidB);
+    if (!safeA || !safeB) return;
+
+    const tribesRef = adminDb.collection("tribes");
+    const [snapA, snapB] = await Promise.all([
+        tribesRef.where("members", "array-contains", safeA).get(),
+        tribesRef.where("members", "array-contains", safeB).get(),
+    ]);
+    const touched = new Map();
+    snapA.forEach((docSnap) => touched.set(docSnap.id, docSnap));
+    snapB.forEach((docSnap) => touched.set(docSnap.id, docSnap));
+
+    const updates = [];
+    for (const [tribeId, docSnap] of touched.entries()) {
+        const data = docSnap.data() || {};
+        const members = ensureUidArray(data.members);
+        if (!members.length) continue;
+        const nextMembers = members.filter((memberUid) => memberUid !== safeA && memberUid !== safeB);
+        const payload = {};
+        let changed = nextMembers.length !== members.length;
+        if (changed) {
+            payload.members = nextMembers;
+        }
+
+        const ownerUid = coerceUidValue(data.ownerUid);
+        if (ownerUid && (ownerUid === safeA || ownerUid === safeB)) {
+            payload.ownerUid = nextMembers[0] || "";
+            changed = true;
+        }
+
+        if (changed) {
+            payload.updatedAt = FieldValue.serverTimestamp();
+            updates.push(docSnap.ref.update(payload).catch(() => {}));
+        }
+
+        if (members.includes(safeA)) {
+            updates.push(
+                adminDb.collection("usersPrivate").doc(safeA).update({
+                    tribeIds: FieldValue.arrayRemove(tribeId),
+                }).catch(() => {})
+            );
+        }
+        if (members.includes(safeB)) {
+            updates.push(
+                adminDb.collection("usersPrivate").doc(safeB).update({
+                    tribeIds: FieldValue.arrayRemove(tribeId),
+                }).catch(() => {})
+            );
+        }
+    }
+    if (updates.length) {
+        await Promise.all(updates);
+    }
+};
+
+const addBlockState = async (docRef, blockedField, blockedUidField, timestampField, targetUid, entry) => {
+    if (!docRef) return;
+    const safeUid = coerceUidValue(targetUid);
+    if (!safeUid) return;
+    const updates = {
+        [blockedField]: FieldValue.arrayUnion(entry),
+        [blockedUidField]: FieldValue.arrayUnion(safeUid),
+    };
+    updates[`${timestampField}.${safeUid}`] = FieldValue.serverTimestamp();
+    try {
+        await docRef.update(updates);
+    } catch (error) {
+        if (error?.code === "not-found" || error?.code === 5) {
+            await docRef.set({
+                [blockedField]: FieldValue.arrayUnion(entry),
+                [blockedUidField]: FieldValue.arrayUnion(safeUid),
+            }, { merge: true });
+            await docRef.set({
+                [timestampField]: {
+                    [safeUid]: FieldValue.serverTimestamp(),
+                },
+            }, { merge: true });
+        } else {
+            throw error;
+        }
+    }
+};
+
+const removeBlockState = async (docRef, blockedField, blockedUidField, timestampField, targetUid) => {
+    if (!docRef) return;
+    const safeUid = coerceUidValue(targetUid);
+    if (!safeUid) return;
+
+    await removeArrayEntriesByUid(docRef, blockedField, safeUid);
+    try {
+        await docRef.update({
+            [blockedUidField]: FieldValue.arrayRemove(safeUid),
+            [`${timestampField}.${safeUid}`]: FieldValue.delete(),
+        });
+    } catch (error) {
+        if (error?.code === "not-found" || error?.code === 5) {
+            return;
+        }
+        throw error;
+    }
+};
+
+export const blockUserAction = onCall({ region: "us-central1" }, async (request) => {
+    const { uid: meUid } = await resolveCallableUser(request);
+    const targetUid = validateFollowTarget(meUid, request.data?.targetUid ?? request.data?.uid);
+
+    const [meDocs, targetDocs] = await Promise.all([getUserDocs(meUid), getUserDocs(targetUid)]);
+    if (!meDocs || !meDocs.privateData) throw new HttpsError("failed-precondition", "Caller profile is incomplete.");
+    if (!targetDocs || !targetDocs.publicData) throw new HttpsError("not-found", "Target user not found.");
+
+    const meBlocked = new Set([
+        ...ensureUidArray(meDocs.privateData?.blockedUidList),
+        ...ensureUidArray(meDocs.privateData?.blocked),
+    ]);
+    if (meBlocked.has(targetUid)) {
+        return { status: "already-blocked" };
+    }
+
+    try {
+        await performUnfollow(meDocs, targetDocs);
+    } catch (error) {
+        logger.warn("blockUserAction performUnfollow failed", {
+            meUid,
+            targetUid,
+            error: error?.message || error,
+        });
+    }
+    try {
+        await performUnfollow(targetDocs, meDocs);
+    } catch (error) {
+        logger.warn("blockUserAction reverse performUnfollow failed", {
+            meUid,
+            targetUid,
+            error: error?.message || error,
+        });
+    }
+
+    const relationshipRemovals = [];
+    for (const field of RELATIONSHIP_ARRAY_FIELDS) {
+        relationshipRemovals.push(
+            removeArrayEntriesByUid(meDocs.publicRef, field, targetUid),
+            removeArrayEntriesByUid(targetDocs.publicRef, field, meUid),
+            removeArrayEntriesByUid(meDocs.legacyRef, field, targetUid),
+            removeArrayEntriesByUid(targetDocs.legacyRef, field, meUid)
+        );
+    }
+    const mapRemovals = [];
+    for (const field of RELATIONSHIP_MAP_FIELDS) {
+        mapRemovals.push(
+            removeMapEntryByUid(meDocs.publicRef, field, targetUid),
+            removeMapEntryByUid(targetDocs.publicRef, field, meUid),
+            removeMapEntryByUid(meDocs.legacyRef, field, targetUid),
+            removeMapEntryByUid(targetDocs.legacyRef, field, meUid)
+        );
+    }
+    await Promise.all([...relationshipRemovals, ...mapRemovals]);
+
+    await Promise.all([
+        pruneMessagesByUid(meDocs.privateRef, targetUid),
+        pruneMessagesByUid(targetDocs.privateRef, meUid),
+    ]);
+
+    await Promise.all([
+        hideChatsBetweenUsers(meUid, targetUid),
+        removeUsersFromCommonTribes(meUid, targetUid),
+    ]);
+
+    const targetEntry = normalizeUserRefPayload(targetUid, targetDocs.publicData, targetDocs.privateData) || { uid: targetUid };
+    const meEntry = normalizeUserRefPayload(meUid, meDocs.publicData, meDocs.privateData) || { uid: meUid };
+
+    await Promise.all([
+        addBlockState(meDocs.privateRef, "blocked", "blockedUidList", "blockedTimestamps", targetUid, targetEntry),
+        addBlockState(targetDocs.privateRef, "blockedBy", "blockedByUidList", "blockedByTimestamps", meUid, meEntry),
+        addBlockState(meDocs.legacyRef, "blocked", "blockedUidList", "blockedTimestamps", targetUid, targetEntry),
+        addBlockState(targetDocs.legacyRef, "blockedBy", "blockedByUidList", "blockedByTimestamps", meUid, meEntry),
+    ]);
+
+    return { status: "blocked" };
+});
+
+export const unblockUserAction = onCall({ region: "us-central1" }, async (request) => {
+    const { uid: meUid } = await resolveCallableUser(request);
+    const targetUid = validateFollowTarget(meUid, request.data?.targetUid ?? request.data?.uid);
+
+    const [meDocs, targetDocs] = await Promise.all([getUserDocs(meUid), getUserDocs(targetUid)]);
+    if (!meDocs || !meDocs.privateData) throw new HttpsError("failed-precondition", "Caller profile is incomplete.");
+    if (!targetDocs) throw new HttpsError("not-found", "Target user not found.");
+
+    const meBlocked = new Set([
+        ...ensureUidArray(meDocs.privateData?.blockedUidList),
+        ...ensureUidArray(meDocs.privateData?.blocked),
+    ]);
+    if (!meBlocked.has(targetUid)) {
+        return { status: "not-blocked" };
+    }
+
+    await Promise.all([
+        removeBlockState(meDocs.privateRef, "blocked", "blockedUidList", "blockedTimestamps", targetUid),
+        removeBlockState(targetDocs.privateRef, "blockedBy", "blockedByUidList", "blockedByTimestamps", meUid),
+        removeBlockState(meDocs.legacyRef, "blocked", "blockedUidList", "blockedTimestamps", targetUid),
+        removeBlockState(targetDocs.legacyRef, "blockedBy", "blockedByUidList", "blockedByTimestamps", meUid),
+    ]);
+
+    return { status: "unblocked" };
 });
 
 export const registerChatParticipantsAction = onCall({ region: "us-central1" }, async (request) => {
@@ -2278,6 +2603,230 @@ function safeNumber(value) {
     return Number.isFinite(n) ? n : 0;
 }
 
+const KG_TO_LB = 2.2046226218488;
+const ALLOWED_METRICS = new Set(["1RM", "Volume", "Reps"]);
+
+function sanitizeMetricKey(metric) {
+    const normalized = typeof metric === "string" ? metric.trim() : "";
+    if (ALLOWED_METRICS.has(normalized)) return normalized;
+    return "1RM";
+}
+
+function toPounds(weightInput, unitInput) {
+    const numeric = Number(weightInput);
+    if (!Number.isFinite(numeric) || numeric <= 0) return 0;
+    const unitNormalized = typeof unitInput === "string" ? unitInput.trim().toLowerCase() : "";
+    const converted = unitNormalized.startsWith("kg") || unitNormalized.includes("kilo")
+        ? numeric * KG_TO_LB
+        : numeric;
+    if (!Number.isFinite(converted) || converted <= 0) return 0;
+    return Math.min(converted, 2000);
+}
+
+function toNumeric(value) {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === "number") {
+        return Number.isFinite(value) ? value : 0;
+    }
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (!trimmed) return 0;
+        const cleaned = trimmed.replace(/[^0-9.+-]/g, "");
+        if (!cleaned) return 0;
+        const parsed = Number(cleaned);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+    if (typeof value === "object") {
+        if (value instanceof Number) {
+            const numeric = Number(value);
+            return Number.isFinite(numeric) ? numeric : 0;
+        }
+        if (typeof value.toNumber === "function") {
+            const num = value.toNumber();
+            return Number.isFinite(num) ? num : 0;
+        }
+        if (Object.prototype.hasOwnProperty.call(value, "value")) {
+            return toNumeric(value.value);
+        }
+        if (Object.prototype.hasOwnProperty.call(value, "amount")) {
+            return toNumeric(value.amount);
+        }
+        if (Object.prototype.hasOwnProperty.call(value, "weight")) {
+            return toNumeric(value.weight);
+        }
+        if (Object.prototype.hasOwnProperty.call(value, "lbs")) {
+            return toNumeric(value.lbs);
+        }
+        if (Object.prototype.hasOwnProperty.call(value, "kg")) {
+            return toNumeric(value.kg);
+        }
+    }
+    return 0;
+}
+
+function normalizeTimestamp(value) {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === "number") {
+        if (!Number.isFinite(value)) return 0;
+        return value <= 1e11 ? value * 1000 : value;
+    }
+    if (typeof value === "string") {
+        const numeric = Number(value);
+        if (Number.isFinite(numeric)) {
+            return numeric <= 1e11 ? numeric * 1000 : numeric;
+        }
+        const parsed = Date.parse(value);
+        if (!Number.isNaN(parsed)) return parsed;
+        return 0;
+    }
+    if (value instanceof Date) {
+        const ms = value.getTime();
+        return Number.isFinite(ms) ? ms : 0;
+    }
+    if (typeof value === "object") {
+        if (typeof value.toMillis === "function") {
+            const ms = value.toMillis();
+            return Number.isFinite(ms) ? ms : 0;
+        }
+        if (typeof value.toDate === "function") {
+            try {
+                const date = value.toDate();
+                if (date instanceof Date) {
+                    const ms = date.getTime();
+                    if (Number.isFinite(ms)) return ms;
+                }
+            } catch {
+                /* ignore */
+            }
+        }
+        const seconds = Number(value.seconds);
+        if (Number.isFinite(seconds)) {
+            const nanos = Number(value.nanoseconds ?? value.nanos ?? 0);
+            const extra = Number.isFinite(nanos) ? Math.floor(nanos / 1e6) : 0;
+            return seconds * 1000 + extra;
+        }
+    }
+    return 0;
+}
+
+function pickFirstWeightFromObject(obj, depth = 0, inheritedUnit = null) {
+    if (!obj || typeof obj !== "object" || depth > 3) return 0;
+    let unitHint = inheritedUnit;
+    if (typeof obj.weightUnit === "string") unitHint = obj.weightUnit;
+    else if (typeof obj.unit === "string") unitHint = obj.unit;
+    else if (typeof obj.units === "string") unitHint = obj.units;
+
+    for (const [key, rawValue] of Object.entries(obj)) {
+        if (rawValue === null || rawValue === undefined) continue;
+        const lower = key.toLowerCase();
+
+        let unit = unitHint;
+        if (lower.includes("kg")) unit = "kg";
+        else if (lower.includes("lb") || lower.includes("pound")) unit = "lb";
+
+        const isWeightKey =
+            lower.includes("weight") ||
+            lower === "bw" ||
+            lower === "bodyweight" ||
+            lower === "bodyweightlbs" ||
+            lower === "currentweight" ||
+            lower === "latestweight" ||
+            lower === "targetweight" ||
+            lower === "goalweight" ||
+            lower === "startingweight";
+
+        if (isWeightKey) {
+            const numeric = toNumeric(rawValue);
+            const pounds = toPounds(numeric, unit);
+            if (pounds > 0) return pounds;
+        }
+
+        if (typeof rawValue === "object") {
+            const nested = pickFirstWeightFromObject(rawValue, depth + 1, unit);
+            if (nested > 0) return nested;
+        }
+    }
+    return 0;
+}
+
+function extractLatestWeight(entries) {
+    if (!entries) return 0;
+    let list = entries;
+    if (!Array.isArray(list)) {
+        if (typeof list === "object") {
+            list = Object.values(list);
+        } else {
+            return 0;
+        }
+    }
+    let latestWeight = 0;
+    let latestTs = -Infinity;
+    entries.forEach((entry) => {
+        if (!entry || typeof entry !== "object") return;
+        let unit = entry?.unit ?? entry?.units ?? entry?.weightUnit ?? "";
+        let weightValue = toNumeric(entry?.weight ?? entry?.value ?? entry?.amount);
+        if (!Number.isFinite(weightValue) || weightValue <= 0) {
+            if (entry?.kg != null) {
+                const kgVal = toNumeric(entry.kg);
+                if (Number.isFinite(kgVal) && kgVal > 0) {
+                    weightValue = kgVal;
+                    unit = "kg";
+                }
+            } else if (entry?.lbs != null) {
+                const lbVal = toNumeric(entry.lbs);
+                if (Number.isFinite(lbVal) && lbVal > 0) {
+                    weightValue = lbVal;
+                    unit = "lb";
+                }
+            }
+        }
+        if (!Number.isFinite(weightValue) || weightValue <= 0) return;
+        const converted = toPounds(weightValue, unit);
+        if (!Number.isFinite(converted) || converted <= 0) return;
+        const recordedAtRaw =
+            entry?.recordedAt ?? entry?.timestamp ?? entry?.loggedAt ?? entry?.createdAt ?? entry?.updatedAt ?? entry?.time;
+        let ts = normalizeTimestamp(recordedAtRaw);
+        if (!Number.isFinite(ts) || ts <= 0) {
+            const fallback = normalizeTimestamp(entry?.date);
+            if (fallback > ts) ts = fallback;
+        }
+        if (ts > latestTs || (ts === latestTs && converted > latestWeight)) {
+            latestTs = ts;
+            latestWeight = converted;
+        }
+    });
+    return latestWeight;
+}
+
+function resolveBodyweightForNormalization(privateData = {}, publicData = {}, userData = {}) {
+    const directPublic = toNumeric(publicData?.publicWeight);
+    if (directPublic > 0) return directPublic;
+
+    const publicKg = toNumeric(publicData?.publicWeightKg);
+    if (publicKg > 0) {
+        const pounds = toPounds(publicKg, "kg");
+        if (pounds > 0) return pounds;
+    }
+
+    const arraySources = [
+        privateData?.progress?.weightEntries,
+        privateData?.weightEntries,
+        privateData?.bodyweightEntries,
+        publicData?.progress?.weightEntries,
+        publicData?.weightEntries,
+        userData?.progress?.weightEntries,
+        userData?.weightEntries,
+        userData?.bodyweightEntries,
+    ];
+
+    for (const source of arraySources) {
+        const weight = extractLatestWeight(source);
+        if (weight > 0) return weight;
+    }
+
+    return 0;
+}
+
 function computeGlobalRanks(valueMap) {
     const entries = Array.from(valueMap.entries()).map(([uid, value]) => ({
         uid,
@@ -2625,6 +3174,246 @@ export const refreshLeaderboardLastRanks = onSchedule(
             allExercises.size,
             Date.now() - started,
         );
+    }
+);
+
+export const getTribeComparisonScores = onCall(
+    {
+        region: 'us-central1',
+        timeoutSeconds: 120,
+        memory: '512MiB',
+    },
+    async (request) => {
+        try {
+            const authUid = request?.auth?.uid;
+            if (!authUid) {
+                throw new HttpsError('unauthenticated', 'Authentication is required.');
+            }
+
+            const { tribeId, comparison } = request.data || {};
+            const tribeIdRaw =
+                coerceUidValue(tribeId) || (typeof tribeId === 'string' ? tribeId.trim() : '');
+            if (!tribeIdRaw) {
+                throw new HttpsError('invalid-argument', 'Invalid tribeId.');
+            }
+
+            const exercise = typeof comparison?.exercise === 'string' ? comparison.exercise.trim() : '';
+            if (!exercise) {
+                throw new HttpsError('invalid-argument', 'Comparison exercise is required.');
+            }
+
+            const metric = sanitizeMetricKey(comparison?.metric);
+            const normalizeFlag =
+                comparison?.normalizeByBodyweight === undefined ? true : !!comparison?.normalizeByBodyweight;
+            if (!normalizeFlag) {
+                throw new HttpsError('invalid-argument', 'This endpoint only returns bodyweight-normalized scores.');
+            }
+
+            const tribeSnap = await adminDb.collection('tribes').doc(tribeIdRaw).get();
+            if (!tribeSnap.exists) {
+                throw new HttpsError('not-found', 'Tribe not found.');
+            }
+
+            const tribeData = tribeSnap.data() || {};
+            const memberSet = new Set();
+            const pushUid = (input) => {
+                const uid = coerceUidValue(input);
+                if (uid) memberSet.add(uid);
+            };
+
+            const membersArr = Array.isArray(tribeData?.members) ? tribeData.members : [];
+            membersArr.forEach((entry) => {
+                if (entry && typeof entry === 'object') {
+                    pushUid(entry?.uid ?? entry?.id ?? entry?.userUid ?? entry);
+                } else {
+                    pushUid(entry);
+                }
+            });
+
+            const memberIdsField = Array.isArray(tribeData?.memberIds) ? tribeData.memberIds : [];
+            memberIdsField.forEach(pushUid);
+
+            pushUid(tribeData?.ownerUid);
+            pushUid(tribeData?.ownerUID);
+            pushUid(tribeData?.creatorUid);
+            pushUid(tribeData?.creatorUID);
+            pushUid(tribeData?.createdBy);
+
+            const adminsArr = Array.isArray(tribeData?.admins) ? tribeData.admins : [];
+            adminsArr.forEach(pushUid);
+
+            if (!memberSet.size) {
+                throw new HttpsError('failed-precondition', 'Tribe has no members to compare.');
+            }
+
+            if (!memberSet.has(authUid)) {
+                throw new HttpsError('permission-denied', 'Only members can view normalized comparisons.');
+            }
+
+            const memberIds = Array.from(memberSet);
+            if (memberIds.length > 300) {
+                throw new HttpsError('resource-exhausted', 'Tribe member count is too large for this operation.');
+            }
+
+            const publicRefs = memberIds.map((uid) => adminDb.collection('usersPublic').doc(uid));
+            const privateRefs = memberIds.map((uid) => adminDb.collection('usersPrivate').doc(uid));
+
+            const userRefs = memberIds.map((uid) => adminDb.collection('users').doc(uid));
+
+            const [publicSnaps, privateSnaps, userSnaps] = await Promise.all([
+                Promise.all(
+                    publicRefs.map((ref) =>
+                        ref
+                            .get()
+                            .catch((err) => {
+                                logger.warn('getTribeComparisonScores: failed to load usersPublic doc', {
+                                    path: ref.path,
+                                    error: err?.message || err,
+                                });
+                                return null;
+                            })
+                    ),
+                ),
+                Promise.all(
+                    privateRefs.map((ref) =>
+                        ref
+                            .get()
+                            .catch((err) => {
+                                logger.warn('getTribeComparisonScores: failed to load usersPrivate doc', {
+                                    path: ref.path,
+                                    error: err?.message || err,
+                                });
+                                return null;
+                            })
+                    ),
+                ),
+                Promise.all(
+                    userRefs.map((ref) =>
+                        ref
+                            .get()
+                            .catch((err) => {
+                                logger.debug('getTribeComparisonScores: failed to load users doc', {
+                                    path: ref.path,
+                                    error: err?.message || err,
+                                });
+                                return null;
+                            })
+                    ),
+                ),
+            ]);
+
+            const entries = memberIds.map((uid, index) => {
+                const publicSnap = publicSnaps[index];
+                const privateSnap = privateSnaps[index];
+                const publicData = publicSnap?.exists ? publicSnap.data() || {} : {};
+                const privateData = privateSnap?.exists ? privateSnap.data() || {} : {};
+                const userData = userSnaps?.[index]?.exists ? userSnaps[index].data() || {} : {};
+                const stats =
+                    publicData?.statsExercises && typeof publicData.statsExercises === 'object'
+                        ? publicData.statsExercises[exercise] || {}
+                        : {};
+                const rawValue = safeNumber(stats?.[metric]);
+                const weight = resolveBodyweightForNormalization(privateData, publicData, userData);
+                const normalized = weight > 0 ? rawValue / weight : null;
+                const normalizedValue =
+                    normalized !== null && Number.isFinite(normalized) ? Number(normalized.toFixed(6)) : null;
+                return {
+                    uid,
+                    rawValue,
+                    value: normalizedValue,
+                    missingWeight: !(weight > 0),
+                };
+            });
+
+            entries.sort((a, b) => {
+                if (a.missingWeight && !b.missingWeight) return 1;
+                if (!a.missingWeight && b.missingWeight) return -1;
+                const av = Number.isFinite(a.value) ? a.value : -Infinity;
+                const bv = Number.isFinite(b.value) ? b.value : -Infinity;
+                if (bv > av) return 1;
+                if (av > bv) return -1;
+                const aRaw = Number.isFinite(a.rawValue) ? a.rawValue : -Infinity;
+                const bRaw = Number.isFinite(b.rawValue) ? b.rawValue : -Infinity;
+                if (bRaw > aRaw) return 1;
+                if (aRaw > bRaw) return -1;
+                return 0;
+            });
+
+            const responseEntries = [];
+            let lastValue = null;
+            let lastRank = 0;
+            entries.forEach((entry, index) => {
+                let rank = null;
+                if (!entry.missingWeight) {
+                    const numeric = Number.isFinite(entry.value) ? entry.value : 0;
+                    if (lastValue === null || Math.abs(numeric - lastValue) > EPSILON) {
+                        rank = index + 1;
+                        lastRank = rank;
+                        lastValue = numeric;
+                    } else {
+                        rank = lastRank;
+                    }
+                }
+                responseEntries.push({
+                    uid: entry.uid,
+                    value: Number.isFinite(entry.value) ? entry.value : null,
+                    rawValue: Number.isFinite(entry.rawValue) ? entry.rawValue : null,
+                    missingWeight: entry.missingWeight,
+                    rank,
+                });
+            });
+
+            const missingWeightCount = responseEntries.filter((entry) => entry.missingWeight).length;
+            const availableCount = responseEntries.length - missingWeightCount;
+            logger.debug('getTribeComparisonScores summary', {
+                tribeId: tribeIdRaw,
+                exercise,
+                metric,
+                membersRequested: memberIds.length,
+                scoresAvailable: availableCount,
+                missingWeightCount,
+            });
+
+            if (missingWeightCount > 0) {
+                responseEntries
+                    .filter((entry) => entry.missingWeight)
+                    .slice(0, 5)
+                    .forEach((entry) => {
+                        const index = memberIds.indexOf(entry.uid);
+                        const privateData = index >= 0 && privateSnaps[index]?.exists ? privateSnaps[index].data() || {} : {};
+                        const publicData = index >= 0 && publicSnaps[index]?.exists ? publicSnaps[index].data() || {} : {};
+                        const userData = index >= 0 && userSnaps?.[index]?.exists ? userSnaps[index].data() || {} : {};
+                        const hasProgressArray = Array.isArray(privateData?.progress?.weightEntries) || Array.isArray(userData?.progress?.weightEntries);
+                        const progressKeys = privateData?.progress ? Object.keys(privateData.progress) : [];
+                        const personalInfoKeys = privateData?.personalInfo ? Object.keys(privateData.personalInfo) : [];
+                        logger.debug('missing weight detail', {
+                            uid: entry.uid,
+                            hasProgressArray,
+                            progressKeys,
+                            personalInfoKeys,
+                            hasBodyweightLog: Array.isArray(privateData?.bodyweightLog) || Array.isArray(userData?.bodyweightLog),
+                            publicHasStatsBodyweight: publicData?.stats?.bodyweight != null,
+                        });
+                    });
+            }
+
+            return {
+                tribeId: tribeIdRaw,
+                comparison: {
+                    exercise,
+                    metric,
+                    normalizeByBodyweight: true,
+                },
+                generatedAt: Date.now(),
+                entries: responseEntries,
+            };
+        } catch (error) {
+            if (error instanceof HttpsError) {
+                throw error;
+            }
+            logger.error('getTribeComparisonScores failed', { error: error?.message || error });
+            throw new HttpsError('internal', 'Failed to compute normalized comparison scores.');
+        }
     }
 );
 

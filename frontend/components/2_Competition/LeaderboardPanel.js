@@ -149,10 +149,10 @@ const BlockedViewClean = React.memo(({ message, onResolve }) => {
     return (
         <View style={stylesLocal.wrap}>
             <Text style={stylesLocal.text}>{message}</Text>
-            <Text style={stylesLocal.sub}>Enter your personal info to enable per-lb ranking.</Text>
+            <Text style={stylesLocal.sub}>Log your body weight in "Progress" to enable per-lb rankings.</Text>
             {onResolve && (
                 <TouchableOpacity style={stylesLocal.btn} activeOpacity={0.9} onPress={withStrongPress(onResolve)}>
-                    <Text style={stylesLocal.btnText}>Enter Personal Info</Text>
+                    <Text style={stylesLocal.btnText}>Enter Body Weight</Text>
                 </TouchableOpacity>
             )}
         </View>
@@ -171,10 +171,10 @@ const BlockedView = React.memo(({ message, onResolve }) => {
         <>
             <View style={stylesLocal.wrap}>
                 <Text style={stylesLocal.text}>{message}</Text>
-                <Text style={stylesLocal.sub}>Enter your personal info to enable per-lb ranking.</Text>
+                <Text style={stylesLocal.sub}>Log your body weight in "Progress" to enable per-lb rankings.</Text>
                 {onResolve && (
                     <TouchableOpacity style={stylesLocal.btn} activeOpacity={0.9} onPress={withStrongPress(onResolve)}>
-                        <Text style={stylesLocal.btnText}>Enter Personal Info</Text>
+                        <Text style={stylesLocal.btnText}>Enter Body Weight</Text>
                     </TouchableOpacity>
                 )}
             </View>

@@ -34,6 +34,7 @@ export default function Competition({ navigation, route }) {
         }
         return "leaderboard";
     });
+    const [progressScrollSignal, setProgressScrollSignal] = useState(0);
 
     useEffect(() => {
         const requested = route?.params?.focusTab;
@@ -52,13 +53,23 @@ export default function Competition({ navigation, route }) {
         setActiveTab(key);
     }, []);
 
+    const handleRequestBodyWeightEntry = useCallback(() => {
+        setActiveTab("progress");
+        setProgressScrollSignal(Date.now());
+    }, []);
+
     const sectionComponents = useMemo(
         () => ({
-            leaderboard: <LeaderboardsSection navigation={navigation} />,
-            progress: <ProgressSection />,
+            leaderboard: (
+                <LeaderboardsSection
+                    navigation={navigation}
+                    onRequestBodyWeightEntry={handleRequestBodyWeightEntry}
+                />
+            ),
+            progress: <ProgressSection scrollSignal={progressScrollSignal} />,
             exercises: <ExercisesSection />,
         }),
-        [navigation]
+        [navigation, handleRequestBodyWeightEntry, progressScrollSignal]
     );
 
     return (

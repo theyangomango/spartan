@@ -80,12 +80,19 @@ const BODYWEIGHT_BLOCK_MESSAGE =
 
 const STAGE_VERTICAL_OFFSET = scaleSize(0);
 
+const KG_TO_LB = 2.2046226218488;
+
 const GLOBAL_KEY = "__competition_state__";
 const getPersisted = () =>
-    (global[GLOBAL_KEY] && typeof global[GLOBAL_KEY] === "object" ? global[GLOBAL_KEY] : {});
+    (typeof global !== "undefined" &&
+    global[GLOBAL_KEY] &&
+    typeof global[GLOBAL_KEY] === "object"
+        ? global[GLOBAL_KEY]
+        : {});
 const setPersisted = (patch) => {
-    const curr = getPersisted();
-    global[GLOBAL_KEY] = { ...curr, ...patch };
+    if (typeof global === "undefined") return;
+    const current = getPersisted();
+    global[GLOBAL_KEY] = { ...current, ...patch };
 };
 
 let LAST_SCOPE = "Following";
@@ -93,43 +100,120 @@ let LAST_SELECTED_TRIBE_ID = null;
 let LAST_USERLIST = null;
 let LAST_BODY_FOCUS = DEFAULT_BODY_FOCUS;
 
-const genCode = (len = 6) => {
-    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    let out = "";
-    for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
-    return out;
+const resolveUserWeightValue = (user) => {
+    if (!user) return null;
+    const direct = Number(user?.publicWeight);
+    if (Number.isFinite(direct) && direct > 0) return direct;
+
+    const lb = Number(user?.publicWeightLb);
+    if (Number.isFinite(lb) && lb > 0) return lb;
+
+    const kg = Number(user?.publicWeightKg);
+    if (Number.isFinite(kg) && kg > 0) return kg * KG_TO_LB;
+
+    const latest = getLatestWeightFromEntries(
+        user?.progress?.weightEntries ||
+            user?.weightEntries ||
+            user?.bodyweightLog ||
+            user?.bodyweightEntries ||
+            []
+    );
+    if (latest?.weight && Number.isFinite(latest.weight) && latest.weight > 0) {
+        return latest.weight;
+    }
+
+    return null;
 };
 
-function computeTribeRanking(users, comparison) {
+const getLatestWeightFromEntries = (entries) => {
+    if (!Array.isArray(entries)) return null;
+    let latest = null;
+    entries.forEach((entry) => {
+        if (!entry) return;
+        const weight = Number(entry?.weight ?? entry?.value);
+        if (!Number.isFinite(weight) || weight <= 0) return;
+        const unitRaw = typeof entry?.unit === "string" ? entry.unit : "";
+        const recordedAt = Number(
+            entry?.recordedAt ??
+                entry?.timestamp ??
+                entry?.loggedAt ??
+                entry?.createdAt ??
+                entry?.created ??
+                0
+        );
+        if (!Number.isFinite(recordedAt) || recordedAt <= 0) return;
+        const unit = unitRaw.toLowerCase();
+        const weightLb = unit.startsWith("k") ? weight * KG_TO_LB : weight;
+        if (!latest || recordedAt > latest.recordedAt) {
+            latest = { weight: weightLb, recordedAt };
+        }
+    });
+    return latest;
+};
+
+function computeTribeRanking(users, comparison, weightOverrides = null) {
     const { exercise, metric, normalizeByBodyweight } = comparison || {};
     const exerciseKey = typeof exercise === "string" ? exercise.trim() : "";
+
     const list = (users || []).map((u) => {
-        const { value, missingWeightData } = getLeaderboardValue(u, {
+        const { value } = getLeaderboardValue(u, {
             mode: "exercise",
             key: exerciseKey,
             metric: metric || "1RM",
-            normalizeByBodyweight: !!normalizeByBodyweight,
+            normalizeByBodyweight: false,
         });
-
         const safeValue = Number.isFinite(value) ? value : 0;
+
+        if (!normalizeByBodyweight) {
+            return {
+                ...u,
+                _tribeValue: safeValue,
+                __noWeightForBW: false,
+            };
+        }
+
+        const uid = coerceUid(u);
+        const override = (() => {
+            if (!weightOverrides || !uid) return null;
+            const candidate =
+                typeof weightOverrides.get === "function"
+                    ? weightOverrides.get(uid)
+                    : weightOverrides?.[uid];
+            const numeric = Number(candidate);
+            return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
+        })();
+
+        const weight = override ?? resolveUserWeightValue(u);
+        if (!Number.isFinite(weight) || weight <= 0) {
+            return {
+                ...u,
+                _tribeValue: null,
+                __noWeightForBW: true,
+            };
+        }
+
+        const normalized = safeValue / weight;
         return {
             ...u,
-            _tribeValue: normalizeByBodyweight && missingWeightData ? null : safeValue,
-            __noWeightForBW: !!(normalizeByBodyweight && missingWeightData),
+            _tribeValue: Number.isFinite(normalized) ? normalized : 0,
+            __noWeightForBW: false,
         };
     });
 
     list.sort((a, b) => {
-        if (comparison?.normalizeByBodyweight) {
+        if (normalizeByBodyweight) {
             const an = !!a.__noWeightForBW;
             const bn = !!b.__noWeightForBW;
             if (an && !bn) return 1;
             if (!an && bn) return -1;
         }
-        const av = a._tribeValue ?? -Infinity;
-        const bv = b._tribeValue ?? -Infinity;
-        return (bv || -Infinity) - (av || -Infinity);
+        const av = Number.isFinite(a._tribeValue) ? a._tribeValue : -Infinity;
+        const bv = Number.isFinite(b._tribeValue) ? b._tribeValue : -Infinity;
+        if (bv > av) return 1;
+        if (av > bv) return -1;
+        return 0;
     });
+
     return list;
 }
 
@@ -229,7 +313,7 @@ function resolveProfileImage(user) {
     return "";
 }
 
-export default function LeaderboardsSection({ navigation }) {
+export default function LeaderboardsSection({ navigation, onRequestBodyWeightEntry }) {
     const insets = useStableSafeAreaInsets();
     const podiumSectionHeight = useMemo(() => PODIUM_HEIGHT, []);
     const panelOverlap = useMemo(() => scaleSize(12), []);
@@ -364,6 +448,7 @@ useEffect(() => {
         statsKey: "",
         hexagonKey: "",
         profileKey: "",
+        personalInfoKey: "",
     });
 
     useEffect(
@@ -444,6 +529,24 @@ useEffect(() => {
                     return pieces.join("|");
                 })();
 
+                const personalInfoKey = (() => {
+                    const info = data?.personalInfo;
+                    if (!info || typeof info !== "object") return "";
+                    try {
+                        const parts = [
+                            info.weight != null ? String(info.weight) : "",
+                            info.gender || "",
+                            info.activity || "",
+                            info.goal || "",
+                            info.heightFt != null ? String(info.heightFt) : "",
+                            info.heightIn != null ? String(info.heightIn) : "",
+                        ];
+                        return parts.join("|");
+                    } catch {
+                        return "";
+                    }
+                })();
+
                 if (data?.uid) {
                     usersRef.current = Array.isArray(usersRef.current)
                         ? (() => {
@@ -474,7 +577,8 @@ useEffect(() => {
                         prev.tribeKey === tribeKey &&
                         prev.statsKey === statsKey &&
                         prev.hexagonKey === hexagonKey &&
-                        prev.profileKey === profileKey
+                        prev.profileKey === profileKey &&
+                        prev.personalInfoKey === personalInfoKey
                     ) {
                         return prev;
                     }
@@ -485,6 +589,7 @@ useEffect(() => {
                         statsKey,
                         hexagonKey,
                         profileKey,
+                        personalInfoKey,
                     };
                 });
             }),
@@ -581,7 +686,14 @@ useEffect(() => {
     }, []);
 
     const [blockedReason, setBlockedReason] = useState(null);
-    const viewerWeight = Number(global?.userData?.personalInfo?.weight || 0);
+    const viewerWeight = (() => {
+        try {
+            const weight = resolveUserWeightValue(global?.userData || null);
+            return Number.isFinite(weight) && weight > 0 ? weight : 0;
+        } catch {
+            return 0;
+        }
+    })();
 
     const handleToggleFocusMenu = useCallback(() => {
         if (isBodyFocusMenuVisible) {
@@ -687,6 +799,8 @@ useEffect(() => {
         [tribeComparisons, activeCompIndex]
     );
 
+
+
     const recompute = useCallback(() => {
         const all = usersRef.current || [];
         const hexFocusKey = typeof bodyFocus === "string" && bodyFocus ? bodyFocus : null;
@@ -737,7 +851,15 @@ useEffect(() => {
             const memberIdsArray = Array.from(memberSet);
 
             if (activeComparison) {
-                const ranked = computeTribeRanking(visible, activeComparison);
+                const overrideWeights = new Map();
+                if (viewerUid && viewerWeight > 0) {
+                    overrideWeights.set(viewerUid, viewerWeight);
+                }
+                const ranked = computeTribeRanking(
+                    visible,
+                    activeComparison,
+                    overrideWeights.size ? overrideWeights : null
+                );
                 const previous = tribeExerciseSnapshots?.[activeComparison?.exercise || ""];
                 const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
                 setUserList(attachScopedRanks(ranked, previous?.entries, memberIdsArray, snapshotValid));
@@ -808,6 +930,7 @@ useEffect(() => {
         comparedMetric,
         selectedTribeId,
         snapshotMeta?.snapshotId,
+        viewerWeight,
         global?.userData?.following,
         global?.userData?.lastRanks,
     ]);
@@ -835,6 +958,7 @@ useEffect(() => {
         userSignals.statsKey,
         userSignals.hexagonKey,
         userSignals.profileKey,
+        userSignals.personalInfoKey,
     ]);
 
     useEffect(() => {
@@ -895,11 +1019,19 @@ useEffect(() => {
             if (viewerUid && !memberSet.has(viewerUid)) memberSet.add(viewerUid);
             const memberIdsArray = Array.from(memberSet);
 
+            const tribeScopeKey = String(currentTribe?.id || selectedTribeId || "");
             const tribeUsers = all.filter((x) => memberSet.has(coerceUid(x)));
             const visible = filterBlockedVisibility(tribeUsers, { respectPrivacy: false });
-            const ranked = computeTribeRanking(visible, comp);
+            const overrideWeights = new Map();
+            if (viewerUid && viewerWeight > 0) {
+                overrideWeights.set(viewerUid, viewerWeight);
+            }
+            const ranked = computeTribeRanking(
+                visible,
+                comp,
+                overrideWeights.size ? overrideWeights : null
+            );
 
-            const tribeScopeKey = String(currentTribe?.id || selectedTribeId || "");
             const viewerLastRanks =
                 global && global.userData && typeof global.userData.lastRanks === "object"
                     ? global.userData.lastRanks
@@ -914,12 +1046,13 @@ useEffect(() => {
         [
             tribeComparisons,
             isCustomTribe,
-            currentTribe,
-            selectedTribeId,
-            snapshotMeta?.snapshotId,
-            global?.userData?.lastRanks,
-        ]
-    );
+        currentTribe,
+        selectedTribeId,
+        snapshotMeta?.snapshotId,
+        viewerWeight,
+        global?.userData?.lastRanks,
+    ]
+);
 
     const onOpenCreateFromMenu = useCallback(() => {
         setTribeMenuVisible(false);
@@ -935,6 +1068,17 @@ useEffect(() => {
     }, []);
 
     const [personalSheetIndex, setPersonalSheetIndex] = useState(-1);
+    const handleBodyWeightEntryRequest = useCallback(() => {
+        if (typeof onRequestBodyWeightEntry === "function") {
+            try {
+                onRequestBodyWeightEntry();
+                return;
+            } catch (error) {
+                console.warn("leaderboard body weight request failed", error);
+            }
+        }
+        setPersonalSheetIndex(1);
+    }, [onRequestBodyWeightEntry]);
     const [infoForm, setInfoForm] = useState({
         gender: "male",
         activity: "moderate",
@@ -1216,7 +1360,7 @@ useEffect(() => {
         const top3 = rankedDisplay.slice(0, 3).map((u) => {
             let stat = 0;
             if (isCustomTribe && activeComparison) {
-                stat = u?._tribeValue ?? 0;
+                stat = Number.isFinite(u?._tribeValue) ? u._tribeValue : 0;
             } else if (usingHexFocus) {
                 const val = Number(u?.__hexValue ?? u?.statsHexagon?.[hexFocusKey] ?? 0);
                 stat = Number.isFinite(val) ? val : 0;
@@ -1496,7 +1640,7 @@ useEffect(() => {
                         tribeComparisonSummary={activeComparison ? summaryOf(activeComparison) : "Not set"}
                         onOpenTribeComparison={() => setComparisonManagerVisible(true)}
                         blockedMessage={blockedReason}
-                        onResolveBlocked={() => setPersonalSheetIndex(1)}
+                        onResolveBlocked={handleBodyWeightEntryRequest}
                         canvasColor={leaderboardCanvas}
                         minHeightOverride={panelCollapsedHeight}
                         containerStyle={styles.leaderboardContainer}
@@ -1554,7 +1698,7 @@ useEffect(() => {
                     if (needsBW) {
                         if (!(viewerWeight > 0)) {
                             setBlockedReason(BODYWEIGHT_BLOCK_MESSAGE);
-                            requestAnimationFrame(() => setPersonalSheetIndex(1));
+                            requestAnimationFrame(handleBodyWeightEntryRequest);
                         } else {
                             setBlockedReason(null);
                         }

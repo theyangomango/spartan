@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Alert,
+    Keyboard,
     KeyboardAvoidingView,
     Modal,
     Platform,
@@ -23,6 +24,7 @@ import theme from "../theme/mfpDark";
 import makeID from "../../backend/helper/makeID";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import { emitUserDataUpdate, subscribeUserData } from "../utils/userDataEvents";
+import { derivePublicWeightFields } from "../utils/weightEntries";
 import { scaleSize, ts } from "../components/2_Competition/layoutConstants";
 import { strong as hapticStrong } from "../utils/haptics";
 
@@ -177,6 +179,7 @@ const AddMeasurementModal = ({
     const openPicker = useCallback(
         (mode) => {
             const safeMode = mode === "time" ? "time" : "date";
+            Keyboard.dismiss();
             if (Platform.OS === "android") {
                 DateTimePickerAndroid.open({
                     mode: safeMode,
@@ -452,16 +455,18 @@ export default function WeightMeasurementsScreen() {
                 ...(currentUser?.progress || {}),
                 weightEntries: nextEntriesSanitized,
             };
+            const publicWeightFields = derivePublicWeightFields(nextEntriesSanitized);
             const nextUserData = {
                 ...(currentUser || {}),
                 progress: nextProgress,
+                ...publicWeightFields,
             };
 
             setIsSaving(true);
 
             try {
                 if (global?.userData && typeof global.userData === "object") {
-                    global.userData = { ...global.userData, progress: nextProgress };
+                    global.userData = { ...global.userData, progress: nextProgress, ...publicWeightFields };
                 } else if (typeof global !== "undefined") {
                     global.userData = nextUserData;
                 }
@@ -472,7 +477,10 @@ export default function WeightMeasurementsScreen() {
             emitUserDataUpdate();
 
             try {
-                await updateDoc("usersPrivate", uid, { progress: nextProgress });
+                await Promise.all([
+                    updateDoc("usersPrivate", uid, { progress: nextProgress }),
+                    updateDoc("usersPublic", uid, publicWeightFields),
+                ]);
                 emitUserDataUpdate();
                 return true;
             } catch (error) {
