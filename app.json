@@ -19,15 +19,15 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.yangbai.spartan",
-      "buildNumber": "30",
+      "buildNumber": "32",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
         "NSCameraUsageDescription": "Allow $(PRODUCT_NAME) to access the camera for barcode scanning.",
-        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access your photos.",
-        "NSPhotoLibraryAddUsageDescription": "Allow $(PRODUCT_NAME) to save photos."
+        "NSPhotoLibraryUsageDescription": "Allow $(PRODUCT_NAME) to access the photos you choose so you can attach them to workouts, feed posts, chats, and your profile photo.",
+        "NSPhotoLibraryAddUsageDescription": "Allow $(PRODUCT_NAME) to access the specific photos you select so we can upload them to workouts, feed posts, chats, or your profile photo; nothing is shared automatically."
       }
     },
     "android": {
@@ -63,8 +63,8 @@
       [
         "expo-media-library",
         {
-          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos.",
-          "savePhotosPermission": "Allow $(PRODUCT_NAME) to save photos.",
+          "photosPermission": "Allow $(PRODUCT_NAME) to access the photos you choose so you can attach them to workouts, feed posts, chats, and your profile photo.",
+          "savePhotosPermission": "Allow $(PRODUCT_NAME) to access the specific photos you select so we can upload them to workouts, feed posts, chats, or your profile photo; nothing is shared automatically.",
           "isAccessMediaLocationEnabled": true
         }
       ],
