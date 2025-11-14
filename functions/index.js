@@ -3931,7 +3931,7 @@ export const onChatMessageCreated = onDocumentCreated(
             const bodyText = (message?.text || "").trim();
             const preview = bodyText
                 ? bodyText.slice(0, 120)
-                : (hasMedia ? "Sent a photo/video" : "Sent a message");
+                : (hasMedia ? "Sent a photo" : "Sent a message");
             const title = isGroup ? `${senderName} in chat` : `${senderName}`;
 
             // Send via Expo Push API in chunks
