@@ -8,9 +8,13 @@ import { getUnifiedHeaderMetrics } from '../../theme/headerMetrics';
 
 const METRICS = getUnifiedHeaderMetrics();
 
-export default function DateHeader({ title, onPrev, onNext, onTitlePress, COLORS }) {
+export default function DateHeader({ title, onPrev, onNext, onTitlePress, COLORS, isToday = false }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const scale = useRef(new Animated.Value(1)).current;
+    const highlightColor = useMemo(
+        () => COLORS?.accentBlue || COLORS?.accent || '#2563EB',
+        [COLORS]
+    );
 
     const handleTitlePress = () => {
         // Trigger a quick bounce animation
@@ -26,7 +30,15 @@ export default function DateHeader({ title, onPrev, onNext, onTitlePress, COLORS
                 <Ionicons name="chevron-back" size={METRICS.iconSize} color={styles.textColor.color} />
             </Pressable>
             <Pressable onPress={() => { try { haptic(); } catch {} handleTitlePress(); }} disabled={!onTitlePress} hitSlop={8}>
-                <Animated.Text style={[styles.title, { transform: [{ scale }] }]}>{title}</Animated.Text>
+                <Animated.Text
+                    style={[
+                        styles.title,
+                        isToday && { color: highlightColor },
+                        { transform: [{ scale }] },
+                    ]}
+                >
+                    {title}
+                </Animated.Text>
             </Pressable>
             <Pressable onPress={() => { try { haptic(); } catch {} onNext?.(); }} hitSlop={8}>
                 <Ionicons name="chevron-forward" size={METRICS.iconSize} color={styles.textColor.color} />

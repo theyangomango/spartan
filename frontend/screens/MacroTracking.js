@@ -1,5 +1,5 @@
 // screens/MacroTracking.js
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { View, UIManager, Platform, LayoutAnimation, StatusBar, useWindowDimensions, VirtualizedList, TouchableOpacity, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaView as SafeAreaInsetsView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -260,6 +260,20 @@ export default function MacroTracking({ navigation, route }) {
     const [baseIndex, setBaseIndex] = useState(BASE_INDEX);
     const [headerDate, setHeaderDate] = useState(focusedDate);
     const lastHeaderIndexRef = useRef(baseIndex);
+
+    const isHeaderDateToday = useMemo(() => {
+        if (!headerDate) return false;
+        try {
+            const candidate = new Date(headerDate);
+            if (Number.isNaN(candidate.getTime())) return false;
+            candidate.setHours(0, 0, 0, 0);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return candidate.getTime() === today.getTime();
+        } catch {
+            return false;
+        }
+    }, [headerDate]);
 
     // Keep header + page data in sync when focusedDate changes
     useEffect(() => {
@@ -558,6 +572,7 @@ export default function MacroTracking({ navigation, route }) {
                         onNext={() => slideBy(1)}
                         onTitlePress={jumpToToday}
                         COLORS={COLORS}
+                        isToday={isHeaderDateToday}
                     />
                 </SafeAreaInsetsView>
 
