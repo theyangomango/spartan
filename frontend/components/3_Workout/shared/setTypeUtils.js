@@ -41,28 +41,26 @@ export const formatSetLabel = (displayNumber, type) => {
 export const computeDisplayNumbers = (sets = []) => {
   if (!Array.isArray(sets)) return [];
   let counter = 0;
-  let pendingUnilateral = null;
+  const pending = { left: [], right: [] }; // queues so either side can initiate a pair
 
   return sets.map((set) => {
     const type = normalizeSetType(set?.type);
 
-    if (type === "left") {
-      counter += 1;
-      pendingUnilateral = counter;
-      return counter;
-    }
+    if (type === "left" || type === "right") {
+      const queue = pending[type];
+      const oppositeQueue = pending[type === "left" ? "right" : "left"];
 
-    if (type === "right") {
-      if (pendingUnilateral != null) {
-        const value = pendingUnilateral;
-        pendingUnilateral = null;
-        return value;
+      if (oppositeQueue.length) {
+        return oppositeQueue.shift();
       }
+
       counter += 1;
+      queue.push(counter);
       return counter;
     }
 
-    pendingUnilateral = null;
+    pending.left.length = 0;
+    pending.right.length = 0;
     counter += 1;
     return counter;
   });
