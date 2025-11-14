@@ -284,6 +284,24 @@ export default function MacroTracking({ navigation, route }) {
         setFocusedDate(today);
     };
 
+    const openLoggedFoodsHistory = useCallback(() => {
+        const viewerData = (() => {
+            try { return global?.userData || null; } catch { return null; }
+        })();
+        const params = viewerData?.uid ? {
+            targetUid: String(viewerData.uid),
+            isViewingSelf: true,
+            initialUser: viewerData,
+        } : undefined;
+        try {
+            navigation.navigate('ProfileLoggedFoods', params);
+        } catch {
+            try {
+                navigation.getParent?.('ROOT')?.navigate?.('ProfileLoggedFoods', params);
+            } catch { }
+        }
+    }, [navigation]);
+
     // --- Horizontal pager (VirtualizedList-like behavior) ---
     const TOTAL_PAGES = 100000;
     const BASE_INDEX = Math.floor(TOTAL_PAGES / 2);
@@ -608,6 +626,7 @@ export default function MacroTracking({ navigation, route }) {
                         onPrev={() => slideBy(-1)}
                         onNext={() => slideBy(1)}
                         onTitlePress={jumpToToday}
+                        onHistoryPress={openLoggedFoodsHistory}
                         COLORS={COLORS}
                         isToday={isHeaderDateToday}
                     />
