@@ -602,12 +602,27 @@ const SimpleFeedPost = ({
                 const handle = entry?.handle ?? entry?.username ?? entry?.tag ?? "";
                 const name = entry?.name ?? entry?.displayName ?? "";
                 const avatar = resolvePhotoURL(entry, entry?.avatar || "");
+                const versionSource =
+                    entry?.pfpVersion ??
+                    entry?.pfpVer ??
+                    entry?.imageVersion ??
+                    entry?.image_version ??
+                    entry?.pfp_version ??
+                    entry?.avatarVersion ??
+                    entry?.avatar_version ??
+                    entry?.profileImageVersion ??
+                    entry?.profile_image_version ??
+                    entry?.version ??
+                    entry?.ver ??
+                    0;
+                const pfpVersion = Math.max(0, toNumber(versionSource, 0));
 
                 return {
                     uid: uid ? String(uid) : null,
                     handle: typeof handle === "string" ? handle : "",
                     name: typeof name === "string" ? name : "",
                     avatar,
+                    pfpVersion,
                 };
             })
             .filter((entry) => {
@@ -646,7 +661,10 @@ const SimpleFeedPost = ({
         return `Liked by ${formatNumber(likeCount)} people`;
     }, [likeCount, formattedFirstHandle]);
 
-    const firstLikerAvatar = useMemo(() => firstLiker?.avatar || null, [firstLiker]);
+    const firstLikerUid = firstLiker?.uid ? String(firstLiker.uid) : "";
+    const firstLikerAvatarFallback = firstLiker?.avatar || null;
+    const firstLikerVersion = firstLiker ? Math.max(0, toNumber(firstLiker.pfpVersion ?? 0)) : 0;
+    const firstLikerAvatar = usePfp(firstLikerUid, firstLikerVersion, firstLikerAvatarFallback) || firstLikerAvatarFallback;
     const firstLikerInitials = useMemo(() => {
         if (!firstLiker) return "";
         const source = (firstLiker.name || firstLiker.handle || "").replace(/^@/, "");
