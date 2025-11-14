@@ -3,6 +3,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { storage } from "../../firebase.config";
 import * as MediaLibrary from "expo-media-library";
 import * as FileSystem from "expo-file-system";
+import * as ImageManipulator from "expo-image-manipulator";
 
 const GLOBAL_OBJ =
     typeof globalThis !== "undefined"
@@ -20,6 +21,7 @@ const DEFAULTS = {
     imageMime: "image/jpeg",
     videoMime: "video/mp4",
 };
+const LOSSY_IMAGE_EXTS = new Set(["heic", "heif", "heics", "heifs", "hevc"]);
 
 const sanitizeAssets = (assets) =>
     Array.isArray(assets) ? assets.filter((item) => item && (item.uri || item.assetId || item.id)) : [];
@@ -109,6 +111,33 @@ const decodeBase64ToUint8 = (base64) => {
     throw new Error("Base64 decode not available");
 };
 
+const needsJpegTranscode = (ext, mimeType = "") => {
+    const loweredExt = typeof ext === "string" ? ext.toLowerCase() : "";
+    const loweredMime = typeof mimeType === "string" ? mimeType.toLowerCase() : "";
+    if (LOSSY_IMAGE_EXTS.has(loweredExt)) return true;
+    return loweredMime.includes("image/heic") || loweredMime.includes("image/heif");
+};
+
+const transcodeImageToJpeg = async (uri, compress = 0.92) => {
+    try {
+        const result = await ImageManipulator.manipulateAsync(
+            uri,
+            [],
+            { compress, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+        );
+        if (!result?.base64) return null;
+        return {
+            uri: result.uri || uri,
+            width: result.width || null,
+            height: result.height || null,
+            bytes: decodeBase64ToUint8(result.base64),
+        };
+    } catch (error) {
+        console.warn("uploadMediaAssets: failed to transcode image", error?.message || error);
+        return null;
+    }
+};
+
 const readAssetBytes = async (uri) => {
     try {
         const res = await fetch(uri);
@@ -160,20 +189,40 @@ async function uploadSingleAsset({ asset, cid, uid, index, timestamp, allowVideo
 
     const resolvedUri = await resolveAssetUri(asset);
     const extGuess = guessExtension(asset, resolvedUri);
-    const fileExt = extGuess || (kind === "video" ? DEFAULTS.videoExt : DEFAULTS.imageExt);
-    const contentType = safeContentType(mimeType, kind, fileExt);
-    const storagePath = buildStoragePath({ cid, uid, timestamp, index, ext: fileExt });
+    let fileExt = extGuess || (kind === "video" ? DEFAULTS.videoExt : DEFAULTS.imageExt);
+    let contentType = safeContentType(mimeType, kind, fileExt);
+    let finalWidth = Number(width) || null;
+    let finalHeight = Number(height) || null;
+    let payloadBytes = null;
+    let uploadUri = resolvedUri;
 
-    const bytes = await readAssetBytes(resolvedUri);
-    if (!bytes || bytes.length === 0) {
+    if (kind === "image" && needsJpegTranscode(fileExt, mimeType)) {
+        const converted = await transcodeImageToJpeg(resolvedUri);
+        if (converted?.bytes?.length) {
+            payloadBytes = converted.bytes;
+            uploadUri = converted.uri || resolvedUri;
+            fileExt = DEFAULTS.imageExt;
+            contentType = DEFAULTS.imageMime;
+            finalWidth = converted.width || finalWidth;
+            finalHeight = converted.height || finalHeight;
+        }
+    }
+
+    if (!payloadBytes) {
+        payloadBytes = await readAssetBytes(uploadUri);
+    }
+
+    if (!payloadBytes || payloadBytes.length === 0) {
         const err = new Error("Asset payload is empty");
         err.code = "ASSET_EMPTY";
         throw err;
     }
 
+    const storagePath = buildStoragePath({ cid, uid, timestamp, index, ext: fileExt });
+
     const storageRef = ref(storage, storagePath);
     await new Promise((resolve, reject) => {
-        const task = uploadBytesResumable(storageRef, bytes, { contentType });
+        const task = uploadBytesResumable(storageRef, payloadBytes, { contentType });
         task.on("state_changed", undefined, (error) => reject(error), () => resolve(task.snapshot));
     });
 
@@ -182,8 +231,8 @@ async function uploadSingleAsset({ asset, cid, uid, index, timestamp, allowVideo
         url,
         storagePath,
         mimeType: contentType,
-        width: width || null,
-        height: height || null,
+        width: finalWidth,
+        height: finalHeight,
         duration: duration || null,
         type: kind,
     };
