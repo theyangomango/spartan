@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.field,
-    height: scaleSize(44),
+    height: scaleSize(40),
     borderRadius: scaleSize(24),
     paddingHorizontal: scaleSize(12),
     borderWidth: StyleSheet.hairlineWidth,

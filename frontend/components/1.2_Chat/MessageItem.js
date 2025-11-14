@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, useMemo } from "react";
 import {
     View,
     Text,
@@ -21,6 +21,45 @@ import scaleSize from "../../helper/scaleSize";
 
 const W = Dimensions.get("window").width;
 const BUBBLE_MAX_W = Math.min(360, W * 0.72);
+
+const pickString = (value) => {
+    if (typeof value !== "string") return "";
+    const trimmed = value.trim();
+    return trimmed || "";
+};
+
+const resolveMediaUri = (entry = {}) => {
+    return (
+        pickString(entry.url) ||
+        pickString(entry.uri) ||
+        pickString(entry.image) ||
+        pickString(entry.photoURL) ||
+        pickString(entry.photoUrl) ||
+        pickString(entry.photo) ||
+        pickString(entry.path) ||
+        pickString(entry.src) ||
+        ""
+    );
+};
+
+const normalizeMediaEntry = (entry) => {
+    if (!entry) return null;
+    if (typeof entry === "string") {
+        const uri = pickString(entry);
+        return uri ? { uri, url: uri, type: "image" } : null;
+    }
+    if (typeof entry !== "object") return null;
+    const uri = resolveMediaUri(entry);
+    if (!uri) return null;
+    const typeSource = `${entry.type || ""} ${entry.mediaType || ""} ${entry.kind || ""} ${entry.mimeType || ""}`.toLowerCase();
+    const type = typeSource.includes("video") ? "video" : "image";
+    return {
+        ...entry,
+        uri,
+        url: entry.url || uri,
+        type,
+    };
+};
 
 export default function MessageItem({
     item,
@@ -84,8 +123,13 @@ export default function MessageItem({
         })
         : "";
 
+    const normalizedMedia = useMemo(() => {
+        if (!Array.isArray(item?.media)) return [];
+        return item.media.map(normalizeMediaEntry).filter(Boolean);
+    }, [item?.media]);
+
     const hasText = !!(item?.text && String(item.text).trim().length);
-    const hasMedia = Array.isArray(item?.media) && item?.media.length > 0;
+    const hasMedia = normalizedMedia.length > 0;
     const mediaOnly = hasMedia && !hasText;
 
     const containerRef = useRef(null);
@@ -133,10 +177,17 @@ export default function MessageItem({
 
     const MediaTile = ({ m }) => {
         const tileRef = useRef(null);
+        const mediaUri = m?.uri || m?.url || "";
+        if (!mediaUri) return null;
+        const mediaType = typeof m?.type === "string" ? m.type.toLowerCase() : "";
+        const isVideo = mediaType.includes("video");
 
         const handlePress = () => {
             tileRef.current?.measureInWindow?.((x, y, w, h) => {
-                onOpenMedia?.({ uri: m.url, type: m.type || "image" }, { x, y, width: w, height: h });
+                onOpenMedia?.(
+                    { uri: mediaUri, type: isVideo ? "video" : "image" },
+                    { x, y, width: w, height: h }
+                );
             });
         };
 
@@ -149,10 +200,10 @@ export default function MessageItem({
         return (
             <Pressable onPress={handlePress} onLongPress={handleLongPress} delayLongPress={250}>
                 <View ref={tileRef} collapsable={false}>
-                    {m.type === "video" ? (
+                    {isVideo ? (
                         <View style={styles.videoOuter}>
                             <Video
-                                source={{ uri: m.url }}
+                                source={{ uri: mediaUri }}
                                 style={styles.media}
                                 controls
                                 paused
@@ -163,7 +214,11 @@ export default function MessageItem({
                             />
                         </View>
                     ) : (
-                        <FastImage source={{ uri: m.url }} style={styles.media} resizeMode={FastImage.resizeMode.cover} />
+                        <FastImage
+                            source={{ uri: mediaUri }}
+                            style={styles.media}
+                            resizeMode={FastImage.resizeMode.cover}
+                        />
                     )}
                 </View>
             </Pressable>
@@ -262,8 +317,8 @@ export default function MessageItem({
                     {mediaOnly ? (
                         <View style={[styles.mediaOnly]}>
                             <View style={[styles.mediaWrap, { marginTop: 0 }]}>
-                                {item.media.map((m, idx) => (
-                                    <MediaTile key={idx} m={m} />
+                                {normalizedMedia.map((m, idx) => (
+                                    <MediaTile key={m.storagePath || m.url || m.uri || `media-${idx}`} m={m} />
                                 ))}
                             </View>
                         </View>
@@ -283,8 +338,8 @@ export default function MessageItem({
 
                             {!!hasMedia && (
                                 <View style={styles.mediaWrap}>
-                                    {item.media.map((m, idx) => (
-                                        <MediaTile key={idx} m={m} />
+                                    {normalizedMedia.map((m, idx) => (
+                                        <MediaTile key={m.storagePath || m.url || m.uri || `media-${idx}`} m={m} />
                                     ))}
                                 </View>
                             )}
