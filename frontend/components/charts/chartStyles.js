@@ -39,17 +39,17 @@ export const chartPointerStyles = StyleSheet.create({
 export const chartTypography = StyleSheet.create({
     pointerTitle: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: ts(16),
+        fontSize: ts(18),
         color: theme.textPrimary ?? '#F6F8FF',
     },
     pointerSubtitle: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: ts(12),
+        fontSize: ts(13),
         color: 'rgba(216,226,255,0.75)',
     },
     pointerBody: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: ts(11),
+        fontSize: ts(12),
         color: 'rgba(216,226,255,0.75)',
     },
     pointerAccentGreen: {
@@ -60,7 +60,7 @@ export const chartTypography = StyleSheet.create({
     },
     pointerTimestamp: {
         fontFamily: 'Outfit_400Regular',
-        fontSize: ts(11),
+        fontSize: ts(12),
         color: 'rgba(216,226,255,0.55)',
     },
     pointerDeltaNegative: {

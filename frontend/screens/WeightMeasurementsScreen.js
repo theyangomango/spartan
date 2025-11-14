@@ -27,7 +27,8 @@ import { subscribeUserData } from "../utils/userDataEvents";
 import { derivePublicWeightFields } from "../utils/weightEntries";
 import { scaleSize, ts } from "../components/2_Competition/layoutConstants";
 import { strong as hapticStrong } from "../utils/haptics";
-import { deleteField } from "firebase/firestore";
+import { deleteField, doc, onSnapshot } from "firebase/firestore";
+import { db } from "../../firebase.config";
 
 const resolvePreferredWeightUnit = (user) => {
     const rawUnit =
@@ -83,6 +84,24 @@ const sanitizeEntries = (rawEntries) => {
         })
         .filter(Boolean)
         .sort((a, b) => a.recordedAt - b.recordedAt);
+};
+
+const areEntriesEqual = (left, right) => {
+    if (left === right) return true;
+    if (!Array.isArray(left) || !Array.isArray(right)) return false;
+    if (left.length !== right.length) return false;
+    for (let i = 0; i < left.length; i += 1) {
+        const prev = left[i];
+        const next = right[i];
+        if (
+            prev?.id !== next?.id ||
+            prev?.weight !== next?.weight ||
+            prev?.recordedAt !== next?.recordedAt
+        ) {
+            return false;
+        }
+    }
+    return true;
 };
 
 const normalizeEntryCollection = (source) => {
@@ -427,6 +446,7 @@ export default function WeightMeasurementsScreen() {
     const [isSaving, setIsSaving] = useState(false);
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [entryToEdit, setEntryToEdit] = useState(null);
+    const [liveEntries, setLiveEntries] = useState(null);
 
     useEffect(() => {
         userRef.current = userData;
@@ -440,9 +460,46 @@ export default function WeightMeasurementsScreen() {
         return unsubscribe;
     }, []);
 
+    useEffect(() => {
+        const uid = userData?.uid || userRef.current?.uid;
+        if (!uid) {
+            setLiveEntries(null);
+            return undefined;
+        }
+
+        const ref = doc(db, "usersPrivate", uid);
+        const unsubscribe = onSnapshot(
+            ref,
+            (snapshot) => {
+                if (!snapshot.exists()) {
+                    setLiveEntries((prev) => (prev === null ? prev : null));
+                    return;
+                }
+                const docData = snapshot.data() || {};
+                const sanitized = sanitizeEntries(selectWeightEntrySource(docData));
+                setLiveEntries((prev) => (areEntriesEqual(prev, sanitized) ? prev : sanitized));
+            },
+            (error) => {
+                console.warn("weight measurements listener error", error);
+            }
+        );
+
+        return () => {
+            unsubscribe();
+        };
+    }, [userData?.uid]);
+
     const preferredUnit = useMemo(() => resolvePreferredWeightUnit(userData), [userData]);
 
-    const entries = useMemo(() => sanitizeEntries(selectWeightEntrySource(userData)), [userData]);
+    const fallbackEntries = useMemo(
+        () => sanitizeEntries(selectWeightEntrySource(userData)),
+        [userData]
+    );
+
+    const entries = useMemo(
+        () => (Array.isArray(liveEntries) ? liveEntries : fallbackEntries),
+        [fallbackEntries, liveEntries]
+    );
 
     const sortedEntries = useMemo(
         () => [...entries].sort((a, b) => b.recordedAt - a.recordedAt),
@@ -454,9 +511,12 @@ export default function WeightMeasurementsScreen() {
     }, [navigation]);
 
     const getCurrentSanitizedEntries = useCallback(() => {
+        if (Array.isArray(liveEntries)) {
+            return liveEntries;
+        }
         const currentUser = userRef.current;
         return sanitizeEntries(selectWeightEntrySource(currentUser));
-    }, []);
+    }, [liveEntries]);
 
     const persistEntries = useCallback(
         async (nextEntriesSanitized) => {
