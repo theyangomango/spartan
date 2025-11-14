@@ -9,7 +9,6 @@ import {
     View,
     Text,
     Pressable,
-    TextInput,
     Animated,
     ScrollView,
     InteractionManager,
@@ -29,6 +28,7 @@ import styles, {
     TEXT_SECONDARY,
 } from "./selectExerciseModalStyles";
 import useSyncSavedExercises from "../../../../hooks/useSyncSavedExercises";
+import DismissableTextInput from "../../../common/DismissableTextInput";
 
 const scaledSize = (size) => scaleSize(size);
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -118,7 +118,6 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
 
     const [inputQuery, setInputQuery] = useState("");
     const [searchQuery, setSearchQuery] = useState("");
-    const [showSearch, setShowSearch] = useState(false);
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [bodyPartValue, setBodyPartValue] = useState(null);
     const [equipmentValue, setEquipmentValue] = useState(null);
@@ -203,10 +202,6 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
         setFiltersOpen(false);
     }, []);
 
-    const handleSearchIconPress = useCallback(() => {
-        setShowSearch((prev) => !prev);
-    }, []);
-
     const handleSearch = useCallback((query) => {
         setInputQuery(query);
         if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -263,7 +258,6 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
             if (closingRef.current) return;
             closingRef.current = true;
             closeAllPanels();
-            setShowSearch(false);
             Animated.timing(translateY, {
                 toValue: SCREEN_HEIGHT,
                 duration: 240,
@@ -499,61 +493,23 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                                     color={ICON_COLOR}
                                 />
                             </Pressable>
-                            <Text style={styles.headerTitle}>Add exercises</Text>
-                            <View style={styles.headerActions}>
-                                <Pressable
-                                    style={[styles.circleButton, styles.headerActionButton]}
-                                    onPress={handleSearchIconPress}
-                                    hitSlop={10}
-                                >
-                                    <Ionicons
-                                        name="search"
-                                        size={scaledSize(20)}
-                                        color={ICON_COLOR}
-                                    />
-                                </Pressable>
-                                {/* <Pressable
-                  style={[styles.circleButton, styles.headerActionButton]}
-                  onPress={() => setFiltersOpen((prev) => !prev)}
-                  hitSlop={10}
-                >
-                  <Ionicons
-                    name="filter"
-                    size={scaledSize(20)}
-                    color={ICON_COLOR}
-                  />
-                </Pressable>
-                <Pressable
-                  style={[styles.circleButton, styles.headerActionButton]}
-                  hitSlop={10}
-                >
-                  <Ionicons
-                    name="ellipsis-horizontal"
-                    size={scaledSize(20)}
-                    color={ICON_COLOR}
-                  />
-                </Pressable> */}
-                            </View>
+                            <Text style={styles.headerTitle}>Add Exercises</Text>
+                            <View style={styles.headerActions} />
                         </View>
 
-                        {showSearch && (
-                            <View style={styles.searchContainer}>
-                                <Ionicons
-                                    name="search"
-                                    size={scaledSize(18)}
-                                    color={ICON_COLOR}
-                                    style={styles.searchIcon}
-                                />
-                                <TextInput
-                                    style={styles.searchInput}
-                                    placeholder="Search exercises..."
-                                    placeholderTextColor={TEXT_SECONDARY}
-                                    value={inputQuery}
-                                    onChangeText={handleSearch}
-                                    autoFocus
-                                />
-                            </View>
-                        )}
+                        <View style={styles.searchContainer}>
+                            <DismissableTextInput
+                                style={styles.searchInput}
+                                placeholder="Search exercises..."
+                                placeholderTextColor={TEXT_SECONDARY}
+                                value={inputQuery}
+                                onChangeText={handleSearch}
+                                autoCorrect={false}
+                                autoCapitalize="none"
+                                returnKeyType="search"
+                                enableAccessory
+                            />
+                        </View>
 
                         <View style={styles.muscleFilterSection}>
                             <ScrollView
