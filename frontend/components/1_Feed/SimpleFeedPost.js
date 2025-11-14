@@ -1081,6 +1081,7 @@ const SimpleFeedPost = ({
                                         isVerified={isPostVerified}
                                         textStyle={styles.nameText}
                                         iconSize={scaleSize(15)}
+                                        iconTranslateY={1}
                                         numberOfLines={1}
                                         ellipsizeMode="tail"
                                         containerStyle={styles.nameHandle}
