@@ -15,6 +15,7 @@ export default function DateHeader({ title, onPrev, onNext, onTitlePress, COLORS
         () => COLORS?.accentBlue || COLORS?.accent || '#2563EB',
         [COLORS]
     );
+    const showNextIcon = !!onNext && !isToday;
 
     const handleTitlePress = () => {
         // Trigger a quick bounce animation
@@ -40,9 +41,13 @@ export default function DateHeader({ title, onPrev, onNext, onTitlePress, COLORS
                     {title}
                 </Animated.Text>
             </Pressable>
-            <Pressable onPress={() => { try { haptic(); } catch {} onNext?.(); }} hitSlop={8}>
-                <Ionicons name="chevron-forward" size={METRICS.iconSize} color={styles.textColor.color} />
-            </Pressable>
+            {showNextIcon ? (
+                <Pressable onPress={() => { try { haptic(); } catch {} onNext?.(); }} hitSlop={8}>
+                    <Ionicons name="chevron-forward" size={METRICS.iconSize} color={styles.textColor.color} />
+                </Pressable>
+            ) : (
+                <View style={{ width: METRICS.iconSize, height: METRICS.iconSize }} />
+            )}
         </View>
     );
 }

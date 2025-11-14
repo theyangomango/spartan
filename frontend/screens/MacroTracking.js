@@ -68,6 +68,34 @@ const mealsMeta = [
     { name: 'Snacks', subtitle: 'Snacks keep you energized', icon: snacksIcon, iconSize: 22, bgColor: '#fed2bcff' },
 ];
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const startOfDay = (value) => {
+    const date = value instanceof Date ? new Date(value) : new Date(value ?? Date.now());
+    if (Number.isNaN(date.getTime())) {
+        const fallback = new Date();
+        fallback.setHours(0, 0, 0, 0);
+        return fallback;
+    }
+    date.setHours(0, 0, 0, 0);
+    return date;
+};
+
+const clampDateToToday = (value) => {
+    const candidate = startOfDay(value);
+    const today = startOfDay(new Date());
+    return candidate.getTime() > today.getTime() ? today : candidate;
+};
+
+const clampForwardDelta = (delta, baseDate) => {
+    if (delta <= 0) return delta;
+    const today = startOfDay(new Date());
+    const start = startOfDay(baseDate);
+    const diffDays = Math.floor((today.getTime() - start.getTime()) / DAY_MS);
+    const maxForward = Math.max(0, diffDays);
+    return Math.min(delta, maxForward);
+};
+
 export default function MacroTracking({ navigation, route }) {
     const insets = useSafeAreaInsets();
     const { width: screenWidth } = useWindowDimensions();
@@ -93,11 +121,11 @@ export default function MacroTracking({ navigation, route }) {
             }
             if (!d || Number.isNaN(d.getTime())) return null;
             d.setHours(0, 0, 0, 0);
-            return d;
+            return clampDateToToday(d);
         } catch { return null; }
     };
 
-    const initialFocus = parseFocusParam(route?.params?.focusDate || route?.params?.date) || new Date();
+    const initialFocus = clampDateToToday(parseFocusParam(route?.params?.focusDate || route?.params?.date) || new Date());
     const [focusedDate, setFocusedDate] = useState(initialFocus);
     // Defer heavy Firestore subscriptions until after the transition starts
     // Local state derived from global.loggedFoods for the focused day
@@ -237,12 +265,14 @@ export default function MacroTracking({ navigation, route }) {
         date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
     const shiftDate = (days) => {
+        if (!Number.isFinite(days) || days === 0) return;
         const d = new Date(focusedDate);
         d.setDate(d.getDate() + days);
+        const safeDate = clampDateToToday(d);
         // Immediately show empty meals/totals to avoid any perceived loading
         setMeals({ Breakfast: [], Lunch: [], Dinner: [], Snacks: [] });
         setTotals({ calories: 0, protein: 0, carbs: 0, fat: 0 });
-        setFocusedDate(d);
+        setFocusedDate(safeDate);
     };
 
     const jumpToToday = () => {
@@ -285,16 +315,23 @@ export default function MacroTracking({ navigation, route }) {
 
     const listRef = useRef(null);
 
-    // Slide pages horizontally by delta days; always animate
-    const slideBy = useCallback((delta) => {
+    const scrollToIndexSafe = useCallback((index, animated = true) => {
         try {
-            listRef.current?.scrollToIndex({ index: baseIndex + delta, animated: true });
+            listRef.current?.scrollToIndex({ index, animated });
         } catch {
             setTimeout(() => {
-                try { listRef.current?.scrollToIndex({ index: baseIndex + delta, animated: true }); } catch {}
+                try { listRef.current?.scrollToIndex({ index, animated }); } catch {}
             }, 16);
         }
-    }, [baseIndex]);
+    }, []);
+
+    // Slide pages horizontally by delta days; always animate
+    const slideBy = useCallback((delta) => {
+        if (!delta) return;
+        const allowedDelta = delta > 0 ? clampForwardDelta(delta, focusedDate) : delta;
+        if (delta > 0 && allowedDelta <= 0) return;
+        scrollToIndexSafe(baseIndex + allowedDelta, true);
+    }, [baseIndex, focusedDate, scrollToIndexSafe]);
 
     // Delete an entry from the focused day's global.loggedFoods and local state
     const deleteFood = useCallback((mealName, entry) => {
@@ -603,7 +640,7 @@ export default function MacroTracking({ navigation, route }) {
                     initialScrollIndex={baseIndex}
                     getItemLayout={(_, index) => ({ length: screenWidth, offset: screenWidth * index, index })}
                     onLayout={() => {
-                        try { listRef.current?.scrollToIndex({ index: baseIndex, animated: false }); } catch { }
+                        scrollToIndexSafe(baseIndex, false);
                     }}
                     // Keep date updates to the cheap end-of-gesture callback
                     onScroll={(e) => {
@@ -613,10 +650,11 @@ export default function MacroTracking({ navigation, route }) {
                             if (nextIndex !== lastHeaderIndexRef.current) {
                                 lastHeaderIndexRef.current = nextIndex;
                                 const delta = nextIndex - baseIndex;
+                                const constrainedDelta = delta > 0 ? clampForwardDelta(delta, focusedDate) : delta;
                                 const d = new Date(focusedDate);
-                                d.setDate(d.getDate() + delta);
+                                d.setDate(d.getDate() + constrainedDelta);
                                 d.setHours(0, 0, 0, 0);
-                                setHeaderDate(d);
+                                setHeaderDate(clampDateToToday(d));
                             }
                         } catch {}
                     }}
@@ -628,15 +666,32 @@ export default function MacroTracking({ navigation, route }) {
                     onMomentumScrollEnd={(e) => {
                         const x = e?.nativeEvent?.contentOffset?.x || 0;
                         const nextIndex = Math.round(x / (screenWidth || 1));
-                        if (Number.isFinite(nextIndex) && nextIndex !== baseIndex) {
-                            const delta = nextIndex - baseIndex;
-                            setBaseIndex(nextIndex);
-                            shiftDate(delta);
-                            const d = new Date(focusedDate);
-                            d.setDate(d.getDate() + delta);
-                            d.setHours(0, 0, 0, 0);
-                            setHeaderDate(d);
+                        if (!Number.isFinite(nextIndex)) return;
+                        if (nextIndex === baseIndex) {
+                            lastHeaderIndexRef.current = baseIndex;
+                            setHeaderDate(clampDateToToday(focusedDate));
+                            return;
                         }
+
+                        const delta = nextIndex - baseIndex;
+                        const constrainedDelta = delta > 0 ? clampForwardDelta(delta, focusedDate) : delta;
+                        const clampedIndex = baseIndex + constrainedDelta;
+
+                        if (clampedIndex !== nextIndex) {
+                            scrollToIndexSafe(clampedIndex, true);
+                        }
+
+                        if (constrainedDelta !== 0) {
+                            setBaseIndex(clampedIndex);
+                            shiftDate(constrainedDelta);
+                            const d = new Date(focusedDate);
+                            d.setDate(d.getDate() + constrainedDelta);
+                            d.setHours(0, 0, 0, 0);
+                            setHeaderDate(clampDateToToday(d));
+                        } else {
+                            setHeaderDate(clampDateToToday(focusedDate));
+                        }
+                        lastHeaderIndexRef.current = clampedIndex;
                         // Keep subscription unchanged; data will hydrate if needed
                     }}
                     renderItem={({ index }) => {
