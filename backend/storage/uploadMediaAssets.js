@@ -22,6 +22,8 @@ const DEFAULTS = {
     videoMime: "video/mp4",
 };
 const LOSSY_IMAGE_EXTS = new Set(["heic", "heif", "heics", "heifs", "hevc"]);
+const MAX_IMAGE_DIMENSION = 1600;
+const JPEG_COMPRESS_QUALITY = 0.82;
 
 const sanitizeAssets = (assets) =>
     Array.isArray(assets) ? assets.filter((item) => item && (item.uri || item.assetId || item.id)) : [];
@@ -118,22 +120,52 @@ const needsJpegTranscode = (ext, mimeType = "") => {
     return loweredMime.includes("image/heic") || loweredMime.includes("image/heif");
 };
 
-const transcodeImageToJpeg = async (uri, compress = 0.92) => {
+const shouldResizeImage = (width, height, maxDimension = MAX_IMAGE_DIMENSION) => {
+    const w = Number(width);
+    const h = Number(height);
+    if (!Number.isFinite(w) || !Number.isFinite(h)) return false;
+    return Math.max(w, h) > maxDimension;
+};
+
+const buildResizeAction = (width, height) => {
+    if (!shouldResizeImage(width, height)) return null;
+    const w = Number(width);
+    const h = Number(height);
+    if (!Number.isFinite(w) || !Number.isFinite(h)) return null;
+    if (w >= h) {
+        return { width: MAX_IMAGE_DIMENSION };
+    }
+    return { height: MAX_IMAGE_DIMENSION };
+};
+
+const processImageToStandardJpeg = async ({ uri, width, height, mimeType, ext }) => {
+    const resize = buildResizeAction(width, height);
+    const forceJpeg = needsJpegTranscode(ext, mimeType);
+    if (!forceJpeg && !resize) return null;
+
     try {
+        const actions = [];
+        if (resize) actions.push({ resize });
         const result = await ImageManipulator.manipulateAsync(
             uri,
-            [],
-            { compress, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+            actions,
+            {
+                compress: JPEG_COMPRESS_QUALITY,
+                format: ImageManipulator.SaveFormat.JPEG,
+                base64: true,
+            }
         );
         if (!result?.base64) return null;
         return {
             uri: result.uri || uri,
-            width: result.width || null,
-            height: result.height || null,
+            width: result.width || width || null,
+            height: result.height || height || null,
             bytes: decodeBase64ToUint8(result.base64),
+            mimeType: DEFAULTS.imageMime,
+            ext: DEFAULTS.imageExt,
         };
     } catch (error) {
-        console.warn("uploadMediaAssets: failed to transcode image", error?.message || error);
+        console.warn("uploadMediaAssets: image processing failed", error?.message || error);
         return null;
     }
 };
@@ -196,15 +228,21 @@ async function uploadSingleAsset({ asset, cid, uid, index, timestamp, allowVideo
     let payloadBytes = null;
     let uploadUri = resolvedUri;
 
-    if (kind === "image" && needsJpegTranscode(fileExt, mimeType)) {
-        const converted = await transcodeImageToJpeg(resolvedUri);
-        if (converted?.bytes?.length) {
-            payloadBytes = converted.bytes;
-            uploadUri = converted.uri || resolvedUri;
-            fileExt = DEFAULTS.imageExt;
-            contentType = DEFAULTS.imageMime;
-            finalWidth = converted.width || finalWidth;
-            finalHeight = converted.height || finalHeight;
+    if (kind === "image") {
+        const processed = await processImageToStandardJpeg({
+            uri: resolvedUri,
+            width,
+            height,
+            mimeType,
+            ext: fileExt,
+        });
+        if (processed?.bytes?.length) {
+            payloadBytes = processed.bytes;
+            uploadUri = processed.uri || resolvedUri;
+            fileExt = processed.ext || DEFAULTS.imageExt;
+            contentType = processed.mimeType || DEFAULTS.imageMime;
+            finalWidth = processed.width || finalWidth;
+            finalHeight = processed.height || finalHeight;
         }
     }
 
