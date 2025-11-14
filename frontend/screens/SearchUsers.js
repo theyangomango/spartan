@@ -10,24 +10,67 @@ import getAllUsers from '../helper/getAllUsers';
 import theme from '../theme/mfpDark';
 import { strong as hapticStrong } from '../utils/haptics';
 import isThisUser from '../helper/isThisUser';
+import useSuggestedUsersList from '../hooks/useSuggestedUsersList';
 
 export default function SearchUsers({ navigation }) {
   const insets = useSafeAreaInsets();
   const [qStr, setQStr] = useState('');
   const [results, setResults] = useState([]);
-  const [suggestions, setSuggestions] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const { suggestedUsers: curatedSuggestedUsers } = useSuggestedUsersList();
+
+  const viewerUid = global?.userData?.uid || '';
+
+  const fallbackSuggestions = useMemo(() => {
+    const seen = new Set();
+    return (allUsers || [])
+      .filter((u) => {
+        const uid = u?.uid;
+        if (!uid || uid === viewerUid || seen.has(uid)) return false;
+        seen.add(uid);
+        return true;
+      })
+      .slice(0, 50)
+      .map((u) => ({
+        uid: u.uid,
+        handle: u.handle || '',
+        name: u.name || '',
+        pfp: u.pfp || u.photoURL || '',
+        photoURL: u.photoURL || u.pfp || '',
+      }));
+  }, [allUsers, viewerUid]);
+
+  const curatedSuggestions = useMemo(() => {
+    const list = Array.isArray(curatedSuggestedUsers) ? curatedSuggestedUsers : [];
+    if (!list.length) return [];
+    const seen = new Set();
+    const out = [];
+    for (const entry of list) {
+      const uid = entry?.uid;
+      if (!uid || uid === viewerUid || seen.has(uid)) continue;
+      seen.add(uid);
+      out.push({
+        uid,
+        handle: entry?.handle || '',
+        name: entry?.name || '',
+        pfp: entry?.pfp || entry?.photoURL || '',
+        photoURL: entry?.photoURL || entry?.pfp || '',
+        tagline: entry?.tagline || '',
+      });
+      if (out.length >= 50) break;
+    }
+    return out;
+  }, [curatedSuggestedUsers, viewerUid]);
+
+  const suggestions = curatedSuggestions.length ? curatedSuggestions : fallbackSuggestions;
 
   useEffect(() => {
     (async () => {
       try {
         const users = await getAllUsers();
         setAllUsers(users || []);
-        const me = global?.userData?.uid;
-        setSuggestions((users || []).filter((u) => u?.uid && u.uid !== me).slice(0, 50));
       } catch {
         setAllUsers([]);
-        setSuggestions([]);
       }
     })();
   }, []);

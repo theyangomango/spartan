@@ -29,6 +29,7 @@ import { withStrongPress, strong as hapticStrong } from "../../utils/haptics";
 import DismissableTextInput from "../common/DismissableTextInput";
 import isThisUser from "../../helper/isThisUser";
 import { coerceUid, ensureUidArray } from "../../utils/userRefs";
+import useSuggestedUsersList from "../../hooks/useSuggestedUsersList";
 // Single root navigator; no need for StackActions/nested refs here
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -250,19 +251,41 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
     const [results, setResults] = useState([]);
     const [navigating, setNavigating] = useState(false);
     const [usersCacheTick, setUsersCacheTick] = useState(0);
+    const { suggestedUsers: curatedSuggestedUsers } = useSuggestedUsersList();
 
-    const suggestions = useMemo(() => {
+    const curatedSuggestions = useMemo(() => {
         const blockedBySet = new Set(ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy));
-        const arr = (allUsersRef?.current || [])
-            .filter((u) => {
-                const uid = coerceUid(u);
-                if (!uid) return false;
-                if (uid === coerceUid(global?.userData)) return false;
-                return !blockedBySet.has(uid);
-            })
-            .slice(0, 10);
-        return arr;
-    }, [allUsersRef?.current, usersCacheTick]);
+        const viewerUid = coerceUid(global?.userData);
+        const list = Array.isArray(curatedSuggestedUsers) ? curatedSuggestedUsers : [];
+        const seen = new Set();
+        const out = [];
+        for (const entry of list) {
+            const uid = coerceUid(entry);
+            if (!uid || uid === viewerUid || blockedBySet.has(uid) || seen.has(uid)) continue;
+            seen.add(uid);
+            out.push(entry);
+            if (out.length >= 10) break;
+        }
+        return out;
+    }, [curatedSuggestedUsers]);
+
+    const fallbackSuggestions = useMemo(() => {
+        const blockedBySet = new Set(ensureUidArray(global?.userData?.blockedByUidList || global?.userData?.blockedBy));
+        const viewerUid = coerceUid(global?.userData);
+        const source = Array.isArray(allUsersRef?.current) ? allUsersRef.current : [];
+        const seen = new Set();
+        const out = [];
+        for (const entry of source) {
+            const uid = coerceUid(entry);
+            if (!uid || uid === viewerUid || blockedBySet.has(uid) || seen.has(uid)) continue;
+            seen.add(uid);
+            out.push(entry);
+            if (out.length >= 10) break;
+        }
+        return out;
+    }, [usersCacheTick]);
+
+    const suggestions = curatedSuggestions.length ? curatedSuggestions : fallbackSuggestions;
 
     // Navigate while keeping the overlay visible during the native-stack slide
     const navigateToUser = useCallback((item) => {
