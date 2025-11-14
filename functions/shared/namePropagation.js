@@ -136,6 +136,91 @@ function isLowerKey(keyLc, parentLc) {
   );
 }
 
+const UID_POINTER_PREFIXES = [
+  "user",
+  "owner",
+  "creator",
+  "sender",
+  "member",
+  "participant",
+  "profile",
+  "friend",
+  "follower",
+  "following",
+  "viewer",
+  "requester",
+  "inviter",
+  "invitee",
+  "athlete",
+  "coach",
+  "leader",
+  "opponent",
+  "teammate",
+  "moderator",
+  "admin",
+  "poster",
+  "author",
+  "subject",
+  "recipient",
+  "trainer",
+  "captain",
+  "host",
+  "guest",
+  "target",
+  "player",
+  "client",
+  "manager",
+];
+
+function looksLikeUidPointerKey(rawKey) {
+  const key = cleanKey(rawKey);
+  if (!key) return false;
+  if (key === "uid" || key === "id") return true;
+  if (key.endsWith("uid") || key.endsWith("userid")) return true;
+  if (!key.endsWith("id")) return false;
+  return UID_POINTER_PREFIXES.some((prefix) => key.startsWith(prefix));
+}
+
+function looksLikeUserContainerKey(rawKey) {
+  const key = cleanKey(rawKey);
+  if (!key) return false;
+  if (key === "user") return true;
+  return UID_POINTER_PREFIXES.some((prefix) => key.startsWith(prefix));
+}
+
+function keyMatchesTargetUid(rawKey) {
+  if (!replaceConfig?.targetUid) return false;
+  if (typeof rawKey !== "string") return false;
+  return rawKey.trim() === replaceConfig.targetUid;
+}
+
+function valueContainsTargetUid(value, parentKey = "") {
+  if (!replaceConfig?.targetUid) return false;
+  const target = replaceConfig.targetUid;
+  if (typeof value === "string") {
+    return value.trim() === target;
+  }
+  if (Array.isArray(value)) {
+    return value.some((entry) => valueContainsTargetUid(entry, parentKey));
+  }
+  if (isPlainObject(value)) {
+    const parentClean = cleanKey(parentKey);
+    for (const key of Object.keys(value)) {
+      if (keyMatchesTargetUid(key)) return true;
+      const keyClean = cleanKey(key);
+      const inspectKey =
+        looksLikeUidPointerKey(keyClean) ||
+        looksLikeUserContainerKey(keyClean) ||
+        (keyClean === "id" && looksLikeUserContainerKey(parentClean));
+      if (!inspectKey) continue;
+      if (valueContainsTargetUid(value[key], key)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 let replaceConfig = null;
 
 function matchesOldName(value) {
@@ -151,8 +236,8 @@ function matchesOldName(value) {
   return false;
 }
 
-function transformString(value, key, parentKey) {
-  if (!replaceConfig || typeof value !== "string") return value;
+function transformString(value, key, parentKey, matchesTarget) {
+  if (!replaceConfig || typeof value !== "string" || !matchesTarget) return value;
 
   const keyLc = (key || "").toLowerCase();
   const parentLc = (parentKey || "").toLowerCase();
@@ -169,11 +254,19 @@ function transformString(value, key, parentKey) {
   return withOriginalWhitespace(value, replacement);
 }
 
-function replaceNamesInPlace(value, path) {
+function replaceNamesInPlace(value, path, context = { matchesTarget: false, parentKey: "" }) {
+  const matchesTarget = Boolean(context?.matchesTarget);
+  const parentKey = context?.parentKey || "";
+
   if (Array.isArray(value)) {
     let changed = false;
     for (let i = 0; i < value.length; i += 1) {
-      const result = replaceNamesInPlace(value[i], path.concat(String(i)));
+      const entry = value[i];
+      const nextMatches = matchesTarget || valueContainsTargetUid(entry, parentKey);
+      const result = replaceNamesInPlace(entry, path.concat(String(i)), {
+        matchesTarget: nextMatches,
+        parentKey,
+      });
       if (result.replaced) {
         value[i] = result.value;
         changed = true;
@@ -185,7 +278,14 @@ function replaceNamesInPlace(value, path) {
   if (isPlainObject(value)) {
     let changed = false;
     for (const key of Object.keys(value)) {
-      const result = replaceNamesInPlace(value[key], path.concat(key));
+      const child = value[key];
+      const keyHit = keyMatchesTargetUid(key);
+      const valueHit = valueContainsTargetUid(child, key);
+      const nextMatches = matchesTarget || keyHit || valueHit;
+      const result = replaceNamesInPlace(child, path.concat(key), {
+        matchesTarget: nextMatches,
+        parentKey: key,
+      });
       if (result.replaced) {
         value[key] = result.value;
         changed = true;
@@ -196,8 +296,8 @@ function replaceNamesInPlace(value, path) {
 
   if (typeof value === "string") {
     const key = path[path.length - 1] || "";
-    const parentKey = path[path.length - 2] || "";
-    const next = transformString(value, key, parentKey);
+    const parentKeyName = path[path.length - 2] || parentKey || "";
+    const next = transformString(value, key, parentKeyName, matchesTarget);
     return next !== value ? { replaced: true, value: next } : { replaced: false, value };
   }
 
@@ -224,7 +324,8 @@ async function processUsers(uid) {
     for (const docSnap of snapshot.docs) {
       const data = docSnap.data() || {};
       ids.push(docSnap.id);
-      const { replaced } = replaceNamesInPlace(data, []);
+      const initialContext = { matchesTarget: docSnap.id === uid, parentKey: "" };
+      const { replaced } = replaceNamesInPlace(data, [], initialContext);
       let docChanged = replaced;
 
       if (docSnap.id === uid && replaceConfig) {
@@ -318,7 +419,11 @@ async function processCollection(path, { label = path, limit = GENERIC_BATCH_SIZ
     for (const docSnap of snapshot.docs) {
       const data = docSnap.data();
       if (!data) continue;
-      const { replaced } = replaceNamesInPlace(data, []);
+      const initialContext = {
+        matchesTarget: replaceConfig?.targetUid ? docSnap.id === replaceConfig.targetUid : false,
+        parentKey: "",
+      };
+      const { replaced } = replaceNamesInPlace(data, [], initialContext);
       if (replaced) {
         batch.set(docSnap.ref, data, { merge: false });
         writes += 1;
@@ -359,7 +464,11 @@ async function processGlobalDocs() {
   for (const docSnap of snapshot.docs) {
     const data = docSnap.data();
     if (!data) continue;
-    const { replaced } = replaceNamesInPlace(data, []);
+    const initialContext = {
+      matchesTarget: replaceConfig?.targetUid ? docSnap.id === replaceConfig.targetUid : false,
+      parentKey: "",
+    };
+    const { replaced } = replaceNamesInPlace(data, [], initialContext);
     if (replaced) {
       batch.set(docSnap.ref, data, { merge: false });
       mutated += 1;
@@ -396,7 +505,11 @@ async function processMessages() {
       ids.push(docSnap.id);
       const data = docSnap.data();
       if (!data) continue;
-      const { replaced } = replaceNamesInPlace(data, []);
+      const initialContext = {
+        matchesTarget: replaceConfig?.targetUid ? docSnap.id === replaceConfig.targetUid : false,
+        parentKey: "",
+      };
+      const { replaced } = replaceNamesInPlace(data, [], initialContext);
       if (replaced) {
         batch.set(docSnap.ref, data, { merge: false });
         writes += 1;
