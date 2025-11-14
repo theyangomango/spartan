@@ -48,6 +48,7 @@ import FeedSnapshotCard from "../components/1_Feed/FeedSnapshotCard";
 import FeedLoadingSkeleton from "../components/1_Feed/FeedLoadingSkeleton";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import { navigateOneWay, jumpToTab } from "../../navigationRef";
+import { requestCompetitionTabFocus } from "../utils/competitionTabEvents";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -850,7 +851,9 @@ export default function Feed({ navigation, route }) {
 
     const handleNavigateCompetitionProgress = useCallback(() => {
         try { hapticStrong(); } catch {}
-        const tabParams = { focusTab: "progress" };
+        const targetTab = "progress";
+        requestCompetitionTabFocus(targetTab);
+        const tabParams = { focusTab: targetTab };
         const routeParams = { ...tabParams, transition: "slide-from-right" };
 
         if (jumpToTab("Competition", tabParams)) {

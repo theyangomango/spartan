@@ -15,6 +15,11 @@ import {
 import LeaderboardsSection from "../components/2_Competition/sections/LeaderboardsSection";
 import ProgressSection from "../components/2_Competition/sections/ProgressSection";
 import ExercisesSection from "../components/2_Competition/sections/ExercisesSection";
+import {
+    clearPendingCompetitionTab,
+    consumePendingCompetitionTab,
+    subscribeCompetitionTabRequests,
+} from "../utils/competitionTabEvents";
 
 const VIEW_TABS = [
     { key: "leaderboard", label: "Leaderboards" },
@@ -22,32 +27,42 @@ const VIEW_TABS = [
     { key: "exercises", label: "Exercises" },
 ];
 
+const resolveTabKey = (candidate) => {
+    if (typeof candidate !== "string") return null;
+    const key = candidate.trim().toLowerCase();
+    if (!key) return null;
+    return VIEW_TABS.some((tab) => tab.key === key) ? key : null;
+};
+
 export default function Competition({ navigation, route }) {
     const insets = useStableSafeAreaInsets();
     const [activeTab, setActiveTab] = useState(() => {
-        const requested = route?.params?.focusTab;
-        if (
-            typeof requested === "string" &&
-            VIEW_TABS.some((tab) => tab.key === requested)
-        ) {
-            return requested;
-        }
+        const requestedFromRoute = resolveTabKey(route?.params?.focusTab);
+        if (requestedFromRoute) return requestedFromRoute;
+        const pendingTab = consumePendingCompetitionTab();
+        const requestedFromPending = resolveTabKey(pendingTab);
+        if (requestedFromPending) return requestedFromPending;
         return "leaderboard";
     });
     const [progressScrollSignal, setProgressScrollSignal] = useState(0);
 
     useEffect(() => {
-        const requested = route?.params?.focusTab;
-        if (
-            typeof requested === "string" &&
-            VIEW_TABS.some((tab) => tab.key === requested)
-        ) {
-            if (requested !== activeTab) {
-                setActiveTab(requested);
-            }
-            navigation?.setParams?.({ focusTab: undefined });
-        }
-    }, [route?.params?.focusTab, activeTab, navigation]);
+        const unsubscribe = subscribeCompetitionTabRequests((tabKey) => {
+            const resolved = resolveTabKey(tabKey);
+            if (!resolved) return;
+            setActiveTab((current) => (current === resolved ? current : resolved));
+            clearPendingCompetitionTab();
+        });
+        return unsubscribe;
+    }, []);
+
+    useEffect(() => {
+        const requested = resolveTabKey(route?.params?.focusTab);
+        if (!requested) return;
+        setActiveTab((current) => (current === requested ? current : requested));
+        navigation?.setParams?.({ focusTab: undefined });
+        clearPendingCompetitionTab();
+    }, [route?.params?.focusTab, navigation]);
 
     const handleTabPress = useCallback((key) => {
         setActiveTab(key);
