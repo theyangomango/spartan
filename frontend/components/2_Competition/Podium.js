@@ -157,6 +157,7 @@ export default function Podium({ data, topOffset = 0 }) {
                                 handle={data[1].handle}
                                 isVerified={Boolean(data[1]?.isVerified ?? data[1]?.verified)}
                                 textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
+                                iconTranslateY={0}
                                 numberOfLines={1}
                                 containerStyle={styles.handleRow}
                             />
@@ -185,6 +186,7 @@ export default function Podium({ data, topOffset = 0 }) {
                                 handle={data[0].handle}
                                 isVerified={Boolean(data[0]?.isVerified ?? data[0]?.verified)}
                                 textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
+                                iconTranslateY={0}
                                 numberOfLines={1}
                                 containerStyle={styles.handleRow}
                             />
@@ -212,6 +214,7 @@ export default function Podium({ data, topOffset = 0 }) {
                                 handle={data[2].handle}
                                 isVerified={Boolean(data[2]?.isVerified ?? data[2]?.verified)}
                                 textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
+                                iconTranslateY={0}
                                 numberOfLines={1}
                                 containerStyle={styles.handleRow}
                             />
