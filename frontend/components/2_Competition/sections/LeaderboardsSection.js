@@ -313,6 +313,38 @@ function resolveProfileImage(user) {
     return "";
 }
 
+// Ensure the viewer's leaderboard row always reflects the latest local hex stats,
+// even if the public users snapshot is stale right after a cold reload.
+function applyViewerHexOverride(list, hexKey) {
+    if (!Array.isArray(list) || !hexKey) return list;
+    let viewerData = null;
+    try {
+        viewerData = global?.userData || null;
+    } catch {
+        viewerData = null;
+    }
+    const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
+    if (!viewerUid) return list;
+    const viewerHex = viewerData?.statsHexagon;
+    if (!viewerHex || typeof viewerHex !== "object") return list;
+    const normalizedKey = String(hexKey).toLowerCase();
+    const overrideValue = Number(viewerHex[normalizedKey]);
+    if (!Number.isFinite(overrideValue)) return list;
+
+    let didOverride = false;
+    const next = list.map((user) => {
+        if (String(user?.uid || "") !== viewerUid) return user;
+        didOverride = true;
+        const mergedHex = { ...(user?.statsHexagon || {}), ...viewerHex };
+        return {
+            ...user,
+            statsHexagon: mergedHex,
+            __hexValue: overrideValue,
+        };
+    });
+    return didOverride ? next : list;
+}
+
 export default function LeaderboardsSection({ navigation, onRequestBodyWeightEntry }) {
     const insets = useStableSafeAreaInsets();
     const podiumSectionHeight = useMemo(() => PODIUM_HEIGHT, []);
@@ -864,7 +896,7 @@ useEffect(() => {
                 const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
                 setUserList(attachScopedRanks(ranked, previous?.entries, memberIdsArray, snapshotValid));
             } else if (hexFocusKey) {
-                const arr = Array.isArray(visible)
+                let arr = Array.isArray(visible)
                     ? visible.map((user) => {
                           const { value } = getLeaderboardValue(user, {
                               mode: "hex",
@@ -876,6 +908,7 @@ useEffect(() => {
                           };
                       })
                     : [];
+                arr = applyViewerHexOverride(arr, hexFocusKey);
                 arr.sort(
                     (a, b) => (Number(b.__hexValue ?? 0) || 0) - (Number(a.__hexValue ?? 0) || 0)
                 );
@@ -896,7 +929,7 @@ useEffect(() => {
         const base = all.filter((usr) => followingSet.has(String(usr?.uid || "")));
         const visible = filterBlockedVisibility(base);
         if (usingHexFocus) {
-            const arr = Array.isArray(visible)
+            let arr = Array.isArray(visible)
                 ? visible.map((user) => {
                       const { value } = getLeaderboardValue(user, {
                           mode: "hex",
@@ -908,6 +941,7 @@ useEffect(() => {
                       };
                   })
                 : [];
+            arr = applyViewerHexOverride(arr, hexFocusKey);
             arr.sort(
                 (a, b) => (Number(b.__hexValue ?? 0) || 0) - (Number(a.__hexValue ?? 0) || 0)
             );

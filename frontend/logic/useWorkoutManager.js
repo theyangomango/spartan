@@ -653,6 +653,22 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         );
     }, [uid]);
 
+    const persistHexagonStats = useCallback(async (payload) => {
+        if (!uid || !payload) return;
+        const targets = ["usersPublic", "users", "usersPrivate"];
+        for (const collection of targets) {
+            try {
+                await fsUpdateDoc(doc(db, collection, uid), payload);
+            } catch (error) {
+                try {
+                    await updateDoc(collection, uid, payload);
+                } catch (fallbackError) {
+                    console.log(`${collection}.hexagon update error`, fallbackError);
+                }
+            }
+        }
+    }, [uid]);
+
     const clearCurrentWorkoutLocally = useCallback(() => {
         try {
             global.isCurrentlyWorkingOut = false;
@@ -1081,13 +1097,11 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                                 });
                                 if (result) {
                                     const { statsHexagon: nextHex, lastTrained } = result;
-                                    if (uid) {
-                                        const payload = {
-                                            statsHexagon: nextHex,
-                                            statsHexagonMeta: { lastTrainedByGroup: lastTrained, updatedAt: serverTimestamp() },
-                                        };
-                                        fsUpdateDoc(doc(db, 'usersPrivate', uid), payload).catch(() => updateDoc('usersPrivate', uid, payload));
-                                    }
+                                    const payload = {
+                                        statsHexagon: nextHex,
+                                        statsHexagonMeta: { lastTrainedByGroup: lastTrained, updatedAt: serverTimestamp() },
+                                    };
+                                    await persistHexagonStats(payload);
                                     captureHexSnapshot(prevHex, nextHex);
                                     if (global?.userData) { global.userData.statsHexagon = cloneHexagon(nextHex); }
                                     emitHexagonUpdate();

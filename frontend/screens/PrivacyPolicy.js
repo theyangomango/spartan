@@ -1,5 +1,6 @@
 import React from 'react';
-import { SafeAreaView, View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import scaleSize, { ts } from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
@@ -7,7 +8,7 @@ import theme from '../theme/mfpDark';
 export default function PrivacyPolicy({ navigation }) {
   const goBack = () => navigation.goBack();
   return (
-    <SafeAreaView style={styles.root}>
+    <SafeAreaView style={styles.root} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={goBack} style={styles.iconBtn}>
           <Ionicons name="chevron-back" size={22} color={theme.textPrimary} />
