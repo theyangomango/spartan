@@ -409,12 +409,21 @@ export default async function updateCompletedWorkout(uid, identifierInput, updat
             throw new Error("Workout not found");
         }
 
+        const workoutsBeforeCurrent = [
+            ...workouts.slice(0, index),
+            ...workouts.slice(index + 1),
+        ];
+
+        const statsBeforeEdit = workoutsBeforeCurrent.length
+            ? (rebuildStatsFromWorkouts(workoutsBeforeCurrent)?.statsExercises || {})
+            : {};
+
         const mergedWorkout = {
             ...existingWorkout,
             ...preparedWorkout,
         };
 
-        const metrics = deriveWorkoutMetrics(mergedWorkout, data?.statsExercises || {});
+        const metrics = deriveWorkoutMetrics(mergedWorkout, statsBeforeEdit);
         mergedWorkout.volume = metrics.volume;
         mergedWorkout.reps = metrics.reps;
         mergedWorkout.PBs = metrics.PBs;
