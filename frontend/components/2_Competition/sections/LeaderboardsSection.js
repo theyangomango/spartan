@@ -244,10 +244,26 @@ function membershipListsMatch(previousEntries, currentIds) {
 function attachScopedRanks(list, entries, currentIds, snapshotValid) {
     if (!Array.isArray(list)) return [];
     if (!snapshotValid) return list.map((user) => ({ ...user, lastRank: null }));
-    if (!membershipListsMatch(entries, currentIds)) {
+
+    const current = ensureUidArray(currentIds);
+    if (!current.length) {
         return list.map((user) => ({ ...user, lastRank: null }));
     }
-    const rankMap = buildRankMap(entries);
+
+    const currentSet = new Set(current);
+    const scopedEntries = Array.isArray(entries)
+        ? entries.filter((entry) => currentSet.has(coerceUid(entry)))
+        : [];
+
+    if (!scopedEntries.length || !membershipListsMatch(scopedEntries, current)) {
+        return list.map((user) => ({ ...user, lastRank: null }));
+    }
+
+    const rankMap = buildRankMap(scopedEntries);
+    if (rankMap.size !== currentSet.size) {
+        return list.map((user) => ({ ...user, lastRank: null }));
+    }
+
     return list.map((user) => {
         const uid = coerceUid(user);
         return { ...user, lastRank: rankMap.get(uid) ?? null };
@@ -853,8 +869,6 @@ useEffect(() => {
             const uid = coerceUid(entry);
             if (uid) followingSet.add(uid);
         });
-        const followingIdsArray = Array.from(followingSet);
-
         const viewerLastRanks =
             global && global.userData && typeof global.userData.lastRanks === "object"
                 ? global.userData.lastRanks
@@ -876,11 +890,13 @@ useEffect(() => {
 
             const tribeUsers = all.filter((u) => memberSet.has(coerceUid(u)));
             const visible = filterBlockedVisibility(tribeUsers, { respectPrivacy: false });
+            const visibleMemberIds = visible
+                .map((user) => coerceUid(user))
+                .filter(Boolean);
             const tribeScopeKey = String(currentTribe?.id || selectedTribeId || "");
             const tribeSnapshot = tribeSnapshots?.[tribeScopeKey] || {};
             const tribeExerciseSnapshots = tribeSnapshot?.exercises || {};
             const tribeHexSnapshots = tribeSnapshot?.hex || {};
-            const memberIdsArray = Array.from(memberSet);
 
             if (activeComparison) {
                 const overrideWeights = new Map();
@@ -894,7 +910,7 @@ useEffect(() => {
                 );
                 const previous = tribeExerciseSnapshots?.[activeComparison?.exercise || ""];
                 const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
-                setUserList(attachScopedRanks(ranked, previous?.entries, memberIdsArray, snapshotValid));
+                setUserList(attachScopedRanks(ranked, previous?.entries, visibleMemberIds, snapshotValid));
             } else if (hexFocusKey) {
                 let arr = Array.isArray(visible)
                     ? visible.map((user) => {
@@ -914,12 +930,12 @@ useEffect(() => {
                 );
                 const previous = tribeHexSnapshots?.[hexFocusKey];
                 const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
-                setUserList(attachScopedRanks(arr, previous?.entries, memberIdsArray, snapshotValid));
+                setUserList(attachScopedRanks(arr, previous?.entries, visibleMemberIds, snapshotValid));
             } else {
                 const ranked = rankUsers(visible, comparedExercise, comparedMetric);
                 const previous = tribeExerciseSnapshots?.[comparedExercise];
                 const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
-                setUserList(attachScopedRanks(ranked, previous?.entries, memberIdsArray, snapshotValid));
+                setUserList(attachScopedRanks(ranked, previous?.entries, visibleMemberIds, snapshotValid));
             }
             return;
         }
@@ -928,6 +944,9 @@ useEffect(() => {
 
         const base = all.filter((usr) => followingSet.has(String(usr?.uid || "")));
         const visible = filterBlockedVisibility(base);
+        const visibleFollowingIds = visible
+            .map((user) => coerceUid(user))
+            .filter(Boolean);
         if (usingHexFocus) {
             let arr = Array.isArray(visible)
                 ? visible.map((user) => {
@@ -947,12 +966,12 @@ useEffect(() => {
             );
             const previous = followingHexSnapshots?.[hexFocusKey];
             const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
-            setUserList(attachScopedRanks(arr, previous?.entries, followingIdsArray, snapshotValid));
+            setUserList(attachScopedRanks(arr, previous?.entries, visibleFollowingIds, snapshotValid));
         } else {
             const ranked = rankUsers(visible, comparedExercise, comparedMetric);
             const previous = followingExerciseSnapshots?.[comparedExercise];
             const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
-            setUserList(attachScopedRanks(ranked, previous?.entries, followingIdsArray, snapshotValid));
+            setUserList(attachScopedRanks(ranked, previous?.entries, visibleFollowingIds, snapshotValid));
         }
     }, [
         bodyFocus,
@@ -1051,11 +1070,12 @@ useEffect(() => {
                 if (uid) memberSet.add(uid);
             });
             if (viewerUid && !memberSet.has(viewerUid)) memberSet.add(viewerUid);
-            const memberIdsArray = Array.from(memberSet);
-
             const tribeScopeKey = String(currentTribe?.id || selectedTribeId || "");
             const tribeUsers = all.filter((x) => memberSet.has(coerceUid(x)));
             const visible = filterBlockedVisibility(tribeUsers, { respectPrivacy: false });
+            const visibleMemberIds = visible
+                .map((user) => coerceUid(user))
+                .filter(Boolean);
             const overrideWeights = new Map();
             if (viewerUid && viewerWeight > 0) {
                 overrideWeights.set(viewerUid, viewerWeight);
@@ -1075,7 +1095,7 @@ useEffect(() => {
             const previous = tribeSnapshot?.exercises?.[comp?.exercise || ""];
             const snapshotValid = Boolean(snapshotId && previous?.snapshotId === snapshotId);
 
-            setUserList(attachScopedRanks(ranked, previous?.entries, memberIdsArray, snapshotValid));
+            setUserList(attachScopedRanks(ranked, previous?.entries, visibleMemberIds, snapshotValid));
         },
         [
             tribeComparisons,
