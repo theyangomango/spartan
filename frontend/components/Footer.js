@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
-import { Pressable, StyleSheet, View, InteractionManager } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, StyleSheet, View, InteractionManager, Text, Modal, Animated as RNAnimated } from 'react-native';
 import { Home, Cup, Weight, Profile as ProfileIcon } from 'iconsax-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import useWorkoutStore, { WORKOUT_SHEET_STATES } from '../state/workoutStore';
@@ -56,6 +56,58 @@ const Footer = ({
             if (timeoutId) clearTimeout(timeoutId);
         };
     }, []);
+    const [isWorkoutPromptVisible, setWorkoutPromptVisible] = useState(false);
+    const startPromptAnim = useRef(new RNAnimated.Value(0)).current;
+
+    useEffect(() => {
+        if (!isWorkoutPromptVisible) return;
+        startPromptAnim.stopAnimation();
+        startPromptAnim.setValue(0);
+        requestAnimationFrame(() => {
+            RNAnimated.timing(startPromptAnim, {
+                toValue: 1,
+                duration: 220,
+                useNativeDriver: true,
+            }).start();
+        });
+    }, [isWorkoutPromptVisible, startPromptAnim]);
+
+    useEffect(() => () => {
+        startPromptAnim.stopAnimation();
+    }, [startPromptAnim]);
+
+    const openStartPrompt = useCallback(() => {
+        setWorkoutPromptVisible(true);
+    }, []);
+
+    const closeStartPrompt = useCallback((afterClose) => {
+        if (!isWorkoutPromptVisible) {
+            if (typeof afterClose === 'function') afterClose();
+            return;
+        }
+        RNAnimated.timing(startPromptAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+        }).start(() => {
+            setWorkoutPromptVisible(false);
+            if (typeof afterClose === 'function') afterClose();
+        });
+    }, [isWorkoutPromptVisible, startPromptAnim]);
+
+    const startPromptBackdropOpacity = useMemo(() => (
+        startPromptAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [0, 0.45],
+        })
+    ), [startPromptAnim]);
+
+    const startPromptTranslateY = useMemo(() => (
+        startPromptAnim.interpolate({
+            inputRange: [0, 1],
+            outputRange: [scaleSize(220), 0],
+        })
+    ), [startPromptAnim]);
     const globalOverlayEnabled = Boolean(global?.__USE_GLOBAL_FOOTER);
     if (!isOverlay && globalOverlayEnabled) {
         return null;
@@ -166,10 +218,24 @@ const Footer = ({
         console.log?.("[footer] fallback startFreshWorkout complete");
     }, [hasActiveWorkout, startWorkoutHandler]);
 
+    const handleWorkoutPromptStart = useCallback(() => {
+        closeStartPrompt(() => {
+            handleStartWorkout();
+        });
+    }, [closeStartPrompt, handleStartWorkout]);
+
+    const handleWorkoutPromptCancel = useCallback(() => {
+        closeStartPrompt();
+    }, [closeStartPrompt]);
+
     const handleWeightPressIn = useCallback(() => {
         weightPressScale.value = withSpring(0.88, { stiffness: 360, damping: 18 });
-        handleStartWorkout();
-    }, [handleStartWorkout, weightPressScale]);
+        if (hasActiveWorkout) {
+            handleStartWorkout();
+            return;
+        }
+        openStartPrompt();
+    }, [handleStartWorkout, hasActiveWorkout, openStartPrompt, weightPressScale]);
 
     const handleWeightPressOut = useCallback(() => {
         weightPressScale.value = withSequence(
@@ -179,7 +245,8 @@ const Footer = ({
     }, [weightPressScale]);
 
     return (
-        <Animated.View style={[styles.outer_view, outerAnimatedStyle]} pointerEvents={footerPointerEvents}>
+        <>
+            <Animated.View style={[styles.outer_view, outerAnimatedStyle]} pointerEvents={footerPointerEvents}>
             <View style={styles.main_ctnr}>
                     {/* Feed (Stack tab → child Feed) */}
                     <View style={styles.icon_ctnr}>
@@ -281,6 +348,79 @@ const Footer = ({
                 pointerEvents="auto"
             />
         </Animated.View>
+        {isWorkoutPromptVisible ? (
+            <Modal
+                transparent
+                animationType="none"
+                visible
+                onRequestClose={handleWorkoutPromptCancel}
+            >
+                <View style={styles.startPromptModalRoot}>
+                    <Pressable style={StyleSheet.absoluteFill} onPress={handleWorkoutPromptCancel}>
+                        <RNAnimated.View
+                            style={[styles.startPromptBackdrop, { opacity: startPromptBackdropOpacity }]}
+                        />
+                    </Pressable>
+                        <RNAnimated.View
+                            style={[
+                                styles.startPromptSheet,
+                                { transform: [{ translateY: startPromptTranslateY }] },
+                            ]}
+                        >
+                            <Pressable
+                                style={({ pressed }) => [
+                                    styles.startPromptItem,
+                                    pressed ? styles.startPromptItemPressed : null,
+                                ]}
+                                onPress={handleWorkoutPromptStart}
+                            >
+                                <View style={styles.startPromptItemRow}>
+                                    <View style={styles.startPromptItemLeft}>
+                                        <MaterialCommunityIcons
+                                            name="lightning-bolt-outline"
+                                            size={scaleSize(20)}
+                                            color={COLORS.actionCircle}
+                                            style={styles.startPromptItemIcon}
+                                        />
+                                        <Text style={[styles.startPromptItemText, styles.startPromptStartText]}>
+                                            Start Workout
+                                        </Text>
+                                    </View>
+                                    <MaterialCommunityIcons
+                                        name="chevron-right"
+                                        size={scaleSize(20)}
+                                        color={COLORS.actionCircle}
+                                        style={styles.startPromptItemChevron}
+                                    />
+                                </View>
+                            </Pressable>
+                            <View style={styles.startPromptDivider} />
+                            <Pressable
+                                style={({ pressed }) => [
+                                    styles.startPromptItem,
+                                    pressed ? styles.startPromptItemPressed : null,
+                                ]}
+                                onPress={handleWorkoutPromptCancel}
+                            >
+                                <View style={styles.startPromptItemRow}>
+                                    <View style={styles.startPromptItemLeft}>
+                                        <MaterialCommunityIcons
+                                            name="close"
+                                            size={scaleSize(20)}
+                                            color={theme.textSecondary}
+                                            style={styles.startPromptItemIcon}
+                                        />
+                                        <Text style={[styles.startPromptItemText, styles.startPromptCancelText]}>
+                                            Cancel
+                                        </Text>
+                                    </View>
+                                </View>
+                            </Pressable>
+                        </RNAnimated.View>
+                    </View>
+                </Modal>
+        ) : null}
+        </>
     );
 };
 
@@ -347,6 +487,69 @@ const styles = StyleSheet.create({
         height: scaleSize(35),
         backgroundColor: 'transparent',
         zIndex: 2147483647,
+    },
+    startPromptModalRoot: {
+        flex: 1,
+        justifyContent: 'flex-end',
+    },
+    startPromptBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: '#000',
+    },
+    startPromptSheet: {
+        backgroundColor: theme.surface,
+        paddingHorizontal: scaleSize(26),
+        paddingTop: scaleSize(22),
+        paddingBottom: scaleSize(28),
+        borderTopLeftRadius: scaleSize(26),
+        borderTopRightRadius: scaleSize(26),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.06)',
+        shadowColor: '#000',
+        shadowOpacity: 0.35,
+        shadowRadius: scaleSize(24),
+        shadowOffset: { width: 0, height: -6 },
+        elevation: 18,
+    },
+    startPromptItem: {
+        paddingVertical: scaleSize(12),
+        borderRadius: scaleSize(16),
+    },
+    startPromptItemPressed: {
+        backgroundColor: 'rgba(255,255,255,0.08)',
+    },
+    startPromptItemRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    startPromptItemLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    startPromptItemIcon: {
+        marginRight: scaleSize(10),
+    },
+    startPromptItemChevron: {
+        marginLeft: scaleSize(6),
+    },
+    startPromptItemText: {
+        textAlign: 'left',
+        color: theme.textPrimary,
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(15),
+        letterSpacing: 0.2,
+    },
+    startPromptStartText: {
+        color: COLORS.actionCircle,
+    },
+    startPromptCancelText: {
+        color: theme.textSecondary,
+    },
+    startPromptDivider: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: 'rgba(255,255,255,0.12)',
+        marginVertical: scaleSize(4),
     },
 });
 
