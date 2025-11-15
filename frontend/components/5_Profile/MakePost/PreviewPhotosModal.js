@@ -2,6 +2,7 @@ import React, { useCallback, useRef } from 'react';
 import { Dimensions, StyleSheet, View, Text, ActivityIndicator, Pressable } from 'react-native';
 import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
+import * as MediaLibrary from 'expo-media-library';
 import PreviewPhoto from './PreviewPhoto';
 import theme from '../../../theme/mfpDark';
 import scaleSize from '../../../helper/scaleSize';
@@ -13,12 +14,18 @@ const ITEM_SIZE = screenWidth / NUM_COLUMNS;
 
 const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, isLimited, onRequestMoreAccess }) => {
     const renderPhoto = useCallback(({ item }) => {
-        const order = selectedOrderMap.get(item.uri) || 0;
+        const key = item.id || item.uri;
+        const order = selectedOrderMap.get(key) || selectedOrderMap.get(item.uri) || 0;
         const selected = order > 0;
+        const type = item.mediaType === MediaLibrary.MediaType.video ? 'video' : 'image';
+        const duration = Number(item.duration) || 0;
         return (
             <PreviewPhoto
+                asset={item}
                 id={item.id}
                 uri={item.uri}
+                type={type}
+                duration={duration}
                 selected={selected}
                 order={order}
                 onToggle={toggleSelect}
@@ -77,9 +84,9 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
                 windowSize={9}
                 removeClippedSubviews={false}
                 shouldItemUpdate={(prev, next) => {
-                    const uri = next.item?.uri;
-                    const prevOrder = prev.extraData?.get(uri) || 0;
-                    const nextOrder = next.extraData?.get(uri) || 0;
+                    const itemKey = next.item?.id || next.item?.uri;
+                    const prevOrder = prev.extraData?.get(itemKey) || prev.extraData?.get(next.item?.uri) || 0;
+                    const nextOrder = next.extraData?.get(itemKey) || next.extraData?.get(next.item?.uri) || 0;
                     return prevOrder !== nextOrder;
                 }}
                 onEndReached={onEndReached}

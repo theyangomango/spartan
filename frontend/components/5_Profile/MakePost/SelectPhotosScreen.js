@@ -9,17 +9,68 @@ import ImageCropperModal from './ImageCropperModal';
 import theme from '../../../theme/mfpDark';
 import scaleSize from '../../../helper/scaleSize';
 import { withStrongPress } from "../../../utils/haptics";
+import Video from 'react-native-video';
 
 const scaledSize = (size) => scaleSize(size);
 const FEED_ASPECT_RATIO = 1; // square crop across selection & preview
+const MEDIA_TYPES = [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video];
+
+const normalizeSelectionEntry = (entry, index = 0) => {
+    if (!entry) return null;
+    if (typeof entry === 'string') {
+        return {
+            assetId: null,
+            originalUri: entry,
+            uri: entry,
+            previewUri: entry,
+            localUri: entry.startsWith('file://') ? entry : null,
+            type: 'image',
+            duration: 0,
+        };
+    }
+    if (typeof entry === 'object') {
+        const uri = entry.uri || entry.url || entry.image || entry.path || null;
+        if (!uri) return null;
+        const type = entry.type === 'video' ? 'video' : 'image';
+        const originalUri = entry.originalUri || uri;
+        const previewUri = entry.previewUri || uri;
+        const localUri = entry.localUri || (uri.startsWith('file://') ? uri : null);
+        const assetId = entry.assetId || entry.id || `initial-${index}-${originalUri}`;
+        return {
+            assetId,
+            originalUri,
+            uri,
+            previewUri,
+            localUri,
+            type,
+            duration: Number(entry.duration) || 0,
+        };
+    }
+    return null;
+};
+
+const normalizeInitialSelection = (list) => {
+    if (!Array.isArray(list)) return [];
+    const seen = new Set();
+    const normalized = [];
+    list.forEach((entry, idx) => {
+        const item = normalizeSelectionEntry(entry, idx);
+        if (!item) return;
+        const key = item.assetId || item.originalUri || item.uri || `index-${idx}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        normalized.push(item);
+    });
+    return normalized;
+};
 
 export default function SelectPhotosScreen({ navigation, route }) {
     const initialSelection = useMemo(() => {
         const provided = route?.params?.initialImages;
-        return Array.isArray(provided) ? provided.filter(Boolean) : [];
+        return normalizeInitialSelection(provided);
     }, [route?.params?.initialImages]);
     const [assets, setAssets] = useState([]);
-    const [images, setImages] = useState(initialSelection); // selected URIs, ordered
+    const [selectedItems, setSelectedItems] = useState(initialSelection);
     const [loading, setLoading] = useState(false);
     const [endCursor, setEndCursor] = useState(null);
     const [hasNextPage, setHasNextPage] = useState(true);
@@ -30,7 +81,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
     const [cropVisible, setCropVisible] = useState(false);
     const [cropUri, setCropUri] = useState(null);
     const [cropIndex, setCropIndex] = useState(-1);
-    const [croppedMap, setCroppedMap] = useState({}); // { [originalUri]: croppedUri }
+    const selectedItemsRef = useRef(selectedItems);
     const [previewMetrics, setPreviewMetrics] = useState({ top: null, bottom: null });
 
     const { height: windowHeight } = useWindowDimensions();
@@ -43,10 +94,24 @@ export default function SelectPhotosScreen({ navigation, route }) {
     }, []);
 
     useEffect(() => {
-        setImages(initialSelection);
-        setCroppedMap({});
+        selectedItemsRef.current = selectedItems;
+    }, [selectedItems]);
+
+    useEffect(() => {
+        setSelectedItems(initialSelection);
         setActiveIndex(0);
     }, [initialSelection]);
+
+    useEffect(() => {
+        if (!selectedItems.length) {
+            setActiveIndex(0);
+            return;
+        }
+        setActiveIndex((prev) => {
+            if (prev < selectedItems.length) return prev;
+            return Math.max(0, selectedItems.length - 1);
+        });
+    }, [selectedItems.length]);
 
     const getInitialAssets = useCallback(async () => {
         setLoading(true);
@@ -60,7 +125,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 setLimited(perm?.accessPrivileges === 'limited');
             } catch {}
             const res = await MediaLibrary.getAssetsAsync({
-                mediaType: ['photo'],
+                mediaType: MEDIA_TYPES,
                 first: 120,
                 sortBy: MediaLibrary.SortBy.creationTime,
             });
@@ -78,7 +143,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
         setLoading(true);
         try {
             const res = await MediaLibrary.getAssetsAsync({
-                mediaType: ['photo'],
+                mediaType: MEDIA_TYPES,
                 first: 120,
                 sortBy: MediaLibrary.SortBy.creationTime,
                 after: endCursor || undefined,
@@ -98,15 +163,52 @@ export default function SelectPhotosScreen({ navigation, route }) {
         }
     }, [endCursor, hasNextPage, loading]);
 
-    // React Native Image handles PhotoKit thumbnails adequately; no explicit prefetch here.
+    const prepareAssetSelection = useCallback(async (asset) => {
+        if (!asset) return null;
+        const type = asset.mediaType === MediaLibrary.MediaType.video ? 'video' : 'image';
+        let duration = Number(asset.duration) || 0;
+        let previewUri = asset.uri;
+        let localUri = asset.localUri || null;
+
+        if (!localUri) {
+            try {
+                const info = await MediaLibrary.getAssetInfoAsync(asset);
+                if (info?.localUri) localUri = info.localUri;
+                if (info?.duration && !duration) duration = Number(info.duration) || 0;
+                if (info?.uri && !previewUri) previewUri = info.uri;
+            } catch {}
+        }
+
+        const effectiveUri = localUri || asset.uri;
+
+        return {
+            assetId: asset.id || null,
+            originalUri: asset.uri,
+            uri: effectiveUri,
+            previewUri: previewUri || effectiveUri,
+            localUri: effectiveUri && effectiveUri.startsWith('file://') ? effectiveUri : null,
+            type,
+            duration,
+        };
+    }, []);
+
+    // React Native Image handles PhotoKit frontends adequately; no explicit prefetch here.
 
     function goBack() {
         navigation.goBack();
     }
 
     function next() {
-        const finalImages = images.map((u) => (croppedMap?.[u] || u));
-        const params = { images: finalImages };
+        const serializedSelection = selectedItems.map((entry) => ({
+            uri: entry.uri,
+            previewUri: entry.previewUri,
+            originalUri: entry.originalUri,
+            assetId: entry.assetId,
+            localUri: entry.localUri,
+            type: entry.type,
+            duration: entry.duration,
+        }));
+        const params = { images: serializedSelection };
         if (route?.params && Object.prototype.hasOwnProperty.call(route.params, 'workout')) {
             params.workout = route.params.workout;
         }
@@ -117,57 +219,87 @@ export default function SelectPhotosScreen({ navigation, route }) {
         });
     }
 
-    const selectedImages = images.length > 0 ? images.map((img) => ({ uri: (croppedMap?.[img] || img) })) : [];
+    const selectedPreviewItems = selectedItems.map((entry) => ({
+        uri: entry.previewUri || entry.uri,
+        playbackUri: entry.localUri || entry.uri,
+        type: entry.type,
+        duration: entry.duration,
+    }));
 
     const selectedOrderMap = useMemo(() => {
         const map = new Map();
-        images.forEach((uri, idx) => map.set(uri, idx + 1));
-        return map;
-    }, [images]);
-
-    const toggleSelect = useCallback((uri) => {
-        setImages(prev => {
-            const idx = prev.indexOf(uri);
-            if (idx === -1) return [...prev, uri];
-            // remove
-            const next = prev.slice();
-            next.splice(idx, 1);
-            // also drop any cropped mapping for this uri
-            setCroppedMap((m) => {
-                if (!m || !(uri in m)) return m;
-                const copy = { ...m };
-                delete copy[uri];
-                return copy;
-            });
-            return next;
+        selectedItems.forEach((entry, idx) => {
+            const order = idx + 1;
+            if (entry.assetId) map.set(entry.assetId, order);
+            if (entry.originalUri) map.set(entry.originalUri, order);
+            map.set(entry.uri, order);
         });
-    }, []);
+        return map;
+    }, [selectedItems]);
+
+    const toggleSelect = useCallback(async (asset) => {
+        if (!asset) return;
+        const key = asset.id || asset.uri;
+        const current = selectedItemsRef.current || [];
+        const existingIdx = current.findIndex((entry) => (
+            (entry.assetId && entry.assetId === key) || entry.originalUri === asset.uri
+        ));
+        if (existingIdx !== -1) {
+            setSelectedItems((prev) => prev.filter((_, idx) => idx !== existingIdx));
+            return;
+        }
+
+        try {
+            const prepared = await prepareAssetSelection(asset);
+            if (!prepared) return;
+            setSelectedItems((prev) => {
+                const already = prev.some((entry) => (
+                    (entry.assetId && prepared.assetId && entry.assetId === prepared.assetId) ||
+                    entry.originalUri === prepared.originalUri
+                ));
+                if (already) return prev;
+                return [...prev, prepared];
+            });
+        } catch (error) {
+            console.warn('[SelectPhotos] Failed to prepare media asset', error);
+        }
+    }, [prepareAssetSelection]);
 
     const clearSelection = useCallback(() => {
-        setImages([]);
-        setCroppedMap({});
+        setSelectedItems([]);
         setActiveIndex(0);
     }, []);
 
     const openCropper = useCallback(() => {
-        if (!images.length) return;
-        const idx = Math.max(0, Math.min(activeIndex, images.length - 1));
-        const original = images[idx];
-        const u = croppedMap?.[original] || original;
-        if (u) { setCropIndex(idx); setCropUri(u); setCropVisible(true); }
-    }, [activeIndex, images, croppedMap]);
+        if (!selectedItems.length) return;
+        const idx = Math.max(0, Math.min(activeIndex, selectedItems.length - 1));
+        const entry = selectedItems[idx];
+        if (!entry || entry.type !== 'image') return;
+        const targetUri = entry.uri || entry.previewUri;
+        if (!targetUri) return;
+        setCropIndex(idx);
+        setCropUri(targetUri);
+        setCropVisible(true);
+    }, [activeIndex, selectedItems]);
 
     const onCropDone = useCallback((newUri) => {
         setCropVisible(false);
         setCropUri(null);
-        if (!newUri) return;
-        setCroppedMap((m) => {
-            if (cropIndex < 0 || cropIndex >= images.length) return m;
-            const orig = images[cropIndex];
-            return { ...(m || {}), [orig]: newUri };
-        });
+        if (!newUri) {
+            setCropIndex(-1);
+            return;
+        }
+        setSelectedItems((prev) => prev.map((entry, idx) => {
+            if (idx !== cropIndex) return entry;
+            return {
+                ...entry,
+                uri: newUri,
+                previewUri: newUri,
+                localUri: newUri,
+            };
+        }));
         setCropIndex(-1);
-    }, [cropIndex, images]);
+    }, [cropIndex]);
 
     const collapsedSheetHeight = useMemo(() => {
         const bottom = previewMetrics.bottom;
@@ -175,6 +307,11 @@ export default function SelectPhotosScreen({ navigation, route }) {
         const h = Math.max(0, windowHeight - bottom);
         return h || null;
     }, [previewMetrics.bottom, windowHeight]);
+
+    const activeSelection = selectedItems.length
+        ? selectedItems[Math.min(activeIndex, selectedItems.length - 1)]
+        : null;
+    const canCropActive = activeSelection?.type === 'image';
 
     return (
         <SafeAreaView style={styles.container}>
@@ -185,11 +322,11 @@ export default function SelectPhotosScreen({ navigation, route }) {
                     </View>
                 </TouchableOpacity>
                 <View style={styles.header_text_ctnr}>
-                    <Text style={styles.title_text}>Pick Photos</Text>
+                    <Text style={styles.title_text}>Pick Media</Text>
                 </View>
                 <TouchableOpacity onPress={withStrongPress(next)}>
                     <View style={styles.next_icon_ctnr}>
-                        <FontAwesome6 name='chevron-right' size={scaledSize(17)} color={images.length > 0 ? theme.primary : theme.textSecondary} />
+                        <FontAwesome6 name='chevron-right' size={scaledSize(17)} color={selectedItems.length > 0 ? theme.primary : theme.textSecondary} />
                     </View>
                 </TouchableOpacity>
             </View>
@@ -200,19 +337,43 @@ export default function SelectPhotosScreen({ navigation, route }) {
                     setPreviewMetrics({ top: y, bottom: y + height });
                 }}
             >
-                {selectedImages.length > 0 ? (
+                {selectedPreviewItems.length > 0 ? (
                     <Gallery
-                        data={selectedImages}
+                        data={selectedPreviewItems}
                         keyExtractor={(item, index) => index.toString()}
                         renderItem={({ item, setImageDimensions }) => (
-                            <Image
-                                source={{ uri: item.uri }}
-                                style={styles.preview_image}
-                                onLoad={(e) => {
-                                    const { width, height } = e.nativeEvent.source;
-                                    setImageDimensions({ width, height });
-                                }}
-                            />
+                            item.type === 'video'
+                                ? (
+                                    <View style={styles.preview_video_ctnr}>
+                                        <Video
+                                            source={{ uri: item.playbackUri || item.uri }}
+                                            style={styles.preview_image}
+                                            resizeMode="cover"
+                                            repeat
+                                            muted
+                                            paused={false}
+                                            onLoad={(meta) => {
+                                                const { naturalSize } = meta || {};
+                                                const width = Number(naturalSize?.width) || 1;
+                                                const height = Number(naturalSize?.height) || 1;
+                                                setImageDimensions({ width, height });
+                                            }}
+                                        />
+                                        <View style={styles.preview_video_overlay}>
+                                            <Ionicons name='play' size={scaledSize(32)} color={'#fff'} />
+                                        </View>
+                                    </View>
+                                )
+                                : (
+                                    <Image
+                                        source={{ uri: item.uri }}
+                                        style={styles.preview_image}
+                                        onLoad={(e) => {
+                                            const { width, height } = e.nativeEvent.source;
+                                            setImageDimensions({ width, height });
+                                        }}
+                                    />
+                                )
                         )}
                         displayName={false}
                         showThumbs={false}
@@ -225,31 +386,35 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 ) : (
                     <View style={styles.preview_placeholder}>
                         <Ionicons name='image-outline' size={scaledSize(28)} color={theme.textSecondary} />
-                        <Text style={styles.preview_placeholder_text}>Pick photos below to start your post</Text>
+                        <Text style={styles.preview_placeholder_text}>Pick photos or videos below to start your post</Text>
                     </View>
                 )}
 
-                {selectedImages.length > 0 && (
+                {selectedPreviewItems.length > 0 && (
                     <>
                         <View style={styles.preview_action_row}>
                             <TouchableOpacity style={styles.clear_btn} onPress={withStrongPress(clearSelection)}>
                                 <Ionicons name='trash-outline' size={scaledSize(18)} color={'#fff'} />
                                 <Text style={styles.clear_btn_text}>Clear</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity style={styles.crop_btn} onPress={withStrongPress(openCropper)}>
+                            <TouchableOpacity
+                                style={[styles.crop_btn, !canCropActive && styles.crop_btn_disabled]}
+                                onPress={withStrongPress(openCropper)}
+                                disabled={!canCropActive}
+                            >
                                 <Ionicons name='crop' size={scaledSize(20)} color={'#fff'} />
                                 <Text style={styles.crop_btn_text}>Crop</Text>
                             </TouchableOpacity>
                         </View>
                         <View style={styles.preview_footer_info}>
-                            <Text style={styles.preview_footer_text}>{`${Math.min(images.length, activeIndex + 1)} of ${images.length}`}</Text>
+                            <Text style={styles.preview_footer_text}>{`${Math.min(selectedItems.length, activeIndex + 1)} of ${selectedItems.length}`}</Text>
                         </View>
                     </>
                 )}
             </View>
             <PreviewPhotosBottomSheet
                 assets={assets}
-                images={images}
+                images={selectedItems}
                 selectedOrderMap={selectedOrderMap}
                 toggleSelect={toggleSelect}
                 loadMoreAssets={loadMoreAssets}
@@ -318,6 +483,15 @@ const styles = StyleSheet.create({
         width: '100%',
         aspectRatio: FEED_ASPECT_RATIO
     },
+    preview_video_ctnr: {
+        flex: 1,
+    },
+    preview_video_overlay: {
+        ...StyleSheet.absoluteFillObject,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.2)'
+    },
     preview_placeholder: {
         flex: 1,
         alignItems: 'center',
@@ -338,6 +512,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(32,133,255,0.85)',
         flexDirection: 'row',
         alignItems: 'center',
+    },
+    crop_btn_disabled: {
+        backgroundColor: 'rgba(110,110,110,0.6)'
     },
     crop_btn_text: {
         color: '#fff',

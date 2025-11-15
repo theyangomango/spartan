@@ -95,7 +95,6 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages, onPressParticipant })
                         isVerified={isFirstVerified}
                         textStyle={styles.nameText}
                         numberOfLines={1}
-                        iconTranslateY={-2}
                         iconSize={scaleSize(19)}
                         ellipsizeMode="tail"
                         preserveTextAlignment

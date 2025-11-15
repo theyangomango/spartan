@@ -3,6 +3,8 @@ import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Dimensions
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import FastImage from 'react-native-fast-image';
+import Video from 'react-native-video';
+import * as MediaLibrary from 'expo-media-library';
 import makeID from "../../../../backend/helper/makeID";
 // Storage handled via native resumable helper to avoid RN Blob issues
 import * as FileSystem from 'expo-file-system';
@@ -34,6 +36,54 @@ const avatarSize = scaleSize(36);
 const headerBottomPadding = scaleSize(12);
 const MAX_CAPTION_LINES = 10;
 
+const normalizeMediaSelectionEntry = (entry, index = 0) => {
+    if (!entry) return null;
+    if (typeof entry === 'string') {
+        return {
+            uri: entry,
+            previewUri: entry,
+            originalUri: entry,
+            localUri: entry.startsWith('file://') ? entry : null,
+            type: 'image',
+            duration: 0,
+            assetId: null,
+        };
+    }
+    if (typeof entry === 'object') {
+        const uri = entry.uri || entry.url || entry.image || entry.path || null;
+        if (!uri) return null;
+        const typeSource = entry.type || entry.mediaType || entry.kind || 'image';
+        const normalizedType = String(typeSource).toLowerCase().includes('video') ? 'video' : 'image';
+        const previewUri = entry.previewUri || uri;
+        const originalUri = entry.originalUri || uri;
+        const localUri = entry.localUri || (uri.startsWith('file://') ? uri : null);
+        const assetId = entry.assetId || entry.id || null;
+        return {
+            uri,
+            previewUri,
+            originalUri,
+            localUri,
+            type: normalizedType,
+            duration: Number(entry.duration) || 0,
+            assetId,
+        };
+    }
+    return null;
+};
+
+const normalizeMediaList = (list) => {
+    if (!Array.isArray(list)) return [];
+    const normalized = [];
+    list.forEach((entry, idx) => {
+        const item = normalizeMediaSelectionEntry(entry, idx);
+        if (!item) return;
+        normalized.push(item);
+    });
+    return normalized;
+};
+
+const isRemoteUri = (uri) => /^https?:\/\//i.test(String(uri || ''));
+
 export default function PostOptionsScreen({ navigation, route }) {
     const editingPost = route?.params?.editingPost || null;
     const isEditing = Boolean(editingPost?.pid);
@@ -47,56 +97,49 @@ export default function PostOptionsScreen({ navigation, route }) {
         const seen = new Set();
         const result = [];
 
-        const pushEntry = (uri, type) => {
-            if (!uri) return;
-            if (seen.has(uri)) return;
-            seen.add(uri);
-            const normalizedType = type === 'video' ? 'video' : 'image';
-            result.push({ uri, type: normalizedType });
+        const pushEntry = (entry) => {
+            const normalized = normalizeMediaSelectionEntry(entry);
+            if (!normalized) return;
+            const key = normalized.originalUri || normalized.uri;
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            result.push(normalized);
         };
 
         if (Array.isArray(editingPost?.mediaEntries)) {
             editingPost.mediaEntries.forEach((entry) => {
                 if (!entry) return;
-                const uri = typeof entry === 'string' ? entry : entry?.uri;
-                const type = typeof entry === 'string' ? undefined : entry?.type;
-                pushEntry(uri, type);
+                pushEntry(entry);
             });
         } else if (Array.isArray(editingPost?.media)) {
             editingPost.media.forEach((entry) => {
-                const uri = typeof entry === 'string' ? entry : entry?.uri;
-                const type = typeof entry === 'string' ? undefined : entry?.type;
-                pushEntry(uri, type);
+                pushEntry(entry);
             });
         }
 
         if (Array.isArray(editingPost?.images)) {
             editingPost.images.forEach((entry) => {
-                const uri = typeof entry === 'string' ? entry : entry?.uri;
-                pushEntry(uri, 'image');
+                if (!entry) return;
+                if (typeof entry === 'string') {
+                    pushEntry({ uri: entry, type: 'image' });
+                    return;
+                }
+                pushEntry({ ...entry, type: 'image' });
             });
         }
 
         return result;
     }, [isEditing, editingPost]);
 
-    const mediaTypeByUri = useMemo(() => {
-        const map = new Map();
-        editingMediaEntries.forEach(({ uri, type }) => {
-            map.set(uri, type);
-        });
-        return map;
-    }, [editingMediaEntries]);
-
     const routeImages = useMemo(() => {
         const incoming = route?.params?.images;
         if (Array.isArray(incoming) && incoming.length > 0) {
-            return incoming.filter(Boolean);
+            return normalizeMediaList(incoming);
         }
         if (isEditing) {
-            return editingMediaEntries.map((entry) => entry.uri);
+            return editingMediaEntries;
         }
-        return Array.isArray(incoming) ? incoming.filter(Boolean) : [];
+        return [];
     }, [route?.params?.images, isEditing, editingMediaEntries]);
     const workoutParam = route?.params?.workout;
     const editingHasWorkoutPid = isEditing && Boolean(editingPost?.workoutPid);
@@ -144,10 +187,11 @@ export default function PostOptionsScreen({ navigation, route }) {
         setSelectedImages(routeImages);
     }, [routeImages]);
 
-    const mediaList = useMemo(
-        () => (Array.isArray(selectedImages) ? selectedImages.filter(Boolean) : []),
-        [selectedImages]
-    );
+    const mediaList = useMemo(() => (
+        Array.isArray(selectedImages)
+            ? selectedImages.map((entry, idx) => normalizeMediaSelectionEntry(entry, idx)).filter(Boolean)
+            : []
+    ), [selectedImages]);
     const hasMedia = mediaList.length > 0;
 
     const compressionPreset = useMemo(() => {
@@ -200,8 +244,9 @@ export default function PostOptionsScreen({ navigation, route }) {
         };
     }, [mediaList.length]);
 
-    const ensurePreparedAsset = useCallback(async (sourceUri) => {
-        if (!sourceUri || /^https?:\/\//i.test(sourceUri)) return null;
+    const ensurePreparedAsset = useCallback(async (entry) => {
+        const sourceUri = entry?.localUri || entry?.uri;
+        if (!sourceUri || isRemoteUri(sourceUri)) return null;
 
         const cache = compressionCacheRef.current;
         const cacheKey = `${sourceUri}::${compressionPreset.cacheKey}`;
@@ -286,18 +331,100 @@ export default function PostOptionsScreen({ navigation, route }) {
         }
     }, [compressionPreset]);
 
+    const ensureVideoAsset = useCallback(async (entry) => {
+        if (!entry) return null;
+
+        const ensureFileScheme = (uri) => (uri && uri.startsWith('file://') ? uri : null);
+        let assetInfo = null;
+        const loadAssetInfo = async () => {
+            if (assetInfo || !entry.assetId) return assetInfo;
+            try {
+                assetInfo = await MediaLibrary.getAssetInfoAsync(entry.assetId);
+            } catch (error) {
+                console.warn('[PostUploadOptions] getAssetInfoAsync failed', error);
+                assetInfo = null;
+            }
+            return assetInfo;
+        };
+
+        let sourceUri = entry.localUri || entry.uri || null;
+        let fileUri = ensureFileScheme(sourceUri);
+
+        if (!fileUri && entry.assetId) {
+            const info = await loadAssetInfo();
+            if (info?.localUri) {
+                fileUri = ensureFileScheme(info.localUri);
+                if (!fileUri) {
+                    sourceUri = info.localUri;
+                }
+            }
+        }
+
+        let fallbackUri = fileUri ? null : sourceUri;
+
+        const withoutQuery = (sourceUri || '').split('?')[0];
+        let ext = (withoutQuery.match(/\.([a-zA-Z0-9]+)$/)?.[1] || '').toLowerCase();
+        if (!ext && entry.assetId) {
+            const info = await loadAssetInfo();
+            if (info?.filename) {
+                const parts = info.filename.split('.');
+                const candidate = parts[parts.length - 1];
+                if (candidate) ext = candidate.toLowerCase();
+            }
+        }
+        if (!ext) ext = 'mp4';
+        const normalizedExt = ['mp4', 'mov', 'm4v'].includes(ext) ? ext : 'mp4';
+
+        if (!fileUri && fallbackUri) {
+            const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || FileSystem.temporaryDirectory;
+            if (!cacheDir) throw new Error('No cache directory available for video upload');
+            const tempTarget = `${cacheDir}upload-video-${makeID()}.${normalizedExt}`;
+            try {
+                await FileSystem.copyAsync({ from: fallbackUri, to: tempTarget });
+                fileUri = tempTarget;
+            } catch (error) {
+                console.warn('[PostUploadOptions] copyAsync failed for video', error);
+                fileUri = ensureFileScheme(fallbackUri);
+            }
+        }
+
+        if (!fileUri) {
+            throw new Error('Unable to resolve local video path for upload');
+        }
+
+        const info = await FileSystem.getInfoAsync(fileUri).catch(() => null);
+        const size = typeof info?.size === 'number' ? info.size : null;
+
+        let mime = entry?.mime || entry?.mimeType || null;
+        if (!mime) {
+            if (normalizedExt === 'mov') mime = 'video/quicktime';
+            else mime = `video/${normalizedExt === 'm4v' ? 'mp4' : normalizedExt}`;
+        }
+
+        return {
+            fileUri,
+            ext: normalizedExt,
+            mime,
+            size,
+        };
+    }, []);
+
     useEffect(() => {
         if (!mediaList.length) return;
-        const locals = mediaList.filter((uri) => uri && !/^https?:\/\//i.test(uri));
-        const uniqueLocals = Array.from(new Set(locals));
-        uniqueLocals.forEach((uri) => {
-            ensurePreparedAsset(uri).catch(() => {
+        const seen = new Set();
+        mediaList.forEach((entry) => {
+            if (!entry || entry.type !== 'image') return;
+            const key = entry.localUri || entry.uri;
+            if (!key || isRemoteUri(entry.uri)) return;
+            if (seen.has(key)) return;
+            seen.add(key);
+            ensurePreparedAsset(entry).catch(() => {
                 // Logged upstream; ignore background failures.
             });
         });
     }, [mediaList, ensurePreparedAsset]);
 
-    const keyExtractor = useCallback((item, idx) => `${item}-${idx}`, []);
+    const keyExtractor = useCallback((item, idx) => `${item?.originalUri || item?.uri || 'media'}-${idx}`, []);
 
     const handleMediaLayout = useCallback((event) => {
         const width = event?.nativeEvent?.layout?.width;
@@ -317,15 +444,36 @@ export default function PostOptionsScreen({ navigation, route }) {
         updateMediaIndexFromOffset(offsetX);
     }, [updateMediaIndexFromOffset]);
 
-    const renderMediaItem = useCallback(({ item }) => (
-        <View style={[styles.media_slide, { width: mediaWidth, height: mediaWidth }]}>
-            <Image
-                source={{ uri: item }}
-                style={styles.media_image}
-                resizeMode="cover"
-            />
-        </View>
-    ), [mediaWidth]);
+    const renderMediaItem = useCallback(({ item }) => {
+        if (!item) return null;
+        const displayUri = item.previewUri || item.uri;
+        const isVideo = item.type === 'video';
+        return (
+            <View style={[styles.media_slide, { width: mediaWidth, height: mediaWidth }]}>
+                {isVideo ? (
+                    <>
+                        <Video
+                            source={{ uri: item.localUri || item.uri }}
+                            style={styles.media_image}
+                            resizeMode="cover"
+                            repeat
+                            muted
+                            paused
+                        />
+                        <View style={styles.media_video_overlay}>
+                            <Feather name="play" size={scaleSize(32)} color="#fff" />
+                        </View>
+                    </>
+                ) : (
+                    <Image
+                        source={{ uri: displayUri }}
+                        style={styles.media_image}
+                        resizeMode="cover"
+                    />
+                )}
+            </View>
+        );
+    }, [mediaWidth]);
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -462,19 +610,40 @@ export default function PostOptionsScreen({ navigation, route }) {
 
         const runShare = async () => {
             try {
-                const processedMedia = await Promise.all(currentImages.map(async (image, index) => {
-                    const uri = typeof image === 'string' ? image : image?.uri;
+                const processedMedia = await Promise.all(currentImages.map(async (item, index) => {
+                    if (!item) return null;
+                    const uri = item.uri;
                     if (!uri) return null;
+                    const type = item.type === 'video' ? 'video' : 'image';
+                    const duration = type === 'video' ? Number(item.duration) || 0 : 0;
 
-                    if (/^https?:\/\//i.test(uri)) {
-                        const type = mediaTypeByUri.get(uri) || 'image';
-                        return { index, uri, type };
+                    if (isRemoteUri(uri)) {
+                        return { index, uri, type, duration };
+                    }
+
+                    if (type === 'video') {
+                        try {
+                            const preparedVideo = await ensureVideoAsset(item);
+                            if (!preparedVideo?.fileUri) throw new Error('Unable to resolve video for upload');
+                            const id = makeID();
+                            const path = `posts/${pid}-${id}.${preparedVideo.ext || 'mp4'}`;
+                            const { url } = await uploadResumableNative({
+                                fileUri: preparedVideo.fileUri,
+                                path,
+                                mime: preparedVideo.mime || 'video/mp4',
+                                size: preparedVideo.size,
+                            });
+                            return { index, uri: url, type: 'video', duration };
+                        } catch (error) {
+                            console.error(`Error uploading video ${index + 1}:`, error);
+                            return null;
+                        }
                     }
 
                     try {
-                        const prepared = await ensurePreparedAsset(uri);
-                        if (!prepared?.fileUri) throw new Error('Unable to prepare image for upload');
-                        const { fileUri: localUri, ext, mime, size } = prepared;
+                        const preparedImage = await ensurePreparedAsset(item);
+                        if (!preparedImage?.fileUri) throw new Error('Unable to prepare image for upload');
+                        const { fileUri: localUri, ext, mime, size } = preparedImage;
                         const safeExt = ext || 'jpg';
                         const mimeType = mime || (safeExt === 'png' ? 'image/png' : (safeExt === 'webp' ? 'image/webp' : 'image/jpeg'));
                         const id = makeID();
@@ -490,7 +659,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                 const mediaPayload = processedMedia
                     .filter(Boolean)
                     .sort((a, b) => a.index - b.index)
-                    .map(({ uri, type }) => ({ uri, type: type || 'image' }));
+                    .map(({ uri, type, duration }) => ({ uri, type: type || 'image', duration }));
 
                 const imagesPayload = mediaPayload
                     .filter((entry) => entry.type !== 'video')
@@ -711,7 +880,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                             onPress={withStrongPress(handleOpenSelectPhotos)}
                         >
                             <Feather name="image" size={scaleSize(18)} color={theme.primary} />
-                            <Text style={styles.media_manage_text}>Edit photos</Text>
+                            <Text style={styles.media_manage_text}>Edit media</Text>
                         </TouchableOpacity>
                     </View>
                 ) : (
@@ -720,8 +889,8 @@ export default function PostOptionsScreen({ navigation, route }) {
                         onPress={withStrongPress(handleOpenSelectPhotos)}
                     >
                         <Feather name="image" size={scaleSize(22)} color={theme.primary} />
-                        <Text style={styles.add_media_title}>Add photos (optional)</Text>
-                        <Text style={styles.add_media_subtitle}>Share your progress with an image</Text>
+                        <Text style={styles.add_media_title}>Add media (optional)</Text>
+                        <Text style={styles.add_media_subtitle}>Share your progress with photos or videos</Text>
                     </TouchableOpacity>
                 )}
 
@@ -870,6 +1039,16 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         borderRadius: 0
+    },
+    media_video_overlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'rgba(0,0,0,0.25)'
     },
     media_indicator_row: {
         flexDirection: 'row',

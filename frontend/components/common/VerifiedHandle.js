@@ -8,6 +8,15 @@ const DEFAULT_MARGIN_RATIO = 0.28;
 
 const isFiniteNumber = (value) => typeof value === "number" && Number.isFinite(value);
 
+const getPaddingEdgeValue = (style, edge) => {
+    if (!style) return 0;
+    const specificKey = `padding${edge}`;
+    if (isFiniteNumber(style[specificKey])) return style[specificKey];
+    if (isFiniteNumber(style.paddingVertical)) return style.paddingVertical;
+    if (isFiniteNumber(style.padding)) return style.padding;
+    return 0;
+};
+
 /**
  * Render a user's handle with a leading verified badge when applicable.
  * Icon size automatically follows the detected font size from the supplied text style.
@@ -20,19 +29,27 @@ export default function VerifiedHandle({
     iconColor = theme.primary,
     iconSize,
     iconStyle,
-    iconTranslateY,
     numberOfLines = 1,
     ellipsizeMode = "tail",
     textProps = {},
     preserveTextAlignment = false,
 }) {
-    const { resolvedFontSize, resolvedMargin } = useMemo(() => {
+    const {
+        resolvedFontSize,
+        resolvedMargin,
+        resolvedPaddingTop,
+        resolvedPaddingBottom,
+    } = useMemo(() => {
         const flattened = StyleSheet.flatten(textStyle) || {};
         const fontSize = isFiniteNumber(flattened.fontSize) ? flattened.fontSize : DEFAULT_FONT_SIZE;
         const margin = Math.max(fontSize * DEFAULT_MARGIN_RATIO * 0.65, 3);
+        const paddingTop = getPaddingEdgeValue(flattened, "Top");
+        const paddingBottom = getPaddingEdgeValue(flattened, "Bottom");
         return {
             resolvedFontSize: fontSize,
             resolvedMargin: margin,
+            resolvedPaddingTop: paddingTop,
+            resolvedPaddingBottom: paddingBottom,
         };
     }, [textStyle]);
 
@@ -42,24 +59,32 @@ export default function VerifiedHandle({
         return Math.max(10, resolvedFontSize * 1.02);
     }, [iconSize, resolvedFontSize]);
 
-    const iconVerticalOffset = useMemo(() => {
-        if (isFiniteNumber(iconTranslateY)) return iconTranslateY;
-        const lift = resolvedFontSize * 0.15;
-        return -Math.min(Math.max(lift, 2), 3);
-    }, [iconTranslateY, resolvedFontSize]);
+    const shouldRenderIconSlot = isVerified || preserveTextAlignment;
 
-    const iconMergedStyle = useMemo(() => {
-        const flattened = StyleSheet.flatten(iconStyle) || {};
-        const propTransforms = Array.isArray(flattened.transform) ? flattened.transform : [];
+    const iconSlotStyle = useMemo(() => {
+        if (!shouldRenderIconSlot) return null;
         return [
-            styles.icon,
-            iconStyle,
+            styles.iconSlot,
             {
                 marginRight: resolvedMargin,
-                transform: [...propTransforms, { translateY: iconVerticalOffset }],
+                width: iconFinalSize,
+                minHeight: Math.max(resolvedFontSize, iconFinalSize),
+                paddingTop: resolvedPaddingTop,
+                paddingBottom: resolvedPaddingBottom,
             },
         ];
-    }, [iconStyle, resolvedMargin, iconVerticalOffset]);
+    }, [
+        shouldRenderIconSlot,
+        resolvedMargin,
+        iconFinalSize,
+        resolvedFontSize,
+        resolvedPaddingTop,
+        resolvedPaddingBottom,
+    ]);
+
+    const iconMergedStyle = useMemo(() => {
+        return [styles.icon, iconStyle];
+    }, [iconStyle]);
 
     if (!handle?.length) {
         return (
@@ -76,15 +101,17 @@ export default function VerifiedHandle({
 
     return (
         <View style={[styles.container, containerStyle]}>
-            {isVerified ? (
-                <Verify
-                    size={iconFinalSize}
-                    color={iconColor}
-                    variant="Bold"
-                    style={iconMergedStyle}
-                    />
-            ) : preserveTextAlignment ? (
-                <></>
+            {shouldRenderIconSlot ? (
+                <View style={iconSlotStyle}>
+                    {isVerified ? (
+                        <Verify
+                            size={iconFinalSize}
+                            color={iconColor}
+                            variant="Bold"
+                            style={iconMergedStyle}
+                        />
+                    ) : null}
+                </View>
             ) : null}
             <Text
                 style={[styles.text, textStyle]}
@@ -103,12 +130,14 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
-    icon: {
-        // alignSelf: "flex-start",
-        alignSelf: 'flex-end',
+    iconSlot: {
+        justifyContent: "flex-end",
+        alignItems: "center",
+        alignSelf: "stretch",
+        flexShrink: 0,
     },
-    iconPlaceholder: {
-        height: 1,
+    icon: {
+        alignSelf: "center",
     },
     text: {
         includeFontPadding: false,

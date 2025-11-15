@@ -14,8 +14,9 @@ import {
 import FastImage from "react-native-fast-image";
 import { Heart, Messages1 } from "iconsax-react-native";
 import Svg, { Path } from "react-native-svg";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
 import Video from "react-native-video";
+import Slider from "@react-native-community/slider";
 
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
@@ -109,6 +110,13 @@ const formatNumber = (value) => {
     } catch {
         return String(num);
     }
+};
+
+const formatClockTime = (seconds) => {
+    const total = Math.max(0, Math.floor(Number(seconds) || 0));
+    const mins = Math.floor(total / 60);
+    const secs = total % 60;
+    return `${mins}:${String(secs).padStart(2, '0')}`;
 };
 
 const resolveWorkoutTitle = (workout, caption) => (
@@ -393,6 +401,14 @@ const SimpleFeedPost = ({
     const [isReportOptionsVisible, setReportOptionsVisible] = useState(false);
     const reportOptionsAnim = useRef(new Animated.Value(0)).current;
     const [pendingDeletePid, setPendingDeletePid] = useState(null);
+    const [videoPauseState, setVideoPauseState] = useState({});
+    const [areVideosMuted, setVideosMuted] = useState(true);
+    const [videoDurations, setVideoDurations] = useState({});
+    const [videoProgress, setVideoProgress] = useState({});
+    const [videoControlsVisible, setVideoControlsVisible] = useState({});
+    const videoRefs = useRef({});
+    const scrubbingStateRef = useRef(null);
+    const videoControlsHideTimeoutsRef = useRef({});
     const { openReportSheet, reportSheetNode } = useReportContentSheet();
 
     const mediaFingerprint = useMemo(() => {
@@ -420,6 +436,11 @@ const SimpleFeedPost = ({
         }
         setContentReady(false);
         setMediaLoadedCount(0);
+        setVideoPauseState({});
+        setVideosMuted(true);
+        setVideoDurations({});
+        setVideoProgress({});
+        setVideoControlsVisible({});
     }, [mediaFingerprint, mediaList.length]);
 
     useEffect(() => {
@@ -438,6 +459,26 @@ const SimpleFeedPost = ({
         const timeout = setTimeout(() => setContentReady(true), 3000);
         return () => clearTimeout(timeout);
     }, [contentReady, mediaList.length]);
+
+    useEffect(() => () => {
+        Object.values(videoControlsHideTimeoutsRef.current).forEach((id) => {
+            if (id) clearTimeout(id);
+        });
+        videoControlsHideTimeoutsRef.current = {};
+    }, []);
+
+    useEffect(() => {
+        const current = mediaList?.[mediaIndex];
+        if (!current || current.type !== 'video') return;
+        if (videoPauseState[mediaIndex]) {
+            setControlsVisibility(mediaIndex, true, false);
+        } else {
+            setControlsVisibility(mediaIndex, true, true);
+        }
+        return () => {
+            setControlsVisibility(mediaIndex, false);
+        };
+    }, [mediaIndex, mediaList, setControlsVisibility, videoPauseState]);
 
     const handleMediaLoad = useCallback(() => {
         setMediaLoadedCount((count) => count + 1);
@@ -462,6 +503,121 @@ const SimpleFeedPost = ({
         const nextIndex = Math.round(offsetX / mediaSize);
         if (Number.isFinite(nextIndex)) setMediaIndex(nextIndex);
     }, [mediaSize]);
+
+    const clearControlsHideTimeout = useCallback((idx) => {
+        const existing = videoControlsHideTimeoutsRef.current[idx];
+        if (existing) {
+            clearTimeout(existing);
+            delete videoControlsHideTimeoutsRef.current[idx];
+        }
+    }, []);
+
+    const setControlsVisibility = useCallback((idx, visible, autoHide = false) => {
+        setVideoControlsVisible((prev) => {
+            const alreadyVisible = Boolean(prev[idx]);
+            if (visible) {
+                if (alreadyVisible) return prev;
+                return { ...prev, [idx]: true };
+            }
+            if (!alreadyVisible) return prev;
+            const next = { ...prev };
+            delete next[idx];
+            return next;
+        });
+        clearControlsHideTimeout(idx);
+        if (visible && autoHide) {
+            videoControlsHideTimeoutsRef.current[idx] = setTimeout(() => {
+                setVideoControlsVisible((prev) => {
+                    if (!prev[idx]) return prev;
+                    const next = { ...prev };
+                    delete next[idx];
+                    return next;
+                });
+                delete videoControlsHideTimeoutsRef.current[idx];
+            }, 2000);
+        }
+    }, [clearControlsHideTimeout]);
+
+    const toggleVideoPlayback = useCallback((idx) => {
+        setVideoPauseState((prev) => {
+            const wasPaused = Boolean(prev[idx]);
+            const next = { ...prev };
+            if (wasPaused) {
+                delete next[idx];
+                setControlsVisibility(idx, true, true);
+            } else {
+                next[idx] = true;
+                setControlsVisibility(idx, true, false);
+            }
+            return next;
+        });
+    }, [setControlsVisibility]);
+
+    const toggleVideoMute = useCallback(() => {
+        setVideosMuted((prev) => !prev);
+    }, []);
+
+    const assignVideoRef = useCallback((idx, ref) => {
+        if (ref) {
+            videoRefs.current[idx] = ref;
+        } else {
+            delete videoRefs.current[idx];
+        }
+    }, []);
+
+    const handleVideoLoad = useCallback((idx, meta) => {
+        handleMediaLoad();
+        const duration = Number(meta?.duration) || 0;
+        if (duration > 0) {
+            setVideoDurations((prev) => (
+                prev[idx] === duration ? prev : { ...prev, [idx]: duration }
+            ));
+        }
+    }, [handleMediaLoad]);
+
+    const handleVideoProgress = useCallback((idx, progressEvent) => {
+        if (scrubbingStateRef.current?.index === idx) return;
+        const currentTime = Number(progressEvent?.currentTime) || 0;
+        setVideoProgress((prev) => {
+            const previousValue = prev[idx] ?? 0;
+            if (Math.abs(previousValue - currentTime) < 0.05) return prev;
+            return { ...prev, [idx]: currentTime };
+        });
+    }, []);
+
+    const beginScrub = useCallback((idx) => {
+        const wasPlaying = !videoPauseState[idx] && mediaIndex === idx;
+        scrubbingStateRef.current = { index: idx, resumePlayback: wasPlaying };
+        if (mediaIndex === idx) {
+            setVideoPauseState((prev) => ({ ...prev, [idx]: true }));
+        }
+        setControlsVisibility(idx, true, false);
+    }, [mediaIndex, setControlsVisibility, videoPauseState]);
+
+    const handleScrubChange = useCallback((idx, value) => {
+        setVideoProgress((prev) => ({ ...prev, [idx]: value }));
+    }, []);
+
+    const finishScrub = useCallback((idx, value) => {
+        const shouldResume = scrubbingStateRef.current?.index === idx
+            ? scrubbingStateRef.current?.resumePlayback
+            : false;
+        scrubbingStateRef.current = null;
+        if (Number.isFinite(value)) {
+            videoRefs.current[idx]?.seek?.(value);
+            setVideoProgress((prev) => ({ ...prev, [idx]: value }));
+        }
+        if (shouldResume) {
+            setVideoPauseState((prev) => {
+                const next = { ...prev };
+                delete next[idx];
+                return next;
+            });
+            setControlsVisibility(idx, true, true);
+        } else {
+            setControlsVisibility(idx, true, false);
+        }
+    }, [setControlsVisibility]);
 
     const handleCheer = useCallback(() => {
         try { hapticStrong(); } catch { }
@@ -516,7 +672,7 @@ const SimpleFeedPost = ({
         });
     }, [closeReportOptions, handleReportPost]);
 
-    const renderMediaItem = useCallback(({ item }) => {
+    const renderMediaItem = useCallback(({ item, index: slideIndex }) => {
         const containerStyle = [
             styles.mediaSlide,
             { width: mediaSize || SCREEN_WIDTH, height: mediaSize || SCREEN_WIDTH },
@@ -526,18 +682,77 @@ const SimpleFeedPost = ({
         }
         if (item.type === "video") {
             const source = typeof item.uri === "string" ? { uri: item.uri } : item.uri;
+            const isActiveSlide = mediaIndex === slideIndex;
+            const isManuallyPaused = Boolean(videoPauseState[slideIndex]);
+            const paused = !isActiveSlide || isManuallyPaused;
+            const videoDuration = videoDurations[slideIndex] || 0;
+            const sliderValue = Math.min(
+                videoDuration || Number.MAX_SAFE_INTEGER,
+                videoProgress[slideIndex] ?? 0
+            );
+            const shouldShowVideoControls = paused || videoControlsVisible[slideIndex];
             return (
-                <View style={containerStyle}>
+                <Pressable
+                    style={containerStyle}
+                    onPress={() => toggleVideoPlayback(slideIndex)}
+                >
                     <Video
+                        ref={(ref) => assignVideoRef(slideIndex, ref)}
                         source={source}
                         style={styles.mediaContent}
                         resizeMode="cover"
-                        paused
+                        paused={paused}
                         repeat
-                        muted
-                        onLoad={handleMediaLoad}
+                        muted={areVideosMuted}
+                        onLoad={(meta) => handleVideoLoad(slideIndex, meta)}
+                        onProgress={(event) => handleVideoProgress(slideIndex, event)}
                     />
-                </View>
+                    {paused && (
+                        <View style={styles.videoPlayIconWrap} pointerEvents="none">
+                            <FontAwesome6
+                                name="circle-play"
+                                size={scaleSize(50)}
+                                color="#fff"
+                            />
+                        </View>
+                    )}
+                    {videoDuration > 0 && shouldShowVideoControls && (
+                        <View style={styles.videoSliderOverlay} pointerEvents="box-none">
+                            <View style={styles.videoTimeRow} pointerEvents="none">
+                                <Text style={styles.videoTimeText}>{formatClockTime(sliderValue)}</Text>
+                                <Text style={styles.videoTimeText}>{formatClockTime(videoDuration)}</Text>
+                            </View>
+                            <Slider
+                                style={styles.videoSlider}
+                                minimumValue={0}
+                                maximumValue={videoDuration}
+                                value={sliderValue}
+                                minimumTrackTintColor={theme.primary}
+                                maximumTrackTintColor="rgba(255,255,255,0.25)"
+                                thumbTintColor="#fff"
+                                onSlidingStart={() => beginScrub(slideIndex)}
+                                onValueChange={(value) => handleScrubChange(slideIndex, value)}
+                                onSlidingComplete={(value) => finishScrub(slideIndex, value)}
+                            />
+                        </View>
+                    )}
+                    <View style={styles.videoControlsOverlay} pointerEvents="box-none">
+                        <Pressable
+                            style={styles.videoMuteButton}
+                            hitSlop={8}
+                            onPress={(event) => {
+                                event?.stopPropagation?.();
+                                toggleVideoMute();
+                            }}
+                        >
+                            <MaterialCommunityIcons
+                                name={areVideosMuted ? "volume-off" : "volume-high"}
+                                size={scaleSize(18)}
+                                color="#fff"
+                            />
+                        </Pressable>
+                    </View>
+                </Pressable>
             );
         }
         return (
@@ -554,7 +769,7 @@ const SimpleFeedPost = ({
                 />
             </View>
         );
-    }, [handleMediaLoad, mediaSize]);
+    }, [areVideosMuted, assignVideoRef, beginScrub, finishScrub, handleScrubChange, handleVideoLoad, handleVideoProgress, mediaIndex, mediaSize, toggleVideoMute, toggleVideoPlayback, videoControlsVisible, videoDurations, videoPauseState, videoProgress]);
 
     const pfpUri = usePfp(
         data?.uid ? String(data.uid) : "",
@@ -1099,7 +1314,6 @@ const SimpleFeedPost = ({
                                         isVerified={isPostVerified}
                                         textStyle={styles.nameText}
                                         iconSize={scaleSize(15)}
-                                        iconTranslateY={-0.5}
                                         numberOfLines={1}
                                         ellipsizeMode="tail"
                                         containerStyle={styles.nameHandle}
@@ -1828,6 +2042,63 @@ const styles = StyleSheet.create({
         borderRadius: 100,
         backgroundColor: 'rgba(255,255,255,0.6)',
         marginHorizontal: scaleSize(3),
+    },
+    videoControlsOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-end',
+        padding: scaleSize(12),
+    },
+    videoMuteButton: {
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        borderRadius: scaleSize(20),
+        padding: scaleSize(8),
+    },
+    videoPlayIconWrap: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    videoSliderOverlay: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingHorizontal: scaleSize(12),
+        paddingBottom: scaleSize(10),
+        paddingTop: scaleSize(6),
+        backgroundColor: 'rgba(0,0,0,0.35)',
+    },
+    videoSlider: {
+        height: scaleSize(30),
+    },
+    videoTimeRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: scaleSize(6),
+    },
+    videoTimeText: {
+        fontSize: scaleSize(11),
+        color: '#fff',
+        fontFamily: 'Outfit_600SemiBold',
+    },
+    videoPlayIconCircle: {
+        width: scaleSize(70),
+        height: scaleSize(70),
+        borderRadius: scaleSize(35),
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(255,255,255,0.45)',
     },
     actionsRow: {
         flexDirection: "row",

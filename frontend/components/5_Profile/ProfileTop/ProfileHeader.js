@@ -39,7 +39,6 @@ export default function ProfileHeader({ userData, onPressCreateBtn, onPressSetti
                         isVerified={isVerified}
                         textStyle={styles.handle_text}
                         numberOfLines={1}
-                        iconTranslateY={-1}
                         containerStyle={styles.handleRow}
                     />
                     {/* <View style={styles.down_arrow_ctnr}>
