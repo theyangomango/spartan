@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 
-const EPSILON = 1e-6;
 const HEX_RANK_KEYS = ["overall", "chest", "shoulders", "abs", "back", "legs", "arms"];
 const BATCH_WRITE_LIMIT = 400;
 
@@ -36,17 +35,8 @@ function computeGlobalRanks(valueMap) {
   entries.sort((a, b) => b.value - a.value);
 
   const ranks = new Map();
-  let lastRank = 0;
-  let lastValue = null;
   entries.forEach((entry, index) => {
-    if (index === 0) {
-      lastRank = 1;
-      lastValue = entry.value;
-    } else if (Math.abs(entry.value - lastValue) > EPSILON) {
-      lastRank = index + 1;
-      lastValue = entry.value;
-    }
-    ranks.set(entry.uid, lastRank);
+    ranks.set(entry.uid, index + 1);
   });
   return ranks;
 }
@@ -62,26 +52,7 @@ function buildEntriesForMembers(valueMap, memberIds) {
   const sorted = memberIds
     .slice()
     .sort((a, b) => safeNumber(valueMap.get(b)) - safeNumber(valueMap.get(a)));
-  const entries = [];
-  let lastValue = null;
-  let lastRank = 0;
-  sorted.forEach((uid, index) => {
-    const value = safeNumber(valueMap.get(uid));
-    let rank;
-    if (index === 0) {
-      rank = 1;
-      lastValue = value;
-      lastRank = rank;
-    } else if (Math.abs(value - lastValue) > EPSILON) {
-      rank = index + 1;
-      lastValue = value;
-      lastRank = rank;
-    } else {
-      rank = lastRank;
-    }
-    entries.push({ uid, rank });
-  });
-  return entries;
+  return sorted.map((uid, index) => ({ uid, rank: index + 1 }));
 }
 
 async function simulateRefresh() {
