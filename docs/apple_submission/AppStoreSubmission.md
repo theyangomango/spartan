@@ -36,7 +36,7 @@ Spartan keeps the reps honest, the stats transparent, and the team energy highâ€
 
 ### Version Details
 
-- Version number to ship: 1.0
+- Version number to ship: 1.0.1
 - Copyright notice: 2025 Yiming Bai
 
 ## Assets Directory Map
