@@ -7,18 +7,16 @@ import KeyboardDismissAccessory, { useKeyboardAccessoryId } from "../../../commo
 import workoutTypography from "../../shared/workoutTypography";
 import { useStatKeyboard } from "./StatKeyboardContext";
 
+const MAX_DIGITS = 3;
+const MAX_DECIMAL_PLACES = 1;
+const MAX_WHOLE_VALUE = (10 ** MAX_DIGITS) - 1;
+
 const sanitizeValue = (raw) => {
     if (raw === null || typeof raw === "undefined") return "";
     let text = typeof raw === "number" ? raw.toString() : String(raw);
     if (!text) return "";
     let cleaned = text.replace(/[^0-9.]/g, "");
     if (!cleaned) return "";
-
-    const numericCandidate = parseFloat(cleaned);
-    if (Number.isFinite(numericCandidate) && numericCandidate > 999) {
-        return "999";
-    }
-
     const hadTrailingDot = cleaned.endsWith(".");
     const parts = cleaned.split(".");
     let whole = parts[0] || "";
@@ -27,12 +25,12 @@ const sanitizeValue = (raw) => {
     whole = whole.replace(/^0+(?=\d)/, "");
     if (!whole.length) whole = cleaned.startsWith(".") || decimal.length ? "0" : "";
 
-    if (whole.length > 3) {
-        whole = whole.slice(0, 3);
+    if (whole.length > MAX_DIGITS) {
+        whole = whole.slice(0, MAX_DIGITS);
     }
-    if (decimal.length > 1) {
-        decimal = decimal.slice(0, 1);
-    }
+    const digitsRemaining = Math.max(0, MAX_DIGITS - whole.length);
+    const decimalLimit = Math.min(MAX_DECIMAL_PLACES, digitsRemaining);
+    decimal = decimal.slice(0, decimalLimit);
 
     let result = whole;
     if (decimal.length > 0) {
@@ -42,8 +40,6 @@ const sanitizeValue = (raw) => {
     }
 
     if (result === "") return "";
-    const numeric = parseFloat(result);
-    if (Number.isFinite(numeric) && numeric > 999) return "999";
     return result;
 };
 
@@ -57,22 +53,24 @@ const getDecimalPlaces = (value) => {
 };
 
 const computeStepMeta = (rawStep) => {
+    const fallbackStep = 1;
+    const fallbackFactor = 10 ** MAX_DECIMAL_PLACES;
     const fallback = {
-        step: 1,
-        factor: 10,
-        stepInt: 10,
+        step: fallbackStep,
+        factor: fallbackFactor,
+        stepInt: Math.max(1, Math.round(fallbackStep * fallbackFactor)),
         displayDecimals: 0,
-        maxInt: 9990,
+        maxInt: Math.round(MAX_WHOLE_VALUE * fallbackFactor),
     };
     const numeric = Number(rawStep);
     if (!Number.isFinite(numeric) || numeric <= 0) return fallback;
 
-    const sanitizedPrecision = 1; // inputs only allow a single decimal place
+    const sanitizedPrecision = MAX_DECIMAL_PLACES; // inputs only allow a single decimal place
     const stepDecimals = getDecimalPlaces(numeric);
     const factorDecimals = Math.max(stepDecimals, sanitizedPrecision);
     const factor = 10 ** factorDecimals;
     const stepInt = Math.max(1, Math.round(numeric * factor));
-    const maxInt = Math.round(999 * factor);
+    const maxInt = Math.round(MAX_WHOLE_VALUE * factor);
     const displayDecimals = Math.min(stepDecimals, sanitizedPrecision);
 
     return {
