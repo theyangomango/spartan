@@ -20,7 +20,7 @@ import { Entypo, FontAwesome, Ionicons, MaterialCommunityIcons } from '@expo/vec
 import * as Haptics from 'expo-haptics';
 import * as Network from 'expo-network';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
+import { initialWindowMetrics } from 'react-native-safe-area-context';
 import { enableScreens, enableFreeze } from 'react-native-screens';
 import { useFonts } from 'expo-font';
 import { customFonts } from './fonts';
@@ -79,6 +79,7 @@ import { preloadMessagesForUid, resetMessagesState } from './frontend/logic/mess
 import { ensureNotificationsListener, stopNotificationsListener } from './frontend/state/notificationsStore';
 import WorkoutInviteOverlay from './frontend/components/WorkoutInviteOverlay';
 import { openActiveWorkout } from './frontend/workout/workoutActions';
+import SafeAreaProviderWithStableInsets from './frontend/providers/SafeAreaProviderWithStableInsets';
 
 const PRELOADED_FONTS = {
     ...customFonts,
@@ -1396,9 +1397,9 @@ export default function App() {
     // While loading, keep a minimal root mounted for onLayout, but don't render UI
     if (!appReady) {
         return (
-            <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+            <SafeAreaProviderWithStableInsets initialMetrics={initialWindowMetrics}>
                 <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.bg }} onLayout={onLayoutRootView} />
-            </SafeAreaProvider>
+            </SafeAreaProviderWithStableInsets>
         );
     }
 
@@ -1417,7 +1418,7 @@ export default function App() {
 
 
 return (
-    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+    <SafeAreaProviderWithStableInsets initialMetrics={initialWindowMetrics}>
         <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.bg }} onLayout={onLayoutRootView}>
             {authChecked && (
                 <NavigationContainer
@@ -1754,7 +1755,7 @@ return (
                 </Pressable>
             </Modal>
         </GestureHandlerRootView>
-    </SafeAreaProvider>
+    </SafeAreaProviderWithStableInsets>
 );
 }
 

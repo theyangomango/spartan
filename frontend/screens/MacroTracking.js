@@ -2,7 +2,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { View, UIManager, Platform, LayoutAnimation, StatusBar, useWindowDimensions, VirtualizedList, TouchableOpacity, StyleSheet } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaView as SafeAreaInsetsView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import Footer from '../components/Footer';
@@ -21,6 +20,7 @@ import PersonalInfoSheet from '../components/2_MacroTracking/PersonalInfoSheet';
 import FoodSearchOverlay from '../components/2_MacroTracking/FoodSearchOverlay';
 
 import scaleSize from '../helper/scaleSize';
+import useStableSafeAreaInsets from '../hooks/useStableSafeAreaInsets';
 
 // 🔥 Firestore (load + save macro goals)
 import { db } from '../../firebase.config';
@@ -97,7 +97,7 @@ const clampForwardDelta = (delta, baseDate) => {
 };
 
 export default function MacroTracking({ navigation, route }) {
-    const insets = useSafeAreaInsets();
+    const insets = useStableSafeAreaInsets();
     const { width: screenWidth } = useWindowDimensions();
     // Fast caches for global.loggedFoods → day-index and built meals
     const lastCountRef = useRef(0);
@@ -626,7 +626,7 @@ export default function MacroTracking({ navigation, route }) {
             <View style={{ flex: 1 }}>
                 <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
                 {/* Header */}
-                <SafeAreaInsetsView edges={['top']} style={{ backgroundColor: COLORS.bg }}>
+                <View style={{ paddingTop: Math.max(0, insets.top), backgroundColor: COLORS.bg }}>
                     <DateHeader
                         title={formatDate(headerDate)}
                         onPrev={() => slideBy(-1)}
@@ -637,7 +637,7 @@ export default function MacroTracking({ navigation, route }) {
                         isToday={isHeaderDateToday}
                         streakCount={loggedStreak}
                     />
-                </SafeAreaInsetsView>
+                </View>
 
                 {/* Body: horizontally swipeable pages */}
                 <VirtualizedList
