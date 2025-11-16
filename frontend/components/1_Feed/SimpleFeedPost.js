@@ -15,7 +15,7 @@ import FastImage from "react-native-fast-image";
 import { Heart, Messages1 } from "iconsax-react-native";
 import Svg, { Path } from "react-native-svg";
 import { MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
-import Video from "react-native-video";
+import CroppedVideo from "../common/CroppedVideo";
 import Slider from "@react-native-community/slider";
 
 import theme from "../../theme/mfpDark";
@@ -142,14 +142,14 @@ const normalizeMediaEntry = (entry) => {
     if (!entry) return null;
     if (typeof entry === "string") {
         const uri = entry.trim();
-        return uri ? { uri, type: "image" } : null;
+        return uri ? { uri, type: "image", cropRect: null } : null;
     }
     if (typeof entry === "object") {
         const uri = entry.uri || entry.url || entry.image || entry.photoURL || null;
         if (!uri) return null;
         const rawType = (entry.type || entry.mediaType || entry.kind || "image").toLowerCase();
         const type = rawType.includes("video") ? "video" : "image";
-        return { ...entry, uri, type };
+        return { ...entry, uri, type, cropRect: entry.cropRect || null };
     }
     return null;
 };
@@ -168,7 +168,13 @@ const mediaSignatureFor = (entry) => {
         }
         return "";
     })();
-    return `${type}:${uri}`;
+    const crop = entry?.cropRect;
+    let cropKey = "";
+    if (crop && typeof crop === "object") {
+        const { x = 0, y = 0, width = 1, height = 1 } = crop;
+        cropKey = `:${Number(x).toFixed(4)}-${Number(y).toFixed(4)}-${Number(width).toFixed(4)}-${Number(height).toFixed(4)}`;
+    }
+    return `${type}:${uri}${cropKey}`;
 };
 
 const initialsFrom = (name = "") => {
@@ -729,10 +735,11 @@ const SimpleFeedPost = ({
                     style={containerStyle}
                     onPress={() => toggleVideoPlayback(slideIndex)}
                 >
-                    <Video
+                    <CroppedVideo
                         ref={(ref) => assignVideoRef(slideIndex, ref)}
                         source={source}
                         style={styles.mediaContent}
+                        cropRect={item.cropRect}
                         resizeMode="cover"
                         paused={paused}
                         repeat

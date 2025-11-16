@@ -8,7 +8,7 @@ import React, {
 } from 'react';
 import { FlatList, Pressable, View, Dimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import Video from 'react-native-video';
+import CroppedVideo from '../../common/CroppedVideo';
 
 const { width: W } = Dimensions.get('window');
 
@@ -22,11 +22,12 @@ const ImageSlide = React.memo(({ uri, style }) => (
     </View>
 ));
 
-const VideoSlide = React.memo(({ uri, style, paused, isActive }) => (
+const VideoSlide = React.memo(({ uri, style, paused, isActive, cropRect }) => (
     <View style={{ width: W, height: style?.height || 0, overflow: 'hidden' }}>
-        <Video
+        <CroppedVideo
             source={typeof uri === 'string' && uri.startsWith('http') ? { uri } : uri}
             style={style}
+            cropRect={cropRect}
             resizeMode="cover"
             paused={!isActive || paused}
             repeat
@@ -132,7 +133,13 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
         if (item.type === 'video') {
             return (
                 <Pressable onPress={handlePress}>
-                    <VideoSlide uri={item.uri} style={imageStyle} paused={actuallyPaused} isActive={!actuallyPaused} />
+                    <VideoSlide
+                        uri={item.uri}
+                        style={imageStyle}
+                        paused={actuallyPaused}
+                        isActive={!actuallyPaused}
+                        cropRect={item.cropRect}
+                    />
                 </Pressable>
             );
         }

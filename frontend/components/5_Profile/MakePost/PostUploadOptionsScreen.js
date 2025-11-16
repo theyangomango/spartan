@@ -3,7 +3,7 @@ import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Dimensions
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons, FontAwesome6 } from '@expo/vector-icons';
 import FastImage from 'react-native-fast-image';
-import Video from 'react-native-video';
+import CroppedVideo from '../../common/CroppedVideo';
 import * as MediaLibrary from 'expo-media-library';
 import Slider from '@react-native-community/slider';
 import makeID from "../../../../backend/helper/makeID";
@@ -48,7 +48,13 @@ const mediaSignatureFor = (entry) => {
     if (!entry) return 'null';
     const type = entry.type || 'image';
     const uri = typeof entry.uri === 'string' ? entry.uri : JSON.stringify(entry.uri || '');
-    return `${type}:${uri}`;
+    const crop = entry?.cropRect;
+    let cropKey = '';
+    if (crop && typeof crop === 'object') {
+        const { x = 0, y = 0, width = 1, height = 1 } = crop;
+        cropKey = `:${Number(x).toFixed(4)}-${Number(y).toFixed(4)}-${Number(width).toFixed(4)}-${Number(height).toFixed(4)}`;
+    }
+    return `${type}:${uri}${cropKey}`;
 };
 
 const normalizeMediaSelectionEntry = (entry, index = 0) => {
@@ -62,6 +68,7 @@ const normalizeMediaSelectionEntry = (entry, index = 0) => {
             type: 'image',
             duration: 0,
             assetId: null,
+            cropRect: null,
         };
     }
     if (typeof entry === 'object') {
@@ -88,6 +95,7 @@ const normalizeMediaSelectionEntry = (entry, index = 0) => {
             type: normalizedType,
             duration: Number(entry.duration) || 0,
             assetId,
+            cropRect: entry.cropRect || null,
         };
     }
     return null;
@@ -662,10 +670,11 @@ export default function PostOptionsScreen({ navigation, route }) {
             const shouldShowControls = paused || videoControlsVisible[slideIndex];
             return (
                 <Pressable style={containerStyle} onPress={() => toggleVideoPlayback(slideIndex)}>
-                    <Video
+                    <CroppedVideo
                         ref={(ref) => assignVideoRef(slideIndex, ref)}
                         source={source}
                         style={styles.media_image}
+                        cropRect={item.cropRect}
                         resizeMode="cover"
                         paused={paused}
                         repeat
@@ -882,9 +891,10 @@ export default function PostOptionsScreen({ navigation, route }) {
                     if (!uri) return null;
                     const type = item.type === 'video' ? 'video' : 'image';
                     const duration = type === 'video' ? Number(item.duration) || 0 : 0;
+                    const cropRect = item.cropRect || null;
 
                     if (isRemoteUri(uri)) {
-                        return { index, uri, type, duration };
+                        return { index, uri, type, duration, cropRect };
                     }
 
                     if (type === 'video') {
@@ -899,7 +909,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                                 mime: preparedVideo.mime || 'video/mp4',
                                 size: preparedVideo.size,
                             });
-                            return { index, uri: url, type: 'video', duration };
+                            return { index, uri: url, type: 'video', duration, cropRect };
                         } catch (error) {
                             console.error(`Error uploading video ${index + 1}:`, error);
                             return null;
@@ -915,7 +925,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                         const id = makeID();
                         const path = `posts/${pid}-${id}.${safeExt}`;
                         const { url } = await uploadResumableNative({ fileUri: localUri, path, mime: mimeType, size });
-                        return { index, uri: url, type: 'image' };
+                        return { index, uri: url, type: 'image', cropRect };
                     } catch (error) {
                         console.error(`Error processing image ${index + 1}:`, error);
                         return null;
@@ -925,7 +935,12 @@ export default function PostOptionsScreen({ navigation, route }) {
                 const mediaPayload = processedMedia
                     .filter(Boolean)
                     .sort((a, b) => a.index - b.index)
-                    .map(({ uri, type, duration }) => ({ uri, type: type || 'image', duration }));
+                    .map(({ uri, type, duration, cropRect }) => ({
+                        uri,
+                        type: type || 'image',
+                        duration,
+                        cropRect: cropRect || null,
+                    }));
 
                 const imagesPayload = mediaPayload
                     .filter((entry) => entry.type !== 'video')

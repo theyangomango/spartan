@@ -496,6 +496,7 @@ export default function Feed({ navigation, route }) {
                 if (!uri || seen.has(uri)) return;
                 seen.add(uri);
                 const type = typeof entry === "string" ? undefined : entry?.type;
+                const cropRect = typeof entry === "string" ? null : entry?.cropRect || null;
                 const duration =
                     typeof entry === "string"
                         ? 0
@@ -510,6 +511,7 @@ export default function Feed({ navigation, route }) {
                     uri,
                     type: type === "video" ? "video" : "image",
                     duration,
+                    cropRect,
                 });
             });
         }
@@ -518,7 +520,12 @@ export default function Feed({ navigation, route }) {
                 const uri = typeof entry === "string" ? entry : entry?.uri;
                 if (!uri || seen.has(uri)) return;
                 seen.add(uri);
-                mediaEntries.push({ uri, type: "image", duration: 0 });
+                mediaEntries.push({
+                    uri,
+                    type: "image",
+                    duration: 0,
+                    cropRect: typeof entry === "string" ? null : entry?.cropRect || null,
+                });
             });
         }
 

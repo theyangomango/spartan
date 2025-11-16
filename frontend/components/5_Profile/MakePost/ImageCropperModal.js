@@ -17,6 +17,7 @@ export default function ImageCropperModal({
   onDone,
   anchorTop,
   headerOffset,
+  mediaType = 'image',
 }) {
   const [imgSize, setImgSize] = useState(null); // { w, h }
   const [roiTop, setRoiTop] = useState(0); // visual offset to place frame lower on screen
@@ -90,15 +91,27 @@ export default function ImageCropperModal({
     width = Math.max(1, Math.round(width));
     height = Math.max(1, Math.round(height));
 
+    const normalizedRect = {
+      x: originX / imgSize.w,
+      y: originY / imgSize.h,
+      width: width / imgSize.w,
+      height: height / imgSize.h,
+    };
+
+    if (mediaType === 'video') {
+      onDone?.({ cropRect: normalizedRect, mode: 'video' });
+      return;
+    }
+
     try {
       const result = await ImageManipulator.manipulateAsync(
         uri,
         [{ crop: { originX, originY, width, height } }],
         { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
       );
-      onDone?.(result?.uri || uri);
+      onDone?.({ uri: result?.uri || uri, cropRect: normalizedRect, mode: 'image' });
     } catch (e) {
-      onDone?.(uri);
+      onDone?.({ uri, cropRect: normalizedRect, mode: 'image' });
     }
   };
 

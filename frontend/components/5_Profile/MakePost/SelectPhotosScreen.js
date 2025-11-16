@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, Image, SafeAreaView, useWindowDimensions, Platform } from 'react-native';
+import { Text, View, StyleSheet, TouchableOpacity, Image, SafeAreaView, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome6, Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
@@ -9,7 +9,8 @@ import ImageCropperModal from './ImageCropperModal';
 import theme from '../../../theme/mfpDark';
 import scaleSize from '../../../helper/scaleSize';
 import { withStrongPress } from "../../../utils/haptics";
-import Video from 'react-native-video';
+import * as VideoThumbnails from 'expo-video-thumbnails';
+import CroppedVideo from '../../common/CroppedVideo';
 
 const scaledSize = (size) => scaleSize(size);
 const FEED_ASPECT_RATIO = 1; // square crop across selection & preview
@@ -26,6 +27,7 @@ const normalizeSelectionEntry = (entry, index = 0) => {
             localUri: entry.startsWith('file://') ? entry : null,
             type: 'image',
             duration: 0,
+            cropRect: null,
         };
     }
     if (typeof entry === 'object') {
@@ -44,6 +46,7 @@ const normalizeSelectionEntry = (entry, index = 0) => {
             localUri,
             type,
             duration: Number(entry.duration) || 0,
+            cropRect: entry.cropRect || null,
         };
     }
     return null;
@@ -81,6 +84,8 @@ export default function SelectPhotosScreen({ navigation, route }) {
     const [cropVisible, setCropVisible] = useState(false);
     const [cropUri, setCropUri] = useState(null);
     const [cropIndex, setCropIndex] = useState(-1);
+    const [cropMode, setCropMode] = useState('image');
+    const [isGeneratingCrop, setIsGeneratingCrop] = useState(false);
     const selectedItemsRef = useRef(selectedItems);
     const [previewMetrics, setPreviewMetrics] = useState({ top: null, bottom: null });
 
@@ -189,6 +194,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
             localUri: effectiveUri && effectiveUri.startsWith('file://') ? effectiveUri : null,
             type,
             duration,
+            cropRect: asset.cropRect || null,
         };
     }, []);
 
@@ -207,6 +213,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
             localUri: entry.localUri,
             type: entry.type,
             duration: entry.duration,
+            cropRect: entry.cropRect || null,
         }));
         const params = { images: serializedSelection };
         if (route?.params && Object.prototype.hasOwnProperty.call(route.params, 'workout')) {
@@ -224,6 +231,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
         playbackUri: entry.localUri || entry.uri,
         type: entry.type,
         duration: entry.duration,
+        cropRect: entry.cropRect || null,
     }));
 
     const selectedOrderMap = useMemo(() => {
@@ -270,33 +278,74 @@ export default function SelectPhotosScreen({ navigation, route }) {
         setActiveIndex(0);
     }, []);
 
-    const openCropper = useCallback(() => {
-        if (!selectedItems.length) return;
+    const openCropper = useCallback(async () => {
+        if (!selectedItems.length || isGeneratingCrop) return;
         const idx = Math.max(0, Math.min(activeIndex, selectedItems.length - 1));
         const entry = selectedItems[idx];
-        if (!entry || entry.type !== 'image') return;
-        const targetUri = entry.uri || entry.previewUri;
-        if (!targetUri) return;
-        setCropIndex(idx);
-        setCropUri(targetUri);
-        setCropVisible(true);
-    }, [activeIndex, selectedItems]);
+        if (!entry) return;
 
-    const onCropDone = useCallback((newUri) => {
+        if (entry.type === 'image') {
+            const targetUri = entry.uri || entry.previewUri;
+            if (!targetUri) return;
+            setCropMode('image');
+            setCropIndex(idx);
+            setCropUri(targetUri);
+            setCropVisible(true);
+            return;
+        }
+
+        if (entry.type === 'video') {
+            const baseUri = entry.localUri || entry.uri;
+            if (!baseUri) return;
+            setIsGeneratingCrop(true);
+            try {
+                const { uri: thumbUri } = await VideoThumbnails.getThumbnailAsync(baseUri, { time: 0 });
+                if (!thumbUri) return;
+                setCropMode('video');
+                setCropIndex(idx);
+                setCropUri(thumbUri);
+                setCropVisible(true);
+            } catch (error) {
+                console.warn('[SelectPhotos] Failed to create video thumbnail for cropping', error);
+            } finally {
+                setIsGeneratingCrop(false);
+            }
+        }
+    }, [activeIndex, isGeneratingCrop, selectedItems]);
+
+    const onCropDone = useCallback((payload) => {
         setCropVisible(false);
         setCropUri(null);
-        if (!newUri) {
+        if (cropIndex < 0) {
             setCropIndex(-1);
             return;
         }
+
         setSelectedItems((prev) => prev.map((entry, idx) => {
             if (idx !== cropIndex) return entry;
-            return {
-                ...entry,
-                uri: newUri,
-                previewUri: newUri,
-                localUri: newUri,
-            };
+            if (!payload) return entry;
+
+            if (entry.type === 'image') {
+                const nextUri = typeof payload === 'string' ? payload : payload?.uri || entry.uri;
+                if (!nextUri) return entry;
+                const nextLocal = nextUri.startsWith('file://') ? nextUri : entry.localUri;
+                return {
+                    ...entry,
+                    uri: nextUri,
+                    previewUri: nextUri,
+                    localUri: nextLocal,
+                };
+            }
+
+            if (entry.type === 'video') {
+                const rect = typeof payload === 'object' ? payload?.cropRect || null : null;
+                return {
+                    ...entry,
+                    cropRect: rect || null,
+                };
+            }
+
+            return entry;
         }));
         setCropIndex(-1);
     }, [cropIndex]);
@@ -311,7 +360,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
     const activeSelection = selectedItems.length
         ? selectedItems[Math.min(activeIndex, selectedItems.length - 1)]
         : null;
-    const canCropActive = activeSelection?.type === 'image';
+    const canCropActive = Boolean(activeSelection);
 
     return (
         <SafeAreaView style={styles.container}>
@@ -345,9 +394,10 @@ export default function SelectPhotosScreen({ navigation, route }) {
                             item.type === 'video'
                                 ? (
                                     <View style={styles.preview_video_ctnr}>
-                                        <Video
+                                        <CroppedVideo
                                             source={{ uri: item.playbackUri || item.uri }}
                                             style={styles.preview_image}
+                                            cropRect={item.cropRect}
                                             resizeMode="cover"
                                             repeat
                                             muted
@@ -398,13 +448,19 @@ export default function SelectPhotosScreen({ navigation, route }) {
                                 <Text style={styles.clear_btn_text}>Clear</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.crop_btn, !canCropActive && styles.crop_btn_disabled]}
+                                style={[
+                                    styles.crop_btn,
+                                    (!canCropActive || isGeneratingCrop) && styles.crop_btn_disabled,
+                                ]}
                                 onPress={withStrongPress(openCropper)}
-                                disabled={!canCropActive}
+                                disabled={!canCropActive || isGeneratingCrop}
                             >
                                 <Ionicons name='crop' size={scaledSize(20)} color={'#fff'} />
                                 <Text style={styles.crop_btn_text}>Crop</Text>
                             </TouchableOpacity>
+                            {isGeneratingCrop && (
+                                <ActivityIndicator style={{ marginLeft: scaledSize(8) }} color="#fff" size="small" />
+                            )}
                         </View>
                         <View style={styles.preview_footer_info}>
                             <Text style={styles.preview_footer_text}>{`${Math.min(selectedItems.length, activeIndex + 1)} of ${selectedItems.length}`}</Text>
@@ -438,9 +494,10 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 visible={cropVisible}
                 uri={cropUri}
                 aspectRatio={FEED_ASPECT_RATIO}
+                mediaType={cropMode}
                 anchorTop={previewMetrics.top}
                 headerOffset={headerOffset}
-                onCancel={() => { setCropVisible(false); setCropUri(null); }}
+                onCancel={() => { setCropVisible(false); setCropUri(null); setCropIndex(-1); }}
                 onDone={onCropDone}
             />
         </SafeAreaView>
