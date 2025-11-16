@@ -498,6 +498,16 @@ const SimpleFeedPost = ({
         }
     }, [mediaList.length, mediaIndex]);
 
+    const baseMediaAspectRatio = useMemo(() => {
+        const first = mediaList?.[0];
+        const ratio = Number(first?.aspectRatio);
+        if (Number.isFinite(ratio) && ratio > 0) return ratio;
+        return 1;
+    }, [mediaList]);
+    const resolvedMediaHeight = useMemo(() => (
+        mediaSize > 0 ? mediaSize / baseMediaAspectRatio : 0
+    ), [baseMediaAspectRatio, mediaSize]);
+
     const handleMediaLayout = useCallback((event) => {
         const width = event?.nativeEvent?.layout?.width;
         if (!width) return;
@@ -710,10 +720,19 @@ const SimpleFeedPost = ({
         });
     }, [closeReportOptions, handleReportPost]);
 
+    const getAspectRatioForEntry = useCallback((entry) => {
+        const ratio = Number(entry?.aspectRatio);
+        if (Number.isFinite(ratio) && ratio > 0) return ratio;
+        return baseMediaAspectRatio || 1;
+    }, [baseMediaAspectRatio]);
+
     const renderMediaItem = useCallback(({ item, index: slideIndex }) => {
+        const mediaWidth = mediaSize || SCREEN_WIDTH;
+        const aspectRatio = getAspectRatioForEntry(item);
+        const slideHeight = mediaWidth > 0 ? mediaWidth / aspectRatio : mediaWidth;
         const containerStyle = [
             styles.mediaSlide,
-            { width: mediaSize || SCREEN_WIDTH, height: mediaSize || SCREEN_WIDTH },
+            { width: mediaWidth, height: slideHeight },
         ];
         if (!item?.uri) {
             return <View style={containerStyle} />;
@@ -812,7 +831,7 @@ const SimpleFeedPost = ({
                 />
             </View>
         );
-    }, [areVideosMuted, assignVideoRef, beginScrub, finishScrub, handleScrubChange, handleVideoLoad, handleVideoProgress, mediaIndex, mediaSize, toggleVideoMute, toggleVideoPlayback, videoControlsVisible, videoDurations, videoPauseState, videoProgress]);
+    }, [areVideosMuted, assignVideoRef, beginScrub, finishScrub, getAspectRatioForEntry, handleScrubChange, handleVideoLoad, handleVideoProgress, mediaIndex, mediaSize, toggleVideoMute, toggleVideoPlayback, videoControlsVisible, videoDurations, videoPauseState, videoProgress]);
 
     const pfpUri = usePfp(
         data?.uid ? String(data.uid) : "",
@@ -1490,7 +1509,7 @@ const SimpleFeedPost = ({
 
                 {mediaList.length > 0 ? (
                     <View
-                        style={[styles.mediaContainer, mediaSize ? { height: mediaSize } : null]}
+                        style={[styles.mediaContainer, mediaSize ? { height: resolvedMediaHeight } : null]}
                         onLayout={handleMediaLayout}
                     >
                         {mediaSize > 0 ? (

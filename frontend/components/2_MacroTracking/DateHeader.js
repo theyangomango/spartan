@@ -132,7 +132,7 @@ export default function DateHeader({
                         hitSlop={8}
                         style={[styles.streakPill, { opacity: pillOpacity }]}
                     >
-                        <Ionicons name="flame" size={scaledSize(17)} color={streakColor} />
+                        <Ionicons name="flame" size={scaledSize(16)} color={streakColor} />
                         <Text style={[styles.streakText, { color: streakColor }]}>
                             {streakLabel}
                         </Text>
@@ -269,7 +269,7 @@ const makeStyles = (COLORS, streakColor, streakBgColor, streakBorderColor) =>
         },
         streakText: {
             marginLeft: scaleSize(4),
-            fontFamily: 'Nunito_800ExtraBold',
+            fontFamily: 'Poppins_600SemiBold',
             fontSize: scaleSize(15),
             color: '#FFFFFF',
         },

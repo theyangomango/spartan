@@ -2,7 +2,7 @@ import createDoc from '../helper/firebase/createDoc'
 
 // images: legacy array of URLs
 // media: [{ uri, type: 'image' | 'video' }]
-export default async function createPost(uid, handle, pfp, caption, media, pid, workout) {
+export default async function createPost(uid, handle, pfp, caption, media, pid, workout, extras = {}) {
     const now = Date.now();
 
     // Backwards compatibility: if caller passed plain URL array, convert to media objects
@@ -50,6 +50,13 @@ export default async function createPost(uid, handle, pfp, caption, media, pid, 
         commentCount: comments.length,
         shareCount: 0,
     };
+
+    if (extras && typeof extras === 'object') {
+        Object.entries(extras).forEach(([key, value]) => {
+            if (value === undefined) return;
+            payload[key] = value;
+        });
+    }
 
     const workoutWid = workoutPayload?.wid ?? workoutPayload?.id;
     if (workoutWid !== undefined && workoutWid !== null) {

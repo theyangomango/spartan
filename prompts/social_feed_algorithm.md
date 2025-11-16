@@ -61,3 +61,30 @@ Codex, upgrade the Feed experience so it behaves like Instagram’s For You time
 - During the first screenful (~15–20 items) enforce a heavy “friends-first” ratio (e.g., 4 following posts for each suggested/trending post) so users see familiar content immediately.
 - After the initial block, flip the ratio so ~80–90% of remaining slots are filled with trending/suggested posts, still mixing in a following post every few items to keep things grounded.
 - Ensure no creator, topic, or manual trending post appears twice within a short window unless explicitly boosted.
+
+---
+
+## Clips Feature Prompt (Lightweight)
+
+Add support for short, portrait-only posts (“Clips”) without changing downstream surfaces beyond media sizing.
+
+### UX Flow
+- In the existing Make Post modal, add a third option under “Add media” labeled `Add Clip (vertical video)`.
+- Tapping it pushes a `New Clip` screen that mirrors the regular New Post UI but enforces:
+  - Single video selection.
+  - Video duration < 90 seconds.
+  - Aspect ratio ≥ 9:16 (portrait). Reject non-compliant videos with a toast.
+- Provide an `Edit Clip` screen (same layout as edit post) for updating the selected clip/caption. Clips reuse all existing caption/location/tag inputs.
+- Cancel/save/draft flows behave exactly like current posts; no extra tabs or profile sections.
+
+### Data & Upload
+- Store clips in `posts` with `type: 'clip'` and `media[0].isClip = true`.
+- Upload pipeline ensures portrait transcoding (max 1080x1920, H.264/AAC, <25 MB) and stores a cover frame.
+- Editing a clip reopens the clip editor with the original clip preloaded.
+
+### Consumption
+- Feed, comments, likes, etc. treat clips like normal posts; only difference is the client renders the media using portrait dimensions when `type === 'clip'`.
+
+### Testing
+- Add unit coverage for video validation (duration/aspect ratio) and metadata stamping.
+- Exercise navigation from Make Post → New Clip and Edit Clip flows to ensure parity with normal posts.

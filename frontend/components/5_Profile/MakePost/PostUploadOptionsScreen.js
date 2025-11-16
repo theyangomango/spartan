@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Dimensions, FlatList, Alert, Platform, Pressable, Animated } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather, MaterialCommunityIcons, FontAwesome6 } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons, FontAwesome6, Ionicons } from '@expo/vector-icons';
 import FastImage from 'react-native-fast-image';
 import CroppedVideo from '../../common/CroppedVideo';
 import * as MediaLibrary from 'expo-media-library';
@@ -87,6 +87,8 @@ const normalizeMediaSelectionEntry = (entry, index = 0) => {
         const originalUri = entry.originalUri || uri;
         const localUri = entry.localUri || (uri.startsWith('file://') ? uri : null);
         const assetId = entry.assetId || entry.id || null;
+        const width = typeof entry.width === 'number' ? entry.width : null;
+        const height = typeof entry.height === 'number' ? entry.height : null;
         return {
             uri,
             previewUri,
@@ -96,6 +98,12 @@ const normalizeMediaSelectionEntry = (entry, index = 0) => {
             duration: Number(entry.duration) || 0,
             assetId,
             cropRect: entry.cropRect || null,
+            width,
+            height,
+            aspectRatio: typeof entry.aspectRatio === 'number'
+                ? entry.aspectRatio
+                : (width && height ? width / height : null),
+            isClip: Boolean(entry.isClip),
         };
     }
     return null;
@@ -212,6 +220,11 @@ export default function PostOptionsScreen({ navigation, route }) {
     const scrubbingStateRef = useRef(null);
     const videoControlsHideTimeoutsRef = useRef({});
     const videoControlsOpacityRef = useRef({});
+    const editingIsClip = isEditing && (
+        Boolean(editingPost?.type === 'clip') ||
+        Boolean(editingPost?.media?.some((entry) => entry?.isClip))
+    );
+    const [isClipMode, setIsClipMode] = useState(() => editingIsClip);
 
     useEffect(() => {
         return subscribeUserData(() => {
@@ -225,6 +238,37 @@ export default function PostOptionsScreen({ navigation, route }) {
     useEffect(() => {
         setSelectedImages(routeImages);
     }, [routeImages]);
+
+    useEffect(() => {
+        if (route?.params?.images) {
+            setIsClipMode(false);
+            navigation.setParams({ images: undefined });
+        }
+    }, [navigation, route?.params?.images]);
+
+    useEffect(() => {
+        if (!route?.params?.clipMedia) return;
+        const normalized = normalizeMediaSelectionEntry(route.params.clipMedia);
+        if (normalized) {
+            normalized.isClip = true;
+            normalized.type = 'video';
+            if (!normalized.aspectRatio && normalized.cropRect) {
+                const { width = 0, height = 0 } = normalized.cropRect;
+                if (width && height) normalized.aspectRatio = width / height;
+            }
+            setSelectedImages([normalized]);
+            setIsClipMode(true);
+        }
+        navigation.setParams({ clipMedia: undefined });
+    }, [navigation, route?.params?.clipMedia]);
+
+    useEffect(() => {
+        if (!route?.params) return;
+        if (typeof route.params.clipCaption !== 'string') return;
+        setCaption(route.params.clipCaption);
+        captionLastValidRef.current = route.params.clipCaption;
+        navigation.setParams({ clipCaption: undefined });
+    }, [navigation, route?.params?.clipCaption]);
 
     const mediaList = useMemo(() => (
         Array.isArray(selectedImages)
@@ -255,6 +299,12 @@ export default function PostOptionsScreen({ navigation, route }) {
         videoControlsHideTimeoutsRef.current = {};
         videoControlsOpacityRef.current = {};
     }, [mediaFingerprint]);
+
+    useEffect(() => {
+        if (isClipMode && mediaList.length === 0) {
+            setIsClipMode(false);
+        }
+    }, [isClipMode, mediaList.length]);
 
     const compressionPreset = useMemo(() => {
         const count = Math.max(1, mediaList.length || 1);
@@ -846,10 +896,66 @@ export default function PostOptionsScreen({ navigation, route }) {
     };
 
     const handleOpenSelectPhotos = useCallback(() => {
-        const params = { initialImages: mediaList };
-        if (typeof workoutParam !== 'undefined') params.workout = workoutParam;
-        navigation.navigate('SelectPhotos', params);
-    }, [mediaList, navigation, workoutParam]);
+        const openPicker = () => {
+            const params = { initialImages: mediaList };
+            if (typeof workoutParam !== 'undefined') params.workout = workoutParam;
+            navigation.navigate('SelectPhotos', params);
+        };
+
+        if (isClipMode && mediaList.length > 0) {
+            Alert.alert(
+                'Switch to regular post?',
+                'Adding standard media will remove your clip.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                        text: 'Switch',
+                        style: 'destructive',
+                        onPress: () => {
+                            setIsClipMode(false);
+                            setSelectedImages([]);
+                            openPicker();
+                        },
+                    },
+                ]
+            );
+            return;
+        }
+
+        openPicker();
+    }, [isClipMode, mediaList, navigation, workoutParam, setSelectedImages]);
+
+    const handleOpenClipBuilder = useCallback(() => {
+        const proceed = () => {
+            const target = isClipMode ? 'EditClip' : 'NewClip';
+            const params = { initialCaption: caption };
+            if (isClipMode && mediaList[0]) {
+                params.initialClip = mediaList[0];
+            }
+            navigation.navigate(target, params);
+        };
+
+        if (!isClipMode && mediaList.length > 0) {
+            Alert.alert(
+                'Replace media with a clip?',
+                'Adding a clip will remove your current photos and videos.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    {
+                        text: 'Replace',
+                        style: 'destructive',
+                        onPress: () => {
+                            setSelectedImages([]);
+                            proceed();
+                        },
+                    },
+                ]
+            );
+            return;
+        }
+
+        proceed();
+    }, [caption, isClipMode, mediaList, navigation, setSelectedImages]);
 
     async function sharePost() {
         if (isSharing || sharePromiseRef.current) return;
@@ -882,6 +988,7 @@ export default function PostOptionsScreen({ navigation, route }) {
         }
 
         const currentImages = mediaList;
+        const isClipPost = isClipMode && currentImages.length === 1 && currentImages[0]?.type === 'video';
 
         const runShare = async () => {
             try {
@@ -909,7 +1016,17 @@ export default function PostOptionsScreen({ navigation, route }) {
                                 mime: preparedVideo.mime || 'video/mp4',
                                 size: preparedVideo.size,
                             });
-                            return { index, uri: url, type: 'video', duration, cropRect };
+                            const aspectRatio = item?.aspectRatio
+                                || ((item?.width && item?.height) ? (item.width / item.height) : null);
+                            return {
+                                index,
+                                uri: url,
+                                type: 'video',
+                                duration,
+                                cropRect,
+                                isClip: Boolean(isClipPost && index === 0),
+                                aspectRatio,
+                            };
                         } catch (error) {
                             console.error(`Error uploading video ${index + 1}:`, error);
                             return null;
@@ -925,7 +1042,8 @@ export default function PostOptionsScreen({ navigation, route }) {
                         const id = makeID();
                         const path = `posts/${pid}-${id}.${safeExt}`;
                         const { url } = await uploadResumableNative({ fileUri: localUri, path, mime: mimeType, size });
-                        return { index, uri: url, type: 'image', cropRect };
+                        const aspectRatio = ((item?.width && item?.height) ? (item.width / item.height) : null);
+                        return { index, uri: url, type: 'image', cropRect, aspectRatio };
                     } catch (error) {
                         console.error(`Error processing image ${index + 1}:`, error);
                         return null;
@@ -935,16 +1053,20 @@ export default function PostOptionsScreen({ navigation, route }) {
                 const mediaPayload = processedMedia
                     .filter(Boolean)
                     .sort((a, b) => a.index - b.index)
-                    .map(({ uri, type, duration, cropRect }) => ({
+                    .map(({ uri, type, duration, cropRect, isClip, aspectRatio }) => ({
                         uri,
                         type: type || 'image',
                         duration,
                         cropRect: cropRect || null,
+                        isClip: Boolean(isClip),
+                        aspectRatio: aspectRatio || null,
                     }));
 
                 const imagesPayload = mediaPayload
                     .filter((entry) => entry.type !== 'video')
                     .map((entry) => entry.uri);
+
+                const nextPostType = isClipPost ? 'clip' : 'post';
 
                 if (isEditing) {
                     const latest = await readDoc('posts', pid);
@@ -993,6 +1115,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                         comments: updatedComments,
                         commentCount,
                         updatedAt: now,
+                        type: nextPostType,
                     });
 
                 } else {
@@ -1006,7 +1129,8 @@ export default function PostOptionsScreen({ navigation, route }) {
                         trimmedCaption,
                         mediaPayload,
                         pid,
-                        null
+                        null,
+                        { type: nextPostType }
                     );
 
                     await Promise.allSettled([
@@ -1158,21 +1282,57 @@ export default function PostOptionsScreen({ navigation, route }) {
                         )}
                         <TouchableOpacity
                             style={styles.media_manage_btn}
-                            onPress={withStrongPress(handleOpenSelectPhotos)}
+                            onPress={withStrongPress(isClipMode ? handleOpenClipBuilder : handleOpenSelectPhotos)}
                         >
-                            <Feather name="image" size={scaleSize(18)} color={theme.primary} />
-                            <Text style={styles.media_manage_text}>Edit media</Text>
+                            <Feather
+                                name={isClipMode ? 'film' : 'image'}
+                                size={scaleSize(18)}
+                                color={theme.primary}
+                            />
+                            <Text style={styles.media_manage_text}>{isClipMode ? 'Edit clip' : 'Edit media'}</Text>
                         </TouchableOpacity>
+                        {!isClipMode && (
+                            <TouchableOpacity
+                                style={styles.add_clip_secondary_btn}
+                                onPress={withStrongPress(handleOpenClipBuilder)}
+                            >
+                                <Feather name="video" size={scaleSize(18)} color={theme.primary} />
+                                <Text style={styles.media_manage_text}>Add clip</Text>
+                            </TouchableOpacity>
+                        )}
+                        {isClipMode && (
+                            <View style={styles.clip_badge}>
+                                <Text style={styles.clip_badge_text}>Clip</Text>
+                            </View>
+                        )}
                     </View>
                 ) : (
-                    <TouchableOpacity
-                        style={styles.add_media_cta}
-                        onPress={withStrongPress(handleOpenSelectPhotos)}
-                    >
-                        <Feather name="image" size={scaleSize(22)} color={theme.primary} />
-                        <Text style={styles.add_media_title}>Add media (optional)</Text>
-                        <Text style={styles.add_media_subtitle}>Share your progress with photos or videos</Text>
-                    </TouchableOpacity>
+                    <View style={styles.add_media_stack}>
+                        <TouchableOpacity
+                            style={styles.add_media_cta}
+                            onPress={withStrongPress(handleOpenSelectPhotos)}
+                        >
+                            <Feather name="image" size={scaleSize(22)} color={theme.primary} />
+                            <Text style={styles.add_media_title}>Attatch Media (optional)</Text>
+                            <Text style={styles.add_media_subtitle}>Share your progress with photos or videos</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.add_clip_cta}
+                            onPress={withStrongPress(handleOpenClipBuilder)}
+                        >
+                            <Feather name="video" size={scaleSize(22)} color={theme.accent || theme.primary} />
+                            <View style={styles.add_clip_title_row}>
+                                <Text style={styles.add_media_title}>Add clip (vertical video)</Text>
+                                <Ionicons
+                                    name="chevron-forward"
+                                    size={scaleSize(18)}
+                                    color={theme.accent || theme.primary}
+                                    style={styles.add_clip_chevron}
+                                />
+                            </View>
+                            <Text style={styles.add_media_subtitle}>Upload a single portrait clip under 90s</Text>
+                        </TouchableOpacity>
+                    </View>
                 )}
 
                 {editingWorkoutName ? (
@@ -1386,8 +1546,11 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(14)
     },
+    add_media_stack: {
+        marginTop: scaleSize(18)
+    },
     add_media_cta: {
-        marginTop: scaleSize(18),
+        marginTop: 0,
         marginHorizontal: -composeHorizontalPadding,
         paddingVertical: scaleSize(32),
         paddingHorizontal: composeHorizontalPadding,
@@ -1397,17 +1560,57 @@ const styles = StyleSheet.create({
         backgroundColor: theme.surface,
         alignItems: 'center'
     },
+    add_clip_cta: {
+        marginTop: scaleSize(16),
+        marginHorizontal: -composeHorizontalPadding,
+        paddingVertical: scaleSize(28),
+        paddingHorizontal: composeHorizontalPadding,
+        borderRadius: scaleSize(16),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.accent || theme.primary,
+        backgroundColor: 'rgba(37, 99, 235, 0.08)',
+        alignItems: 'center'
+    },
+    add_clip_secondary_btn: {
+        marginTop: scaleSize(8),
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     add_media_title: {
         marginTop: scaleSize(12),
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(16),
         color: theme.textPrimary
     },
+    add_clip_title_row: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
+    add_clip_chevron: {
+        marginTop: scaleSize(12),
+        marginLeft: scaleSize(6)
+    },
     add_media_subtitle: {
         marginTop: scaleSize(6),
         fontFamily: 'Outfit_500Medium',
         fontSize: scaleSize(13),
         color: theme.textSecondary
+    },
+    clip_badge: {
+        marginTop: scaleSize(12),
+        alignSelf: 'center',
+        backgroundColor: 'rgba(255,255,255,0.12)',
+        paddingHorizontal: scaleSize(18),
+        paddingVertical: scaleSize(6),
+        borderRadius: scaleSize(20),
+    },
+    clip_badge_text: {
+        color: theme.textPrimary,
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(13),
+        letterSpacing: 0.5,
     },
     media_dot: {
         width: scaleSize(6),

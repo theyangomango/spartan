@@ -46,6 +46,7 @@ import Feed from './frontend/screens/FeedScreen';
 import Profile from './frontend/screens/5_Profile';
 import SelectPhotosScreen from './frontend/components/5_Profile/MakePost/SelectPhotosScreen';
 import PostUploadOptionsScreen from './frontend/components/5_Profile/MakePost/PostUploadOptionsScreen';
+import ClipBuilderScreen from './frontend/components/5_Profile/MakePost/ClipBuilderScreen';
 import Explore from './frontend/screens/4_Explore';
 import Competition from './frontend/screens/2_Competition';
 import ExerciseDetail from './frontend/screens/ExerciseDetail';
@@ -1613,6 +1614,52 @@ return (
 
                         {/* Creator */}
                         <RootStack.Screen name="SelectPhotos" component={SelectPhotosScreen} />
+                        <RootStack.Screen
+                            name="NewClip"
+                            component={ClipBuilderScreen}
+                            initialParams={{ mode: 'new' }}
+                            options={Platform.select({
+                                ios: {
+                                    headerShown: false,
+                                    presentation: 'modal',
+                                    cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
+                                    transitionSpec: {
+                                        open: TransitionSpecs.TransitionIOSSpec,
+                                        close: TransitionSpecs.TransitionIOSSpec,
+                                    },
+                                },
+                                android: {
+                                    headerShown: false,
+                                    animation: 'slide_from_bottom',
+                                },
+                                default: {
+                                    headerShown: false,
+                                },
+                            })}
+                        />
+                        <RootStack.Screen
+                            name="EditClip"
+                            component={ClipBuilderScreen}
+                            initialParams={{ mode: 'edit' }}
+                            options={Platform.select({
+                                ios: {
+                                    headerShown: false,
+                                    presentation: 'modal',
+                                    cardStyleInterpolator: CardStyleInterpolators.forVerticalIOS,
+                                    transitionSpec: {
+                                        open: TransitionSpecs.TransitionIOSSpec,
+                                        close: TransitionSpecs.TransitionIOSSpec,
+                                    },
+                                },
+                                android: {
+                                    headerShown: false,
+                                    animation: 'slide_from_bottom',
+                                },
+                                default: {
+                                    headerShown: false,
+                                },
+                            })}
+                        />
                         <RootStack.Screen
                             name="PostOptions"
                             component={PostUploadOptionsScreen}

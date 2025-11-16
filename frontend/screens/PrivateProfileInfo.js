@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform } from 'react-native';
+import { SafeAreaView, View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform, Alert } from 'react-native';
 import scaleSize, { ts } from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, updateDoc as fsUpdateDoc } from 'firebase/firestore';
@@ -21,8 +21,16 @@ export default function PrivateProfileInfo({ navigation }) {
     } catch {}
   }, [user?.isPrivate, user?.settings?.profilePrivate]);
 
+  const showPrivateAccountAlert = useCallback((next) => {
+    const message = next
+      ? 'Private Account is on. Only followers you approve can see your posts, workouts, and followers list, and follow requests must be approved manually.'
+      : 'Private Account is off. Anyone can see your posts, workouts, and followers list, and pending follow requests will be approved automatically.';
+    Alert.alert('Private Account', message, [{ text: 'Got it' }]);
+  }, []);
+
   const onToggle = useCallback(async (next) => {
     setIsPrivate(next);
+    showPrivateAccountAlert(next);
     try {
       if (!uid) return;
       await Promise.all([
@@ -57,7 +65,7 @@ export default function PrivateProfileInfo({ navigation }) {
         } catch {}
       }
     } catch {}
-  }, [uid]);
+  }, [showPrivateAccountAlert, uid]);
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.header}>

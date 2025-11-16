@@ -30,6 +30,34 @@ const extractUid = (entry) => {
     return "";
 };
 
+const normalizePrivacyFlag = (flag) => {
+    if (typeof flag === 'boolean') return flag;
+    if (typeof flag === 'string') {
+        const value = flag.trim().toLowerCase();
+        if (!value) return undefined;
+        if (value === 'private' || value === 'hidden') return true;
+        if (value === 'public' || value === 'global') return false;
+    }
+    return undefined;
+};
+
+const isProfilePrivate = (ownerInput = {}) => {
+    const candidates = [
+        ownerInput?.settings?.profilePrivate,
+        ownerInput?.profilePrivate,
+        ownerInput?.isPrivate,
+        ownerInput?.privacy,
+        ownerInput?.privacyMode,
+    ];
+    for (const flag of candidates) {
+        const normalized = normalizePrivacyFlag(flag);
+        if (typeof normalized === 'boolean') {
+            return normalized;
+        }
+    }
+    return false;
+};
+
 const collectionHasUid = (collection, targetUid) => {
     if (!targetUid || !collection) return false;
     if (Array.isArray(collection)) {
@@ -104,7 +132,7 @@ export const canViewerAccessProfile = (ownerInput, viewerUidInput, viewerDataInp
     const ownerUid = extractUid(ownerInput.uid ?? ownerInput.id ?? ownerInput);
     if (!ownerUid) return true;
 
-    const isPrivate = !!(ownerInput?.settings?.profilePrivate);
+    const isPrivate = isProfilePrivate(ownerInput);
     if (!isPrivate) return true;
 
     let viewerUid = extractUid(viewerUidInput);

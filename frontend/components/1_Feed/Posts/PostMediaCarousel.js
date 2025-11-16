@@ -6,40 +6,53 @@ import React, {
     useRef,
     useState,
 } from 'react';
-import { FlatList, Pressable, View, Dimensions } from 'react-native';
+import { FlatList, Pressable, View, Dimensions, StyleSheet } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import CroppedVideo from '../../common/CroppedVideo';
 
 const { width: W } = Dimensions.get('window');
 
-const ImageSlide = React.memo(({ uri, style }) => (
-    <View style={{ width: W, height: style?.height || 0, overflow: 'hidden' }}>
-        <FastImage
-            source={{ uri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
-            style={style}
-            resizeMode={FastImage.resizeMode.cover}
-        />
-    </View>
-));
+const flattenStyle = (style) => {
+    if (Array.isArray(style)) return StyleSheet.flatten(style);
+    return style || {};
+};
 
-const VideoSlide = React.memo(({ uri, style, paused, isActive, cropRect }) => (
-    <View style={{ width: W, height: style?.height || 0, overflow: 'hidden' }}>
-        <CroppedVideo
-            source={typeof uri === 'string' && uri.startsWith('http') ? { uri } : uri}
-            style={style}
-            cropRect={cropRect}
-            resizeMode="cover"
-            paused={!isActive || paused}
-            repeat
-            muted={false}
-            volume={1.0}
-            ignoreSilentSwitch="ignore"
-            playInBackground={false}
-            playWhenInactive={false}
-            controls={false}
-        />
-    </View>
-));
+const ImageSlide = React.memo(({ uri, style }) => {
+    const flattened = flattenStyle(style);
+    const height = flattened?.height || 0;
+    return (
+        <View style={{ width: W, height, overflow: 'hidden' }}>
+            <FastImage
+                source={{ uri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }}
+                style={flattened}
+                resizeMode={FastImage.resizeMode.cover}
+            />
+        </View>
+    );
+});
+
+const VideoSlide = React.memo(({ uri, style, paused, isActive, cropRect }) => {
+    const flattened = flattenStyle(style);
+    const height = flattened?.height || 0;
+    return (
+        <View style={{ width: W, height, overflow: 'hidden' }}>
+            <CroppedVideo
+                source={typeof uri === 'string' && uri.startsWith('http') ? { uri } : uri}
+                style={flattened}
+                cropRect={cropRect}
+                resizeMode="cover"
+                paused={!isActive || paused}
+                repeat
+                muted={false}
+                volume={1.0}
+                ignoreSilentSwitch="ignore"
+                playInBackground={false}
+                playWhenInactive={false}
+                controls={false}
+            />
+        </View>
+    );
+});
 
 const PostMediaCarousel = forwardRef(function PostMediaCarousel({
     mediaList,
@@ -130,12 +143,17 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
         const isManuallyPaused = pausedList[slideIndex];
         const actuallyPaused = !meetsRule || isManuallyPaused;
 
+        const aspectRatio = Number(item?.aspectRatio);
+        const resolvedAspect = Number.isFinite(aspectRatio) && aspectRatio > 0 ? aspectRatio : 1;
+        const slideHeight = W / resolvedAspect;
+        const combinedStyle = [imageStyle, { height: slideHeight }];
+
         if (item.type === 'video') {
             return (
                 <Pressable onPress={handlePress}>
                     <VideoSlide
                         uri={item.uri}
-                        style={imageStyle}
+                        style={combinedStyle}
                         paused={actuallyPaused}
                         isActive={!actuallyPaused}
                         cropRect={item.cropRect}
@@ -146,7 +164,7 @@ const PostMediaCarousel = forwardRef(function PostMediaCarousel({
 
         return (
             <Pressable onPress={handlePress}>
-                <ImageSlide uri={item.uri} style={imageStyle} />
+                <ImageSlide uri={item.uri} style={combinedStyle} />
             </Pressable>
         );
     }, [

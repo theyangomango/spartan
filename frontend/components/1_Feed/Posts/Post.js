@@ -319,6 +319,13 @@ const Post = forwardRef(function Post({
     const toneCacheRef = useRef(new Map());
     const tonePendingRef = useRef(new Map());
 
+    const baseMediaAspectRatio = useMemo(() => {
+        const first = mediaList?.[0];
+        const ratio = Number(first?.aspectRatio);
+        if (Number.isFinite(ratio) && ratio > 0) return ratio;
+        return AR;
+    }, [mediaList]);
+    const galleryHeight = W / baseMediaAspectRatio;
     const currentMedia = mediaList[currentIndex] || null;
     const currentMediaUri = typeof currentMedia?.uri === 'string'
         ? currentMedia.uri
@@ -340,11 +347,11 @@ const Post = forwardRef(function Post({
         }
         return {
             left: headerRect.left * W,
-            top: headerRect.top * (W / AR),
+            top: headerRect.top * galleryHeight,
             width: headerRect.width * W,
-            height: headerRect.height * (W / AR),
+            height: headerRect.height * galleryHeight,
         };
-    }, [headerRect, currentMediaUri, currentMediaType]);
+    }, [galleryHeight, headerRect, currentMediaType, currentMediaUri]);
 
     const debugFooterOverlayStyle = useMemo(() => {
         if (!DEBUG_SHOW_TONE_OVERLAY) return null;
@@ -353,11 +360,11 @@ const Post = forwardRef(function Post({
         }
         return {
             left: footerRect.left * W,
-            top: footerRect.top * (W / AR),
+            top: footerRect.top * galleryHeight,
             width: footerRect.width * W,
-            height: footerRect.height * (W / AR),
+            height: footerRect.height * galleryHeight,
         };
-    }, [footerRect, currentMediaUri, currentMediaType]);
+    }, [footerRect, galleryHeight, currentMediaType, currentMediaUri]);
 
     const resolveTone = useCallback(async (uri, rect, keyPrefix = 'post') => {
         const key = makeToneKey(uri, rect, keyPrefix);
@@ -629,8 +636,8 @@ const Post = forwardRef(function Post({
                     fadeInOnFocus ? { opacity: focusFadeOpacity } : null,
                 ]}
             >
-                <View style={styles.body}>
-                    <Reanimated.View style={[styles.gallery, roundedBottomStyle, { overflow: 'hidden' }]}>
+                <View style={[styles.body, { height: galleryHeight }]}>
+                    <Reanimated.View style={[styles.gallery, { height: galleryHeight }, roundedBottomStyle, { overflow: 'hidden' }]}>
                         <PostMediaCarousel
                             ref={carouselRef}
                             mediaList={mediaList}
@@ -640,8 +647,8 @@ const Post = forwardRef(function Post({
                             isAnyPostFocused={resolvedIsSomePostFocused}
                             shouldPlay={shouldPlay}
                             onRequestFocus={focusMe}
-                            galleryStyle={{ width: '100%', height: '100%' }}
-                            imageStyle={styles.image}
+                            galleryStyle={{ width: W, height: galleryHeight }}
+                            imageStyle={[styles.image, { height: galleryHeight }]}
                         />
                         {DEBUG_SHOW_TONE_OVERLAY && (
                             <>
