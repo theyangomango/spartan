@@ -59,6 +59,7 @@ export default function ClipBuilderScreen({ navigation, route }) {
     const isEditing = mode === "edit";
     const initialClip = useMemo(() => normalizeClipEntry(route?.params?.initialClip), [route?.params?.initialClip]);
     const initialCaption = typeof route?.params?.initialCaption === "string" ? route.params.initialCaption : "";
+    const editingContext = route?.params?.editingContext || null;
     const [selectedClip, setSelectedClip] = useState(initialClip);
     const [captionInput, setCaptionInput] = useState(initialCaption);
     const clipSource = useMemo(() => {
@@ -224,9 +225,15 @@ export default function ClipBuilderScreen({ navigation, route }) {
             const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || FileSystem.temporaryDirectory;
             if (!cacheDir) throw new Error('No cache directory available for video upload');
             const tempTarget = `${cacheDir}upload-video-${makeID()}.${normalizedExt}`;
+            const isRemote = /^https?:\/\//i.test(fallbackUri);
             try {
-                await FileSystem.copyAsync({ from: fallbackUri, to: tempTarget });
-                fileUri = tempTarget;
+                if (isRemote) {
+                    const download = await FileSystem.downloadAsync(fallbackUri, tempTarget);
+                    fileUri = download?.uri || tempTarget;
+                } else {
+                    await FileSystem.copyAsync({ from: fallbackUri, to: tempTarget });
+                    fileUri = tempTarget;
+                }
             } catch (error) {
                 console.warn('[ClipBuilder] copyAsync failed for video', error);
                 fileUri = ensureFileScheme(fallbackUri);
@@ -374,10 +381,14 @@ export default function ClipBuilderScreen({ navigation, route }) {
         }
         navigation.navigate({
             name: "PostOptions",
-            params: { clipMedia: selectedClip, clipCaption: captionInput },
+            params: {
+                clipMedia: selectedClip,
+                clipCaption: captionInput,
+                ...(editingContext || {}),
+            },
             merge: true,
         });
-    }, [captionInput, isEditing, navigation, postClip, selectedClip]);
+    }, [captionInput, editingContext, isEditing, navigation, postClip, selectedClip]);
 
     const clearSelection = useCallback(() => {
         setSelectedClip(null);
@@ -638,7 +649,7 @@ const styles = StyleSheet.create({
         aspectRatio: 9 / 16,
         backgroundColor: "#000",
         position: "relative",
-        borderRadius: scaleSize(8),
+        borderRadius: 0,
         overflow: "hidden",
     },
     video_pressable: {

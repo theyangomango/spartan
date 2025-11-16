@@ -15,7 +15,7 @@ import useUserVerified from "../../hooks/useUserVerified";
 const CARD_MIN_HEIGHT = scaleSize(72);
 const PROFILE_SIZE = scaleSize(36);
 const SMALL_PROFILE_SIZE = scaleSize(30);
-const HANDLE_FONT = ts(13);
+const HANDLE_FONT = ts(14);
 const CONTENT_FONT = ts(12.5);
 const DATE_FONT = ts(12);
 
@@ -87,6 +87,26 @@ const Pfp = ({ uid, version = 0, fallbackUri, style }) => {
     );
 };
 
+const ParticipantHandle = ({ participant, textStyle, containerStyle, preserveTextAlignment = false }) => {
+    const handle = participant?.handle ?? "Friend";
+    const user = participant?.user ?? null;
+    const fallbackVerified = Boolean(user?.isVerified ?? user?.verified);
+    const uid = user?.uid ? String(user.uid) : "";
+    const isVerified = useUserVerified(uid, fallbackVerified);
+
+    return (
+        <VerifiedHandle
+            handle={handle}
+            isVerified={isVerified}
+            textStyle={textStyle}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            preserveTextAlignment={preserveTextAlignment}
+            containerStyle={containerStyle}
+        />
+    );
+};
+
 export default function MessageCard({ usersExcludingSelf, content, timestamp, toChat, index, isFirst, isLast }) {
     const sanitizedHandles = useMemo(() => (
         usersExcludingSelf.map((user) => {
@@ -100,12 +120,21 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
     ), [usersExcludingSelf]);
     const user0 = usersExcludingSelf[0];
     const user1 = usersExcludingSelf[1];
-    const handlesLabel = useMemo(() => sanitizedHandles.join(", "), [sanitizedHandles]);
+    const participantsMeta = useMemo(() => (
+        sanitizedHandles.map((handle, idx) => {
+            const user = usersExcludingSelf[idx] || {};
+            const uid = user?.uid ? String(user.uid) : "";
+            return {
+                key: uid || `participant-${idx}`,
+                uid,
+                user,
+                handle: handle || "Friend",
+            };
+        })
+    ), [sanitizedHandles, usersExcludingSelf]);
     const timeStr = safeDisplayTime(timestamp);
     const isSingleConversation = usersExcludingSelf.length === 1;
-    const fallbackVerified = Boolean(user0?.isVerified ?? user0?.verified);
-    const user0Uid = user0?.uid ? String(user0.uid) : "";
-    const isFirstVerified = useUserVerified(user0Uid, fallbackVerified);
+    const firstParticipant = participantsMeta[0];
 
     const preview =
         (content ?? "")
@@ -162,18 +191,42 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
             {/* middle: text */}
             <View style={styles.textCol}>
                 {isSingleConversation ? (
-                    <VerifiedHandle
-                        handle={sanitizedHandles[0] || "Friend"}
-                        isVerified={isFirstVerified}
-                        textStyle={styles.handle}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                        preserveTextAlignment
-                        containerStyle={styles.handleRow}
-                    />
+                    firstParticipant ? (
+                        <ParticipantHandle
+                            participant={firstParticipant}
+                            textStyle={styles.handle}
+                            preserveTextAlignment
+                            containerStyle={styles.handleRow}
+                        />
+                    ) : (
+                        <Text style={styles.handle} numberOfLines={1} ellipsizeMode="tail">
+                            Friend
+                        </Text>
+                    )
+                ) : participantsMeta.length ? (
+                    <View style={styles.multiHandlesRow}>
+                        {participantsMeta.map((participant, idx) => (
+                            <React.Fragment key={participant.key}>
+                                <ParticipantHandle
+                                    participant={participant}
+                                    textStyle={styles.handle}
+                                    containerStyle={[styles.handleRow, styles.multiHandleItem]}
+                                />
+                                {idx < participantsMeta.length - 1 && (
+                                    <Text
+                                        style={[styles.handle, styles.handleComma]}
+                                        numberOfLines={1}
+                                        ellipsizeMode="clip"
+                                    >
+                                        ,{" "}
+                                    </Text>
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </View>
                 ) : (
                     <Text style={styles.handle} numberOfLines={1} ellipsizeMode="tail">
-                        {handlesLabel}
+                        Group Chat
                     </Text>
                 )}
                 {!!preview && (
@@ -232,11 +285,32 @@ const styles = StyleSheet.create({
         color: theme.textPrimary,
         letterSpacing: 0.2,
         fontSize: HANDLE_FONT,
+        flexShrink: 1,
+        minWidth: 0,
+    },
+    multiHandlesRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        flexShrink: 1,
+        minWidth: 0,
+        overflow: "hidden",
     },
     handleRow: {
         flexDirection: "row",
         alignItems: "center",
         flexShrink: 1,
+        minWidth: 0,
+    },
+    multiHandleItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        flexShrink: 1,
+        minWidth: 0,
+    },
+    handleComma: {
+        fontFamily: "Outfit_600SemiBold",
+        color: theme.textPrimary,
+        letterSpacing: 0.2,
     },
     content: {
         fontFamily: "Outfit_400Regular",

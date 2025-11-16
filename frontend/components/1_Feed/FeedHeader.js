@@ -287,6 +287,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
     }, [usersCacheTick]);
 
     const suggestions = curatedSuggestions.length ? curatedSuggestions : fallbackSuggestions;
+    const isSearchActive = visible || qStr.trim().length > 0;
 
     // Navigate while keeping the overlay visible during the native-stack slide
     const navigateToUser = useCallback((item) => {
@@ -461,6 +462,7 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
                             <View
                                 style={[
                                     styles.overlayBar,
+                                    isSearchActive && styles.overlayBarSearching,
                                     {
                                         // Align left edge of input to the right edge of the header icon.
                                         // anchor.x is absolute screen X; SafeAreaView has horizontal padding = METRICS.paddingH.
@@ -871,6 +873,7 @@ const styles = StyleSheet.create({
     // Mirror header container: fixed height + relative for absolute left icon
     // Taller, modern pill input row
     overlayBar: { position: 'relative', height: scaleSize(METRICS.centerH + s(19)), flexDirection: "row", alignItems: "center", marginBottom: scaleSize(s(10)), marginLeft: scaleSize(METRICS.paddingH + METRICS.iconBox), marginRight: scaleSize(10) },
+    overlayBarSearching: { marginTop: scaleSize(s(6)) },
     // Parent for overlay icon matches header's leftArea semantics (absolute within bar)
     // Add a 1px nudge for visual parity across devices
     // overlayLeftArea removed: single icon approach

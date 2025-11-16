@@ -55,11 +55,12 @@ const PostListItem = memo(function PostListItem({
     }
   }, [onDeletePost, index]);
 
-  const handleEditPost = useCallback(() => {
-    if (typeof onEditPost === "function") {
-      onEditPost(index);
-    }
-  }, [onEditPost, index]);
+  const handleEditPost = useCallback((forcedIndex, forcedItem, options) => {
+    if (typeof onEditPost !== "function") return;
+    const nextIndex = typeof forcedIndex === "number" ? forcedIndex : index;
+    const nextItem = forcedItem || item;
+    onEditPost(nextIndex, nextItem, options);
+  }, [onEditPost, index, item]);
 
   const handleEditWorkout = useCallback(() => {
     if (typeof onEditWorkout === "function") {

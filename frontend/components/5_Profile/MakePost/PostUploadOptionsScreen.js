@@ -491,9 +491,15 @@ export default function PostOptionsScreen({ navigation, route }) {
             const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || FileSystem.temporaryDirectory;
             if (!cacheDir) throw new Error('No cache directory available for video upload');
             const tempTarget = `${cacheDir}upload-video-${makeID()}.${normalizedExt}`;
+            const isRemote = /^https?:\/\//i.test(fallbackUri);
             try {
-                await FileSystem.copyAsync({ from: fallbackUri, to: tempTarget });
-                fileUri = tempTarget;
+                if (isRemote) {
+                    const download = await FileSystem.downloadAsync(fallbackUri, tempTarget);
+                    fileUri = download?.uri || tempTarget;
+                } else {
+                    await FileSystem.copyAsync({ from: fallbackUri, to: tempTarget });
+                    fileUri = tempTarget;
+                }
             } catch (error) {
                 console.warn('[PostUploadOptions] copyAsync failed for video', error);
                 fileUri = ensureFileScheme(fallbackUri);

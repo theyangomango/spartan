@@ -1,8 +1,8 @@
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
-import scaleSize, { ts } from '../helper/scaleSize';
+import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity } from 'react-native';
+import scaleSize from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import ProfileCard from '../components/1_Feed/FeedHeader/ProfileCard';
 import { collection, getDocs, orderBy, where, query, limit } from 'firebase/firestore';
 import { db } from '../../firebase.config';
@@ -12,8 +12,9 @@ import { strong as hapticStrong } from '../utils/haptics';
 import isThisUser from '../helper/isThisUser';
 import useSuggestedUsersList from '../hooks/useSuggestedUsersList';
 
+const EXTRA_SEARCH_HEADER_GAP = scaleSize(8);
+
 export default function SearchUsers({ navigation }) {
-  const insets = useSafeAreaInsets();
   const [qStr, setQStr] = useState('');
   const [results, setResults] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
@@ -134,8 +135,8 @@ export default function SearchUsers({ navigation }) {
   };
 
   return (
-    <SafeAreaView style={[styles.root, { paddingTop: scaleSize(insets.top + 6) }]}>
-      <View style={styles.row}>
+    <SafeAreaView edges={['top']} style={styles.root}>
+      <View style={[styles.row, styles.rowTopSpacer]}>
         <TouchableOpacity onPress={goBack} style={styles.iconBtn}>
           <Ionicons name="chevron-back" size={22} color={theme.textSecondary} />
         </TouchableOpacity>
@@ -176,6 +177,7 @@ export default function SearchUsers({ navigation }) {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   row: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: scaleSize(16), marginBottom: scaleSize(12) },
+  rowTopSpacer: { marginTop: EXTRA_SEARCH_HEADER_GAP },
   iconBtn: { padding: scaleSize(6), marginRight: scaleSize(8) },
   inputWrap: {
     flex: 1,

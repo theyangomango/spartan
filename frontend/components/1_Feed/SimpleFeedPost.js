@@ -36,6 +36,7 @@ import useReportContentSheet from "../../hooks/useReportContentSheet";
 import { getViewerUid } from "../../utils/userRefs";
 import { subscribeUserData, emitUserDataUpdate } from "../../utils/userDataEvents";
 import { invalidateFeedCacheForUser } from "../../helper/feedCache";
+import { isClipPost } from "../../utils/postTypes";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -260,6 +261,7 @@ const SimpleFeedPost = ({
     }, [highlightSignal, isHighlighted, highlightOpacity]);
 
     const workout = data?.workout || null;
+    const clipPost = useMemo(() => isClipPost(data), [data]);
     const isLivePost = useMemo(() => (
         Boolean(
             data?.isLive ||
@@ -1292,8 +1294,8 @@ const SimpleFeedPost = ({
     }, [closeOptionsSheet]);
 
     const handlePressEditPost = useCallback(() => {
-        closeOptionsSheet(() => onPressEditPost?.(index, data));
-    }, [closeOptionsSheet, onPressEditPost, index, data]);
+        closeOptionsSheet(() => onPressEditPost?.(index, data, { isClip: clipPost }));
+    }, [closeOptionsSheet, onPressEditPost, index, data, clipPost]);
 
     const handlePressEditWorkout = useCallback(() => {
         if (!workout) return;
@@ -1690,7 +1692,7 @@ const SimpleFeedPost = ({
                                             color={theme.textPrimary}
                                             style={styles.optionsItemIcon}
                                         />
-                                        <Text style={styles.optionsItemText}>Edit Post</Text>
+                                        <Text style={styles.optionsItemText}>{clipPost ? "Edit Clip" : "Edit Post"}</Text>
                                     </View>
                                     <MaterialCommunityIcons
                                         name="chevron-right"

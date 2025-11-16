@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
+    Alert,
     FlatList,
     SafeAreaView,
     TouchableOpacity,
@@ -27,6 +28,7 @@ import { withStrongPress, strong as hapticStrong } from "../utils/haptics";
 import { clearFooterSuppression } from "../state/footerSuppressionStore";
 import { collection, doc, getDoc, getDocs, limit, query, where } from "firebase/firestore";
 import { db } from "../../firebase.config";
+import { isClipPost } from "../utils/postTypes";
 
 const ensureAtHandle = (handle = '') => {
     const trimmed = String(handle || '').trim();
@@ -713,7 +715,7 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         openPastWorkout(resolved, { startEditing: true });
     }, [openPastWorkout, resolveFeedItem]);
 
-    const handleEditPost = useCallback(async (post) => {
+    const handleEditPost = useCallback(async (post, _options = {}) => {
         const resolved = resolveFeedItem(post);
         if (!resolved) return;
 
@@ -748,7 +750,8 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
                 const uri = typeof entry === 'string' ? entry : entry?.uri;
                 if (!uri || seen.has(uri)) return;
                 seen.add(uri);
-                const type = typeof entry === 'string' ? undefined : entry?.type;
+                const entryTypeRaw = typeof entry === 'string' ? undefined : entry?.type;
+                const type = entryTypeRaw === 'clip' ? 'video' : entryTypeRaw;
                 const cropRect = typeof entry === 'string' ? null : entry?.cropRect || null;
                 const duration =
                     typeof entry === 'string'
@@ -760,11 +763,20 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
                               entry?.seconds ??
                               0
                           ) || 0;
+                const width = typeof entry?.width === 'number' ? entry.width : (typeof entry?.naturalWidth === 'number' ? entry.naturalWidth : 0);
+                const height = typeof entry?.height === 'number' ? entry.height : (typeof entry?.naturalHeight === 'number' ? entry.naturalHeight : 0);
+                const aspectRatio = typeof entry?.aspectRatio === 'number'
+                    ? entry.aspectRatio
+                    : (width && height ? width / height : null);
                 mediaEntries.push({
                     uri,
                     type: type === 'video' ? 'video' : 'image',
                     duration,
                     cropRect,
+                    width,
+                    height,
+                    aspectRatio,
+                    isClip: Boolean(entry?.isClip || entryTypeRaw === 'clip' || latest?.type === 'clip'),
                 });
             });
         }
@@ -779,6 +791,10 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
                     type: 'image',
                     duration: 0,
                     cropRect: typeof entry === 'string' ? null : entry?.cropRect || null,
+                    width: typeof entry?.width === 'number' ? entry.width : 0,
+                    height: typeof entry?.height === 'number' ? entry.height : 0,
+                    aspectRatio: typeof entry?.aspectRatio === 'number' ? entry.aspectRatio : null,
+                    isClip: false,
                 });
             });
         }
@@ -794,14 +810,30 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
             shouldRefreshOnFocusRef.current = true;
         } catch { }
 
+        const editingPayload = {
+            pid,
+            caption: resolvedCaption,
+            mediaEntries,
+            workoutName,
+        };
+
+        if (isClipPost(latest)) {
+            const clipEntry = mediaEntries.find((entry) => entry?.type === 'video');
+            if (!clipEntry) {
+                Alert.alert('Unable to edit clip', 'This clip is missing its video. Please try again later.');
+                return;
+            }
+        navigation.navigate('EditClip', {
+            initialClip: clipEntry,
+            initialCaption: resolvedCaption,
+            editingContext: { editingPost: editingPayload },
+        });
+        return;
+    }
+
         navigation.navigate('PostOptions', {
             images: mediaEntries,
-            editingPost: {
-                pid,
-                caption: resolvedCaption,
-                mediaEntries,
-                workoutName,
-            },
+            editingPost: editingPayload,
         });
     }, [navigation, resolveFeedItem]);
 
@@ -915,7 +947,7 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
                 onPressComments={(_, data) => handlePressComments(data || item)}
                 onPressShare={() => { }}
                 onPressLikes={(_, data) => handlePressLikes(data || item)}
-                onPressEditPost={(_, data) => handleEditPost(data || item)}
+                onPressEditPost={(_, data, opts) => handleEditPost(data || item, opts)}
                 onPressEditWorkout={(_, data) => handleEditWorkout(data || item)}
             />
         </View>

@@ -52,6 +52,7 @@ import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStat
 import { navigateOneWay, jumpToTab } from "../../navigationRef";
 import { requestCompetitionTabFocus } from "../utils/competitionTabEvents";
 import { logFeedSignal } from "../helper/feedSignals";
+import { isClipPost } from "../utils/postTypes";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -547,18 +548,14 @@ export default function Feed({ navigation, route }) {
         );
     }, [listData, deletingPostPid, deletePost, deleteCompletedWorkout, emitHexagonUpdate, emitUserDataUpdate]);
 
-    const handleEditPost = useCallback(async (index) => {
-        if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
-            return;
-        }
+    const handleEditPost = useCallback(async (index, directPost, _options = {}) => {
+        const sourcePost = directPost || (Array.isArray(listData) ? listData[index] : null);
+        if (!sourcePost) return;
 
-        const post = listData[index];
-        if (!post) return;
-
-        const pid = String(post?.pid || post?.id || "").trim();
+        const pid = String(sourcePost?.pid || sourcePost?.id || "").trim();
         if (!pid) return;
 
-        let latest = post;
+        let latest = sourcePost;
         try {
             const fetched = await readDoc("posts", pid);
             if (fetched) latest = fetched;
@@ -584,7 +581,8 @@ export default function Feed({ navigation, route }) {
                 const uri = typeof entry === "string" ? entry : entry?.uri;
                 if (!uri || seen.has(uri)) return;
                 seen.add(uri);
-                const type = typeof entry === "string" ? undefined : entry?.type;
+                const entryTypeRaw = typeof entry === "string" ? undefined : entry?.type;
+                const type = entryTypeRaw === "clip" ? "video" : entryTypeRaw;
                 const cropRect = typeof entry === "string" ? null : entry?.cropRect || null;
                 const duration =
                     typeof entry === "string"
@@ -596,11 +594,21 @@ export default function Feed({ navigation, route }) {
                               entry?.seconds ??
                               0
                           ) || 0;
+                const width = typeof entry?.width === "number" ? entry.width : (typeof entry?.naturalWidth === "number" ? entry.naturalWidth : 0);
+                const height = typeof entry?.height === "number" ? entry.height : (typeof entry?.naturalHeight === "number" ? entry.naturalHeight : 0);
+                const aspectRatio = typeof entry?.aspectRatio === "number"
+                    ? entry.aspectRatio
+                    : (width && height ? width / height : null);
+
                 mediaEntries.push({
                     uri,
                     type: type === "video" ? "video" : "image",
                     duration,
                     cropRect,
+                    width,
+                    height,
+                    aspectRatio,
+                    isClip: Boolean(entry?.isClip || entryTypeRaw === "clip" || latest?.type === "clip"),
                 });
             });
         }
@@ -614,25 +622,45 @@ export default function Feed({ navigation, route }) {
                     type: "image",
                     duration: 0,
                     cropRect: typeof entry === "string" ? null : entry?.cropRect || null,
+                    width: typeof entry?.width === "number" ? entry.width : 0,
+                    height: typeof entry?.height === "number" ? entry.height : 0,
+                    aspectRatio: typeof entry?.aspectRatio === "number" ? entry.aspectRatio : null,
+                    isClip: false,
                 });
             });
         }
 
         const workoutName = (() => {
-            const source = latest.workout || post.workout || null;
+            const source = latest.workout || sourcePost.workout || null;
             if (!source || typeof source !== "object") return "";
             const candidate = source.templateName || source.template?.name || source.name || source.workoutName || "";
             return candidate ? String(candidate).trim() : "";
         })();
 
+        const editingPayload = {
+            pid,
+            caption: resolvedCaption,
+            mediaEntries,
+            workoutName,
+        };
+
+        if (isClipPost(latest)) {
+            const clipEntry = mediaEntries.find((entry) => entry?.type === "video");
+            if (!clipEntry) {
+                Alert.alert("Unable to edit clip", "This clip is missing its video. Please try again later.");
+                return;
+            }
+            navigation.navigate("EditClip", {
+                initialClip: clipEntry,
+                initialCaption: resolvedCaption,
+                editingContext: { editingPost: editingPayload },
+            });
+            return;
+        }
+
         navigation.navigate("PostOptions", {
             images: mediaEntries,
-            editingPost: {
-                pid,
-                caption: resolvedCaption,
-                mediaEntries,
-                workoutName,
-            },
+            editingPost: editingPayload,
         });
     }, [listData, navigation]);
 

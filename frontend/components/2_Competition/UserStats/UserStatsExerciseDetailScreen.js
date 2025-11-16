@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, ActivityIndicator, Animated, FlatList, Pressable } from 'react-native';
+import { View, Text, ActivityIndicator, Animated, FlatList, Pressable, Alert } from 'react-native';
 import { GestureDetector } from 'react-native-gesture-handler';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { collection, doc, getDoc, getDocs, limit, onSnapshot, query, where } from 'firebase/firestore';
@@ -14,6 +14,7 @@ import { navigateOneWay } from '../../../../navigationRef';
 import isThisUser from '../../../helper/isThisUser';
 import FollowListBottomSheet from '../../FollowListBottomSheet';
 import readDoc from '../../../../backend/helper/firebase/readDoc';
+import { isClipPost } from '../../../utils/postTypes';
 
 const TIMESTAMP_FIELDS = ['created', 'createdAt', 'completedAt', 'finishedAt', 'startedAt', 'updatedAt'];
 
@@ -561,7 +562,7 @@ export default function UserStatsExerciseDetailScreen({
         handleOpenWorkout(item, { startEditing: true });
     }, [handleOpenWorkout]);
 
-    const handleEditPost = useCallback(async (item) => {
+    const handleEditPost = useCallback(async (item, _options = {}) => {
         if (!item) return;
 
         const pid = String(item?.pid || item?.id || '').trim();
@@ -595,7 +596,8 @@ export default function UserStatsExerciseDetailScreen({
                 const uri = typeof entry === 'string' ? entry : entry?.uri;
                 if (!uri || seen.has(uri)) return;
                 seen.add(uri);
-                const type = typeof entry === 'string' ? undefined : entry?.type;
+                const entryTypeRaw = typeof entry === 'string' ? undefined : entry?.type;
+                const type = entryTypeRaw === 'clip' ? 'video' : entryTypeRaw;
                 const cropRect = typeof entry === 'string' ? null : entry?.cropRect || null;
                 const duration =
                     typeof entry === 'string'
@@ -607,11 +609,20 @@ export default function UserStatsExerciseDetailScreen({
                               entry?.seconds ??
                               0
                           ) || 0;
+                const width = typeof entry?.width === 'number' ? entry.width : (typeof entry?.naturalWidth === 'number' ? entry.naturalWidth : 0);
+                const height = typeof entry?.height === 'number' ? entry.height : (typeof entry?.naturalHeight === 'number' ? entry.naturalHeight : 0);
+                const aspectRatio = typeof entry?.aspectRatio === 'number'
+                    ? entry.aspectRatio
+                    : (width && height ? width / height : null);
                 mediaEntries.push({
                     uri,
                     type: type === 'video' ? 'video' : 'image',
                     duration,
                     cropRect,
+                    width,
+                    height,
+                    aspectRatio,
+                    isClip: Boolean(entry?.isClip || entryTypeRaw === 'clip' || latest?.type === 'clip'),
                 });
             });
         }
@@ -626,6 +637,10 @@ export default function UserStatsExerciseDetailScreen({
                     type: 'image',
                     duration: 0,
                     cropRect: typeof entry === 'string' ? null : entry?.cropRect || null,
+                    width: typeof entry?.width === 'number' ? entry.width : 0,
+                    height: typeof entry?.height === 'number' ? entry.height : 0,
+                    aspectRatio: typeof entry?.aspectRatio === 'number' ? entry.aspectRatio : null,
+                    isClip: false,
                 });
             });
         }
@@ -637,16 +652,35 @@ export default function UserStatsExerciseDetailScreen({
             return candidate ? String(candidate).trim() : '';
         })();
 
+        const editingPayload = {
+            pid,
+            caption: resolvedCaption,
+            mediaEntries,
+            workoutName,
+        };
+
+        if (isClipPost(latest)) {
+            const clipEntry = mediaEntries.find((entry) => entry?.type === 'video');
+            if (!clipEntry) {
+                Alert.alert('Unable to edit clip', 'This clip is missing its video. Please try again later.');
+                return;
+            }
+            navigateOneWay('EditClip', {
+                animation: 'slide-from-right',
+                params: {
+                    initialClip: clipEntry,
+                    initialCaption: resolvedCaption,
+                    editingContext: { editingPost: editingPayload },
+                },
+            });
+            return;
+        }
+
         navigateOneWay('PostOptions', {
             animation: 'slide-from-right',
             params: {
                 images: mediaEntries,
-                editingPost: {
-                    pid,
-                    caption: resolvedCaption,
-                    mediaEntries,
-                    workoutName,
-                },
+                editingPost: editingPayload,
             },
         });
     }, []);
@@ -692,7 +726,7 @@ export default function UserStatsExerciseDetailScreen({
             onPressWorkout={(_, data) => handleOpenWorkout(data)}
             onPressComments={(_, data) => openComments(data)}
             onPressLikes={handleShowLikesSheet}
-            onPressEditPost={(_, data) => handleEditPost(data || item)}
+            onPressEditPost={(_, data, opts) => handleEditPost(data || item, opts)}
             onPressEditWorkout={(_, data) => handleEditWorkout(data || item)}
         />
     ), [handleEditPost, handleEditWorkout, handleOpenProfile, handleOpenWorkout, openComments, handleShowLikesSheet]);
