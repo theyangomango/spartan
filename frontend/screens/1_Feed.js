@@ -496,7 +496,21 @@ export default function Feed({ navigation, route }) {
                 if (!uri || seen.has(uri)) return;
                 seen.add(uri);
                 const type = typeof entry === "string" ? undefined : entry?.type;
-                mediaEntries.push({ uri, type: type === "video" ? "video" : "image" });
+                const duration =
+                    typeof entry === "string"
+                        ? 0
+                        : Number(
+                              entry?.duration ??
+                              entry?.videoDuration ??
+                              entry?.length ??
+                              entry?.seconds ??
+                              0
+                          ) || 0;
+                mediaEntries.push({
+                    uri,
+                    type: type === "video" ? "video" : "image",
+                    duration,
+                });
             });
         }
         if (Array.isArray(latest.images)) {
@@ -504,11 +518,10 @@ export default function Feed({ navigation, route }) {
                 const uri = typeof entry === "string" ? entry : entry?.uri;
                 if (!uri || seen.has(uri)) return;
                 seen.add(uri);
-                mediaEntries.push({ uri, type: "image" });
+                mediaEntries.push({ uri, type: "image", duration: 0 });
             });
         }
 
-        const uniqueMedia = mediaEntries.map((entry) => entry.uri);
         const workoutName = (() => {
             const source = latest.workout || post.workout || null;
             if (!source || typeof source !== "object") return "";
@@ -517,7 +530,7 @@ export default function Feed({ navigation, route }) {
         })();
 
         navigation.navigate("PostOptions", {
-            images: uniqueMedia,
+            images: mediaEntries,
             editingPost: {
                 pid,
                 caption: resolvedCaption,

@@ -409,6 +409,7 @@ const SimpleFeedPost = ({
     const videoRefs = useRef({});
     const scrubbingStateRef = useRef(null);
     const videoControlsHideTimeoutsRef = useRef({});
+    const videoControlsOpacityRef = useRef({});
     const { openReportSheet, reportSheetNode } = useReportContentSheet();
 
     const mediaFingerprint = useMemo(() => {
@@ -441,6 +442,7 @@ const SimpleFeedPost = ({
         setVideoDurations({});
         setVideoProgress({});
         setVideoControlsVisible({});
+        videoControlsOpacityRef.current = {};
     }, [mediaFingerprint, mediaList.length]);
 
     useEffect(() => {
@@ -504,6 +506,13 @@ const SimpleFeedPost = ({
         if (Number.isFinite(nextIndex)) setMediaIndex(nextIndex);
     }, [mediaSize]);
 
+    const getControlsOpacityValue = useCallback((idx) => {
+        if (!videoControlsOpacityRef.current[idx]) {
+            videoControlsOpacityRef.current[idx] = new Animated.Value(0);
+        }
+        return videoControlsOpacityRef.current[idx];
+    }, []);
+
     const clearControlsHideTimeout = useCallback((idx) => {
         const existing = videoControlsHideTimeoutsRef.current[idx];
         if (existing) {
@@ -525,6 +534,16 @@ const SimpleFeedPost = ({
             return next;
         });
         clearControlsHideTimeout(idx);
+        const anim = getControlsOpacityValue(idx);
+        Animated.timing(anim, {
+            toValue: visible ? 1 : 0,
+            duration: 180,
+            useNativeDriver: true,
+        }).start(() => {
+            if (!visible) {
+                anim.setValue(0);
+            }
+        });
         if (visible && autoHide) {
             videoControlsHideTimeoutsRef.current[idx] = setTimeout(() => {
                 setVideoControlsVisible((prev) => {
@@ -534,9 +553,15 @@ const SimpleFeedPost = ({
                     return next;
                 });
                 delete videoControlsHideTimeoutsRef.current[idx];
+                const hideAnim = getControlsOpacityValue(idx);
+                Animated.timing(hideAnim, {
+                    toValue: 0,
+                    duration: 180,
+                    useNativeDriver: true,
+                }).start(() => hideAnim.setValue(0));
             }, 2000);
         }
-    }, [clearControlsHideTimeout]);
+    }, [clearControlsHideTimeout, getControlsOpacityValue]);
 
     const toggleVideoPlayback = useCallback((idx) => {
         setVideoPauseState((prev) => {
@@ -595,7 +620,14 @@ const SimpleFeedPost = ({
     }, [mediaIndex, setControlsVisibility, videoPauseState]);
 
     const handleScrubChange = useCallback((idx, value) => {
-        setVideoProgress((prev) => ({ ...prev, [idx]: value }));
+        setVideoProgress((prev) => {
+            const next = { ...prev, [idx]: value };
+            return next;
+        });
+        const seekValue = Number(value);
+        if (Number.isFinite(seekValue)) {
+            videoRefs.current[idx]?.seek?.(seekValue, 0);
+        }
     }, []);
 
     const finishScrub = useCallback((idx, value) => {
@@ -604,7 +636,7 @@ const SimpleFeedPost = ({
             : false;
         scrubbingStateRef.current = null;
         if (Number.isFinite(value)) {
-            videoRefs.current[idx]?.seek?.(value);
+            videoRefs.current[idx]?.seek?.(value, 0);
             setVideoProgress((prev) => ({ ...prev, [idx]: value }));
         }
         if (shouldResume) {
@@ -685,7 +717,8 @@ const SimpleFeedPost = ({
             const isActiveSlide = mediaIndex === slideIndex;
             const isManuallyPaused = Boolean(videoPauseState[slideIndex]);
             const paused = !isActiveSlide || isManuallyPaused;
-            const videoDuration = videoDurations[slideIndex] || 0;
+            const fallbackDuration = Number(item?.duration) || 0;
+            const videoDuration = videoDurations[slideIndex] || fallbackDuration;
             const sliderValue = Math.min(
                 videoDuration || Number.MAX_SAFE_INTEGER,
                 videoProgress[slideIndex] ?? 0
@@ -716,8 +749,11 @@ const SimpleFeedPost = ({
                             />
                         </View>
                     )}
-                    {videoDuration > 0 && shouldShowVideoControls && (
-                        <View style={styles.videoSliderOverlay} pointerEvents="box-none">
+                    {videoDuration > 0 && (
+                        <Animated.View
+                            style={[styles.videoSliderOverlay, { opacity: getControlsOpacityValue(slideIndex) }]}
+                            pointerEvents={shouldShowVideoControls ? 'auto' : 'none'}
+                        >
                             <View style={styles.videoTimeRow} pointerEvents="none">
                                 <Text style={styles.videoTimeText}>{formatClockTime(sliderValue)}</Text>
                                 <Text style={styles.videoTimeText}>{formatClockTime(videoDuration)}</Text>
@@ -734,7 +770,7 @@ const SimpleFeedPost = ({
                                 onValueChange={(value) => handleScrubChange(slideIndex, value)}
                                 onSlidingComplete={(value) => finishScrub(slideIndex, value)}
                             />
-                        </View>
+                        </Animated.View>
                     )}
                     <View style={styles.videoControlsOverlay} pointerEvents="box-none">
                         <Pressable

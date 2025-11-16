@@ -114,7 +114,6 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
                     <VerifiedHandle
                         handle={item?.handle || item?.uid}
                         isVerified={isVerified}
-                        preserveTextAlignment
                         textStyle={styles.handle}
                         numberOfLines={1}
                         containerStyle={styles.handleRow}

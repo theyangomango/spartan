@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { StyleSheet, View, Pressable, Text, Image } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
+import * as MediaLibrary from 'expo-media-library';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import theme from '../../../theme/mfpDark';
 import scaleSize from '../../../helper/scaleSize';
 import { withStrongPress } from "../../../utils/haptics";
@@ -12,14 +14,59 @@ const formatDuration = (value) => {
     return `${minutes}:${String(seconds).padStart(2, '0')}`;
 };
 
+const videoThumbnailCache = new Map();
+
 function PreviewPhoto({ asset, uri, type, duration, selected, order, onToggle }) {
     const handlePress = () => onToggle(asset);
     const isVideo = type === 'video';
+    const cacheKey = useMemo(() => (asset?.id || uri || asset?.uri || ''), [asset?.id, asset?.uri, uri]);
+    const [videoPreviewUri, setVideoPreviewUri] = useState(() => {
+        if (!isVideo) return null;
+        if (videoThumbnailCache.has(cacheKey)) return videoThumbnailCache.get(cacheKey);
+        return null;
+    });
+
+    useEffect(() => {
+        if (!isVideo) return;
+        if (!cacheKey) return;
+        if (videoThumbnailCache.has(cacheKey)) {
+            setVideoPreviewUri(videoThumbnailCache.get(cacheKey));
+            return;
+        }
+        let isMounted = true;
+        const resolvePreview = async () => {
+            try {
+                let candidate = asset?.localUri || asset?.uri || uri;
+                if ((!candidate || candidate.startsWith('ph://')) && asset?.id) {
+                    const info = await MediaLibrary.getAssetInfoAsync(asset.id).catch(() => null);
+                    if (info?.localUri) candidate = info.localUri;
+                }
+                if (!candidate) return;
+                const { uri: thumbnailUri } = await VideoThumbnails.getThumbnailAsync(candidate, { time: 0 }).catch(() => ({}));
+                if (thumbnailUri && isMounted) {
+                    videoThumbnailCache.set(cacheKey, thumbnailUri);
+                    setVideoPreviewUri(thumbnailUri);
+                    return;
+                }
+            } catch (error) {
+                console.warn('[PreviewPhoto] Failed to generate video thumbnail', error?.message || error);
+            }
+        };
+        resolvePreview();
+        return () => {
+            isMounted = false;
+        };
+    }, [asset?.id, asset?.localUri, asset?.uri, cacheKey, isVideo, uri]);
 
     return (
         <Pressable onPress={withStrongPress(handlePress)} style={styles.image_ctnr} android_disableSound>
             {isVideo ? (
                 <View style={styles.video_frame}>
+                    {videoPreviewUri ? (
+                        <Image source={{ uri: videoPreviewUri }} style={styles.image} resizeMode="cover" />
+                    ) : (
+                        <View style={styles.video_placeholder} />
+                    )}
                     <View style={styles.video_overlay} />
                     <View style={styles.video_badge}>
                         <Ionicons name='play' size={scaleSize(11)} color="#fff" style={{ marginRight: scaleSize(4) }} />
@@ -59,6 +106,10 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     video_frame: {
+        flex: 1,
+        backgroundColor: theme.field,
+    },
+    video_placeholder: {
         flex: 1,
         backgroundColor: theme.field,
     },

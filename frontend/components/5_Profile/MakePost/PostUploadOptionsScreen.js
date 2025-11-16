@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Dimensions, FlatList, Alert, Platform } from "react-native";
+import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Dimensions, FlatList, Alert, Platform, Pressable, Animated } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons, FontAwesome6 } from '@expo/vector-icons';
 import FastImage from 'react-native-fast-image';
 import Video from 'react-native-video';
 import * as MediaLibrary from 'expo-media-library';
+import Slider from '@react-native-community/slider';
 import makeID from "../../../../backend/helper/makeID";
 // Storage handled via native resumable helper to avoid RN Blob issues
 import * as FileSystem from 'expo-file-system';
@@ -36,6 +37,20 @@ const avatarSize = scaleSize(36);
 const headerBottomPadding = scaleSize(12);
 const MAX_CAPTION_LINES = 10;
 
+const formatClockTime = (seconds) => {
+    const total = Math.max(0, Math.floor(Number(seconds) || 0));
+    const mins = Math.floor(total / 60);
+    const secs = total % 60;
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+};
+
+const mediaSignatureFor = (entry) => {
+    if (!entry) return 'null';
+    const type = entry.type || 'image';
+    const uri = typeof entry.uri === 'string' ? entry.uri : JSON.stringify(entry.uri || '');
+    return `${type}:${uri}`;
+};
+
 const normalizeMediaSelectionEntry = (entry, index = 0) => {
     if (!entry) return null;
     if (typeof entry === 'string') {
@@ -52,7 +67,14 @@ const normalizeMediaSelectionEntry = (entry, index = 0) => {
     if (typeof entry === 'object') {
         const uri = entry.uri || entry.url || entry.image || entry.path || null;
         if (!uri) return null;
-        const typeSource = entry.type || entry.mediaType || entry.kind || 'image';
+        const typeSource = entry.type
+            || entry.mediaType
+            || entry.kind
+            || entry.mime
+            || entry.mimeType
+            || entry.contentType
+            || entry.fileType
+            || 'image';
         const normalizedType = String(typeSource).toLowerCase().includes('video') ? 'video' : 'image';
         const previewUri = entry.previewUri || uri;
         const originalUri = entry.originalUri || uri;
@@ -173,6 +195,15 @@ export default function PostOptionsScreen({ navigation, route }) {
     const [lineLimitReached, setLineLimitReached] = useState(false);
     const compressionCacheRef = useRef(new Map()); // reuse compressed results across retries
     const [viewerUid, setViewerUid] = useState(() => getViewerUid());
+    const [videoPauseState, setVideoPauseState] = useState({});
+    const [areVideosMuted, setVideosMuted] = useState(true);
+    const [videoDurations, setVideoDurations] = useState({});
+    const [videoProgress, setVideoProgress] = useState({});
+    const [videoControlsVisible, setVideoControlsVisible] = useState({});
+    const videoRefs = useRef({});
+    const scrubbingStateRef = useRef(null);
+    const videoControlsHideTimeoutsRef = useRef({});
+    const videoControlsOpacityRef = useRef({});
 
     useEffect(() => {
         return subscribeUserData(() => {
@@ -193,6 +224,29 @@ export default function PostOptionsScreen({ navigation, route }) {
             : []
     ), [selectedImages]);
     const hasMedia = mediaList.length > 0;
+
+    const mediaFingerprint = useMemo(() => {
+        if (mediaList.length === 0) return 'empty';
+        return mediaList.map(mediaSignatureFor).join('|');
+    }, [mediaList]);
+
+    const previousMediaFingerprintRef = useRef(mediaFingerprint);
+
+    useEffect(() => {
+        if (previousMediaFingerprintRef.current === mediaFingerprint) return;
+        previousMediaFingerprintRef.current = mediaFingerprint;
+        setVideoPauseState({});
+        setVideosMuted(true);
+        setVideoDurations({});
+        setVideoProgress({});
+        setVideoControlsVisible({});
+        videoRefs.current = {};
+        Object.values(videoControlsHideTimeoutsRef.current).forEach((id) => {
+            if (id) clearTimeout(id);
+        });
+        videoControlsHideTimeoutsRef.current = {};
+        videoControlsOpacityRef.current = {};
+    }, [mediaFingerprint]);
 
     const compressionPreset = useMemo(() => {
         const count = Math.max(1, mediaList.length || 1);
@@ -444,36 +498,235 @@ export default function PostOptionsScreen({ navigation, route }) {
         updateMediaIndexFromOffset(offsetX);
     }, [updateMediaIndexFromOffset]);
 
-    const renderMediaItem = useCallback(({ item }) => {
+    useEffect(() => () => {
+        Object.values(videoControlsHideTimeoutsRef.current).forEach((id) => {
+            if (id) clearTimeout(id);
+        });
+        videoControlsHideTimeoutsRef.current = {};
+    }, []);
+
+    const getControlsOpacityValue = useCallback((idx) => {
+        if (!videoControlsOpacityRef.current[idx]) {
+            videoControlsOpacityRef.current[idx] = new Animated.Value(0);
+        }
+        return videoControlsOpacityRef.current[idx];
+    }, []);
+
+    const clearControlsHideTimeout = useCallback((idx) => {
+        const existing = videoControlsHideTimeoutsRef.current[idx];
+        if (existing) {
+            clearTimeout(existing);
+            delete videoControlsHideTimeoutsRef.current[idx];
+        }
+    }, []);
+
+    const setControlsVisibility = useCallback((idx, visible, autoHide = false) => {
+        setVideoControlsVisible((prev) => {
+            const alreadyVisible = Boolean(prev[idx]);
+            if (visible) {
+                if (alreadyVisible) return prev;
+                return { ...prev, [idx]: true };
+            }
+            if (!alreadyVisible) return prev;
+            const next = { ...prev };
+            delete next[idx];
+            return next;
+        });
+        clearControlsHideTimeout(idx);
+        const anim = getControlsOpacityValue(idx);
+        Animated.timing(anim, {
+            toValue: visible ? 1 : 0,
+            duration: 180,
+            useNativeDriver: true,
+        }).start(() => {
+            if (!visible) anim.setValue(0);
+        });
+        if (visible && autoHide) {
+            videoControlsHideTimeoutsRef.current[idx] = setTimeout(() => {
+                setVideoControlsVisible((prev) => {
+                    if (!prev[idx]) return prev;
+                    const next = { ...prev };
+                    delete next[idx];
+                    return next;
+                });
+                delete videoControlsHideTimeoutsRef.current[idx];
+                const hideAnim = getControlsOpacityValue(idx);
+                Animated.timing(hideAnim, {
+                    toValue: 0,
+                    duration: 180,
+                    useNativeDriver: true,
+                }).start(() => hideAnim.setValue(0));
+            }, 2000);
+        }
+    }, [clearControlsHideTimeout, getControlsOpacityValue]);
+
+    const toggleVideoPlayback = useCallback((idx) => {
+        setVideoPauseState((prev) => {
+            const wasPaused = Boolean(prev[idx]);
+            const next = { ...prev };
+            if (wasPaused) {
+                delete next[idx];
+                setControlsVisibility(idx, true, true);
+            } else {
+                next[idx] = true;
+                setControlsVisibility(idx, true, false);
+            }
+            return next;
+        });
+    }, [setControlsVisibility]);
+
+    const toggleVideoMute = useCallback(() => {
+        setVideosMuted((prev) => !prev);
+    }, []);
+
+    const assignVideoRef = useCallback((idx, ref) => {
+        if (ref) {
+            videoRefs.current[idx] = ref;
+        } else {
+            delete videoRefs.current[idx];
+        }
+    }, []);
+
+    const handleVideoLoad = useCallback((idx, meta) => {
+        const duration = Number(meta?.duration) || 0;
+        if (duration > 0) {
+            setVideoDurations((prev) => (
+                prev[idx] === duration ? prev : { ...prev, [idx]: duration }
+            ));
+        }
+    }, []);
+
+    const handleVideoProgress = useCallback((idx, progressEvent) => {
+        if (scrubbingStateRef.current?.index === idx) return;
+        const currentTime = Number(progressEvent?.currentTime) || 0;
+        setVideoProgress((prev) => {
+            const previousValue = prev[idx] ?? 0;
+            if (Math.abs(previousValue - currentTime) < 0.05) return prev;
+            return { ...prev, [idx]: currentTime };
+        });
+    }, []);
+
+    const beginScrub = useCallback((idx) => {
+        const wasPlaying = !videoPauseState[idx] && mediaIndex === idx;
+        scrubbingStateRef.current = { index: idx, resumePlayback: wasPlaying };
+        if (mediaIndex === idx) {
+            setVideoPauseState((prev) => ({ ...prev, [idx]: true }));
+        }
+        setControlsVisibility(idx, true, false);
+    }, [mediaIndex, setControlsVisibility, videoPauseState]);
+
+    const handleScrubChange = useCallback((idx, value) => {
+        setVideoProgress((prev) => ({ ...prev, [idx]: value }));
+        const seekValue = Number(value);
+        if (Number.isFinite(seekValue)) {
+            videoRefs.current[idx]?.seek?.(seekValue, 0);
+        }
+    }, []);
+
+    const finishScrub = useCallback((idx, value) => {
+        const shouldResume = scrubbingStateRef.current?.index === idx
+            ? scrubbingStateRef.current?.resumePlayback
+            : false;
+        scrubbingStateRef.current = null;
+        if (Number.isFinite(value)) {
+            videoRefs.current[idx]?.seek?.(value, 0);
+            setVideoProgress((prev) => ({ ...prev, [idx]: value }));
+        }
+        if (shouldResume) {
+            setVideoPauseState((prev) => {
+                const next = { ...prev };
+                delete next[idx];
+                return next;
+            });
+            setControlsVisibility(idx, true, true);
+        } else {
+            setControlsVisibility(idx, true, false);
+        }
+    }, [setControlsVisibility]);
+
+    const renderMediaItem = useCallback(({ item, index: slideIndex }) => {
         if (!item) return null;
-        const displayUri = item.previewUri || item.uri;
-        const isVideo = item.type === 'video';
-        return (
-            <View style={[styles.media_slide, { width: mediaWidth, height: mediaWidth }]}>
-                {isVideo ? (
-                    <>
-                        <Video
-                            source={{ uri: item.localUri || item.uri }}
-                            style={styles.media_image}
-                            resizeMode="cover"
-                            repeat
-                            muted
-                            paused
-                        />
-                        <View style={styles.media_video_overlay}>
-                            <Feather name="play" size={scaleSize(32)} color="#fff" />
-                        </View>
-                    </>
-                ) : (
-                    <Image
-                        source={{ uri: displayUri }}
+        const containerStyle = [styles.media_slide, { width: mediaWidth, height: mediaWidth }];
+        if (item.type === 'video') {
+            const source = typeof item.uri === 'string' ? { uri: item.uri } : item.uri;
+            const isActiveSlide = mediaIndex === slideIndex;
+            const isManuallyPaused = Boolean(videoPauseState[slideIndex]);
+            const paused = !isActiveSlide || isManuallyPaused;
+            const fallbackDuration = Number(item?.duration) || 0;
+            const videoDuration = videoDurations[slideIndex] || fallbackDuration;
+            const sliderValue = Math.min(
+                videoDuration || Number.MAX_SAFE_INTEGER,
+                videoProgress[slideIndex] ?? 0
+            );
+            const controlsOpacity = getControlsOpacityValue(slideIndex);
+            const shouldShowControls = paused || videoControlsVisible[slideIndex];
+            return (
+                <Pressable style={containerStyle} onPress={() => toggleVideoPlayback(slideIndex)}>
+                    <Video
+                        ref={(ref) => assignVideoRef(slideIndex, ref)}
+                        source={source}
                         style={styles.media_image}
                         resizeMode="cover"
+                        paused={paused}
+                        repeat
+                        muted={areVideosMuted}
+                        onLoad={(meta) => handleVideoLoad(slideIndex, meta)}
+                        onProgress={(event) => handleVideoProgress(slideIndex, event)}
                     />
-                )}
+                    {paused && (
+                        <View style={styles.video_play_icon_wrap} pointerEvents="none">
+                            <FontAwesome6 name="circle-play" size={scaleSize(56)} color="#fff" />
+                        </View>
+                    )}
+                    {videoDuration > 0 && (
+                        <Animated.View
+                            style={[styles.video_slider_overlay, { opacity: controlsOpacity }]}
+                            pointerEvents={shouldShowControls ? 'auto' : 'none'}
+                        >
+                            <View style={styles.video_time_row} pointerEvents="none">
+                                <Text style={styles.video_time_text}>{formatClockTime(sliderValue)}</Text>
+                                <Text style={styles.video_time_text}>{formatClockTime(videoDuration)}</Text>
+                            </View>
+                            <Slider
+                                style={styles.video_slider}
+                                minimumValue={0}
+                                maximumValue={videoDuration}
+                                value={sliderValue}
+                                minimumTrackTintColor={theme.primary}
+                                maximumTrackTintColor="rgba(255,255,255,0.25)"
+                                thumbTintColor="#fff"
+                                onSlidingStart={() => beginScrub(slideIndex)}
+                                onValueChange={(value) => handleScrubChange(slideIndex, value)}
+                                onSlidingComplete={(value) => finishScrub(slideIndex, value)}
+                            />
+                        </Animated.View>
+                    )}
+                    <View style={styles.video_controls_overlay} pointerEvents="box-none">
+                        <Pressable
+                            style={styles.video_mute_button}
+                            hitSlop={8}
+                            onPress={(event) => {
+                                event?.stopPropagation?.();
+                                toggleVideoMute();
+                            }}
+                        >
+                            <MaterialCommunityIcons
+                                name={areVideosMuted ? 'volume-off' : 'volume-high'}
+                                size={scaleSize(18)}
+                                color="#fff"
+                            />
+                        </Pressable>
+                    </View>
+                </Pressable>
+            );
+        }
+        const displayUri = item.previewUri || item.uri;
+        return (
+            <View style={containerStyle}>
+                <Image source={{ uri: displayUri }} style={styles.media_image} resizeMode="cover" />
             </View>
         );
-    }, [mediaWidth]);
+    }, [areVideosMuted, assignVideoRef, beginScrub, finishScrub, getControlsOpacityValue, handleScrubChange, handleVideoLoad, handleVideoProgress, mediaIndex, mediaWidth, toggleVideoMute, toggleVideoPlayback, videoControlsVisible, videoDurations, videoPauseState, videoProgress]);
 
     useEffect(() => {
         isMountedRef.current = true;
@@ -488,6 +741,19 @@ export default function PostOptionsScreen({ navigation, route }) {
             setMediaIndex(0);
         }
     }, [mediaIndex, mediaList.length]);
+
+    useEffect(() => {
+        const current = mediaList?.[mediaIndex];
+        if (!current || current.type !== 'video') return;
+        if (videoPauseState[mediaIndex]) {
+            setControlsVisibility(mediaIndex, true, false);
+        } else {
+            setControlsVisibility(mediaIndex, true, true);
+        }
+        return () => {
+            setControlsVisibility(mediaIndex, false);
+        };
+    }, [mediaIndex, mediaList, setControlsVisibility, videoPauseState]);
 
     function goBack() {
         navigation.goBack();
@@ -1040,7 +1306,22 @@ const styles = StyleSheet.create({
         height: '100%',
         borderRadius: 0
     },
-    media_video_overlay: {
+    video_controls_overlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        justifyContent: 'flex-start',
+        alignItems: 'flex-end',
+        padding: scaleSize(12),
+    },
+    video_mute_button: {
+        backgroundColor: 'rgba(0,0,0,0.45)',
+        borderRadius: scaleSize(20),
+        padding: scaleSize(8),
+    },
+    video_play_icon_wrap: {
         position: 'absolute',
         top: 0,
         left: 0,
@@ -1048,7 +1329,29 @@ const styles = StyleSheet.create({
         bottom: 0,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.25)'
+    },
+    video_slider_overlay: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingHorizontal: scaleSize(12),
+        paddingBottom: scaleSize(10),
+        paddingTop: scaleSize(6),
+        backgroundColor: 'rgba(0,0,0,0.35)',
+    },
+    video_slider: {
+        height: scaleSize(30),
+    },
+    video_time_row: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: scaleSize(6),
+    },
+    video_time_text: {
+        fontSize: scaleSize(11),
+        color: '#fff',
+        fontFamily: 'Outfit_600SemiBold',
     },
     media_indicator_row: {
         flexDirection: 'row',

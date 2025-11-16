@@ -112,7 +112,6 @@ export default function LeaderboardCard({
                         <VerifiedHandle
                             handle={handle}
                             isVerified={isVerified}
-                            preserveTextAlignment
                             textStyle={[styles.handle_text, { fontSize: scaleSize(FONT_HANDLE) }]}
                             numberOfLines={1}
                             iconSize={scaleSize(15)}
