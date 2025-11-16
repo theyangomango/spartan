@@ -209,7 +209,6 @@ export default function ProfileLoggedFoodsScreen({ navigation, route }) {
                                     entry: entry.raw || entry,
                                     mealName: entry.meal,
                                     dayKey: entry.dayKey,
-                                    readOnly: true,
                                     mode: 'edit',
                                 })}
                             />
