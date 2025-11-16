@@ -845,9 +845,12 @@ const SimpleFeedPost = ({
             : toNumber(data?.likeCount)
     ), [data?.likes, data?.likeCount]);
 
-    const commentCount = Array.isArray(data?.comments)
-        ? data.comments.length
-        : toNumber(data?.commentCount);
+    const commentCount = (() => {
+        const count = Array.isArray(data?.comments)
+            ? data.comments.length
+            : toNumber(data?.commentCount);
+        return Math.max(0, count - 1);
+    })();
 
     const {
         isLiked,

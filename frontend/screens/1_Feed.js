@@ -18,6 +18,8 @@ import {
     Alert,
     Text,
     ActivityIndicator,
+    Animated,
+    Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -53,6 +55,7 @@ import { logFeedSignal } from "../helper/feedSignals";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
+const MIN_HEADER_MEASURE = scaleSize(24);
 
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
@@ -156,6 +159,14 @@ export default function Feed({ navigation, route }) {
     const [highlightSignal, setHighlightSignal] = useState(0);
     const [pendingScrollRequest, setPendingScrollRequest] = useState(null);
 
+    const headerVisibility = useRef(new Animated.Value(1)).current;
+    const [headerPointerEvents, setHeaderPointerEvents] = useState("auto");
+    const [headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
+    const lastScrollOffsetRef = useRef(0);
+    const lastScrollTimeRef = useRef(Date.now());
+    const isHeaderHiddenRef = useRef(false);
+    const isAnimatingHeaderRef = useRef(false);
+
 
     const listData = useMemo(() => {
         if (feedScope === "following") {
@@ -171,6 +182,102 @@ export default function Feed({ navigation, route }) {
         && (!Array.isArray(listData) || listData.length === 0);
 
     const hasPosts = Array.isArray(listData) && listData.length > 0;
+
+    const animateHeaderVisibility = useCallback(
+        (toValue) => {
+            if (isAnimatingHeaderRef.current) {
+                headerVisibility.stopAnimation?.();
+            }
+            isAnimatingHeaderRef.current = true;
+            if (toValue === 1) {
+                setHeaderPointerEvents("auto");
+            }
+            Animated.timing(headerVisibility, {
+                toValue,
+                duration: 220,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: false,
+            }).start(() => {
+                isAnimatingHeaderRef.current = false;
+                if (toValue === 0) {
+                    setHeaderPointerEvents("none");
+                }
+            });
+        },
+        [headerVisibility]
+    );
+
+    const showHeader = useCallback(() => {
+        if (!isHeaderHiddenRef.current) return;
+        isHeaderHiddenRef.current = false;
+        animateHeaderVisibility(1);
+    }, [animateHeaderVisibility]);
+
+    const hideHeader = useCallback(() => {
+        if (isHeaderHiddenRef.current) return;
+        isHeaderHiddenRef.current = true;
+        animateHeaderVisibility(0);
+    }, [animateHeaderVisibility]);
+
+    const handleHeaderLayout = useCallback(
+        (event) => {
+            const height = event?.nativeEvent?.layout?.height || 0;
+            if (
+                (headerMeasuredHeight === 0 && height > 0) ||
+                (height > MIN_HEADER_MEASURE && Math.abs(height - headerMeasuredHeight) > 1)
+            ) {
+                setHeaderMeasuredHeight(height);
+            }
+        },
+        [headerMeasuredHeight]
+    );
+
+    const headerHeightForAnimation = headerMeasuredHeight > 0 ? headerMeasuredHeight : scaleSize(88);
+
+    const headerAnimatedStyle = useMemo(
+        () => ({
+            opacity: headerVisibility,
+            marginBottom: headerVisibility.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-headerHeightForAnimation, scaleSize(2)],
+            }),
+            transform: [
+                {
+                    translateY: headerVisibility.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-(headerHeightForAnimation + scaleSize(12)), 0],
+                    }),
+                },
+            ],
+        }),
+        [headerHeightForAnimation, headerVisibility]
+    );
+
+    const handleListScroll = useCallback(
+        (event) => {
+            const offsetY = event?.nativeEvent?.contentOffset?.y ?? 0;
+            const lastOffset = lastScrollOffsetRef.current;
+            const delta = offsetY - lastOffset;
+            lastScrollOffsetRef.current = offsetY;
+            const now = Date.now();
+            const dt = Math.max(now - lastScrollTimeRef.current, 1);
+            lastScrollTimeRef.current = now;
+            const speedPerMs = Math.abs(delta) / dt;
+            const shouldTriggerSpeed = speedPerMs >= 1.2; // ~700 px/sec
+
+            if (offsetY <= 12) {
+                showHeader();
+                return;
+            }
+
+            if (delta > 20) {
+                hideHeader();
+            } else if (delta < -28 && shouldTriggerSpeed) {
+                showHeader();
+            }
+        },
+        [hideHeader, showHeader]
+    );
 
     useEffect(() => {
         if (hasPosts) return;
@@ -199,6 +306,7 @@ export default function Feed({ navigation, route }) {
 
     const onRefresh = useCallback(() => {
         if (refreshing) return;
+        showHeader();
         setRefreshing(true);
         if (refreshTimeoutRef.current) {
             clearTimeout(refreshTimeoutRef.current);
@@ -207,7 +315,7 @@ export default function Feed({ navigation, route }) {
             refreshTimeoutRef.current = null;
             setRefreshing(false);
         }, 700);
-    }, [refreshing]);
+    }, [refreshing, showHeader]);
 
     const openCommentsModal = useCallback((index) => {
         if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
@@ -677,10 +785,11 @@ export default function Feed({ navigation, route }) {
     }, [openViewWorkoutModal]);
 
     const scrollToTop = useCallback(() => {
+        showHeader();
         if (flatListRef.current) {
             flatListRef.current.scrollToOffset({ offset: 0, animated: true });
         }
-    }, []);
+    }, [showHeader]);
 
     useEffect(() => {
         try { global.scrollFeedToTop = scrollToTop; } catch { }
@@ -892,7 +1001,13 @@ export default function Feed({ navigation, route }) {
     return (
         <SafeAreaView style={styles.screen} edges={["top"]}>
             <StatusBar style="light" />
-            <View style={styles.headerWrap}>{headerComponent}</View>
+            <Animated.View
+                style={[styles.headerWrap, headerAnimatedStyle]}
+                pointerEvents={headerPointerEvents}
+                onLayout={handleHeaderLayout}
+            >
+                {headerComponent}
+            </Animated.View>
             <FlatList
                 ref={flatListRef}
                 data={listData}
@@ -916,6 +1031,8 @@ export default function Feed({ navigation, route }) {
                     { paddingBottom: LIST_BOTTOM_INSET + Math.max(0, insets.bottom || 0) },
                 ]}
                 showsVerticalScrollIndicator={false}
+                onScroll={handleListScroll}
+                scrollEventThrottle={16}
                 onEndReached={handleEndReached}
                 onEndReachedThreshold={0.6}
                 maintainVisibleContentPosition={{
