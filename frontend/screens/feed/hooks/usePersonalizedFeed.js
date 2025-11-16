@@ -167,10 +167,17 @@ export default function usePersonalizedFeed(followingUsers) {
         restRatio: { following: 1, suggested: 4 },
     }), [rankedFollowing, suggestedCandidates]);
 
+    const personalPosts = useMemo(() => {
+        const myUid = global?.userData?.uid ? String(global.userData.uid) : "";
+        if (!myUid) return followingPosts.filter((post) => Boolean(post));
+        return followingPosts.filter((post) => String(post?.uid || "") === myUid);
+    }, [followingPosts]);
+
     return {
         ...filteredFeed,
         posts: personalizedPosts,
         followingPosts,
+        personalPosts,
         suggestedPosts: suggestedCandidates.map((entry) => entry.post),
         trendingLoading,
         refreshTrending: fetchTrending,

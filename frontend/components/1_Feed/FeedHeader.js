@@ -40,6 +40,7 @@ const s = (n) => Math.round(n * scale);
 const FEED_SCOPE_OPTIONS = [
     { key: "forYou", label: "Feed" },
     { key: "following", label: "Following" },
+    { key: "personal", label: "Personal" },
 ];
 
 // Unified sizing metrics (reduces magic numbers)

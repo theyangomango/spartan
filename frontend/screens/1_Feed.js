@@ -118,6 +118,7 @@ export default function Feed({ navigation, route }) {
     const {
         posts: personalizedPosts,
         followingPosts,
+        personalPosts,
         loadMore: loadMorePosts,
         hasMore: hasMorePosts,
         loadingMore: loadingMorePosts,
@@ -160,8 +161,11 @@ export default function Feed({ navigation, route }) {
         if (feedScope === "following") {
             return Array.isArray(followingPosts) ? followingPosts : [];
         }
+        if (feedScope === "personal") {
+            return Array.isArray(personalPosts) ? personalPosts : [];
+        }
         return Array.isArray(personalizedPosts) ? personalizedPosts : [];
-    }, [feedScope, followingPosts, personalizedPosts]);
+    }, [feedScope, followingPosts, personalPosts, personalizedPosts]);
 
     const showFeedSkeleton = (!hydratedFromCache || !initialSyncComplete)
         && (!Array.isArray(listData) || listData.length === 0);
@@ -802,24 +806,31 @@ export default function Feed({ navigation, route }) {
 
     const renderEmptyList = () => {
         const isFollowingScope = feedScope === "following";
+        const isPersonalScope = feedScope === "personal";
         return (
             <View>
                 {renderSnapshotCard()}
                 <View style={styles.emptyState}>
                     <View style={styles.emptyIcon}>
                         <Feather
-                            name={isFollowingScope ? "users" : "trending-up"}
+                            name={isFollowingScope ? "users" : isPersonalScope ? "user" : "trending-up"}
                             size={scaleSize(28)}
                             color={theme.primary}
                         />
                     </View>
                     <Text style={styles.emptyTitle}>
-                        {isFollowingScope ? "No following posts yet" : "Getting recommendations ready"}
+                        {isFollowingScope
+                            ? "No following posts yet"
+                            : isPersonalScope
+                                ? "No personal posts yet"
+                                : "Getting recommendations ready"}
                     </Text>
                     <Text style={styles.emptySubtitle}>
                         {isFollowingScope
                             ? "Follow more athletes or ask friends to share updates so this tab fills up."
-                            : "Keep scrolling—your For You feed pulls in trending workouts and creator highlights."}
+                            : isPersonalScope
+                                ? "Share a workout or update to build your own timeline here."
+                                : "Keep scrolling—your Feed mixes trending workouts and creator highlights."}
                     </Text>
                 </View>
             </View>
