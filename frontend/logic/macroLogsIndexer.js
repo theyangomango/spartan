@@ -9,6 +9,7 @@ const globalIndex = new Map(); // dayKey -> array of { id, entry }
 const globalMealsCache = new Map(); // dayKey -> { meals, totals }
 const macroParseCache = new Map(); // `${id}|${desc}|${qty}` -> macros
 let lastSig = 0; // mirrors global.__loggedFoodsSig to know when to rebuild index
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 function rebuildGlobalIndexIfNeeded() {
   const map = global?.userData?.loggedFoods || {};
@@ -118,3 +119,48 @@ export function invalidateMealsCache() {
   globalMealsCache.clear();
 }
 
+function dayKeyToDate(dk) {
+  if (!dk) return null;
+  const [y, m, d] = String(dk)
+    .split('-')
+    .map((part) => Number(part));
+  if (!y || !m || !d) return null;
+  const date = new Date(y, (m || 1) - 1, d || 1);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+export function getLoggedFoodStreak(referenceDate = new Date()) {
+  rebuildGlobalIndexIfNeeded();
+  if (!globalIndex.size) return 0;
+
+  const today = new Date(referenceDate);
+  if (Number.isNaN(today.getTime())) return 0;
+  today.setHours(0, 0, 0, 0);
+
+  let latest = null;
+  for (const dk of globalIndex.keys()) {
+    const date = dayKeyToDate(dk);
+    if (!date) continue;
+    if (date.getTime() > today.getTime()) continue; // ignore future-dated entries
+    if (!latest || date.getTime() > latest.getTime()) latest = date;
+  }
+
+  if (!latest) return 0;
+  const deltaDays = Math.floor((today.getTime() - latest.getTime()) / DAY_MS);
+  if (deltaDays > 1) return 0;
+
+  let streak = 0;
+  const cursor = new Date(latest);
+
+  while (streak < 1000) {
+    const dk = toDayKey(cursor);
+    const entries = globalIndex.get(dk);
+    if (!entries || entries.length === 0) break;
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
+}

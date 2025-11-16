@@ -26,7 +26,7 @@ import scaleSize from '../helper/scaleSize';
 import { db } from '../../firebase.config';
 import theme from '../theme/mfpDark';
 import { toDayKey } from '../utils/date';
-import { buildFromGlobal } from '../logic/macroLogsIndexer';
+import { buildFromGlobal, getLoggedFoodStreak } from '../logic/macroLogsIndexer';
 import { doc, onSnapshot, updateDoc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { touchRecentFood } from '../utils/recentFoods';
 import { parseMacrosFromDescription, scaleMacros } from '../utils/nutrition';
@@ -131,6 +131,7 @@ export default function MacroTracking({ navigation, route }) {
     // Local state derived from global.loggedFoods for the focused day
     const [meals, setMeals] = useState(() => ({ Breakfast: [], Lunch: [], Dinner: [], Snacks: [] }));
     const [totals, setTotals] = useState(() => ({ calories: 0, protein: 0, carbs: 0, fat: 0 }));
+    const [loggedStreak, setLoggedStreak] = useState(() => getLoggedFoodStreak());
 
     // -------- goals (load from user doc, save back) --------
     const [macroGoals, setMacroGoals] = useState({ calories: 2340, carbs: 285, fat: 70, protein: 140 });
@@ -326,10 +327,8 @@ export default function MacroTracking({ navigation, route }) {
     // Keep header + page data in sync when focusedDate changes
     useEffect(() => {
         setHeaderDate(focusedDate);
-        const built = buildFromGlobal(focusedDate);
-        setMeals(built.meals);
-        setTotals(built.totals);
-    }, [focusedDate]);
+        refreshDayData();
+    }, [focusedDate, refreshDayData]);
 
     const listRef = useRef(null);
 
@@ -379,6 +378,7 @@ export default function MacroTracking({ navigation, route }) {
                 try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
             }
         } catch { }
+        setLoggedStreak(getLoggedFoodStreak());
         try {
             if (uid) {
                 const uref = doc(db, 'usersPrivate', uid);
@@ -388,6 +388,13 @@ export default function MacroTracking({ navigation, route }) {
             }
         } catch { }
     }, [focusedDate]);
+
+    const refreshDayData = useCallback(() => {
+        const built = buildFromGlobal(focusedDate);
+        setMeals(built.meals);
+        setTotals(built.totals);
+        setLoggedStreak(getLoggedFoodStreak());
+    }, [focusedDate, getLoggedFoodStreak, buildFromGlobal]);
 
     // MacroDayPage extracted into separate file for clarity
 
@@ -500,6 +507,7 @@ export default function MacroTracking({ navigation, route }) {
             carbs: Math.round((prev.carbs || 0) + (macros.carbs || 0)),
             fat: Math.round((prev.fat || 0) + (macros.fat || 0)),
         }));
+        setLoggedStreak(getLoggedFoodStreak());
         try {
             if (uid) {
                 const uref = doc(db, 'usersPrivate', uid);
@@ -610,10 +618,8 @@ export default function MacroTracking({ navigation, route }) {
 
     // Refresh from global when returning to this screen so edits/saves reflect
     useFocusEffect(React.useCallback(() => {
-        const built = buildFromGlobal(focusedDate);
-        setMeals(built.meals);
-        setTotals(built.totals);
-    }, [focusedDate]));
+        refreshDayData();
+    }, [refreshDayData]));
 
     return (
         <GestureHandlerRootView style={{ flex: 1 }}>
@@ -629,6 +635,7 @@ export default function MacroTracking({ navigation, route }) {
                         onHistoryPress={openLoggedFoodsHistory}
                         COLORS={COLORS}
                         isToday={isHeaderDateToday}
+                        streakCount={loggedStreak}
                     />
                 </SafeAreaInsetsView>
 
