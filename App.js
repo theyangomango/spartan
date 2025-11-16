@@ -1397,7 +1397,7 @@ export default function App() {
     if (!appReady) {
         return (
             <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-                <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#ffffff' }} onLayout={onLayoutRootView} />
+                <GestureHandlerRootView style={{ flex: 1, backgroundColor: theme.bg }} onLayout={onLayoutRootView} />
             </SafeAreaProvider>
         );
     }
