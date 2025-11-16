@@ -8,6 +8,7 @@ import arrayErase from '../../../../../backend/helper/firebase/arrayErase';
 import scaleSize from '../../../../helper/scaleSize';
 import { getViewerUid } from '../../../../utils/userRefs';
 import { subscribeUserData } from '../../../../utils/userDataEvents';
+import { bumpAffinityForUser, logFeedSignal } from '../../../../helper/feedSignals';
 
 const DOUBLE_TAP_GUARD_MS = 300;
 
@@ -118,6 +119,8 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
 
         try { haptic(); } catch {}
 
+        const safePostOwnerUid = data?.uid ? String(data.uid) : data?.creatorUid ? String(data.creatorUid) : "";
+
         setIsLiked((prev) => {
             const now = Date.now();
             const nextLiked = !prev;
@@ -164,6 +167,16 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
                 console.warn('Failed to update like state', error);
             }
 
+            if (data?.pid) {
+                logFeedSignal(nextLiked ? 'like_post' : 'unlike_post', {
+                    pid: data.pid,
+                    ownerUid: safePostOwnerUid || data?.uid,
+                });
+                if (safePostOwnerUid) {
+                    bumpAffinityForUser(safePostOwnerUid, 'likesPast7dByUid', nextLiked ? 1 : -1);
+                }
+            }
+
             lastLikeToggleRef.current = now;
             return nextLiked;
         });
@@ -194,9 +207,20 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
             console.warn('Failed to toggle saved post', error);
         }
 
+        const safePostOwnerUid = data?.uid ? String(data.uid) : data?.creatorUid ? String(data.creatorUid) : "";
+        if (data?.pid) {
+            logFeedSignal(isSaved ? 'unsave_post' : 'save_post', {
+                pid: data.pid,
+                ownerUid: safePostOwnerUid || data?.uid,
+            });
+            if (safePostOwnerUid) {
+                bumpAffinityForUser(safePostOwnerUid, 'savedPostsByUid', isSaved ? -1 : 1);
+            }
+        }
+
         try { haptic(); } catch {}
         setIsSaved((prev) => !prev);
-    }, [data?.pid, interactionsEnabled, isSaved, viewer, viewerUid]);
+    }, [data?.pid, data?.uid, data?.creatorUid, interactionsEnabled, isSaved, viewer, viewerUid]);
 
     const pressComment = useCallback(() => {
         if (typeof onPressCommentButton !== 'function') return;

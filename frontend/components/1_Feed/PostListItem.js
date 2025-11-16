@@ -1,5 +1,6 @@
 import React, { memo, useCallback } from "react";
 import SimpleFeedPost from "./SimpleFeedPost";
+import { logFeedSignal } from "../../helper/feedSignals";
 
 const PostListItem = memo(function PostListItem({
   item,
@@ -16,10 +17,13 @@ const PostListItem = memo(function PostListItem({
   onEditWorkout,
 }) {
   const handleProfile = useCallback(() => {
+    if (item?.pid) {
+      logFeedSignal("profile_tap", { pid: item.pid, uid: item?.uid || item?.creatorUid });
+    }
     if (typeof toViewProfilePosts === "function") {
       toViewProfilePosts(index);
     }
-  }, [toViewProfilePosts, index]);
+  }, [item?.pid, item?.uid, item?.creatorUid, toViewProfilePosts, index]);
 
   const handleWorkout = useCallback(() => {
     if (typeof openViewWorkoutModal === "function") {

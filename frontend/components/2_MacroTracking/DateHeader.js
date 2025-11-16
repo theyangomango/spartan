@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
 import { getUnifiedHeaderMetrics } from '../../theme/headerMetrics';
+import { scaledSize } from '../2_Competition/UserStats/UserStatsStyles';
 
 const METRICS = getUnifiedHeaderMetrics();
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -27,7 +28,7 @@ export default function DateHeader({
         return `${trimmed}${alpha}`;
     }, []);
     const streakBgColor = withAlpha(streakColor, '26') || 'rgba(255,108,26,0.18)';
-    const streakBorderColor = withAlpha(streakColor, '40') || 'rgba(255,108,26,0.35)';
+    const streakBorderColor = withAlpha(streakColor, '85') || 'rgba(255,108,26,0.52)';
     const styles = useMemo(
         () => makeStyles(COLORS, streakColor, streakBgColor, streakBorderColor),
         [COLORS, streakColor, streakBgColor, streakBorderColor]
@@ -63,7 +64,7 @@ export default function DateHeader({
         const max = METRICS.iconSize * 2.4;
         return Math.max(min, Math.min(leftWidth, max));
     }, [leftWidth]);
-    const widthStyle = clampedWidth ? { width: clampedWidth } : null;
+    const mirroredWidthStyle = clampedWidth ? { width: clampedWidth } : null;
 
     const closeInfoPanel = useCallback(() => {
         setInfoPanelVisible(false);
@@ -121,7 +122,7 @@ export default function DateHeader({
     return (
         <View style={styles.container}>
             <View style={styles.headerRow}>
-                <View style={[styles.leftGroup, widthStyle]} onLayout={handleLeftLayout}>
+                <View style={styles.leftGroup} onLayout={handleLeftLayout}>
                     <Pressable onPress={() => { try { haptic(); } catch {} onPrev?.(); }} hitSlop={8}>
                         <Ionicons name="chevron-back" size={METRICS.iconSize} color={styles.textColor.color} />
                     </Pressable>
@@ -131,7 +132,7 @@ export default function DateHeader({
                         hitSlop={8}
                         style={[styles.streakPill, { opacity: pillOpacity }]}
                     >
-                        <Ionicons name="flame" size={flameSize} color={streakColor} />
+                        <Ionicons name="flame" size={scaledSize(17)} color={streakColor} />
                         <Text style={[styles.streakText, { color: streakColor }]}>
                             {streakLabel}
                         </Text>
@@ -157,7 +158,7 @@ export default function DateHeader({
                         </Animated.Text>
                     </Pressable>
                 </View>
-                <View style={[styles.rightGroup, widthStyle]}>
+                <View style={[styles.rightGroup, mirroredWidthStyle]}>
                     {isToday ? (
                         <Pressable
                             onPress={handleHistoryPress}
@@ -218,13 +219,18 @@ const makeStyles = (COLORS, streakColor, streakBgColor, streakBorderColor) =>
             alignItems: 'center',
             minHeight: METRICS.paddingTop + METRICS.paddingBottom + METRICS.centerH,
             justifyContent: 'space-between',
+            position: 'relative',
         },
         textColor: { color: COLORS.text || COLORS.textPrimary || '#0F172A' },
         titleContainer: {
-            flex: 1,
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
             alignItems: 'center',
             justifyContent: 'center',
-            paddingHorizontal: scaleSize(8),
+            pointerEvents: 'box-none',
         },
         titleWrapper: {
             alignItems: 'center',
@@ -252,9 +258,10 @@ const makeStyles = (COLORS, streakColor, streakBgColor, streakBorderColor) =>
         streakPill: {
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: scaleSize(9),
-            paddingVertical: scaleSize(3),
-            borderRadius: scaleSize(16),
+            justifyContent: 'center',
+            paddingHorizontal: scaleSize(14),
+            paddingVertical: scaleSize(4),
+            borderRadius: scaleSize(18),
             marginLeft: scaleSize(8),
             backgroundColor: streakBgColor,
             borderWidth: StyleSheet.hairlineWidth,
@@ -264,6 +271,7 @@ const makeStyles = (COLORS, streakColor, streakBgColor, streakBorderColor) =>
             marginLeft: scaleSize(4),
             fontFamily: 'Nunito_800ExtraBold',
             fontSize: scaleSize(15),
+            color: '#FFFFFF',
         },
         infoOverlay: {
             flex: 1,

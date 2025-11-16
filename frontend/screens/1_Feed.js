@@ -35,7 +35,7 @@ import Footer from "../components/Footer";
 import theme from "../theme/mfpDark";
 import scaleSize from "../helper/scaleSize";
 import isThisUser from "../helper/isThisUser";
-import useFilteredFeed from "../helper/useFilteredFeed";
+import usePersonalizedFeed from "./feed/hooks/usePersonalizedFeed";
 import useFeedUserData from "./feed/hooks/useFeedUserData";
 import { toMillis as toMillisSafe } from "../utils/friends";
 import deletePost from "../../backend/posts/deletePost";
@@ -49,6 +49,7 @@ import FeedLoadingSkeleton from "../components/1_Feed/FeedLoadingSkeleton";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import { navigateOneWay, jumpToTab } from "../../navigationRef";
 import { requestCompetitionTabFocus } from "../utils/competitionTabEvents";
+import { logFeedSignal } from "../helper/feedSignals";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -113,17 +114,16 @@ export default function Feed({ navigation, route }) {
     const UID = route?.params?.uid ?? global?.userData?.uid ?? null;
 
     const followingList = global.userData ? global.userData?.following : [];
-    const [feedScope, setFeedScope] = useState("following");
-    const myUid = global?.userData?.uid ? String(global.userData.uid) : null;
-
+    const [feedScope, setFeedScope] = useState("forYou");
     const {
-        posts,
+        posts: personalizedPosts,
+        followingPosts,
         loadMore: loadMorePosts,
         hasMore: hasMorePosts,
         loadingMore: loadingMorePosts,
         hydratedFromCache,
         initialSyncComplete,
-    } = useFilteredFeed(followingList);
+    } = usePersonalizedFeed(followingList);
 
     const {
         activeWorkout,
@@ -156,44 +156,12 @@ export default function Feed({ navigation, route }) {
     const [pendingScrollRequest, setPendingScrollRequest] = useState(null);
 
 
-    const resolveTimestamp = useCallback((item) => {
-        if (!item) return 0;
-        const fallback = item?.workout || null;
-        const candidates = [
-            item?.created,
-            item?.createdAt,
-            item?.updatedAt,
-            fallback?.created,
-            fallback?.createdAt,
-            fallback?.completedAt,
-            fallback?.finishedAt,
-        ];
-        for (const value of candidates) {
-            const ms = toMillisSafe(value);
-            if (ms) return ms;
-        }
-        return 0;
-    }, []);
-
-    const sortedPosts = useMemo(() => {
-        const basePosts = Array.isArray(posts) ? [...posts] : [];
-        basePosts.sort((a, b) => {
-            const liveA = Boolean(a?.isLive || a?.liveWorkout);
-            const liveB = Boolean(b?.isLive || b?.liveWorkout);
-            if (liveA !== liveB) {
-                return liveA ? -1 : 1;
-            }
-            return resolveTimestamp(b) - resolveTimestamp(a);
-        });
-        return basePosts;
-    }, [posts, resolveTimestamp]);
-
     const listData = useMemo(() => {
-        if (feedScope === "personal" && myUid) {
-            return sortedPosts.filter((post) => String(post?.uid || "") === myUid);
+        if (feedScope === "following") {
+            return Array.isArray(followingPosts) ? followingPosts : [];
         }
-        return sortedPosts;
-    }, [sortedPosts, feedScope, myUid]);
+        return Array.isArray(personalizedPosts) ? personalizedPosts : [];
+    }, [feedScope, followingPosts, personalizedPosts]);
 
     const showFeedSkeleton = (!hydratedFromCache || !initialSyncComplete)
         && (!Array.isArray(listData) || listData.length === 0);
@@ -241,6 +209,10 @@ export default function Feed({ navigation, route }) {
         if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
             return;
         }
+        const target = listData[index];
+        if (target) {
+            logFeedSignal("open_comments", { pid: target?.pid, uid: target?.uid || target?.creatorUid });
+        }
         setActivePostIndex(index);
         setActiveSheet("comments");
         setCommentsBottomSheetExpandFlag((flag) => !flag);
@@ -259,6 +231,10 @@ export default function Feed({ navigation, route }) {
     const openShareModal = useCallback((index) => {
         if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
             return;
+        }
+        const target = listData[index];
+        if (target) {
+            logFeedSignal("share_sheet_open", { pid: target?.pid, uid: target?.uid || target?.creatorUid });
         }
         setActivePostIndex(index);
         setActiveSheet("share");
@@ -296,6 +272,7 @@ export default function Feed({ navigation, route }) {
         }
         const post = listData[index];
         if (!post) return;
+        logFeedSignal("open_likes_sheet", { pid: post?.pid, uid: post?.uid || post?.creatorUid });
         showLikesSheet(post.likes, "Liked by");
     }, [listData, showLikesSheet]);
 
@@ -824,25 +801,25 @@ export default function Feed({ navigation, route }) {
     ), []);
 
     const renderEmptyList = () => {
-        const isPersonalScope = feedScope === "personal";
+        const isFollowingScope = feedScope === "following";
         return (
             <View>
                 {renderSnapshotCard()}
                 <View style={styles.emptyState}>
                     <View style={styles.emptyIcon}>
                         <Feather
-                            name={isPersonalScope ? "user" : "users"}
+                            name={isFollowingScope ? "users" : "trending-up"}
                             size={scaleSize(28)}
                             color={theme.primary}
                         />
                     </View>
                     <Text style={styles.emptyTitle}>
-                        {isPersonalScope ? "No personal posts yet" : "Your feed is quiet"}
+                        {isFollowingScope ? "No following posts yet" : "Getting recommendations ready"}
                     </Text>
                     <Text style={styles.emptySubtitle}>
-                        {isPersonalScope
-                            ? "Share a workout or update to see it appear in your personal feed."
-                            : "Follow friends or share your progress to see posts here."}
+                        {isFollowingScope
+                            ? "Follow more athletes or ask friends to share updates so this tab fills up."
+                            : "Keep scrolling—your For You feed pulls in trending workouts and creator highlights."}
                     </Text>
                 </View>
             </View>

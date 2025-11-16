@@ -38,8 +38,8 @@ const scale = SCREEN_WIDTH / 375;
 const s = (n) => Math.round(n * scale);
 
 const FEED_SCOPE_OPTIONS = [
-    { key: "following", label: "Feed" },
-    { key: "personal", label: "Personal" },
+    { key: "forYou", label: "Feed" },
+    { key: "following", label: "Following" },
 ];
 
 // Unified sizing metrics (reduces magic numbers)
@@ -572,7 +572,7 @@ const FeedHeader = ({
     centerVariant = "logo",
     centerTitle = "Feed",
     centerTextPreset = "feed",
-    feedScope = "following",
+    feedScope = "forYou",
     onChangeFeedScope,
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
