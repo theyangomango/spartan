@@ -316,8 +316,18 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
 
     const open = useCallback(() => {
         if (disabled) return;
-        try { navigation?.navigate?.('SearchUsers', { transition: 'fade' }); } catch { }
-    }, [navigation]);
+        const initialSuggestions = Array.isArray(suggestions) ? suggestions.slice(0, 50) : [];
+        const initialUsers = Array.isArray(allUsersRef?.current) ? allUsersRef.current.slice(0) : [];
+        try {
+            const startTime = Date.now();
+            navigation?.navigate?.('SearchUsers', {
+                transition: 'fade',
+                initialSuggestions,
+                initialUsers,
+                startedAt: startTime,
+            });
+        } catch { }
+    }, [navigation, disabled, suggestions, allUsersRef]);
 
     const close = useCallback(() => {
         setVisible(false);

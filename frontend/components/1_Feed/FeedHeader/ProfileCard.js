@@ -47,7 +47,6 @@ const ProfileCard = ({ user, query, onPress }) => {
             textStyle={styles.cardHandle}
             iconSize={scaleSize(14)}
             numberOfLines={1}
-            preserveTextAlignment
             containerStyle={styles.cardHandleRow}
           />
           {!!user?.name && <Text numberOfLines={1} style={styles.cardName}>{user.name}</Text>}

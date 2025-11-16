@@ -53,6 +53,7 @@ import { navigateOneWay, jumpToTab } from "../../navigationRef";
 import { requestCompetitionTabFocus } from "../utils/competitionTabEvents";
 import { logFeedSignal } from "../helper/feedSignals";
 import { isClipPost } from "../utils/postTypes";
+import { primeAllUsers } from "../helper/getAllUsers";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -141,6 +142,10 @@ export default function Feed({ navigation, route }) {
         following: global.userData?.following,
         enablePrefetch: true,
     });
+
+    useEffect(() => {
+        primeAllUsers().catch(() => {});
+    }, []);
 
     const flatListRef = useRef(null);
     const refreshTimeoutRef = useRef(null);

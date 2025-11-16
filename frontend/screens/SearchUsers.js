@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity } from 'react-native';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import scaleSize from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -14,10 +14,15 @@ import useSuggestedUsersList from '../hooks/useSuggestedUsersList';
 
 const EXTRA_SEARCH_HEADER_GAP = scaleSize(8);
 
-export default function SearchUsers({ navigation }) {
+export default function SearchUsers({ navigation, route }) {
+  const initialUsers = Array.isArray(route?.params?.initialUsers) ? route.params.initialUsers : [];
+  const initialSuggestions = Array.isArray(route?.params?.initialSuggestions) ? route.params.initialSuggestions : [];
+  const navStartedAt = Number(route?.params?.startedAt) || Date.now();
   const [qStr, setQStr] = useState('');
   const [results, setResults] = useState([]);
-  const [allUsers, setAllUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState(initialUsers);
+  const [prefetchedSuggestions] = useState(initialSuggestions);
+  const [searching, setSearching] = useState(false);
   const { suggestedUsers: curatedSuggestedUsers } = useSuggestedUsersList();
 
   const viewerUid = global?.userData?.uid || '';
@@ -63,18 +68,66 @@ export default function SearchUsers({ navigation }) {
     return out;
   }, [curatedSuggestedUsers, viewerUid]);
 
-  const suggestions = curatedSuggestions.length ? curatedSuggestions : fallbackSuggestions;
+  const suggestions = useMemo(() => {
+    if (curatedSuggestions.length) return curatedSuggestions;
+    if (prefetchedSuggestions.length) return prefetchedSuggestions;
+    return fallbackSuggestions;
+  }, [curatedSuggestions, prefetchedSuggestions, fallbackSuggestions]);
+
+  const localFilter = useCallback((text) => {
+    const needle = (text || '').toLowerCase();
+    if (!needle) return [];
+    const out = [];
+    const seen = new Set();
+    for (const entry of allUsers || []) {
+      const uid = entry?.uid;
+      if (!uid || uid === viewerUid || seen.has(uid)) continue;
+      const handle = (entry?.handle || '').toLowerCase();
+      const name = (entry?.name || '').toLowerCase();
+      if (handle.includes(needle) || name.includes(needle)) {
+        seen.add(uid);
+        out.push(entry);
+        if (out.length >= 50) break;
+      }
+    }
+    return out;
+  }, [allUsers, viewerUid]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const users = await getAllUsers();
-        setAllUsers(users || []);
-      } catch {
-        setAllUsers([]);
-      }
-    })();
-  }, []);
+    let active = true;
+    const now = Date.now();
+    // If navigation started recently, delay fetch slightly so we don't block transition
+    const delay = Math.max(0, 150 - (now - navStartedAt));
+    const timeout = setTimeout(() => {
+      (async () => {
+        try {
+          const users = await getAllUsers();
+          if (!active) return;
+          if (!Array.isArray(users)) {
+            setAllUsers((prev) => (Array.isArray(prev) && prev.length ? prev : []));
+            return;
+          }
+          setAllUsers((prev) => {
+            if (!Array.isArray(prev) || prev.length === 0) return users;
+            const merged = new Map(prev.filter((u) => u?.uid).map((u) => [u.uid, u]));
+            for (const entry of users) {
+              if (!entry?.uid) continue;
+              const existing = merged.get(entry.uid) || {};
+              merged.set(entry.uid, { ...existing, ...entry });
+            }
+            return Array.from(merged.values());
+          });
+        } catch {
+          if (!active) return;
+          setAllUsers((prev) => (Array.isArray(prev) && prev.length ? prev : []));
+        }
+      })();
+    }, delay);
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+    };
+  }, [navStartedAt]);
 
   const remotePrefixQuery = useCallback(async (text) => {
     const needle = (text || '').toLowerCase();
@@ -99,26 +152,43 @@ export default function SearchUsers({ navigation }) {
         .filter((u) => u.uid !== me);
       if (arr.length) return arr;
     } catch {}
-    const me = global?.userData?.uid;
-    return (allUsers || [])
-      .filter((u) => u?.uid && u.uid !== me)
-      .filter((u) => (u.handle || '').toLowerCase().includes(needle) || (u.name || '').toLowerCase().includes(needle))
-      .slice(0, 50)
-      .map((u) => ({ uid: u.uid, handle: u.handle, name: u.name, pfp: u.pfp || u.photoURL || '' }));
-  }, [allUsers]);
+    return [];
+  }, []);
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      const q = qStr.trim();
-      if (!q) { setResults([]); return; }
+    const q = qStr.trim();
+    if (!q) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    const local = localFilter(q);
+    setResults(local);
+    setSearching(true);
+
+    let cancelled = false;
+    const timeout = setTimeout(async () => {
       try {
         const remote = await remotePrefixQuery(q);
-        if (active) setResults(remote);
-      } catch { if (active) setResults([]); }
-    })();
-    return () => { active = false; };
-  }, [qStr, remotePrefixQuery]);
+        if (cancelled) return;
+        if (Array.isArray(remote) && remote.length) {
+          const map = new Map();
+          remote.forEach((u) => { if (u?.uid) map.set(u.uid, u); });
+          local.forEach((u) => { if (u?.uid && !map.has(u.uid)) map.set(u.uid, u); });
+          setResults(Array.from(map.values()).slice(0, 50));
+        }
+      } catch {
+        if (!cancelled) setResults(local);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    }, 180);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [qStr, localFilter, remotePrefixQuery]);
 
   const goBack = () => navigation.goBack();
   const openUser = (item) => {
@@ -151,6 +221,9 @@ export default function SearchUsers({ navigation }) {
             autoFocus
             returnKeyType="search"
           />
+          {searching && qStr.length > 0 && (
+            <ActivityIndicator size="small" color={theme.textSecondary} style={styles.spinner} />
+          )}
           {qStr.length > 0 && (
             <TouchableOpacity onPress={() => setQStr('')}>
               <Ionicons name="close" size={18} color={theme.textSecondary} />
@@ -190,6 +263,7 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: theme.hairline
   },
+  spinner: { marginRight: scaleSize(6) },
   input: { flex: 1, fontSize: scaleSize(15), color: theme.textPrimary, fontFamily: 'Outfit_600SemiBold' },
   sectionTitle: { paddingHorizontal: scaleSize(16), paddingVertical: scaleSize(10), fontFamily: 'Outfit_700Bold', color: theme.textPrimary, fontSize: scaleSize(14) },
   listContent: { paddingBottom: scaleSize(30) },
