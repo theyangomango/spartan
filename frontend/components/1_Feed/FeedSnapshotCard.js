@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View, Text, TouchableOpacity, Animated, Easing } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,6 +8,7 @@ import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
 import formatHexStat from "../../utils/formatHexStat";
 import { subscribeUserData } from "../../utils/userDataEvents";
+import { strong as triggerStrongHaptic } from "../../utils/haptics";
 
 const RANK_TAB_CONFIG = [
     {
@@ -308,6 +309,16 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
     );
 
     const [activeRankTab, setActiveRankTab] = useState(RANK_TAB_CONFIG[0].key);
+    const handleRankTabPress = useCallback(
+        (nextTabKey) => {
+            setActiveRankTab((currentTabKey) => {
+                if (currentTabKey === nextTabKey) return currentTabKey;
+                triggerStrongHaptic();
+                return nextTabKey;
+            });
+        },
+        [setActiveRankTab, triggerStrongHaptic]
+    );
     const activeRankTabConfig = useMemo(
         () => RANK_TAB_CONFIG.find((tab) => tab.key === activeRankTab) || RANK_TAB_CONFIG[0],
         [activeRankTab]
@@ -322,7 +333,7 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
     const isRankTabActive = activeRankTabConfig.key === "rank";
 
     const particles = useMemo(() => {
-        const particleCount = 36;
+        const particleCount = 48;
         const colors = ["rgba(230, 220, 147, 0.95)", "rgba(255,209,93,0.95)", "rgba(255,157,43,0.92)"];
         const originPoints = [
             { top: "50%", left: "34%" },
@@ -332,18 +343,18 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
         ];
         return Array.from({ length: particleCount }).map((_, index) => {
             const baseAngle = (Math.PI * 2 * index) / particleCount;
-            const jitter = (Math.random() - 0.5) * 1.1;
+            const jitter = (Math.random() - 0.5) * 1.5;
             const origin = originPoints[index % originPoints.length];
             return {
                 key: `rank-particle-${index}`,
                 progress: new Animated.Value(0),
                 angle: baseAngle + jitter,
-                distance: scaled(80 + Math.random() * 140),
-                size: scaled(4.5 + Math.random() * 7),
-                delay: Math.random() * 900,
-                duration: 1000 + Math.random() * 1100,
+                distance: scaled(120 + Math.random() * 160),
+                size: scaled(5 + Math.random() * 9),
+                delay: Math.random() * 600,
+                duration: 600 + Math.random() * 800,
                 color: colors[index % colors.length],
-                blur: 6 + Math.random() * 10,
+                blur: 6 + Math.random() * 12,
                 origin,
             };
         });
@@ -373,7 +384,7 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
                 Animated.timing(particle.progress, {
                     toValue: 1,
                     duration: particle.duration,
-                    easing: Easing.out(Easing.quad),
+                    easing: Easing.out(Easing.cubic),
                     useNativeDriver: true,
                 }),
             ]);
@@ -420,7 +431,7 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
                             <TouchableOpacity
                                 key={tab.key}
                                 style={[styles.rankTab, isActive ? styles.rankTabActive : styles.rankTabInactive]}
-                                onPress={() => setActiveRankTab(tab.key)}
+                                onPress={() => handleRankTabPress(tab.key)}
                                 activeOpacity={0.85}
                                 accessibilityRole="button"
                                 accessibilityLabel={tab.label}
@@ -619,7 +630,7 @@ const styles = StyleSheet.create({
         paddingVertical: scaled(7),
         paddingHorizontal: scaled(16),
         borderRadius: scaled(20),
-        marginRight: scaled(10),
+        marginRight: scaled(6),
         borderWidth: scaleSize(2),
     },
     rankTabActive: {

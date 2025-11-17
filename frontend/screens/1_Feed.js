@@ -11,7 +11,6 @@ import React, {
 } from "react";
 import {
     StyleSheet,
-    FlatList,
     RefreshControl,
     View,
     TouchableOpacity,
@@ -21,6 +20,7 @@ import {
     ActivityIndicator,
     Animated,
     Easing,
+    useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -59,6 +59,9 @@ import { primeAllUsers } from "../helper/getAllUsers";
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
 const MIN_HEADER_MEASURE = scaleSize(24);
+const MIN_CREATE_POST_MENU_WIDTH = 230;
+const MAX_CREATE_POST_MENU_WIDTH = 260;
+const CREATE_POST_MENU_MARGIN = scaleSize(24);
 
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
@@ -114,6 +117,7 @@ const ensureAtHandle = (value) => {
 };
 
 export default function Feed({ navigation, route }) {
+    const { width: windowWidth } = useWindowDimensions();
     const insets = useStableSafeAreaInsets();
     const isScreenFocused = useIsFocused();
 
@@ -182,18 +186,28 @@ export default function Feed({ navigation, route }) {
         return true;
     });
     const createMenuAnim = useRef(new Animated.Value(0)).current;
+    // Keep share options wide enough for two-line subtitles without overflowing small screens.
+    const createPostMenuWidth = useMemo(() => {
+        const available = Math.max(0, windowWidth - CREATE_POST_MENU_MARGIN);
+        if (available <= 0) return MIN_CREATE_POST_MENU_WIDTH;
+        const clampedRange = Math.min(
+            MAX_CREATE_POST_MENU_WIDTH,
+            Math.max(MIN_CREATE_POST_MENU_WIDTH, available),
+        );
+        return Math.min(clampedRange, available);
+    }, [windowWidth]);
 
     const highlightPidRef = useRef(null);
     const [highlightSignal, setHighlightSignal] = useState(0);
     const [pendingScrollRequest, setPendingScrollRequest] = useState(null);
 
-    const headerVisibility = useRef(new Animated.Value(1)).current;
-    const [headerPointerEvents, setHeaderPointerEvents] = useState("auto");
+    const scrollY = useRef(new Animated.Value(0)).current;
+    const offsetAnim = useRef(new Animated.Value(0)).current;
     const [headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
-    const lastScrollOffsetRef = useRef(0);
-    const lastScrollTimeRef = useRef(Date.now());
-    const isHeaderHiddenRef = useRef(false);
-    const isAnimatingHeaderRef = useRef(false);
+    const scrollValueRef = useRef(0);
+    const clampedScrollValueRef = useRef(0);
+    const offsetValueRef = useRef(0);
+    const scrollEndTimerRef = useRef(null);
     const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 65 });
     useEffect(() => {
         if (isCreateMenuVisible) {
@@ -241,42 +255,6 @@ export default function Feed({ navigation, route }) {
         setActiveVideoPostKey(null);
     }, [listData]);
 
-    const animateHeaderVisibility = useCallback(
-        (toValue) => {
-            if (isAnimatingHeaderRef.current) {
-                headerVisibility.stopAnimation?.();
-            }
-            isAnimatingHeaderRef.current = true;
-            if (toValue === 1) {
-                setHeaderPointerEvents("auto");
-            }
-            Animated.timing(headerVisibility, {
-                toValue,
-                duration: 220,
-                easing: Easing.out(Easing.cubic),
-                useNativeDriver: false,
-            }).start(() => {
-                isAnimatingHeaderRef.current = false;
-                if (toValue === 0) {
-                    setHeaderPointerEvents("none");
-                }
-            });
-        },
-        [headerVisibility]
-    );
-
-    const showHeader = useCallback(() => {
-        if (!isHeaderHiddenRef.current) return;
-        isHeaderHiddenRef.current = false;
-        animateHeaderVisibility(1);
-    }, [animateHeaderVisibility]);
-
-    const hideHeader = useCallback(() => {
-        if (isHeaderHiddenRef.current) return;
-        isHeaderHiddenRef.current = true;
-        animateHeaderVisibility(0);
-    }, [animateHeaderVisibility]);
-
     const handleHeaderLayout = useCallback(
         (event) => {
             const height = event?.nativeEvent?.layout?.height || 0;
@@ -290,52 +268,133 @@ export default function Feed({ navigation, route }) {
         [headerMeasuredHeight]
     );
 
-    const headerHeightForAnimation = headerMeasuredHeight > 0 ? headerMeasuredHeight : scaleSize(88);
-
+    const safeAreaTopInset = Math.max(insets.top || 0, 0);
+    const fallbackHeaderHeight = scaleSize(88) + safeAreaTopInset;
+    const headerHeightForAnimation = headerMeasuredHeight > 0 ? headerMeasuredHeight : fallbackHeaderHeight;
+    const headerContentHeight = Math.max(0, headerHeightForAnimation - safeAreaTopInset);
+    const clampedScroll = useMemo(
+        () =>
+            Animated.diffClamp(
+                Animated.add(
+                    scrollY.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0, 1],
+                        extrapolateLeft: "clamp",
+                    }),
+                    offsetAnim
+                ),
+                0,
+                headerHeightForAnimation
+            ),
+        [headerHeightForAnimation, offsetAnim, scrollY]
+    );
+    const headerTranslateY = useMemo(
+        () =>
+            clampedScroll.interpolate({
+                inputRange: [0, headerHeightForAnimation],
+                outputRange: [0, -headerHeightForAnimation],
+                extrapolate: "clamp",
+            }),
+        [clampedScroll, headerHeightForAnimation]
+    );
     const headerAnimatedStyle = useMemo(
         () => ({
-            opacity: headerVisibility,
-            marginBottom: headerVisibility.interpolate({
-                inputRange: [0, 1],
-                outputRange: [-headerHeightForAnimation, scaleSize(2)],
-            }),
-            transform: [
-                {
-                    translateY: headerVisibility.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-(headerHeightForAnimation + scaleSize(12)), 0],
-                    }),
-                },
-            ],
+            transform: [{ translateY: headerTranslateY }],
         }),
-        [headerHeightForAnimation, headerVisibility]
+        [headerTranslateY]
+    );
+    const listTranslateStyle = useMemo(
+        () => ({
+            transform: [{ translateY: headerTranslateY }],
+        }),
+        [headerTranslateY]
+    );
+    const listContentInsets = useMemo(
+        () => ({
+            // keep list content under the floating header while preserving the footer inset
+            paddingTop: headerContentHeight,
+            paddingBottom: LIST_BOTTOM_INSET + Math.max(0, insets.bottom || 0),
+        }),
+        [headerContentHeight, insets.bottom]
+    );
+    const handleListScroll = useMemo(
+        () =>
+            Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+                useNativeDriver: true,
+            }),
+        [scrollY]
     );
 
-    const handleListScroll = useCallback(
-        (event) => {
-            const offsetY = event?.nativeEvent?.contentOffset?.y ?? 0;
-            const lastOffset = lastScrollOffsetRef.current;
-            const delta = offsetY - lastOffset;
-            lastScrollOffsetRef.current = offsetY;
-            const now = Date.now();
-            const dt = Math.max(now - lastScrollTimeRef.current, 1);
-            lastScrollTimeRef.current = now;
-            const speedPerMs = Math.abs(delta) / dt;
-            const shouldTriggerSpeed = speedPerMs >= 1.2; // ~700 px/sec
+    useEffect(() => {
+        const scrollListenerId = scrollY.addListener(({ value }) => {
+            const diff = value - scrollValueRef.current;
+            scrollValueRef.current = value;
+            clampedScrollValueRef.current = Math.min(
+                Math.max(clampedScrollValueRef.current + diff, 0),
+                headerHeightForAnimation
+            );
+        });
+        const offsetListenerId = offsetAnim.addListener(({ value }) => {
+            offsetValueRef.current = value;
+        });
+        return () => {
+            scrollY.removeListener(scrollListenerId);
+            offsetAnim.removeListener(offsetListenerId);
+        };
+    }, [headerHeightForAnimation, offsetAnim, scrollY]);
 
-            if (offsetY <= 12) {
-                showHeader();
-                return;
-            }
+    useEffect(() => {
+        clampedScrollValueRef.current = Math.min(clampedScrollValueRef.current, headerHeightForAnimation);
+        const clampedOffset = Math.max(-headerHeightForAnimation, Math.min(0, offsetValueRef.current));
+        if (clampedOffset !== offsetValueRef.current) {
+            offsetAnim.setValue(clampedOffset);
+            offsetValueRef.current = clampedOffset;
+        }
+    }, [headerHeightForAnimation, offsetAnim]);
 
-            if (delta > 20) {
-                hideHeader();
-            } else if (delta < -28 && shouldTriggerSpeed) {
-                showHeader();
+    useEffect(
+        () => () => {
+            if (scrollEndTimerRef.current) {
+                clearTimeout(scrollEndTimerRef.current);
+                scrollEndTimerRef.current = null;
             }
         },
-        [hideHeader, showHeader]
+        []
     );
+
+    const snapHeader = useCallback(() => {
+        const shouldHide =
+            scrollValueRef.current > headerHeightForAnimation &&
+            clampedScrollValueRef.current > headerHeightForAnimation / 2;
+        Animated.spring(offsetAnim, {
+            toValue: shouldHide ? -headerHeightForAnimation : 0,
+            tension: 160,
+            friction: 22,
+            useNativeDriver: true,
+        }).start();
+    }, [headerHeightForAnimation, offsetAnim]);
+
+    const scheduleSnap = useCallback(() => {
+        if (scrollEndTimerRef.current) {
+            clearTimeout(scrollEndTimerRef.current);
+        }
+        scrollEndTimerRef.current = setTimeout(snapHeader, 64);
+    }, [snapHeader]);
+
+    const handleMomentumScrollBegin = useCallback(() => {
+        if (scrollEndTimerRef.current) {
+            clearTimeout(scrollEndTimerRef.current);
+            scrollEndTimerRef.current = null;
+        }
+    }, []);
+
+    const handleMomentumScrollEnd = useCallback(() => {
+        scheduleSnap();
+    }, [scheduleSnap]);
+
+    const handleScrollEndDrag = useCallback(() => {
+        scheduleSnap();
+    }, [scheduleSnap]);
 
     useEffect(() => {
         if (hasPosts) return;
@@ -364,7 +423,6 @@ export default function Feed({ navigation, route }) {
 
     const onRefresh = useCallback(() => {
         if (refreshing) return;
-        showHeader();
         setRefreshing(true);
         if (refreshTimeoutRef.current) {
             clearTimeout(refreshTimeoutRef.current);
@@ -373,7 +431,7 @@ export default function Feed({ navigation, route }) {
             refreshTimeoutRef.current = null;
             setRefreshing(false);
         }, 700);
-    }, [refreshing, showHeader]);
+    }, [refreshing]);
 
     const openCommentsModal = useCallback((index) => {
         if (!Array.isArray(listData) || index == null || index < 0 || index >= listData.length) {
@@ -870,11 +928,10 @@ export default function Feed({ navigation, route }) {
     }, [openViewWorkoutModal]);
 
     const scrollToTop = useCallback(() => {
-        showHeader();
         if (flatListRef.current) {
             flatListRef.current.scrollToOffset({ offset: 0, animated: true });
         }
-    }, [showHeader]);
+    }, []);
 
     useEffect(() => {
         try { global.scrollFeedToTop = scrollToTop; } catch { }
@@ -1130,20 +1187,28 @@ export default function Feed({ navigation, route }) {
     return (
         <SafeAreaView style={styles.screen} edges={["top"]}>
             <StatusBar style="light" />
+            {safeAreaTopInset > 0 ? (
+                <View
+                    pointerEvents="none"
+                    style={[
+                        styles.safeAreaTopGuard,
+                        { height: safeAreaTopInset, top: -safeAreaTopInset },
+                    ]}
+                />
+            ) : null}
             <Animated.View
-                style={[styles.headerWrap, headerAnimatedStyle]}
-                pointerEvents={headerPointerEvents}
+                style={[styles.headerWrap, { paddingTop: safeAreaTopInset }, headerAnimatedStyle]}
                 onLayout={handleHeaderLayout}
             >
                 {headerComponent}
             </Animated.View>
-            <FlatList
+            <Animated.FlatList
                 ref={flatListRef}
                 data={listData}
                 extraData={feedExtraData}
                 keyExtractor={listKeyExtractor}
                 renderItem={renderPost}
-                style={styles.list}
+                style={[styles.list, listTranslateStyle]}
                 ListEmptyComponent={showFeedSkeleton ? renderLoadingList : renderEmptyList}
                 ListFooterComponent={listFooter}
                 ListHeaderComponent={hasPosts ? renderSnapshotCard : null}
@@ -1156,12 +1221,12 @@ export default function Feed({ navigation, route }) {
                         progressBackgroundColor={theme.bg}
                     />
                 )}
-                contentContainerStyle={[
-                    styles.listContent,
-                    { paddingBottom: LIST_BOTTOM_INSET + Math.max(0, insets.bottom || 0) },
-                ]}
+                contentContainerStyle={[styles.listContent, listContentInsets]}
                 showsVerticalScrollIndicator={false}
                 onScroll={handleListScroll}
+                onMomentumScrollBegin={handleMomentumScrollBegin}
+                onMomentumScrollEnd={handleMomentumScrollEnd}
+                onScrollEndDrag={handleScrollEndDrag}
                 onViewableItemsChanged={handleViewableItemsChanged}
                 viewabilityConfig={viewabilityConfigRef.current}
                 scrollEventThrottle={16}
@@ -1201,6 +1266,7 @@ export default function Feed({ navigation, route }) {
                         style={[
                             styles.createPostMenu,
                             {
+                                width: createPostMenuWidth,
                                 opacity: createMenuAnim,
                                 transform: [
                                     {
@@ -1360,6 +1426,10 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(2),
         zIndex: 2,
         elevation: 2,
+        position: "absolute",
+        top: 0,
+        left: 0,
+        right: 0,
     },
     list: {
         flex: 1,
@@ -1386,6 +1456,13 @@ const styles = StyleSheet.create({
     createPostButtonActive: {
         backgroundColor: theme.primary,
     },
+    safeAreaTopGuard: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        backgroundColor: theme.bg,
+        zIndex: 1,
+    },
     createPostActionsWrapper: {
         position: "absolute",
         right: scaleSize(24),
@@ -1399,7 +1476,6 @@ const styles = StyleSheet.create({
     },
     createPostMenu: {
         marginBottom: scaleSize(16),
-        width: scaleSize(190),
     },
     createPostMenuButton: {
         borderRadius: scaleSize(14),
