@@ -111,20 +111,35 @@ const formatDurationLabel = (hoursInput) => {
     return `${minutes}m`;
 };
 
-const formatShortDate = (timestamp) => {
-    if (!Number.isFinite(timestamp)) return "--/--/----";
+const formatShortMonthDay = (timestamp) => {
+    if (!Number.isFinite(timestamp)) return "--/--";
     try {
         return new Date(timestamp).toLocaleDateString("en-US", {
             month: "numeric",
             day: "numeric",
-            year: "2-digit",
         });
     } catch {
-        return "--/--/----";
+        return "--/--";
     }
 };
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+const getWeekNumberLabel = (timestamp) => {
+    if (!Number.isFinite(timestamp)) return null;
+    try {
+        const date = new Date(timestamp);
+        date.setHours(0, 0, 0, 0);
+        const dayShift = (date.getDay() + 6) % 7; // shift so Monday is 0
+        date.setDate(date.getDate() - dayShift + 3);
+        const firstThursday = new Date(date.getFullYear(), 0, 4);
+        const week = 1 + Math.round((date - firstThursday) / WEEK_MS);
+        return Number.isFinite(week) ? week : null;
+    } catch {
+        return null;
+    }
+};
+
 
 const computeSnapshot = (user) => {
     const workouts = Array.isArray(user?.completedWorkouts) ? user.completedWorkouts : [];
@@ -138,7 +153,9 @@ const computeSnapshot = (user) => {
     const preferredUnit = resolvePreferredWeightUnit(user);
     const displayUnit = toDisplayWeightUnit(preferredUnit);
 
-    const rangeLabel = `${formatShortDate(weekStart)} - ${formatShortDate(now)}`;
+    const formattedRange = `${formatShortMonthDay(weekStart)} - ${formatShortMonthDay(now)}`;
+    const weekNumber = getWeekNumberLabel(now);
+    const rangeLabel = weekNumber ? `${formattedRange}, Week ${weekNumber}` : formattedRange;
 
     let weeklyVolume = 0;
     let weeklyDurationMs = 0;
@@ -352,7 +369,7 @@ const styles = StyleSheet.create({
     card: {
         backgroundColor: theme.surface,
         width: "100%",
-        paddingHorizontal: scaleSize(10),
+        paddingHorizontal: scaleSize(0),
         paddingTop: scaleSize(14),
         paddingBottom: scaleSize(8),
     },
@@ -360,7 +377,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: scaleSize(24),
+        paddingHorizontal: scaleSize(32),
     },
     headerLeft: {
         flexShrink: 1,

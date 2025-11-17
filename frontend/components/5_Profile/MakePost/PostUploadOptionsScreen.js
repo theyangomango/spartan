@@ -170,16 +170,17 @@ export default function PostOptionsScreen({ navigation, route }) {
         return result;
     }, [isEditing, editingPost]);
 
-    const routeImages = useMemo(() => {
+    const incomingRouteImages = useMemo(() => {
         const incoming = route?.params?.images;
         if (Array.isArray(incoming) && incoming.length > 0) {
             return normalizeMediaList(incoming);
         }
-        if (isEditing) {
-            return editingMediaEntries;
-        }
-        return [];
-    }, [route?.params?.images, isEditing, editingMediaEntries]);
+        return null;
+    }, [route?.params?.images]);
+
+    const editingRouteImages = useMemo(() => (
+        isEditing ? editingMediaEntries : []
+    ), [isEditing, editingMediaEntries]);
     const workoutParam = route?.params?.workout;
     const editingHasWorkoutPid = isEditing && Boolean(editingPost?.workoutPid);
     const editingHasWorkoutObject = isEditing && Boolean(editingPost?.workout);
@@ -200,7 +201,14 @@ export default function PostOptionsScreen({ navigation, route }) {
     const [honestyVisible, setHonestyVisible] = useState(false);
     const [mediaIndex, setMediaIndex] = useState(0);
     const [mediaWidth, setMediaWidth] = useState(screenWidth);
-    const [selectedImages, setSelectedImages] = useState(routeImages);
+    const [selectedImages, setSelectedImages] = useState(() => (
+        incomingRouteImages || editingRouteImages
+    ));
+    const selectionSourceRef = useRef(
+        incomingRouteImages
+            ? "user"
+            : (isEditing ? "editing" : "none")
+    );
     const sharePromiseRef = useRef(null);
     const isMountedRef = useRef(true);
     const insets = useSafeAreaInsets();
@@ -237,15 +245,19 @@ export default function PostOptionsScreen({ navigation, route }) {
     }, []);
 
     useEffect(() => {
-        setSelectedImages(routeImages);
-    }, [routeImages]);
+        if (!isEditing) return;
+        if (selectionSourceRef.current === "user") return;
+        setSelectedImages(editingRouteImages);
+        selectionSourceRef.current = "editing";
+    }, [editingRouteImages, isEditing]);
 
     useEffect(() => {
-        if (route?.params?.images) {
-            setIsClipMode(false);
-            navigation.setParams({ images: undefined });
-        }
-    }, [navigation, route?.params?.images]);
+        if (!incomingRouteImages) return;
+        setSelectedImages(incomingRouteImages);
+        setIsClipMode(false);
+        selectionSourceRef.current = "user";
+        navigation.setParams({ images: undefined });
+    }, [incomingRouteImages, navigation]);
 
     useEffect(() => {
         if (!route?.params?.clipMedia) return;
@@ -258,6 +270,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                 if (width && height) normalized.aspectRatio = width / height;
             }
             setSelectedImages([normalized]);
+            selectionSourceRef.current = "user";
             setIsClipMode(true);
         }
         navigation.setParams({ clipMedia: undefined });
@@ -915,15 +928,16 @@ export default function PostOptionsScreen({ navigation, route }) {
                 'Adding standard media will remove your clip.',
                 [
                     { text: 'Cancel', style: 'cancel' },
-                    {
-                        text: 'Switch',
-                        style: 'destructive',
-                        onPress: () => {
-                            setIsClipMode(false);
-                            setSelectedImages([]);
-                            openPicker();
+                        {
+                            text: 'Switch',
+                            style: 'destructive',
+                            onPress: () => {
+                                setIsClipMode(false);
+                                setSelectedImages([]);
+                                selectionSourceRef.current = "user";
+                                openPicker();
+                            },
                         },
-                    },
                 ]
             );
             return;
@@ -948,14 +962,15 @@ export default function PostOptionsScreen({ navigation, route }) {
                 'Adding a clip will remove your current photos and videos.',
                 [
                     { text: 'Cancel', style: 'cancel' },
-                    {
-                        text: 'Replace',
-                        style: 'destructive',
-                        onPress: () => {
-                            setSelectedImages([]);
-                            proceed();
+                        {
+                            text: 'Replace',
+                            style: 'destructive',
+                            onPress: () => {
+                                setSelectedImages([]);
+                                selectionSourceRef.current = "user";
+                                proceed();
+                            },
                         },
-                    },
                 ]
             );
             return;
