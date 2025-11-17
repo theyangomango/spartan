@@ -15,6 +15,7 @@ import {
     RefreshControl,
     View,
     TouchableOpacity,
+    TouchableWithoutFeedback,
     Alert,
     Text,
     ActivityIndicator,
@@ -171,6 +172,8 @@ export default function Feed({ navigation, route }) {
     const [deletingPostPid, setDeletingPostPid] = useState(null);
     const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
     const [activeVideoPostKey, setActiveVideoPostKey] = useState(null);
+    const [isCreateMenuVisible, setCreateMenuVisible] = useState(false);
+    const [isCreateMenuMounted, setCreateMenuMounted] = useState(false);
     const [areFeedVideosMuted, setFeedVideosMuted] = useState(() => {
         try {
             const stored = globalThis?.__SPARTAN_FEED_GLOBAL_MUTE__;
@@ -178,6 +181,7 @@ export default function Feed({ navigation, route }) {
         } catch { }
         return true;
     });
+    const createMenuAnim = useRef(new Animated.Value(0)).current;
 
     const highlightPidRef = useRef(null);
     const [highlightSignal, setHighlightSignal] = useState(0);
@@ -191,6 +195,28 @@ export default function Feed({ navigation, route }) {
     const isHeaderHiddenRef = useRef(false);
     const isAnimatingHeaderRef = useRef(false);
     const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 65 });
+    useEffect(() => {
+        if (isCreateMenuVisible) {
+            setCreateMenuMounted(true);
+            Animated.spring(createMenuAnim, {
+                toValue: 1,
+                tension: 120,
+                friction: 14,
+                useNativeDriver: true,
+            }).start();
+            return;
+        }
+        Animated.timing(createMenuAnim, {
+            toValue: 0,
+            duration: 160,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+        }).start(({ finished }) => {
+            if (finished) {
+                setCreateMenuMounted(false);
+            }
+        });
+    }, [createMenuAnim, isCreateMenuVisible]);
 
 
     const listData = useMemo(() => {
@@ -1031,13 +1057,31 @@ export default function Feed({ navigation, route }) {
         );
     };
 
-    const handleCreatePost = useCallback(() => {
+    const closeCreateMenu = useCallback(() => {
+        setCreateMenuVisible(false);
+    }, []);
+
+    const toggleCreateMenu = useCallback(() => {
+        setCreateMenuVisible((prev) => !prev);
+    }, []);
+
+    const handleSharePost = useCallback(() => {
+        closeCreateMenu();
         try {
             navigation?.navigate('PostOptions', { images: [] });
         } catch {
             navigation?.navigate('PostOptions');
         }
-    }, [navigation]);
+    }, [closeCreateMenu, navigation]);
+
+    const handleShareClip = useCallback(() => {
+        closeCreateMenu();
+        try {
+            navigation?.navigate('NewClip');
+        } catch {
+            navigation?.navigate('NewClip');
+        }
+    }, [closeCreateMenu, navigation]);
 
     const commentsVisible = activeSheet === "comments" && activePostIndex >= 0;
     const shareSheetVisible = activeSheet === "share";
@@ -1134,22 +1178,133 @@ export default function Feed({ navigation, route }) {
                 removeClippedSubviews
             />
 
-            <TouchableOpacity
+            {isCreateMenuMounted && (
+                <TouchableWithoutFeedback onPress={closeCreateMenu}>
+                    <Animated.View
+                        style={[
+                            styles.createPostBackdrop,
+                            { opacity: createMenuAnim },
+                        ]}
+                    />
+                </TouchableWithoutFeedback>
+            )}
+
+            <View
+                pointerEvents="box-none"
                 style={[
-                    styles.createPostButton,
+                    styles.createPostActionsWrapper,
                     { bottom: (insets.bottom || 0) + scaleSize(110) },
                 ]}
-                activeOpacity={0.85}
-                onPress={handleCreatePost}
-                accessibilityRole="button"
-                accessibilityLabel="Create a post"
             >
-                <Feather
-                    name="plus"
-                    size={scaleSize(24)}
-                    color={'#000'}
-                />
-            </TouchableOpacity>
+                {isCreateMenuMounted && (
+                    <Animated.View
+                        style={[
+                            styles.createPostMenu,
+                            {
+                                opacity: createMenuAnim,
+                                transform: [
+                                    {
+                                        translateY: createMenuAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [scaleSize(18), 0],
+                                        }),
+                                    },
+                                    {
+                                        scale: createMenuAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [0.94, 1],
+                                        }),
+                                    },
+                                ],
+                            },
+                        ]}
+                    >
+                        <TouchableOpacity
+                            style={[
+                                styles.createPostMenuButton,
+                                styles.createPostMenuButtonPost,
+                            ]}
+                            activeOpacity={0.85}
+                            onPress={handleShareClip}
+                            accessibilityRole="button"
+                            accessibilityLabel="Share a clip"
+                            >
+                                <View style={styles.createPostMenuRow}>
+                                    <View style={styles.createPostMenuLabelWrap}>
+                                        <Text style={[styles.createPostMenuText, styles.createPostMenuTextDark]}>
+                                            Share Clip
+                                        </Text>
+                                        <Text style={[styles.createPostMenuSubtext, styles.createPostMenuSubtextDark]}>
+                                            Vertical short-form highlight
+                                        </Text>
+                                    </View>
+                                    <View style={styles.createPostMenuIconBadgeDark}>
+                                        <Feather
+                                            name="video"
+                                            size={scaleSize(15)}
+                                        color="#FFFFFF"
+                                    />
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[
+                                styles.createPostMenuButton,
+                                styles.createPostMenuButtonPost,
+                            ]}
+                            activeOpacity={0.85}
+                            onPress={handleSharePost}
+                            accessibilityRole="button"
+                            accessibilityLabel="Share a post"
+                            >
+                                <View style={styles.createPostMenuRow}>
+                                    <View style={styles.createPostMenuLabelWrap}>
+                                        <Text style={[styles.createPostMenuText, styles.createPostMenuTextDark]}>
+                                            Share Post
+                                        </Text>
+                                        <Text style={[styles.createPostMenuSubtext, styles.createPostMenuSubtextDark]}>
+                                            Photos, workouts, or notes
+                                        </Text>
+                                    </View>
+                                    <View style={styles.createPostMenuIconBadgeDark}>
+                                        <Feather
+                                            name="plus"
+                                        size={scaleSize(15)}
+                                        color="#FFFFFF"
+                                    />
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    </Animated.View>
+                )}
+                <TouchableOpacity
+                    style={[
+                        styles.createPostButton,
+                        isCreateMenuVisible && styles.createPostButtonActive,
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={toggleCreateMenu}
+                    accessibilityRole="button"
+                    accessibilityLabel="Open share options"
+                >
+                    <Animated.View
+                        style={{
+                            transform: [{
+                                rotate: createMenuAnim.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: ["0deg", "45deg"],
+                                }),
+                            }],
+                        }}
+                    >
+                        <Feather
+                            name="plus"
+                            size={scaleSize(24)}
+                            color={isCreateMenuVisible ? '#FFFFFF' : '#000'}
+                        />
+                    </Animated.View>
+                </TouchableOpacity>
+            </View>
 
             <CommentsBottomSheet
                 isVisible={commentsVisible}
@@ -1216,20 +1371,92 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(24),
     },
     createPostButton: {
-        position: "absolute",
-        right: scaleSize(24),
         width: scaleSize(56),
         height: scaleSize(56),
         borderRadius: scaleSize(28),
         backgroundColor: "#FFFFFF",
         alignItems: "center",
         justifyContent: "center",
-        zIndex: 3,
-        elevation: 3,
         shadowColor: "#000",
         shadowOpacity: 0.2,
         shadowRadius: 6,
         shadowOffset: { width: 0, height: 3 },
+        elevation: 3,
+    },
+    createPostButtonActive: {
+        backgroundColor: theme.primary,
+    },
+    createPostActionsWrapper: {
+        position: "absolute",
+        right: scaleSize(24),
+        alignItems: "flex-end",
+        zIndex: 3,
+    },
+    createPostBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 2,
+        backgroundColor: "rgba(0, 0, 0, 0.35)",
+    },
+    createPostMenu: {
+        marginBottom: scaleSize(16),
+        width: scaleSize(190),
+    },
+    createPostMenuButton: {
+        borderRadius: scaleSize(14),
+        paddingVertical: scaleSize(14),
+        paddingHorizontal: scaleSize(20),
+        alignItems: "flex-start",
+        justifyContent: "center",
+        marginBottom: scaleSize(12),
+        shadowColor: "#000",
+        shadowOpacity: 0.18,
+        shadowRadius: 7,
+        shadowOffset: { width: 0, height: 3 },
+        elevation: 3,
+    },
+    createPostMenuButtonPost: {
+        backgroundColor: "#1B1F29",
+    },
+    createPostMenuRow: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    createPostMenuLabelWrap: {
+        flex: 1,
+    },
+    createPostMenuText: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(15),
+        color: "#0A0E14",
+    },
+    createPostMenuTextDark: {
+        color: "#E7ECF5",
+    },
+    createPostMenuSubtext: {
+        fontFamily: "Outfit_400Regular",
+        fontSize: scaleSize(12),
+        marginTop: scaleSize(4),
+        color: "#A0A8BA",
+    },
+    createPostMenuSubtextDark: {
+        color: "#CCD1DE",
+    },
+    createPostMenuIconBadge: {
+        padding: scaleSize(8),
+        borderRadius: scaleSize(999),
+        backgroundColor: "rgba(255,255,255,0.9)",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    createPostMenuIconBadgeDark: {
+        backgroundColor: "rgba(255, 255, 255, 0.12)",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.25)",
+        marginLeft: scaleSize(12),
+        padding: scaleSize(8),
+        borderRadius: scaleSize(999),
+        alignItems: "center",
+        justifyContent: "center",
     },
     emptyState: {
         alignItems: "center",
