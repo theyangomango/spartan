@@ -69,8 +69,8 @@ const formatTimestamp = (value) => {
     let timePart = "";
     try {
         datePart = date.toLocaleDateString(undefined, {
-            month: "long",
-            day: "2-digit",
+            month: "short",
+            day: "numeric",
             year: "numeric",
         });
     } catch { }
@@ -78,7 +78,9 @@ const formatTimestamp = (value) => {
         timePart = date.toLocaleTimeString(undefined, {
             hour: "numeric",
             minute: "2-digit",
+            hour12: true,
         });
+        timePart = timePart.replace(/\s?(AM|PM)$/i, (_, meridiem) => meridiem.toUpperCase());
     } catch { }
 
     if (datePart && timePart) return `${datePart} at ${timePart}`;

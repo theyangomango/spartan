@@ -21,6 +21,7 @@ import { Swipeable } from 'react-native-gesture-handler';
 import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { Camera } from 'expo-camera';
 import { CameraView } from 'expo-camera/next';
+import { runOnJS, useAnimatedReaction, useSharedValue } from 'react-native-reanimated';
 import SearchResultCard from './SearchResultCard';
 import PortionPickerModal from './PortionPickerModal';
 import QuickAddModal from './QuickAddModal';
@@ -88,6 +89,7 @@ export default function FoodSearchOverlay({
     const [headerMealTitle, setHeaderMealTitle] = useState(activeMeal || '');
     const shouldRenderSheet = sheetMounted || visible;
     const sheetSnapPoints = useMemo(() => ['96%'], []);
+    const sheetAnimatedIndex = useSharedValue(visible ? 0 : -1);
     const headerPaddingTop = 0
     const headerTitleOffset = useMemo(
         () => headerPaddingTop + scaleSize(6),
@@ -149,6 +151,21 @@ export default function FoodSearchOverlay({
         });
         return () => subscription.remove();
     }, [visible, onClose]);
+
+    const dismissKeyboardNow = useCallback(() => {
+        try { Keyboard.dismiss(); } catch {}
+    }, []);
+
+    useAnimatedReaction(
+        () => sheetAnimatedIndex.value,
+        (current, previous) => {
+            if (previous == null) return;
+            if (current < 0 && previous >= 0) {
+                runOnJS(dismissKeyboardNow)();
+            }
+        },
+        [dismissKeyboardNow],
+    );
 
     // ---- Recent foods state
     const [recentFoods, setRecentFoods] = useState([]);
@@ -538,6 +555,7 @@ export default function FoodSearchOverlay({
                         ref={sheetRef}
                         index={visible ? 0 : -1}
                         snapPoints={sheetSnapPoints}
+                        animatedIndex={sheetAnimatedIndex}
                         handleStyle={styles.sheetHandle}
                         handleIndicatorStyle={styles.sheetHandleIndicator}
                         backgroundStyle={styles.sheetBackground}
