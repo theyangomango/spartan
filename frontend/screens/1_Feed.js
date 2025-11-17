@@ -1225,23 +1225,23 @@ export default function Feed({ navigation, route }) {
                                 styles.createPostMenuButtonPost,
                             ]}
                             activeOpacity={0.85}
-                            onPress={handleShareClip}
+                            onPress={handleSharePost}
                             accessibilityRole="button"
-                            accessibilityLabel="Share a clip"
-                            >
-                                <View style={styles.createPostMenuRow}>
-                                    <View style={styles.createPostMenuLabelWrap}>
-                                        <Text style={[styles.createPostMenuText, styles.createPostMenuTextDark]}>
-                                            Share Clip
-                                        </Text>
-                                        <Text style={[styles.createPostMenuSubtext, styles.createPostMenuSubtextDark]}>
-                                            Vertical short-form highlight
-                                        </Text>
-                                    </View>
-                                    <View style={styles.createPostMenuIconBadgeDark}>
-                                        <Feather
-                                            name="video"
-                                            size={scaleSize(15)}
+                            accessibilityLabel="Share a post"
+                        >
+                            <View style={styles.createPostMenuRow}>
+                                <View style={styles.createPostMenuLabelWrap}>
+                                    <Text style={[styles.createPostMenuText, styles.createPostMenuTextDark]}>
+                                        Share Post
+                                    </Text>
+                                    <Text style={[styles.createPostMenuSubtext, styles.createPostMenuSubtextDark]}>
+                                        Quick notes, can add photos/videos
+                                    </Text>
+                                </View>
+                                <View style={styles.createPostMenuIconBadgeDark}>
+                                    <Feather
+                                        name="edit-3"
+                                        size={scaleSize(15)}
                                         color="#FFFFFF"
                                     />
                                 </View>
@@ -1253,22 +1253,22 @@ export default function Feed({ navigation, route }) {
                                 styles.createPostMenuButtonPost,
                             ]}
                             activeOpacity={0.85}
-                            onPress={handleSharePost}
+                            onPress={handleShareClip}
                             accessibilityRole="button"
-                            accessibilityLabel="Share a post"
-                            >
-                                <View style={styles.createPostMenuRow}>
-                                    <View style={styles.createPostMenuLabelWrap}>
-                                        <Text style={[styles.createPostMenuText, styles.createPostMenuTextDark]}>
-                                            Share Post
-                                        </Text>
-                                        <Text style={[styles.createPostMenuSubtext, styles.createPostMenuSubtextDark]}>
-                                            Photos, workouts, or notes
-                                        </Text>
-                                    </View>
-                                    <View style={styles.createPostMenuIconBadgeDark}>
-                                        <Feather
-                                            name="plus"
+                            accessibilityLabel="Share a clip"
+                        >
+                            <View style={styles.createPostMenuRow}>
+                                <View style={styles.createPostMenuLabelWrap}>
+                                    <Text style={[styles.createPostMenuText, styles.createPostMenuTextDark]}>
+                                        Share Clip
+                                    </Text>
+                                    <Text style={[styles.createPostMenuSubtext, styles.createPostMenuSubtextDark]}>
+                                        Short-form video content
+                                    </Text>
+                                </View>
+                                <View style={styles.createPostMenuIconBadgeDark}>
+                                    <Feather
+                                        name="video"
                                         size={scaleSize(15)}
                                         color="#FFFFFF"
                                     />
