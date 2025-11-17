@@ -14,11 +14,12 @@ export default function LabeledNumber({
     placeholderTextColor,
     selectionColor,
     keyboardType = 'number-pad',
+    inputBoxStyle,
 }) {
     return (
         <View style={{ flex: 1 }}>
             <Text style={styles.inputLabel}>{label}</Text>
-            <View style={styles.inputBox}>
+            <View style={[styles.inputBox, inputBoxStyle]}>
                 <DismissableTextInput
                     keyboardType={keyboardType}
                     returnKeyType="done"

@@ -10,6 +10,7 @@ import {
     Platform,
     FlatList,
     Keyboard,
+    BackHandler,
     InteractionManager,
     ActivityIndicator,
     AppState,
@@ -17,6 +18,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
+import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { Camera } from 'expo-camera';
 import { CameraView } from 'expo-camera/next';
 import SearchResultCard from './SearchResultCard';
@@ -32,6 +34,7 @@ import { fetchRecentFoods, deleteRecentFood } from '../../utils/recentFoods';
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
 import DismissableTextInput from '../common/DismissableTextInput';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const foodKey = (item) => {
     if (!item) return '';
@@ -79,6 +82,73 @@ export default function FoodSearchOverlay({
 }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const navigation = useNavigation();
+    const insets = useSafeAreaInsets();
+    const sheetRef = useRef(null);
+    const [sheetMounted, setSheetMounted] = useState(visible);
+    const [headerMealTitle, setHeaderMealTitle] = useState(activeMeal || '');
+    const shouldRenderSheet = sheetMounted || visible;
+    const sheetSnapPoints = useMemo(() => ['96%'], []);
+    const headerPaddingTop = 0
+    const headerTitleOffset = useMemo(
+        () => headerPaddingTop + scaleSize(6),
+        [headerPaddingTop],
+    );
+    const sheetBottomPadding = useMemo(
+        () => Math.max(scaleSize(24), (insets?.bottom || 0) + scaleSize(16)),
+        [insets?.bottom],
+    );
+
+    const renderBackdrop = useCallback(
+        (props) => (
+            <BottomSheetBackdrop
+                {...props}
+                appearsOnIndex={0}
+                disappearsOnIndex={-1}
+                pressBehavior="close"
+                opacity={0.45}
+            />
+        ),
+        [],
+    );
+
+    useEffect(() => {
+        if (activeMeal) {
+            setHeaderMealTitle(activeMeal);
+        } else if (!visible) {
+            setHeaderMealTitle('');
+        }
+    }, [activeMeal, visible]);
+
+    useEffect(() => {
+        if (visible) {
+            setSheetMounted(true);
+            return;
+        }
+        const timer = setTimeout(() => setSheetMounted(false), 320);
+        return () => clearTimeout(timer);
+    }, [visible]);
+
+    useEffect(() => {
+        if (!shouldRenderSheet) return;
+        const schedule = typeof requestAnimationFrame === 'function'
+            ? requestAnimationFrame
+            : (cb) => setTimeout(cb, 0);
+        schedule(() => {
+            try {
+                if (visible) sheetRef.current?.snapToIndex?.(0);
+                else sheetRef.current?.close?.();
+            } catch { }
+        });
+    }, [visible, shouldRenderSheet]);
+
+    useEffect(() => {
+        if (!visible) return undefined;
+        const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+            onClose?.();
+            return true;
+        });
+        return () => subscription.remove();
+    }, [visible, onClose]);
 
     // ---- Recent foods state
     const [recentFoods, setRecentFoods] = useState([]);
@@ -129,17 +199,20 @@ export default function FoodSearchOverlay({
             if (!perm || !perm.granted) {
                 const granted = await requestPermission();
                 perm = granted;
-                if (!granted?.granted) {
-                    return false;
-                }
             }
             clearScanRetry();
             setScanLocked(false);
             setScanBusy(false);
             setScannerVisible(true);
             try { Keyboard.dismiss(); } catch {}
+            if (!perm?.granted) {
+                return false;
+            }
             return true;
         } catch {
+            try {
+                setScannerVisible(true);
+            } catch { }
             return false;
         }
     }, [permission, requestPermission, clearScanRetry]);
@@ -379,6 +452,14 @@ export default function FoodSearchOverlay({
     const openQuick = () => { try { haptic(); } catch {} setQuickVisible(true); };
     const closeQuick = () => { Keyboard.dismiss(); setQuickVisible(false); };
 
+    useEffect(() => {
+        if (visible) return;
+        setPortionVisible(false);
+        setPendingFood(null);
+        setQuickVisible(false);
+        setScannerVisible(false);
+    }, [visible]);
+
     // ---- Renderers
     const goToDetails = useCallback((food) => {
         try { onClose?.(); } catch {}
@@ -447,220 +528,224 @@ export default function FoodSearchOverlay({
         );
     };
 
+    const currentMealTitle = headerMealTitle || activeMeal || '';
+
     return (
-        <Modal
-            visible={visible}
-            animationType="slide"
-            presentationStyle="fullScreen"
-            onRequestClose={onClose}
-            hardwareAccelerated
-        >
-            {/* Tap anywhere blank to dismiss keyboard */}
-            <Pressable style={styles.overlayContainer} onPress={Keyboard.dismiss}>
-                {/* Header */}
-                <View style={styles.overlayHeader}>
-                    {/* Left: close overlay */}
-                    <Pressable
-                        style={styles.headerLeft}
-                        onPress={onClose}
-                        hitSlop={8}
-                        accessibilityLabel="Close search overlay"
+        <>
+            {shouldRenderSheet ? (
+                <View pointerEvents="box-none" style={styles.sheetWrapper}>
+                    <BottomSheet
+                        ref={sheetRef}
+                        index={visible ? 0 : -1}
+                        snapPoints={sheetSnapPoints}
+                        handleStyle={styles.sheetHandle}
+                        handleIndicatorStyle={styles.sheetHandleIndicator}
+                        backgroundStyle={styles.sheetBackground}
+                        style={styles.sheet}
+                        enablePanDownToClose
+                        onClose={onClose}
+                        backdropComponent={renderBackdrop}
+                        keyboardBehavior={Platform.OS === 'ios' ? 'extend' : 'interactive'}
+                        keyboardBlurBehavior="restore"
                     >
-                        <Ionicons name="close" size={24} color={'#999'} />
-                    </Pressable>
-
-                    {/* Centered title (absolute so it stays centered regardless of right content width) */}
-                    <View style={styles.titleCenterWrap} pointerEvents="none">
-                        <Text style={styles.overlayTitle}>
-                            {activeMeal ? `Add to ${activeMeal}` : 'Add food'}
-                        </Text>
-                    </View>
-
-                    {/* Right: Quick Add */}
-                    <Pressable onPress={() => { try { haptic(); } catch {} openQuick(); }} hitSlop={8} style={styles.headerRight}>
-                        <Text style={styles.headerActionText}>Quick Add</Text>
-                    </Pressable>
-                </View>
-
-                {/* Search Bar */}
-                <View style={styles.searchContainer}>
-                    <View style={styles.searchBox}>
-                        <DismissableTextInput
-                            ref={inputRef}
-                            autoFocus={false}
-                            placeholder="Search for a food..."
-                            placeholderTextColor="#999"
-                            value={query}
-                            onChangeText={setQuery}
-                            style={styles.searchInput}
-                            returnKeyType="search"
-                        />
-                        {/* Barcode scanner trigger inside search bar */}
                         <Pressable
-                            onPress={() => { void openScanner(true); }}
-                            hitSlop={8}
-                            accessibilityLabel="Open barcode scanner"
+                            style={[styles.overlayContainer, { paddingBottom: sheetBottomPadding }]}
+                            onPress={Keyboard.dismiss}
                         >
-                            <Ionicons
-                                name="barcode-outline"
-                                size={18}
-                                color="#2D92FF"
-                                style={{ marginLeft: scaleSize(10) }}
-                            />
-                        </Pressable>
-                    </View>
-                </View>
-
-                {/* Results + History */}
-                <KeyboardAvoidingView
-                    style={{ flex: 1 }}
-                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-                >
-                    <FlatList
-                        contentContainerStyle={{ paddingBottom: scaleSize(24) }}
-                        data={results}
-                        keyExtractor={(item, index) => foodKey(item) || `food-${index}`}
-                        keyboardShouldPersistTaps="handled"
-                        renderItem={renderSearchItem}
-                        removeClippedSubviews
-                        initialNumToRender={8}
-                        windowSize={7}
-                        maxToRenderPerBatch={8}
-                        updateCellsBatchingPeriod={32}
-                        keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'interactive'}
-                        onEndReachedThreshold={0.6}
-                        onEndReached={handleLoadMore}
-                        ListEmptyComponent={
-                            <Text style={styles.emptyText}>
-                                {query ? (loading ? 'Searching…' : 'No results') : 'Start typing to search foods'}
-                            </Text>
-                        }
-                        ListFooterComponent={
-                            <View>
-                                {loadingMore ? (
-                                    <View style={styles.loadingMore}>
-                                        <ActivityIndicator size="small" color={COLORS.accent || '#2D92FF'} />
-                                    </View>
-                                ) : (results.length > 0 && !hasMore && !loading ? (
-                                    <Text style={styles.noMoreText}>No more results</Text>
-                                ) : null)}
-                                <HistoryFooter />
-                            </View>
-                        }
-                    />
-                </KeyboardAvoidingView>
-
-                <PortionPickerModal
-                    visible={portionVisible}
-                    onCancel={cancelPortion}
-                    onConfirm={(factor) => {
-                        if (pendingFood) onSelectResult?.({ ...pendingFood, __portionMultiplier: factor });
-                        setPortionVisible(false);
-                        setPendingFood(null);
-                    }}
-                    COLORS={COLORS}
-                />
-
-                <QuickAddModal
-                    visible={quickVisible}
-                    onClose={closeQuick}
-                    onSubmit={(item) => { onSelectResult?.(item); setQuickVisible(false); }}
-                    COLORS={COLORS}
-                />
-
-                {/* Barcode Scanner Modal */}
-                <Modal
-                    visible={scannerVisible}
-                    animationType="slide"
-                    presentationStyle="fullScreen"
-                    onRequestClose={() => {
-                        setScannerVisible(false);
-                        setScanBusy(false);
-                        setScanLocked(false);
-                        clearScanRetry();
-                    }}
-                >
-                    <View style={{ flex: 1, backgroundColor: 'black' }}>
-                        {/* Camera */}
-                        {permission?.granted ? (
-                            <CameraView
-                                style={{ flex: 1 }}
-                                facing="back"
-                                barcodeScannerSettings={{
-                                    barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39']
-                                }}
-                                onBarcodeScanned={async (scan) => {
-                                    if (!scan || scanLocked || scanBusy) return;
-                                    const data = String(scan?.data || '').trim();
-                                    if (!data) return;
-                                    setScanLocked(true);
-                                    scheduleScanRetry();
-                                    setScanBusy(true);
-                                    setScanError('');
-                                    try {
-                                        // Keep only digits; pad to GTIN-13 on server
-                                        const digits = data.replace(/\D/g, '');
-                                        if (!digits) {
-                                            setScanError('Invalid barcode');
-                                            setScanLocked(false);
-                                            clearScanRetry();
-                                            setScanBusy(false);
-                                            return;
-                                        }
-                                        const resp = await lookupBarcode(digits);
-                                        const food = resp?.food;
-                                        if (food && food.food_id) {
-                                            setScannerVisible(false);
-                                            // Open details screen directly to add
-                                            goToDetails(food);
-                                            clearScanRetry();
-                                        } else {
-                                            setScanError('No match found for this barcode');
-                                            setScanLocked(false);
-                                            scheduleScanRetry();
-                                        }
-                                    } catch (e) {
-                                        setScanError(String(e?.message || 'Lookup failed'));
-                                        setScanLocked(false);
-                                        scheduleScanRetry();
-                                    } finally {
-                                        setScanBusy(false);
-                                    }
-                                }}
-                            >
-                                {/* Overlay header */}
-                                <View style={styles.scannerHeader}>
-                                    <Pressable onPress={() => {
-                                        setScannerVisible(false);
-                                        setScanBusy(false);
-                                        setScanLocked(false);
-                                        clearScanRetry();
-                                    }} hitSlop={12}>
-                                        <Ionicons name="close" size={26} color="#fff" />
-                                    </Pressable>
-                                    <Text style={styles.scannerTitle}>Scan a food barcode</Text>
-                                    <View style={{ width: scaleSize(26) }} />
-                                </View>
-                                {/* Bottom hint */}
-                                <View style={styles.scannerFooter}>
-                                    <Text style={styles.scannerHint}>{scanBusy ? 'Looking up…' : (scanError || 'Align the barcode within the frame')}</Text>
-                                </View>
-                            </CameraView>
-                        ) : (
-                            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'black' }}>
-                                <Text style={{ color: 'white', marginBottom: scaleSize(12), fontSize: scaleSize(14) }}>Camera permission is required</Text>
+                            <View style={[styles.overlayHeader, { paddingTop: headerPaddingTop }]}>
                                 <Pressable
-                                    onPress={openSystemSettings}
-                                    style={{ paddingHorizontal: scaleSize(16), paddingVertical: scaleSize(10), backgroundColor: '#2D92FF', borderRadius: scaleSize(8) }}
+                                    style={styles.headerLeft}
+                                    onPress={onClose}
+                                    hitSlop={8}
+                                    accessibilityLabel="Close search overlay"
                                 >
-                                    <Text style={{ color: 'white', fontWeight: '600', fontSize: scaleSize(14) }}>Grant Permission</Text>
+                                    <Ionicons name="close" size={24} color={'#999'} />
+                                </Pressable>
+
+                                <View style={[styles.titleCenterWrap, { top: headerTitleOffset }]} pointerEvents="none">
+                                    <Text style={styles.overlayTitle}>
+                                        {currentMealTitle ? `Add to ${currentMealTitle}` : 'Add food'}
+                                    </Text>
+                                </View>
+
+                                <Pressable onPress={() => { try { haptic(); } catch {} openQuick(); }} hitSlop={8} style={styles.headerRight}>
+                                    <Text style={styles.headerActionText}>Quick Add</Text>
                                 </Pressable>
                             </View>
-                        )}
-                    </View>
-                </Modal>
-            </Pressable>
-        </Modal>
+
+                            <View style={styles.searchContainer}>
+                                <View style={styles.searchBox}>
+                                    <DismissableTextInput
+                                        ref={inputRef}
+                                        autoFocus={false}
+                                        placeholder="Search for a food..."
+                                        placeholderTextColor="#999"
+                                        value={query}
+                                        onChangeText={setQuery}
+                                        style={styles.searchInput}
+                                        returnKeyType="search"
+                                    />
+                                    <Pressable
+                                        onPress={() => { void openScanner(true); }}
+                                        hitSlop={8}
+                                        accessibilityLabel="Open barcode scanner"
+                                    >
+                                        <Ionicons
+                                            name="barcode-outline"
+                                            size={18}
+                                            color="#2D92FF"
+                                            style={{ marginLeft: scaleSize(10) }}
+                                        />
+                                    </Pressable>
+                                </View>
+                            </View>
+
+                            <KeyboardAvoidingView
+                                style={{ flex: 1 }}
+                                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                            >
+                                <FlatList
+                                    contentContainerStyle={{ paddingBottom: scaleSize(24) }}
+                                    data={results}
+                                    keyExtractor={(item, index) => foodKey(item) || `food-${index}`}
+                                    keyboardShouldPersistTaps="handled"
+                                    renderItem={renderSearchItem}
+                                    removeClippedSubviews
+                                    initialNumToRender={8}
+                                    windowSize={7}
+                                    maxToRenderPerBatch={8}
+                                    updateCellsBatchingPeriod={32}
+                                    keyboardDismissMode={Platform.OS === 'ios' ? 'on-drag' : 'interactive'}
+                                    onEndReachedThreshold={0.6}
+                                    onEndReached={handleLoadMore}
+                                    ListEmptyComponent={
+                                        <Text style={styles.emptyText}>
+                                            {query ? (loading ? 'Searching…' : 'No results') : 'Start typing to search foods'}
+                                        </Text>
+                                    }
+                                    ListFooterComponent={
+                                        <View>
+                                            {loadingMore ? (
+                                                <View style={styles.loadingMore}>
+                                                    <ActivityIndicator size="small" color={COLORS.accent || '#2D92FF'} />
+                                                </View>
+                                            ) : (results.length > 0 && !hasMore && !loading ? (
+                                                <Text style={styles.noMoreText}>No more results</Text>
+                                            ) : null)}
+                                            <HistoryFooter />
+                                        </View>
+                                    }
+                                />
+                            </KeyboardAvoidingView>
+                        </Pressable>
+                    </BottomSheet>
+                </View>
+            ) : null}
+
+            <PortionPickerModal
+                visible={portionVisible}
+                onCancel={cancelPortion}
+                onConfirm={(factor) => {
+                    if (pendingFood) onSelectResult?.({ ...pendingFood, __portionMultiplier: factor });
+                    setPortionVisible(false);
+                    setPendingFood(null);
+                }}
+                COLORS={COLORS}
+            />
+
+            <QuickAddModal
+                visible={quickVisible}
+                onClose={closeQuick}
+                onSubmit={(item) => { onSelectResult?.(item); setQuickVisible(false); }}
+                COLORS={COLORS}
+            />
+
+            <Modal
+                visible={scannerVisible}
+                animationType="slide"
+                presentationStyle="fullScreen"
+                onRequestClose={() => {
+                    setScannerVisible(false);
+                    setScanBusy(false);
+                    setScanLocked(false);
+                    clearScanRetry();
+                }}
+            >
+                <View style={{ flex: 1, backgroundColor: 'black' }}>
+                    {permission?.granted ? (
+                        <CameraView
+                            style={{ flex: 1 }}
+                            facing="back"
+                            barcodeScannerSettings={{
+                                barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'code128', 'code39']
+                            }}
+                            onBarcodeScanned={async (scan) => {
+                                if (!scan || scanLocked || scanBusy) return;
+                                const data = String(scan?.data || '').trim();
+                                if (!data) return;
+                                setScanLocked(true);
+                                scheduleScanRetry();
+                                setScanBusy(true);
+                                setScanError('');
+                                try {
+                                    const digits = data.replace(/\\D/g, '');
+                                    if (!digits) {
+                                        setScanError('Invalid barcode');
+                                        setScanLocked(false);
+                                        clearScanRetry();
+                                        setScanBusy(false);
+                                        return;
+                                    }
+                                    const resp = await lookupBarcode(digits);
+                                    const food = resp?.food;
+                                    if (food && food.food_id) {
+                                        setScannerVisible(false);
+                                        goToDetails(food);
+                                        clearScanRetry();
+                                    } else {
+                                        setScanError('No match found for this barcode');
+                                        setScanLocked(false);
+                                        scheduleScanRetry();
+                                    }
+                                } catch (e) {
+                                    setScanError(String(e?.message || 'Lookup failed'));
+                                    setScanLocked(false);
+                                    scheduleScanRetry();
+                                } finally {
+                                    setScanBusy(false);
+                                }
+                            }}
+                        >
+                            <View style={styles.scannerHeader}>
+                                <Pressable onPress={() => {
+                                    setScannerVisible(false);
+                                    setScanBusy(false);
+                                    setScanLocked(false);
+                                    clearScanRetry();
+                                }} hitSlop={12}>
+                                    <Ionicons name="close" size={26} color="#fff" />
+                                </Pressable>
+                                <Text style={styles.scannerTitle}>Scan a food barcode</Text>
+                                <View style={{ width: scaleSize(26) }} />
+                            </View>
+                            <View style={styles.scannerFooter}>
+                                <Text style={styles.scannerHint}>{scanBusy ? 'Looking up…' : (scanError || 'Align the barcode within the frame')}</Text>
+                            </View>
+                        </CameraView>
+                    ) : (
+                        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'black' }}>
+                            <Text style={{ color: 'white', marginBottom: scaleSize(12), fontSize: scaleSize(14) }}>Camera permission is required</Text>
+                            <Pressable
+                                onPress={openSystemSettings}
+                                style={{ paddingHorizontal: scaleSize(16), paddingVertical: scaleSize(10), backgroundColor: '#2D92FF', borderRadius: scaleSize(8) }}
+                            >
+                                <Text style={{ color: 'white', fontWeight: '600', fontSize: scaleSize(14) }}>Grant Permission</Text>
+                            </Pressable>
+                        </View>
+                    )}
+                </View>
+            </Modal>
+        </>
     );
 }
 
@@ -720,9 +805,37 @@ const RecentHistoryItem = ({ item, COLORS, styles, openPortion, goToDetails, onD
 
 const makeStyles = (COLORS) =>
     StyleSheet.create({
-        overlayContainer: { flex: 1, backgroundColor: COLORS.bg || COLORS.background || '#131521' },
+        sheetWrapper: {
+            ...StyleSheet.absoluteFillObject,
+            zIndex: 1600,
+            elevation: 40,
+        },
+        sheet: {
+            borderTopLeftRadius: scaleSize(32),
+            borderTopRightRadius: scaleSize(32),
+            overflow: 'hidden',
+        },
+        sheetBackground: {
+            backgroundColor: COLORS.bg || COLORS.background || '#131521',
+            borderTopLeftRadius: scaleSize(32),
+            borderTopRightRadius: scaleSize(32),
+        },
+        sheetHandle: {
+            paddingVertical: scaleSize(12),
+        },
+        sheetHandleIndicator: {
+            width: scaleSize(42),
+            height: scaleSize(4),
+            borderRadius: scaleSize(2),
+            backgroundColor: 'rgba(255,255,255,0.7)',
+        },
+        overlayContainer: {
+            flex: 1,
+            backgroundColor: COLORS.bg || COLORS.background || '#131521',
+            borderTopLeftRadius: scaleSize(32),
+            borderTopRightRadius: scaleSize(32),
+        },
         overlayHeader: {
-            paddingTop: scaleSize(56),
             paddingBottom: scaleSize(12),
             paddingHorizontal: scaleSize(16),
             flexDirection: 'row',
@@ -742,7 +855,6 @@ const makeStyles = (COLORS) =>
             position: 'absolute',
             left: 0,
             right: 0,
-            top: scaleSize(62),                        // matches paddingTop so it sits in the header line
             alignItems: 'center',
         },
         overlayTitle: {

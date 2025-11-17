@@ -22,6 +22,24 @@ import { strong as haptic } from '../../utils/haptics';
 import theme from '../../theme/mfpDark'
 import { setFooterSuppressed } from '../../state/footerSuppressionStore';
 
+const parseMacroNumber = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric) || numeric < 0) return 0;
+    return numeric;
+};
+
+const getMacroCalories = (protein, carbs, fat) => {
+    const proteinCalories = Math.round(parseMacroNumber(protein) * 4);
+    const carbCalories = Math.round(parseMacroNumber(carbs) * 4);
+    const fatCalories = Math.round(parseMacroNumber(fat) * 9);
+    return {
+        protein: proteinCalories,
+        carbs: carbCalories,
+        fat: fatCalories,
+        total: proteinCalories + carbCalories + fatCalories,
+    };
+};
+
 export default function MacroGoalsSheet({
     index,
     onChangeIndex,
@@ -258,7 +276,6 @@ export default function MacroGoalsSheet({
 
     // ----------------- AUTO CALC (existing) with placeholder mode -----------------
     const manualRef = useRef({ calories: false, protein: false, carbs: false, fat: false });
-    const onlyDigits = (s) => s.replace(/[^\d]/g, '');
     const sanitizeDecimalInput = (s) => {
         if (!s) return '';
         const filtered = s.replace(/[^0-9.]/g, '');
@@ -288,12 +305,7 @@ export default function MacroGoalsSheet({
         return String(Math.max(0, Math.round(numeric)));
     };
     const caloriesFromMacros = (protein, carbs, fat) => {
-        const parse = (v) => {
-            const n = Number(v);
-            return Number.isFinite(n) ? n : 0;
-        };
-        const total = parse(protein) * 4 + parse(carbs) * 4 + parse(fat) * 9;
-        return String(Math.round(total));
+        return String(getMacroCalories(protein, carbs, fat).total);
     };
     const handleMacroChange = (macroKey) => (text) => {
         const cleaned = sanitizeDecimalInput(text);
@@ -304,41 +316,10 @@ export default function MacroGoalsSheet({
             return { ...next, calories: caloriesFromMacros(next.protein, next.carbs, next.fat) };
         });
     };
-    const handleCaloriesChange = (text) => {
-        const digits = onlyDigits(text);
-        markManual('calories');
-        manualRef.current.protein = true;
-        manualRef.current.carbs = true;
-        manualRef.current.fat = true;
-        if (digits === '') {
-            setGoalForm((prev) => ({ ...prev, calories: '' }));
-            return;
-        }
-        setGoalForm((prev) => {
-            const nextCaloriesNumber = Number(digits);
-            const baseProtein = Number(prev.protein) || 0;
-            const baseCarbs = Number(prev.carbs) || 0;
-            const baseFat = Number(prev.fat) || 0;
-            const baseCalories = baseProtein * 4 + baseCarbs * 4 + baseFat * 9;
-            if (!baseCalories || !Number.isFinite(nextCaloriesNumber)) {
-                return { ...prev, calories: digits };
-            }
-            const scale = nextCaloriesNumber / baseCalories;
-            if (!Number.isFinite(scale) || scale < 0) {
-                return { ...prev, calories: digits };
-            }
-            const scaledProtein = formatMacroValue(baseProtein * scale);
-            const scaledCarbs = formatMacroValue(baseCarbs * scale);
-            const scaledFat = formatMacroValue(baseFat * scale);
-            return {
-                ...prev,
-                calories: digits,
-                protein: scaledProtein,
-                carbs: scaledCarbs,
-                fat: scaledFat,
-            };
-        });
-    };
+    const macroCalories = useMemo(
+        () => getMacroCalories(goalForm?.protein, goalForm?.carbs, goalForm?.fat),
+        [goalForm?.protein, goalForm?.carbs, goalForm?.fat]
+    );
 
     const gender = goalForm?.gender ?? 'male';
     const weight = goalForm?.weight ?? '';
@@ -481,60 +462,65 @@ export default function MacroGoalsSheet({
                             </View>
 
                             <Text style={styles.sheetDescription}>
-                                Edit protein, carbs, or fat to change their ratio. Updating calories will scale all three while preserving that balance.
+                                Edit protein, carbs, or fat to change their ratio. Calories update automatically based on those macros.
                             </Text>
 
-                            <View style={styles.row}>
-                                <LabeledNumber
-                                    label="Calories"
-                                    value={goalForm.calories}
-                                    onChangeText={handleCaloriesChange}
-                                    suffix="kcal"
-                                    styles={styles}
-                                    placeholder={effectivePlaceholders.calories}
-                                    placeholderTextColor={styles.placeholder.color}
-                                    selectionColor={styles.accent.color}
-                                />
+                            <View style={styles.totalCaloriesRow}>
+                                <Text style={styles.totalCaloriesInline}>Total Calories:</Text>
+                                <Text style={styles.totalCaloriesValue}>{macroCalories.total}</Text>
+                                <Text style={styles.totalCaloriesUnit}>kcal</Text>
                             </View>
 
                             <View style={[styles.row, { marginTop: scaleSize(10) }]}> 
-                                <LabeledNumber
-                                    label="Protein"
-                                    value={roundDisplayMacro(goalForm.protein)}
-                                    onChangeText={handleMacroChange('protein')}
-                                    suffix="g"
-                                    styles={styles}
-                                    placeholder={effectivePlaceholders.protein}
-                                    placeholderTextColor={styles.placeholder.color}
-                                    selectionColor={styles.accent.color}
-                                    keyboardType="decimal-pad"
-                                />
+                                <View style={styles.macroColumn}>
+                                    <LabeledNumber
+                                        label="Protein"
+                                        value={roundDisplayMacro(goalForm.protein)}
+                                        onChangeText={handleMacroChange('protein')}
+                                        suffix="g"
+                                        styles={styles}
+                                        placeholder={effectivePlaceholders.protein}
+                                        placeholderTextColor={styles.placeholder.color}
+                                        selectionColor={styles.accent.color}
+                                        keyboardType="decimal-pad"
+                                        inputBoxStyle={styles.editableInputBox}
+                                    />
+                                    <Text style={styles.macroCaloriesText}>{macroCalories.protein} kcal</Text>
+                                </View>
 
                                 <View style={{ width: scaleSize(12) }} />
-                                <LabeledNumber
-                                    label="Carbs"
-                                    value={roundDisplayMacro(goalForm.carbs)}
-                                    onChangeText={handleMacroChange('carbs')}
-                                    suffix="g"
-                                    styles={styles}
-                                    placeholder={effectivePlaceholders.carbs}
-                                    placeholderTextColor={styles.placeholder.color}
-                                    selectionColor={styles.accent.color}
-                                    keyboardType="decimal-pad"
-                                />
+                                <View style={styles.macroColumn}>
+                                    <LabeledNumber
+                                        label="Carbs"
+                                        value={roundDisplayMacro(goalForm.carbs)}
+                                        onChangeText={handleMacroChange('carbs')}
+                                        suffix="g"
+                                        styles={styles}
+                                        placeholder={effectivePlaceholders.carbs}
+                                        placeholderTextColor={styles.placeholder.color}
+                                        selectionColor={styles.accent.color}
+                                        keyboardType="decimal-pad"
+                                        inputBoxStyle={styles.editableInputBox}
+                                    />
+                                    <Text style={styles.macroCaloriesText}>{macroCalories.carbs} kcal</Text>
+                                </View>
                                 <View style={{ width: scaleSize(12) }} />
 
-                                <LabeledNumber
-                                    label="Fat"
-                                    value={roundDisplayMacro(goalForm.fat)}
-                                    onChangeText={handleMacroChange('fat')}
-                                    suffix="g"
-                                    styles={styles}
-                                    placeholder={effectivePlaceholders.fat}
-                                    placeholderTextColor={styles.placeholder.color}
-                                    selectionColor={styles.accent.color}
-                                    keyboardType="decimal-pad"
-                                />
+                                <View style={styles.macroColumn}>
+                                    <LabeledNumber
+                                        label="Fat"
+                                        value={roundDisplayMacro(goalForm.fat)}
+                                        onChangeText={handleMacroChange('fat')}
+                                        suffix="g"
+                                        styles={styles}
+                                        placeholder={effectivePlaceholders.fat}
+                                        placeholderTextColor={styles.placeholder.color}
+                                        selectionColor={styles.accent.color}
+                                        keyboardType="decimal-pad"
+                                        inputBoxStyle={styles.editableInputBox}
+                                    />
+                                    <Text style={styles.macroCaloriesText}>{macroCalories.fat} kcal</Text>
+                                </View>
                             </View>
 
                             {/* Inline “Calculate using Personal Info” row */}
@@ -642,6 +628,8 @@ const makeStyles = (COLORS) => {
         smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12.5), color: text },
 
         row: { flexDirection: 'row', alignItems: 'flex-start', marginTop: scaleSize(12) },
+        totalCaloriesRow: { flexDirection: 'row', alignItems: 'baseline', gap: scaleSize(6), marginTop: scaleSize(12) },
+        totalCaloriesInline: { fontSize: scaleSize(13.5), fontFamily: 'Outfit_500Medium', color: subtext },
 
         inputLabel: { fontSize: scaleSize(13), color: subtext, marginBottom: scaleSize(6), fontFamily: 'Outfit_400Regular' },
         inputBox: {
@@ -658,11 +646,20 @@ const makeStyles = (COLORS) => {
             shadowOffset: { width: 0, height: scaleSize(1) },
             shadowRadius: scaleSize(4),
         },
+        editableInputBox: {
+            borderColor: accent,
+            backgroundColor: 'rgba(111,184,255,0.08)',
+            borderWidth: scaleSize(1.2),
+        },
         input: { flex: 1, fontSize: scaleSize(16), fontFamily: 'Outfit_400Regular', color: text, paddingVertical: 0 },
+        totalCaloriesValue: { fontSize: scaleSize(16), fontFamily: 'Outfit_600SemiBold', color: text },
+        totalCaloriesUnit: { fontSize: scaleSize(13.5), fontFamily: 'Outfit_400Regular', color: subtext },
         // Make placeholder slightly brighter for readability
         placeholder: { color: '#BAC3D2' },
         accent: { color: accent },
         inputSuffix: { marginLeft: scaleSize(8), color: subtext, fontFamily: 'Outfit_400Regular', fontSize: scaleSize(13) },
+        macroColumn: { flex: 1 },
+        macroCaloriesText: { marginTop: scaleSize(6), fontSize: scaleSize(12), color: subtext, fontFamily: 'Outfit_500Medium' },
 
         autoCalcRow: {
             marginTop: scaleSize(16),
