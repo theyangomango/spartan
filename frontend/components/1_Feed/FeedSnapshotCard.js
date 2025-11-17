@@ -389,19 +389,19 @@ const styles = StyleSheet.create({
     },
     title: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaled(13),
+        fontSize: scaled(14),
         color: theme.textPrimary,
         letterSpacing: 0.15,
     },
     subtitle: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaled(11),
+        fontSize: scaled(12),
         color: "rgba(234, 240, 247, 0.56)",
         marginTop: scaleSize(2),
     },
     workoutCountText: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaled(12),
+        fontSize: scaled(13),
         color: theme.textPrimary,
         marginRight: scaleSize(8),
         letterSpacing: 0.2,
@@ -440,8 +440,8 @@ const styles = StyleSheet.create({
     },
     metricValue: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaled(13),
-        color: theme.textPrimary,
+        fontSize: scaled(14),
+        color: theme.primary,
     },
     metricValueAccent: {
         color: theme.primary,

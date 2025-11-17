@@ -459,14 +459,14 @@ export default function FoodSearchOverlay({
             <Pressable style={styles.overlayContainer} onPress={Keyboard.dismiss}>
                 {/* Header */}
                 <View style={styles.overlayHeader}>
-                    {/* Left: barcode scanner trigger */}
+                    {/* Left: close overlay */}
                     <Pressable
                         style={styles.headerLeft}
-                        onPress={() => { void openScanner(true); }}
+                        onPress={onClose}
                         hitSlop={8}
-                        accessibilityLabel="Open barcode scanner"
+                        accessibilityLabel="Close search overlay"
                     >
-                        <Ionicons name="barcode-outline" size={24} color={'#2D92FF'} />
+                        <Ionicons name="close" size={24} color={'#999'} />
                     </Pressable>
 
                     {/* Centered title (absolute so it stays centered regardless of right content width) */}
@@ -495,9 +495,18 @@ export default function FoodSearchOverlay({
                             style={styles.searchInput}
                             returnKeyType="search"
                         />
-                        {/* Close overlay button at end of input */}
-                        <Pressable onPress={onClose} hitSlop={8} accessibilityLabel="Close search overlay">
-                            <Ionicons name="close" size={18} color="#999" style={{ marginLeft: scaleSize(10) }} />
+                        {/* Barcode scanner trigger inside search bar */}
+                        <Pressable
+                            onPress={() => { void openScanner(true); }}
+                            hitSlop={8}
+                            accessibilityLabel="Open barcode scanner"
+                        >
+                            <Ionicons
+                                name="barcode-outline"
+                                size={18}
+                                color="#2D92FF"
+                                style={{ marginLeft: scaleSize(10) }}
+                            />
                         </Pressable>
                     </View>
                 </View>
