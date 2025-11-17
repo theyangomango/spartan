@@ -675,7 +675,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(18),
         paddingBottom: scaleSize(12),
         borderBottomWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
+        borderBottomColor: theme.hairline,
+        backgroundColor: theme.bg,
         position: "relative",
     },
     header_btn: {

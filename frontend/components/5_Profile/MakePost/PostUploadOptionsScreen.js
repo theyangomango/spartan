@@ -1375,15 +1375,6 @@ export default function PostOptionsScreen({ navigation, route }) {
                             />
                             <Text style={styles.media_manage_text}>{isClipMode ? 'Edit clip' : 'Edit media'}</Text>
                         </TouchableOpacity>
-                        {!isClipMode && (
-                            <TouchableOpacity
-                                style={styles.add_clip_secondary_btn}
-                                onPress={withStrongPress(handleOpenClipBuilder)}
-                            >
-                                <Feather name="video" size={scaleSize(18)} color={theme.primary} />
-                                <Text style={styles.media_manage_text}>Add clip</Text>
-                            </TouchableOpacity>
-                        )}
                         {isClipMode && (
                             <View style={styles.clip_badge}>
                                 <Text style={styles.clip_badge_text}>Clip</Text>
@@ -1399,22 +1390,6 @@ export default function PostOptionsScreen({ navigation, route }) {
                             <Feather name="image" size={scaleSize(22)} color={theme.primary} />
                             <Text style={styles.add_media_title}>Attatch Media (optional)</Text>
                             <Text style={styles.add_media_subtitle}>Share your progress with photos or videos</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.add_clip_cta}
-                            onPress={withStrongPress(handleOpenClipBuilder)}
-                        >
-                            <Feather name="video" size={scaleSize(22)} color={theme.accent || theme.primary} />
-                            <View style={styles.add_clip_title_row}>
-                                <Text style={styles.add_media_title}>Add clip (vertical video)</Text>
-                                <Ionicons
-                                    name="chevron-forward"
-                                    size={scaleSize(18)}
-                                    color={theme.accent || theme.primary}
-                                    style={styles.add_clip_chevron}
-                                />
-                            </View>
-                            <Text style={styles.add_media_subtitle}>Upload a single portrait clip under 90s</Text>
                         </TouchableOpacity>
                     </View>
                 )}
@@ -1644,37 +1619,11 @@ const styles = StyleSheet.create({
         backgroundColor: theme.surface,
         alignItems: 'center'
     },
-    add_clip_cta: {
-        marginTop: scaleSize(16),
-        marginHorizontal: -composeHorizontalPadding,
-        paddingVertical: scaleSize(28),
-        paddingHorizontal: composeHorizontalPadding,
-        borderRadius: scaleSize(16),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.accent || theme.primary,
-        backgroundColor: 'rgba(37, 99, 235, 0.08)',
-        alignItems: 'center'
-    },
-    add_clip_secondary_btn: {
-        marginTop: scaleSize(8),
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     add_media_title: {
         marginTop: scaleSize(12),
         fontFamily: 'Outfit_600SemiBold',
         fontSize: scaleSize(16),
         color: theme.textPrimary
-    },
-    add_clip_title_row: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center'
-    },
-    add_clip_chevron: {
-        marginTop: scaleSize(12),
-        marginLeft: scaleSize(6)
     },
     add_media_subtitle: {
         marginTop: scaleSize(6),
