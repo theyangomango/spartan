@@ -230,6 +230,9 @@ const SimpleFeedPost = ({
     onPressEditPost,
     onPressDeletePost,
     onPressEditWorkout,
+    areVideosMuted: externalAreVideosMuted,
+    onToggleVideosMuted,
+    shouldPlayMedia = true,
 }) => {
     const highlightOpacity = useRef(new Animated.Value(0)).current;
     const isHighlighted = useMemo(() => {
@@ -410,7 +413,7 @@ const SimpleFeedPost = ({
     const reportOptionsAnim = useRef(new Animated.Value(0)).current;
     const [pendingDeletePid, setPendingDeletePid] = useState(null);
     const [videoPauseState, setVideoPauseState] = useState({});
-    const [areVideosMuted, setVideosMuted] = useState(true);
+    const [internalVideoMuteState, setInternalVideoMuteState] = useState(true);
     const [videoDurations, setVideoDurations] = useState({});
     const [videoProgress, setVideoProgress] = useState({});
     const [videoControlsVisible, setVideoControlsVisible] = useState({});
@@ -419,6 +422,9 @@ const SimpleFeedPost = ({
     const videoControlsHideTimeoutsRef = useRef({});
     const videoControlsOpacityRef = useRef({});
     const { openReportSheet, reportSheetNode } = useReportContentSheet();
+    const isUsingExternalMute = typeof externalAreVideosMuted === "boolean";
+    const resolvedAreVideosMuted = isUsingExternalMute ? externalAreVideosMuted : internalVideoMuteState;
+    const allowMediaPlayback = shouldPlayMedia !== false;
 
     const mediaFingerprint = useMemo(() => {
         if (mediaList.length === 0) return "empty";
@@ -446,12 +452,14 @@ const SimpleFeedPost = ({
         setContentReady(false);
         setMediaLoadedCount(0);
         setVideoPauseState({});
-        setVideosMuted(true);
+        if (!isUsingExternalMute) {
+            setInternalVideoMuteState(true);
+        }
         setVideoDurations({});
         setVideoProgress({});
         setVideoControlsVisible({});
         videoControlsOpacityRef.current = {};
-    }, [mediaFingerprint, mediaList.length]);
+    }, [isUsingExternalMute, mediaFingerprint, mediaList.length]);
 
     useEffect(() => {
         if (contentReady) return;
@@ -597,8 +605,12 @@ const SimpleFeedPost = ({
     }, [setControlsVisibility]);
 
     const toggleVideoMute = useCallback(() => {
-        setVideosMuted((prev) => !prev);
-    }, []);
+        if (typeof onToggleVideosMuted === "function") {
+            onToggleVideosMuted();
+            return;
+        }
+        setInternalVideoMuteState((prev) => !prev);
+    }, [onToggleVideosMuted]);
 
     const assignVideoRef = useCallback((idx, ref) => {
         if (ref) {
@@ -743,7 +755,7 @@ const SimpleFeedPost = ({
             const source = typeof item.uri === "string" ? { uri: item.uri } : item.uri;
             const isActiveSlide = mediaIndex === slideIndex;
             const isManuallyPaused = Boolean(videoPauseState[slideIndex]);
-            const paused = !isActiveSlide || isManuallyPaused;
+            const paused = !allowMediaPlayback || !isActiveSlide || isManuallyPaused;
             const fallbackDuration = Number(item?.duration) || 0;
             const videoDuration = videoDurations[slideIndex] || fallbackDuration;
             const sliderValue = Math.min(
@@ -764,7 +776,7 @@ const SimpleFeedPost = ({
                         resizeMode="cover"
                         paused={paused}
                         repeat
-                        muted={areVideosMuted}
+                        muted={resolvedAreVideosMuted}
                         onLoad={(meta) => handleVideoLoad(slideIndex, meta)}
                         onProgress={(event) => handleVideoProgress(slideIndex, event)}
                     />
@@ -810,7 +822,7 @@ const SimpleFeedPost = ({
                             }}
                         >
                             <MaterialCommunityIcons
-                                name={areVideosMuted ? "volume-off" : "volume-high"}
+                                name={resolvedAreVideosMuted ? "volume-off" : "volume-high"}
                                 size={scaleSize(18)}
                                 color="#fff"
                             />
@@ -833,7 +845,7 @@ const SimpleFeedPost = ({
                 />
             </View>
         );
-    }, [areVideosMuted, assignVideoRef, beginScrub, finishScrub, getAspectRatioForEntry, handleScrubChange, handleVideoLoad, handleVideoProgress, mediaIndex, mediaSize, toggleVideoMute, toggleVideoPlayback, videoControlsVisible, videoDurations, videoPauseState, videoProgress]);
+    }, [allowMediaPlayback, assignVideoRef, beginScrub, finishScrub, getAspectRatioForEntry, handleScrubChange, handleVideoLoad, handleVideoProgress, mediaIndex, mediaSize, resolvedAreVideosMuted, toggleVideoMute, toggleVideoPlayback, videoControlsVisible, videoDurations, videoPauseState, videoProgress]);
 
     const pfpUri = usePfp(
         data?.uid ? String(data.uid) : "",

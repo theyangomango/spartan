@@ -147,6 +147,16 @@ export default function Feed({ navigation, route }) {
         primeAllUsers().catch(() => {});
     }, []);
 
+    const toggleFeedVideosMuted = useCallback(() => {
+        setFeedVideosMuted((prev) => !prev);
+    }, []);
+
+    useEffect(() => {
+        try {
+            globalThis.__SPARTAN_FEED_GLOBAL_MUTE__ = areFeedVideosMuted;
+        } catch { }
+    }, [areFeedVideosMuted]);
+
     const flatListRef = useRef(null);
     const refreshTimeoutRef = useRef(null);
     const [refreshing, setRefreshing] = useState(false);
@@ -160,6 +170,14 @@ export default function Feed({ navigation, route }) {
     const [likesSheetTitle, setLikesSheetTitle] = useState("Liked by");
     const [deletingPostPid, setDeletingPostPid] = useState(null);
     const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
+    const [activeVideoPostKey, setActiveVideoPostKey] = useState(null);
+    const [areFeedVideosMuted, setFeedVideosMuted] = useState(() => {
+        try {
+            const stored = globalThis?.__SPARTAN_FEED_GLOBAL_MUTE__;
+            if (typeof stored === "boolean") return stored;
+        } catch { }
+        return true;
+    });
 
     const highlightPidRef = useRef(null);
     const [highlightSignal, setHighlightSignal] = useState(0);
@@ -172,6 +190,7 @@ export default function Feed({ navigation, route }) {
     const lastScrollTimeRef = useRef(Date.now());
     const isHeaderHiddenRef = useRef(false);
     const isAnimatingHeaderRef = useRef(false);
+    const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 65 });
 
 
     const listData = useMemo(() => {
@@ -188,6 +207,13 @@ export default function Feed({ navigation, route }) {
         && (!Array.isArray(listData) || listData.length === 0);
 
     const hasPosts = Array.isArray(listData) && listData.length > 0;
+
+    useEffect(() => {
+        if (Array.isArray(listData) && listData.length > 0) {
+            return;
+        }
+        setActiveVideoPostKey(null);
+    }, [listData]);
 
     const animateHeaderVisibility = useCallback(
         (toValue) => {
@@ -906,6 +932,29 @@ export default function Feed({ navigation, route }) {
 
     const listKeyExtractor = useCallback((item, index) => String(item?.pid || item?.id || index), []);
 
+    const feedExtraData = useMemo(() => ({
+        activeVideoPostKey,
+        areFeedVideosMuted,
+    }), [activeVideoPostKey, areFeedVideosMuted]);
+
+    const handleViewableItemsChanged = useCallback(({ viewableItems }) => {
+        if (!Array.isArray(viewableItems) || viewableItems.length === 0) {
+            setActiveVideoPostKey((current) => (current === null ? current : null));
+            return;
+        }
+        let nextKey = null;
+        for (const token of viewableItems) {
+            if (!token?.isViewable) continue;
+            const derivedKey = token?.key
+                ?? (token?.item ? listKeyExtractor(token.item, token.index ?? 0) : null);
+            if (derivedKey != null) {
+                nextKey = derivedKey;
+                break;
+            }
+        }
+        setActiveVideoPostKey((current) => (current === nextKey ? current : nextKey));
+    }, [listKeyExtractor]);
+
     const renderPost = useCallback(({ item, index }) => (
         <PostListItem
             item={item}
@@ -920,8 +969,11 @@ export default function Feed({ navigation, route }) {
             onDeletePost={handleDeletePost}
             onEditPost={handleEditPost}
             onEditWorkout={handleEditWorkout}
+            areVideosMuted={areFeedVideosMuted}
+            onToggleVideosMuted={toggleFeedVideosMuted}
+            shouldPlayMedia={listKeyExtractor(item, index) === activeVideoPostKey}
         />
-    ), [highlightSignal, openCommentsModal, openShareModal, openLikesSheet, toViewProfilePosts, openViewWorkoutModal, handleDeletePost, handleEditPost, handleEditWorkout]);
+    ), [activeVideoPostKey, areFeedVideosMuted, highlightSignal, listKeyExtractor, openCommentsModal, openShareModal, openLikesSheet, toViewProfilePosts, openViewWorkoutModal, handleDeletePost, handleEditPost, handleEditWorkout, toggleFeedVideosMuted]);
 
     const headerComponent = useMemo(() => (
         <FeedHeader
@@ -1044,6 +1096,7 @@ export default function Feed({ navigation, route }) {
             <FlatList
                 ref={flatListRef}
                 data={listData}
+                extraData={feedExtraData}
                 keyExtractor={listKeyExtractor}
                 renderItem={renderPost}
                 style={styles.list}
@@ -1065,6 +1118,8 @@ export default function Feed({ navigation, route }) {
                 ]}
                 showsVerticalScrollIndicator={false}
                 onScroll={handleListScroll}
+                onViewableItemsChanged={handleViewableItemsChanged}
+                viewabilityConfig={viewabilityConfigRef.current}
                 scrollEventThrottle={16}
                 onEndReached={handleEndReached}
                 onEndReachedThreshold={0.6}

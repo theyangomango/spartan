@@ -12,6 +12,11 @@ import {
 } from 'firebase/firestore';
 import { db } from '../../firebase.config';
 import { coerceUid, ensureUidArray, getViewerUid } from '../utils/userRefs';
+import {
+    subscribeOptimisticFeedPosts,
+    getOptimisticFeedPostsSnapshot,
+    removeOptimisticFeedPost,
+} from '../utils/optimisticFeedPosts';
 
 const PAGE_SIZE_DEFAULT = 50;
 const FEED_CACHE_PREFIX = 'feed-cache:v2:';
@@ -135,6 +140,7 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
     const firstPageMapRef = useRef(new Map());
     const extraMapRef = useRef(new Map());
     const liveMapRef = useRef(new Map());
+    const optimisticMapRef = useRef(new Map());
     const unsubscribeRef = useRef(null);
     const hasMoreRef = useRef(true);
     const loadingMoreRef = useRef(false);
@@ -192,6 +198,10 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
     const recomputeFeed = useCallback((persistFlag) => {
         const combined = new Map();
 
+        optimisticMapRef.current.forEach((value, key) => {
+            if (value) combined.set(key, value);
+        });
+
         liveMapRef.current.forEach((value, key) => {
             if (value) combined.set(key, value);
         });
@@ -226,6 +236,35 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
 
         setFeed(array);
 
+        if (optimisticMapRef.current.size > 0) {
+            const realPidSet = new Set();
+            firstPageMapRef.current.forEach((value) => {
+                const pid = toStringPid(value?.pid || value?.id);
+                if (pid) realPidSet.add(pid);
+            });
+            extraMapRef.current.forEach((value) => {
+                const pid = toStringPid(value?.pid || value?.id);
+                if (pid) realPidSet.add(pid);
+            });
+            liveMapRef.current.forEach((value) => {
+                const pid = toStringPid(value?.pid || value?.id);
+                if (pid) realPidSet.add(pid);
+            });
+            if (realPidSet.size > 0) {
+                const cleanup = [];
+                optimisticMapRef.current.forEach((value, key) => {
+                    if (key && realPidSet.has(key)) {
+                        cleanup.push(key);
+                    }
+                });
+                if (cleanup.length) {
+                    setTimeout(() => {
+                        cleanup.forEach((pid) => removeOptimisticFeedPost(pid));
+                    }, 0);
+                }
+            }
+        }
+
         const shouldPersist = typeof persistFlag === 'boolean'
             ? persistFlag
             : serverSyncedRef.current;
@@ -234,6 +273,38 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
             scheduleCachePersist(array);
         }
     }, [scheduleCachePersist]);
+
+    useEffect(() => {
+        const applyOptimisticEntries = (entries) => {
+            const allowed = filtersRef.current?.allowed || new Set();
+            const excluded = filtersRef.current?.excluded || new Set();
+            const next = new Map();
+            entries.forEach((entry) => {
+                if (!entry) return;
+                const uid = toStringUid(entry?.uid);
+                if (!uid) return;
+                if (allowed.size && !allowed.has(uid)) return;
+                if (excluded.has(uid)) return;
+                const prev = optimisticMapRef.current.get(entry.pid) || entry;
+                const normalized = normalizePost(entry, prev);
+                if (normalized) {
+                    normalized.pendingUpload = entry.pendingUpload !== false;
+                    normalized.isOptimistic = true;
+                    next.set(normalized.pid, normalized);
+                }
+            });
+            optimisticMapRef.current = next;
+            recomputeFeed(false);
+        };
+
+        applyOptimisticEntries(getOptimisticFeedPostsSnapshot());
+        const unsubscribe = subscribeOptimisticFeedPosts(applyOptimisticEntries);
+        return () => {
+            try { unsubscribe?.(); } catch { }
+            optimisticMapRef.current = new Map();
+            recomputeFeed(false);
+        };
+    }, [recomputeFeed]);
 
     const cleanupLiveSubscriptions = useCallback(() => {
         liveUnsubRef.current.forEach((unsub) => {

@@ -22,6 +22,7 @@ import { withStrongPress } from "../../../utils/haptics";
 import { resolvePhotoURL } from "../../../utils/profilePhoto";
 import { getViewerUid } from "../../../utils/userRefs";
 import { subscribeUserData } from "../../../utils/userDataEvents";
+import { addOptimisticFeedPost, removeOptimisticFeedPost } from "../../../utils/optimisticFeedPosts";
 
 import DismissableTextInput from "../../common/DismissableTextInput";
 
@@ -995,6 +996,80 @@ export default function PostOptionsScreen({ navigation, route }) {
 
         const currentImages = mediaList;
         const isClipPost = isClipMode && currentImages.length === 1 && currentImages[0]?.type === 'video';
+        const resolvedViewerUid = viewerUid || getViewerUid() || (global?.userData?.uid ? String(global.userData.uid) : "");
+        const viewerHandle = typeof global?.userData?.handle === 'string' ? global.userData.handle : '';
+        const viewerName = typeof global?.userData?.name === 'string' ? global.userData.name : '';
+        const viewerPfpVersion = Number(global?.userData?.pfpVersion ?? 0);
+        const cloneWorkoutAttachment = () => {
+            if (!workoutParam || typeof workoutParam !== 'object') return null;
+            try {
+                return JSON.parse(JSON.stringify(workoutParam));
+            } catch {
+                return { ...workoutParam };
+            }
+        };
+
+        let optimisticPostAdded = false;
+        if (!isEditing && resolvedViewerUid) {
+            const now = Date.now();
+            const optimisticMedia = currentImages
+                .map((item, index) => {
+                    if (!item) return null;
+                    const localUri = item.localUri || item.previewUri || item.uri;
+                    if (!localUri) return null;
+                    const type = item.type === 'video' ? 'video' : 'image';
+                    const duration = type === 'video' ? Number(item.duration) || 0 : 0;
+                    const aspectRatio = item?.aspectRatio
+                        || ((item?.width && item?.height) ? (item.width / item.height) : null);
+                    return {
+                        uri: localUri,
+                        type,
+                        duration,
+                        cropRect: item.cropRect || null,
+                        isClip: Boolean(isClipPost && index === 0 && type === 'video'),
+                        aspectRatio: aspectRatio || null,
+                    };
+                })
+                .filter(Boolean);
+            const optimisticImages = optimisticMedia
+                .filter((entry) => entry.type !== 'video')
+                .map((entry) => entry.uri);
+            try {
+                addOptimisticFeedPost({
+                    pid,
+                    uid: resolvedViewerUid,
+                    handle: viewerHandle,
+                    name: viewerName,
+                    pfp: userImage,
+                    pfpVersion: viewerPfpVersion,
+                    caption: trimmedCaption,
+                    media: optimisticMedia,
+                    images: optimisticImages,
+                    workout: cloneWorkoutAttachment(),
+                    type: isClipPost ? 'clip' : 'post',
+                    created: now,
+                    createdAt: now,
+                    sortKey: now,
+                    likes: [],
+                    likeCount: 0,
+                    comments: trimmedCaption
+                        ? [{
+                            content: trimmedCaption,
+                            handle: viewerHandle,
+                            isCaption: true,
+                            pfp: userImage,
+                            timestamp: now,
+                            uid: resolvedViewerUid,
+                        }]
+                        : [],
+                    commentCount: trimmedCaption ? 1 : 0,
+                    pendingUpload: true,
+                });
+                optimisticPostAdded = true;
+            } catch (error) {
+                console.warn?.('Failed to add optimistic feed post', error);
+            }
+        }
 
         const runShare = async () => {
             try {
@@ -1148,6 +1223,9 @@ export default function PostOptionsScreen({ navigation, route }) {
                 console.error('sharePost failed', error);
                 if (!isEditing && appendedOptimistically && global?.userData) {
                     global.userData.posts = previousPosts ?? [];
+                }
+                if (optimisticPostAdded) {
+                    removeOptimisticFeedPost(pid);
                 }
                 Alert.alert('Post failed', 'We could not save your post. Please try again.');
             } finally {

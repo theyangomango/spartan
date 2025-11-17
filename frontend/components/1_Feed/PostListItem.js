@@ -15,6 +15,9 @@ const PostListItem = memo(function PostListItem({
   onDeletePost,
   onEditPost,
   onEditWorkout,
+  areVideosMuted,
+  onToggleVideosMuted,
+  shouldPlayMedia,
 }) {
   const handleProfile = useCallback(() => {
     if (item?.pid) {
@@ -82,6 +85,9 @@ const PostListItem = memo(function PostListItem({
       onPressDeletePost={handleDeletePost}
       onPressEditPost={typeof onEditPost === "function" ? handleEditPost : undefined}
       onPressEditWorkout={typeof onEditWorkout === "function" ? handleEditWorkout : undefined}
+      areVideosMuted={areVideosMuted}
+      onToggleVideosMuted={onToggleVideosMuted}
+      shouldPlayMedia={shouldPlayMedia}
     />
   );
 });

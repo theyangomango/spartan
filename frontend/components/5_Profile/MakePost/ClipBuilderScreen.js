@@ -12,6 +12,7 @@ import theme from "../../../theme/mfpDark";
 import { withStrongPress } from "../../../utils/haptics";
 import FastImage from "react-native-fast-image";
 import { resolvePhotoURL } from "../../../utils/profilePhoto";
+import { addOptimisticFeedPost, removeOptimisticFeedPost } from "../../../utils/optimisticFeedPosts";
 import makeID from "../../../../backend/helper/makeID";
 import uploadResumableNative from "../../../../backend/storage/uploadResumableNative";
 import createPost from "../../../../backend/posts/createPost";
@@ -89,6 +90,8 @@ export default function ClipBuilderScreen({ navigation, route }) {
     const userImage = resolvePhotoURL(global?.userData, "");
     const captionPlaceholder = "Add caption";
     const isMountedRef = useRef(true);
+    const collapseTimeoutRef = useRef(null);
+    const hasCollapsedRef = useRef(false);
 
     const headerTitle = isEditing ? "Edit Clip" : "New Clip";
 
@@ -106,6 +109,10 @@ export default function ClipBuilderScreen({ navigation, route }) {
     useEffect(() => {
         return () => {
             isMountedRef.current = false;
+            if (collapseTimeoutRef.current) {
+                clearTimeout(collapseTimeoutRef.current);
+                collapseTimeoutRef.current = null;
+            }
         };
     }, []);
 
@@ -115,6 +122,42 @@ export default function ClipBuilderScreen({ navigation, route }) {
         setVideoProgress(0);
         scrubStateRef.current = false;
     }, [selectedClip]);
+
+    const clearCollapseTimeout = useCallback(() => {
+        if (collapseTimeoutRef.current) {
+            clearTimeout(collapseTimeoutRef.current);
+            collapseTimeoutRef.current = null;
+        }
+    }, []);
+
+    const exitToFeed = useCallback(() => {
+        try {
+            const { jumpToTab } = require('../../../../navigationRef');
+            if (!jumpToTab('Feed')) {
+                navigation.navigate('Tabs', { screen: 'Feed' });
+            }
+        } catch {
+            navigation.navigate('Tabs', { screen: 'Feed' });
+        }
+    }, [navigation]);
+
+    const collapseComposer = useCallback(() => {
+        if (hasCollapsedRef.current) return;
+        hasCollapsedRef.current = true;
+        clearCollapseTimeout();
+        try {
+            navigation.goBack();
+        } catch {}
+        requestAnimationFrame(exitToFeed);
+    }, [clearCollapseTimeout, exitToFeed, navigation]);
+
+    const scheduleAutoCollapse = useCallback(() => {
+        if (hasCollapsedRef.current || collapseTimeoutRef.current) return;
+        collapseTimeoutRef.current = setTimeout(() => {
+            collapseTimeoutRef.current = null;
+            collapseComposer();
+        }, 900);
+    }, [collapseComposer]);
 
     const pickVideo = useCallback(async () => {
         const permitted = await ensurePermission();
@@ -297,6 +340,7 @@ export default function ClipBuilderScreen({ navigation, route }) {
         }
 
         setIsPosting(true);
+        scheduleAutoCollapse();
         const pid = makeID();
         const previousPosts = global?.userData && Array.isArray(global.userData.posts)
             ? [...global.userData.posts]
@@ -307,6 +351,55 @@ export default function ClipBuilderScreen({ navigation, route }) {
             if (!existing.includes(pid)) {
                 global.userData.posts = [...existing, pid];
                 appendedOptimistically = true;
+            }
+        }
+        let optimisticPostAdded = false;
+        const localClipUri = selectedClip?.localUri || selectedClip?.uri || selectedClip?.previewUri || null;
+        if (localClipUri) {
+            const now = Date.now();
+            try {
+                addOptimisticFeedPost({
+                    pid,
+                    uid,
+                    handle: typeof global?.userData?.handle === 'string' ? global.userData.handle : '',
+                    name: typeof global?.userData?.name === 'string' ? global.userData.name : '',
+                    pfp: userImage,
+                    pfpVersion: Number(global?.userData?.pfpVersion ?? 0),
+                    caption: trimmedCaption,
+                    media: [{
+                        uri: localClipUri,
+                        type: 'video',
+                        duration: Number(selectedClip?.duration) || 0,
+                        cropRect: null,
+                        isClip: true,
+                        aspectRatio: selectedClip?.aspectRatio
+                            || ((selectedClip?.width && selectedClip?.height)
+                                ? (selectedClip.width / selectedClip.height)
+                                : null),
+                    }],
+                    images: [],
+                    type: 'clip',
+                    created: now,
+                    createdAt: now,
+                    sortKey: now,
+                    likes: [],
+                    likeCount: 0,
+                    comments: trimmedCaption
+                        ? [{
+                            content: trimmedCaption,
+                            handle: typeof global?.userData?.handle === 'string' ? global.userData.handle : '',
+                            isCaption: true,
+                            pfp: userImage,
+                            timestamp: now,
+                            uid,
+                        }]
+                        : [],
+                    commentCount: trimmedCaption ? 1 : 0,
+                    pendingUpload: true,
+                });
+                optimisticPostAdded = true;
+            } catch (error) {
+                console.warn?.('[ClipBuilder] Failed to add optimistic clip', error);
             }
         }
 
@@ -344,31 +437,23 @@ export default function ClipBuilderScreen({ navigation, route }) {
                 arrayAppend('global', 'posts', 'PIDs', pid),
             ]);
 
-            const exitToFeed = () => {
-                try {
-                    const { jumpToTab } = require('../../../../navigationRef');
-                    if (!jumpToTab('Feed')) {
-                        navigation.navigate('Tabs', { screen: 'Feed' });
-                    }
-                } catch {
-                    navigation.navigate('Tabs', { screen: 'Feed' });
-                }
-            };
-
-            navigation.goBack();
-            requestAnimationFrame(exitToFeed);
+            collapseComposer();
         } catch (error) {
             console.error('[ClipBuilder] share failed', error);
             if (global?.userData && previousPosts) {
                 global.userData.posts = previousPosts;
             }
+            if (optimisticPostAdded) {
+                removeOptimisticFeedPost(pid);
+            }
+            clearCollapseTimeout();
             Alert.alert('Post failed', 'We could not save your clip. Please try again.');
         } finally {
             if (isMountedRef.current) {
                 setIsPosting(false);
             }
         }
-    }, [captionInput, ensureClipVideoAsset, isPosting, navigation, selectedClip, userImage]);
+    }, [captionInput, clearCollapseTimeout, collapseComposer, ensureClipVideoAsset, isPosting, scheduleAutoCollapse, selectedClip, userImage]);
 
     const handleSave = useCallback(() => {
         if (!selectedClip) {
