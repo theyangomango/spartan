@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     },
     title: { fontFamily: "Nunito_800ExtraBold", fontSize: scaleSize(18), color: theme.textPrimary },
     headerSpacer: { width: scaleSize(34), height: scaleSize(34) },
-    weekHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: scaleSize(14) },
+    weekHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: scaleSize(14), paddingLeft: scaleSize(20) },
     weekdayText: { flex: 1, textAlign: "center", fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(13.5), color: theme.muted },
     scrollContent: { paddingBottom: scaleSize(40) },
     monthBlock: { marginBottom: scaleSize(26), paddingLeft: scaleSize(20) },

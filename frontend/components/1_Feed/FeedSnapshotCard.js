@@ -50,8 +50,180 @@ const BODYGRAPH_KEY_ITEMS = [
     },
 ];
 
+const bronzeTheme = {
+    key: "bronze",
+    displayName: "Bronze III",
+    overallRating: 68,
+    gradientColors: ["#fde6d6", "#d28b52", "#6d3413"],
+    gradientLocations: [0, 0.55, 1],
+    particleColors: [
+        "rgba(255, 215, 189, 0.75)",
+        "rgba(210, 139, 82, 0.6)",
+        "rgba(109, 52, 19, 0.55)",
+    ],
+    borderColor: "#f0b078",
+    wingGradient: ["rgba(255,255,255,0.45)", "rgba(255,255,255,0.08)"],
+    badgeOuterGradient: ["#ffe0c4", "#d6904f"],
+    badgeInnerGradient: ["#fae1c4", "#e2a667"],
+    badgeCoreColor: "#e8a05d",
+    badgeCoreShadowColor: "#5a2408",
+    badgeGemColor: "#ffe8d4",
+    badgeGemBorderColor: "rgba(122, 53, 13, 0.45)",
+    badgeGemInnerColor: "#d98241",
+    badgeGemInnerBorderColor: "rgba(255,255,255,0.5)",
+    titleColor: "#fff7ef",
+    titleSecondaryColor: "#ffce9c",
+};
 
-export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
+const silverTheme = {
+    key: "silver",
+    displayName: "Silver II",
+    overallRating: 76,
+    gradientColors: ["#f8fbff", "#b8c7d9", "#6b7690"],
+    gradientLocations: [0, 0.55, 1],
+    particleColors: [
+        "rgba(248, 251, 255, 0.75)",
+        "rgba(190, 205, 223, 0.6)",
+        "rgba(114, 130, 160, 0.55)",
+    ],
+    borderColor: "#dce7f7",
+    wingGradient: ["rgba(255,255,255,0.6)", "rgba(255,255,255,0.14)"],
+    badgeOuterGradient: ["#f0f4fa", "#c2ccd9"],
+    badgeInnerGradient: ["#e6ebf6", "#cdd6e6"],
+    badgeCoreColor: "#cad4e8",
+    badgeCoreShadowColor: "#4c5876",
+    badgeGemColor: "#f6fbff",
+    badgeGemBorderColor: "rgba(118, 136, 170, 0.5)",
+    badgeGemInnerColor: "#b4c4df",
+    badgeGemInnerBorderColor: "rgba(255,255,255,0.6)",
+    titleColor: "#fefefe",
+    titleSecondaryColor: "#e1eaf9",
+};
+
+const goldTheme = {
+    key: "gold",
+    displayName: "Gold III",
+    overallRating: 87,
+    gradientColors: ["#ffea9cdf", "#d29b2eff", "#955e23ff"],
+    gradientLocations: [0, 0.55, 1],
+    particleColors: [
+        "rgba(230, 220, 147, 0.65)",
+        "rgba(255, 209, 93, 0.6)",
+        "rgba(255, 157, 43, 0.55)",
+    ],
+    borderColor: "#f9d564",
+    wingGradient: ["rgba(255,255,255,0.5)", "rgba(255,255,255,0.08)"],
+    badgeOuterGradient: ["#fff4bf", "#f8c34a"],
+    badgeInnerGradient: ["#fdf6d7", "#f9d667"],
+    badgeCoreColor: "#f9d564",
+    badgeCoreShadowColor: "#a45900",
+    badgeGemColor: "#fff5c1",
+    badgeGemBorderColor: "rgba(166,106,13,0.4)",
+    badgeGemInnerColor: "#f1b739",
+    badgeGemInnerBorderColor: "rgba(255,255,255,0.5)",
+    titleColor: "#fffef4",
+    titleSecondaryColor: "#f9da73ff",
+};
+
+const platinumTheme = {
+    key: "platinum",
+    displayName: "Platinum I",
+    overallRating: 94,
+    gradientColors: ["#fdf7ff", "#c9e4ff", "#6da0ff"],
+    gradientLocations: [0, 0.55, 1],
+    particleColors: [
+        "rgba(251, 245, 255, 0.75)",
+        "rgba(201, 228, 255, 0.62)",
+        "rgba(119, 164, 255, 0.55)",
+    ],
+    borderColor: "#cbe4ff",
+    wingGradient: ["rgba(255,255,255,0.65)", "rgba(255,255,255,0.18)"],
+    badgeOuterGradient: ["#ffffff", "#cde3ff"],
+    badgeInnerGradient: ["#f1f5ff", "#d2e5ff"],
+    badgeCoreColor: "#dceaff",
+    badgeCoreShadowColor: "#4a5c85",
+    badgeGemColor: "#f9fcff",
+    badgeGemBorderColor: "rgba(123, 156, 212, 0.45)",
+    badgeGemInnerColor: "#a3c5ff",
+    badgeGemInnerBorderColor: "rgba(255,255,255,0.65)",
+    titleColor: "#f7fbff",
+    titleSecondaryColor: "#d4ecff",
+};
+
+const sapphireTheme = {
+    key: "sapphire",
+    displayName: "Sapphire II",
+    overallRating: 90,
+    gradientColors: ["#c5dbff", "#2f73ff", "#0a1a47"],
+    gradientLocations: [0, 0.6, 1],
+    particleColors: [
+        "rgba(136, 178, 255, 0.75)",
+        "rgba(71, 123, 255, 0.6)",
+        "rgba(15, 32, 82, 0.55)",
+    ],
+    borderColor: "#5c8eff",
+    wingGradient: ["rgba(255,255,255,0.4)", "rgba(255,255,255,0.12)"],
+    badgeOuterGradient: ["#7eaefc", "#2f5fda"],
+    badgeInnerGradient: ["#9ac1ff", "#477bff"],
+    badgeCoreColor: "#345df6",
+    badgeCoreShadowColor: "#070d20",
+    badgeGemColor: "#b8d1ff",
+    badgeGemBorderColor: "rgba(35, 86, 194, 0.5)",
+    badgeGemInnerColor: "#5d88ff",
+    badgeGemInnerBorderColor: "rgba(255,255,255,0.55)",
+    titleColor: "#eef4ff",
+    titleSecondaryColor: "#a6c4ff",
+};
+
+const diamondTheme = {
+    key: "diamond",
+    displayName: "Diamond I",
+    overallRating: 98,
+    gradientColors: ["#e1feff", "#80ecff", "#1f4b69"],
+    gradientLocations: [0, 0.55, 1],
+    particleColors: [
+        "rgba(209, 255, 255, 0.75)",
+        "rgba(128, 236, 255, 0.6)",
+        "rgba(31, 75, 105, 0.55)",
+    ],
+    borderColor: "#72f0ff",
+    wingGradient: ["rgba(255,255,255,0.7)", "rgba(255,255,255,0.24)"],
+    badgeOuterGradient: ["#ddfeff", "#75ecff"],
+    badgeInnerGradient: ["#c7fbff", "#8aefff"],
+    badgeCoreColor: "#8ef5ff",
+    badgeCoreShadowColor: "#1c4c5a",
+    badgeGemColor: "#f0ffff",
+    badgeGemBorderColor: "rgba(49, 132, 147, 0.45)",
+    badgeGemInnerColor: "#6beaff",
+    badgeGemInnerBorderColor: "rgba(255,255,255,0.7)",
+    titleColor: "#f2ffff",
+    titleSecondaryColor: "#8ff4ff",
+};
+
+const RANK_TIER_THEMES = {
+    bronze: bronzeTheme,
+    silver: silverTheme,
+    gold: goldTheme,
+    platinum: platinumTheme,
+    sapphire: sapphireTheme,
+    saphire: sapphireTheme,
+    diamond: diamondTheme,
+};
+
+
+export default function FeedSnapshotCard({
+    rankTier = "gold",
+    rankLabel,
+    overallRating = null,
+    onPressOverall,
+    onPressCard,
+}) {
+
+    const normalizedRankTier = String(rankTier || "gold").toLowerCase();
+    const rankTheme = RANK_TIER_THEMES[normalizedRankTier] || RANK_TIER_THEMES.gold;
+    const resolvedRankLabel = rankLabel || rankTheme.displayName || normalizedRankTier;
+    const resolvedOverallRating =
+        (overallRating ?? rankTheme.overallRating ?? RANK_TIER_THEMES.gold.overallRating);
 
     const [activeRankTab, setActiveRankTab] = useState(RANK_TAB_CONFIG[0].key);
     const handleRankTabPress = useCallback(
@@ -80,7 +252,7 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
 
     const particles = useMemo(() => {
         const particleCount = 48;
-        const colors = ["rgba(230, 220, 147, 0.65)", "rgba(255,209,93,0.6)", "rgba(255,157,43,0.55)"];
+        const colors = rankTheme.particleColors?.length ? rankTheme.particleColors : goldTheme.particleColors;
         const originPoints = [
             { top: "50%", left: "34%" },
             { top: "46%", left: "48%" },
@@ -102,7 +274,7 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
                 opacity: 0.3 + Math.random() * 0.35,
             };
         });
-    }, []);
+    }, [rankTheme.key]);
 
     const isCardPressable = typeof onPressCard === "function";
     const CardWrapper = isCardPressable ? TouchableOpacity : View;
@@ -145,8 +317,8 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
                 </View>
                 {isRankTabActive ? (
                     <LinearGradient
-                        colors={["#ffea9cdf", "#d29b2eff", "#955e23ff"]}
-                        locations={[0, 0.55, 1]}
+                        colors={rankTheme.gradientColors || goldTheme.gradientColors}
+                        locations={rankTheme.gradientLocations || goldTheme.gradientLocations}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
                         style={styles.rankCard}
@@ -180,43 +352,98 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
                         <View style={styles.rankCardContent}>
                             <View style={styles.rankBadgeCluster}>
                                 <LinearGradient
-                                    colors={["rgba(255,255,255,0.5)", "rgba(255,255,255,0.08)"]}
+                                    colors={rankTheme.wingGradient || goldTheme.wingGradient}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 1 }}
                                     style={[styles.rankWing, styles.rankWingLeft]}
                                 />
                                 <LinearGradient
-                                    colors={["rgba(255,255,255,0.5)", "rgba(255,255,255,0.08)"]}
+                                    colors={rankTheme.wingGradient || goldTheme.wingGradient}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 1 }}
                                     style={[styles.rankWing, styles.rankWingRight]}
                                 />
                                 <LinearGradient
-                                    colors={["#fff4bf", "#f8c34a"]}
+                                    colors={rankTheme.badgeOuterGradient || goldTheme.badgeOuterGradient}
                                     start={{ x: 0, y: 0 }}
                                     end={{ x: 1, y: 1 }}
                                     style={styles.rankBadgeOuter}
                                 >
                                     <LinearGradient
-                                        colors={["#fdf6d7", "#f9d667"]}
+                                        colors={rankTheme.badgeInnerGradient || goldTheme.badgeInnerGradient}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 1 }}
                                         style={styles.rankBadgeInner}
                                     >
-                                        <View style={styles.rankBadgeCore}>
-                                            <View style={styles.rankBadgeGem} />
-                                            <View style={styles.rankBadgeGemInner} />
+                                        <View
+                                            style={[
+                                                styles.rankBadgeCore,
+                                                {
+                                                    backgroundColor:
+                                                        rankTheme.badgeCoreColor || goldTheme.badgeCoreColor,
+                                                    shadowColor:
+                                                        rankTheme.badgeCoreShadowColor ||
+                                                        goldTheme.badgeCoreShadowColor,
+                                                },
+                                            ]}
+                                        >
+                                            <View
+                                                style={[
+                                                    styles.rankBadgeGem,
+                                                    {
+                                                        backgroundColor:
+                                                            rankTheme.badgeGemColor || goldTheme.badgeGemColor,
+                                                        borderColor:
+                                                            rankTheme.badgeGemBorderColor ||
+                                                            goldTheme.badgeGemBorderColor,
+                                                    },
+                                                ]}
+                                            />
+                                            <View
+                                                style={[
+                                                    styles.rankBadgeGemInner,
+                                                    {
+                                                        backgroundColor:
+                                                            rankTheme.badgeGemInnerColor ||
+                                                            goldTheme.badgeGemInnerColor,
+                                                        borderColor:
+                                                            rankTheme.badgeGemInnerBorderColor ||
+                                                            goldTheme.badgeGemInnerBorderColor,
+                                                    },
+                                                ]}
+                                            />
                                         </View>
                                     </LinearGradient>
                                 </LinearGradient>
                             </View>
-                            <Text style={styles.rankTitle}>
-                                GOLD III
-                                <Text style={styles.rankTitleSecondary}> · 87 OVR</Text>
+                            <Text
+                                style={[styles.rankTitle, { color: rankTheme.titleColor || goldTheme.titleColor }]}
+                            >
+                                {resolvedRankLabel}
+                                <Text
+                                    style={[
+                                        styles.rankTitleSecondary,
+                                        { color: rankTheme.titleSecondaryColor || goldTheme.titleSecondaryColor },
+                                    ]}
+                                >
+                                    {` · ${resolvedOverallRating} OVR`}
+                                </Text>
                             </Text>
                         </View>
-                        <View pointerEvents="none" style={styles.rankCardBorderTop} />
-                        <View pointerEvents="none" style={styles.rankCardBorderBottom} />
+                        <View
+                            pointerEvents="none"
+                            style={[
+                                styles.rankCardBorderTop,
+                                { backgroundColor: rankTheme.borderColor || goldTheme.borderColor },
+                            ]}
+                        />
+                        <View
+                            pointerEvents="none"
+                            style={[
+                                styles.rankCardBorderBottom,
+                                { backgroundColor: rankTheme.borderColor || goldTheme.borderColor },
+                            ]}
+                        />
                     </LinearGradient>
                 ) : isBodygraphTabActive ? (
                     <View style={[styles.rankCard, styles.bodygraphCard]}>
