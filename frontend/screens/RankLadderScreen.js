@@ -46,7 +46,7 @@ export default function RankLadderScreen({ navigation }) {
             >
                 {LADDER_TIERS.map((tier) => (
                     <View key={tier} style={styles.cardBlock}>
-                        <FeedSnapshotCard rankTier={tier} showRankTabs={false} />
+                        <FeedSnapshotCard rankTier={tier} showRankTabs={false} enableRankAnimations={false} />
                     </View>
                 ))}
             </ScrollView>

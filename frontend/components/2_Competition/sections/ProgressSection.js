@@ -2037,6 +2037,22 @@ const completedWorkouts = useMemo(
     const hasVolumeChartData = volumeChartData.length > 0;
     const hasRepsChartData = repsChartData.length > 0;
     const hasPersonalRecordChartData = personalRecordEntries.length > 0;
+    const [activeMetricKey, setActiveMetricKey] = useState(() => {
+        if (hasVolumeChartData) return "volume";
+        if (hasRepsChartData) return "reps";
+        if (hasPersonalRecordChartData) return "personalRecords";
+        if (hasChartData) return "weight";
+        return "volume";
+    });
+    const metricTabs = useMemo(
+        () => [
+            { key: "volume", label: "Volume", icon: "bar-chart-outline", hasData: hasVolumeChartData },
+            { key: "reps", label: "Reps", icon: "stats-chart-outline", hasData: hasRepsChartData },
+            { key: "personalRecords", label: "PRs", icon: "trophy-outline", hasData: hasPersonalRecordChartData },
+            { key: "weight", label: "Weight", icon: "fitness-outline", hasData: hasChartData },
+        ],
+        [hasChartData, hasPersonalRecordChartData, hasRepsChartData, hasVolumeChartData]
+    );
 
     const weightActivePoint = activeIndex != null ? weightChartPoints[activeIndex] : null;
     const weightActiveEntry = activeIndex != null ? chartData[activeIndex]?.entry : null;
@@ -2353,12 +2369,57 @@ const completedWorkouts = useMemo(
             >
                 <View
                     style={[
-                        chartCardLayout.card,
-                        styles.card,
-                        styles.volumeCard,
+                        styles.metricToggleRow,
                         { paddingHorizontal: cardHorizontalPadding },
                     ]}
                 >
+                    {metricTabs.map((tab) => {
+                        const isActive = tab.key === activeMetricKey;
+                        const iconColor = isActive
+                            ? theme.textPrimary ?? "#F6F8FF"
+                            : "rgba(216,226,255,0.75)";
+                        return (
+                            <Pressable
+                                key={tab.key}
+                                onPress={() => setActiveMetricKey(tab.key)}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Show ${tab.label} progress`}
+                                style={[
+                                    styles.metricToggleButton,
+                                    isActive && styles.metricToggleButtonActive,
+                                    !tab.hasData && !isActive && styles.metricToggleButtonMuted,
+                                ]}
+                            >
+                                {tab.icon ? (
+                                    <Ionicons
+                                        name={tab.icon}
+                                        size={scaleSize(16)}
+                                        color={iconColor}
+                                        style={styles.metricToggleIcon}
+                                    />
+                                ) : null}
+                                <Text
+                                    style={[
+                                        styles.metricToggleLabel,
+                                        isActive && styles.metricToggleLabelActive,
+                                        !tab.hasData && !isActive && styles.metricToggleLabelMuted,
+                                    ]}
+                                >
+                                    {tab.label}
+                                </Text>
+                            </Pressable>
+                        );
+                    })}
+                </View>
+                {activeMetricKey === "volume" ? (
+                    <View
+                        style={[
+                            chartCardLayout.card,
+                            styles.card,
+                            styles.volumeCard,
+                            { paddingHorizontal: cardHorizontalPadding },
+                        ]}
+                    >
                     <View style={[chartCardLayout.header, styles.header]}>
                         <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Total Volume</Text>
                         <View style={styles.autoUpdateHintWrapper}>
@@ -2625,17 +2686,19 @@ const completedWorkouts = useMemo(
                             </View>
                         )}
                     </View>
-                </View>
-                <View
-                    style={[
-                        chartCardLayout.card,
-                        styles.card,
-                        {
-                            paddingHorizontal: cardHorizontalPadding,
-                            marginBottom: scaleSize(32),
-                        },
-                    ]}
-                >
+                    </View>
+                ) : null}
+                {activeMetricKey === "reps" ? (
+                    <View
+                        style={[
+                            chartCardLayout.card,
+                            styles.card,
+                            {
+                                paddingHorizontal: cardHorizontalPadding,
+                                marginBottom: scaleSize(32),
+                            },
+                        ]}
+                    >
                     <View style={[chartCardLayout.header, styles.header]}>
                         <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Total Reps</Text>
                         <View style={styles.autoUpdateHintWrapper}>
@@ -2901,9 +2964,10 @@ const completedWorkouts = useMemo(
                             </View>
                         )}
                     </View>
-                </View>
+                    </View>
+                ) : null}
 
-                {hasPersonalRecordChartData ? (
+                {activeMetricKey === "personalRecords" ? (
                     <View
                         style={[
                             chartCardLayout.card,
@@ -3190,13 +3254,14 @@ const completedWorkouts = useMemo(
                         </View>
                     </View>
                 ) : null}
-                <View
-                    style={[
-                        chartCardLayout.card,
-                        styles.card,
-                        { paddingHorizontal: cardHorizontalPadding },
-                    ]}
-                >
+                {activeMetricKey === "weight" ? (
+                    <View
+                        style={[
+                            chartCardLayout.card,
+                            styles.card,
+                            { paddingHorizontal: cardHorizontalPadding },
+                        ]}
+                    >
                     <View style={[chartCardLayout.header, styles.header]}>
                         <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Body Weight</Text>
                         <View style={styles.headerActions}>
@@ -3502,7 +3567,8 @@ const completedWorkouts = useMemo(
                             />
                         </Pressable>
                     </View>
-                </View>
+                    </View>
+                ) : null}
             </ScrollView>
 
         <ManageMeasurementsModal
@@ -3536,7 +3602,50 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(130),
         backgroundColor: theme.bg,
     },
-    card: {},
+    metricToggleRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        marginBottom: scaleSize(24),
+    },
+    metricToggleButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: scaleSize(16),
+        paddingVertical: scaleSize(8),
+        borderRadius: scaleSize(999),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.22)",
+        backgroundColor: "rgba(12, 18, 28, 0.55)",
+        marginRight: scaleSize(10),
+        marginBottom: scaleSize(10),
+    },
+    metricToggleButtonActive: {
+        backgroundColor: "rgba(45, 158, 255, 0.22)",
+        borderColor: theme.primary ?? "#2D9EFF",
+    },
+    metricToggleButtonMuted: {
+        opacity: 0.6,
+    },
+    metricToggleIcon: {
+        marginRight: scaleSize(6),
+    },
+    metricToggleLabel: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(13),
+        color: "rgba(216, 226, 255, 0.78)",
+    },
+    metricToggleLabelActive: {
+        color: theme.textPrimary ?? "#F6F8FF",
+    },
+    metricToggleLabelMuted: {
+        color: "rgba(216, 226, 255, 0.5)",
+    },
+    card: {
+        backgroundColor: "transparent",
+        borderTopWidth: 0,
+        borderBottomWidth: 0,
+        borderColor: "transparent",
+    },
     volumeCard: {
         marginBottom: scaleSize(32),
     },

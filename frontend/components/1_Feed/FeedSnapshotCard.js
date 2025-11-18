@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -210,12 +210,15 @@ const RANK_TIER_THEMES = {
     diamond: diamondTheme,
 };
 
+const NEXT_RANK_TARGET_SCORE = 100;
+
 
 export default function FeedSnapshotCard({
     rankTier = "gold",
     rankLabel,
     overallRating = null,
     showRankTabs = true,
+    enableRankAnimations = true,
     onPressOverall,
     onPressCard,
 }) {
@@ -225,6 +228,24 @@ export default function FeedSnapshotCard({
     const resolvedRankLabel = rankLabel || rankTheme.displayName || normalizedRankTier;
     const resolvedOverallRating =
         (overallRating ?? rankTheme.overallRating ?? RANK_TIER_THEMES.gold.overallRating);
+
+    const pointsToNextRank = useMemo(() => {
+        const ratingNumber = Number(resolvedOverallRating);
+        if (!Number.isFinite(ratingNumber)) return null;
+        const remaining = NEXT_RANK_TARGET_SCORE - ratingNumber;
+        return remaining > 0 ? remaining : 0;
+    }, [resolvedOverallRating]);
+
+    const pointsToNextRankCopy = useMemo(() => {
+        if (pointsToNextRank == null) return null;
+        if (pointsToNextRank === 0) return "Top of current rank";
+        const requiresDecimal = pointsToNextRank < 10;
+        const roundedValue = requiresDecimal
+            ? Math.round(pointsToNextRank * 10) / 10
+            : Math.round(pointsToNextRank);
+        const formattedValue = requiresDecimal ? roundedValue.toFixed(1) : String(roundedValue);
+        return `${formattedValue} pts to next rank`;
+    }, [pointsToNextRank]);
 
     const [activeRankTab, setActiveRankTab] = useState(RANK_TAB_CONFIG[0].key);
     const handleRankTabPress = useCallback(
@@ -252,6 +273,7 @@ export default function FeedSnapshotCard({
             : null;
 
     const particles = useMemo(() => {
+        if (!enableRankAnimations) return [];
         const particleCount = 36;
         const colors = rankTheme.particleColors?.length ? rankTheme.particleColors : goldTheme.particleColors;
         const originPoints = [
@@ -281,15 +303,53 @@ export default function FeedSnapshotCard({
                 scaleTo: 1.3 + Math.random() * 0.5,
             };
         });
-    }, [rankTheme.key]);
+    }, [enableRankAnimations, rankTheme.key]);
 
     const particleAnimatedValues = useMemo(
         () => particles.map(() => new Animated.Value(0)),
         [particles]
     );
 
+    const badgePulseValue = useRef(new Animated.Value(0)).current;
+
     useEffect(() => {
-        if (!particleAnimatedValues.length) return undefined;
+        if (!enableRankAnimations) {
+            badgePulseValue.setValue(0);
+            return undefined;
+        }
+        const pulseLoop = Animated.loop(
+            Animated.sequence([
+                Animated.timing(badgePulseValue, {
+                    toValue: 1,
+                    duration: 700,
+                    easing: Easing.inOut(Easing.cubic),
+                    useNativeDriver: true,
+                }),
+                Animated.timing(badgePulseValue, {
+                    toValue: 0,
+                    duration: 700,
+                    easing: Easing.inOut(Easing.cubic),
+                    useNativeDriver: true,
+                }),
+            ]),
+            { resetBeforeIteration: true }
+        );
+        pulseLoop.start();
+        return () => {
+            pulseLoop.stop();
+            badgePulseValue.stopAnimation();
+        };
+    }, [badgePulseValue, enableRankAnimations]);
+
+    const badgePulseScale = enableRankAnimations
+        ? badgePulseValue.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0.98, 1.07],
+          })
+        : 1;
+
+    useEffect(() => {
+        if (!enableRankAnimations || !particleAnimatedValues.length) return undefined;
 
         const loops = particleAnimatedValues
             .map((value, index) => {
@@ -330,7 +390,7 @@ export default function FeedSnapshotCard({
                 })
             );
         };
-    }, [particleAnimatedValues, particles]);
+    }, [enableRankAnimations, particleAnimatedValues, particles]);
 
     const isCardPressable = typeof onPressCard === "function";
     const CardWrapper = isCardPressable ? TouchableOpacity : View;
@@ -384,55 +444,62 @@ export default function FeedSnapshotCard({
                         end={{ x: 1, y: 1 }}
                         style={styles.rankCard}
                     >
-                        <View pointerEvents="none" style={styles.rankParticleLayer}>
-                            {particles.map((particle, index) => {
-                                const progress = particleAnimatedValues[index];
-                                if (!progress) return null;
+                        {enableRankAnimations && (
+                            <View pointerEvents="none" style={styles.rankParticleLayer}>
+                                {particles.map((particle, index) => {
+                                    const progress = particleAnimatedValues[index];
+                                    if (!progress) return null;
 
-                                const translateX = progress.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [0, particle.offsetX],
-                                });
-                                const translateY = progress.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [0, particle.offsetY],
-                                });
-                                const opacity = progress.interpolate({
-                                    inputRange: [0, 0.3, 0.75, 1],
-                                    outputRange: [0, particle.opacity, particle.opacity * 0.45, 0],
-                                });
-                                const scale = progress.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [particle.scaleFrom, particle.scaleTo],
-                                });
+                                    const translateX = progress.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0, particle.offsetX],
+                                    });
+                                    const translateY = progress.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0, particle.offsetY],
+                                    });
+                                    const opacity = progress.interpolate({
+                                        inputRange: [0, 0.3, 0.75, 1],
+                                        outputRange: [0, particle.opacity, particle.opacity * 0.45, 0],
+                                    });
+                                    const scale = progress.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [particle.scaleFrom, particle.scaleTo],
+                                    });
 
-                                return (
-                                    <Animated.View
-                                        key={particle.key}
-                                        style={[
-                                            styles.rankParticle,
-                                            {
-                                                top: particle.origin.top,
-                                                left: particle.origin.left,
-                                                width: particle.size,
-                                                height: particle.size,
-                                                marginLeft: -particle.size / 2,
-                                                marginTop: -particle.size / 2,
-                                                backgroundColor: particle.color,
-                                                shadowColor: particle.color,
-                                                shadowRadius: scaleSize(particle.blur),
-                                            },
-                                            {
-                                                opacity,
-                                                transform: [{ translateX }, { translateY }, { scale }],
-                                            },
-                                        ]}
-                                    />
-                                );
-                            })}
-                        </View>
+                                    return (
+                                        <Animated.View
+                                            key={particle.key}
+                                            style={[
+                                                styles.rankParticle,
+                                                {
+                                                    top: particle.origin.top,
+                                                    left: particle.origin.left,
+                                                    width: particle.size,
+                                                    height: particle.size,
+                                                    marginLeft: -particle.size / 2,
+                                                    marginTop: -particle.size / 2,
+                                                    backgroundColor: particle.color,
+                                                    shadowColor: particle.color,
+                                                    shadowRadius: scaleSize(particle.blur),
+                                                },
+                                                {
+                                                    opacity,
+                                                    transform: [{ translateX }, { translateY }, { scale }],
+                                                },
+                                            ]}
+                                        />
+                                    );
+                                })}
+                            </View>
+                        )}
                         <View style={styles.rankCardContent}>
-                            <View style={styles.rankBadgeCluster}>
+                            <Animated.View
+                                style={[
+                                    styles.rankBadgeCluster,
+                                    enableRankAnimations ? { transform: [{ scale: badgePulseScale }] } : null,
+                                ]}
+                            >
                                 <LinearGradient
                                     colors={rankTheme.wingGradient || goldTheme.wingGradient}
                                     start={{ x: 0, y: 0 }}
@@ -496,7 +563,7 @@ export default function FeedSnapshotCard({
                                         </View>
                                     </LinearGradient>
                                 </LinearGradient>
-                            </View>
+                            </Animated.View>
                             <Text style={[styles.rankTitle, { color: rankTheme.titleColor || goldTheme.titleColor }]}>
                                 {resolvedRankLabel}
                                 <Text
@@ -508,6 +575,9 @@ export default function FeedSnapshotCard({
                                     {` · ${resolvedOverallRating} OVR`}
                                 </Text>
                             </Text>
+                            {pointsToNextRankCopy ? (
+                                <Text style={styles.rankProgressText}>{pointsToNextRankCopy}</Text>
+                            ) : null}
                         </View>
                         <View
                             pointerEvents="none"
@@ -832,6 +902,13 @@ const styles = StyleSheet.create({
         left: "50%",
         marginLeft: -scaled(7),
         marginTop: -scaled(7),
+    },
+    rankProgressText: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaled(13),
+        color: "rgba(255,255,255,0.8)",
+        marginTop: scaleSize(4),
+        letterSpacing: 0.2,
     },
     rankWing: {
         position: "absolute",

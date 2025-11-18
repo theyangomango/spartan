@@ -164,7 +164,7 @@ const makeStyles = (COLORS) =>
             paddingHorizontal: scaleSize(8),
         },
         title: {
-            fontSize: scaleSize(16),
+            fontSize: scaleSize(17),
             fontFamily: 'Nunito_800ExtraBold',
             color: COLORS.text || '#0F172A',
             textAlign: 'center',
