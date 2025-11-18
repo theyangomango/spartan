@@ -22,8 +22,8 @@ import {
 } from "../utils/competitionTabEvents";
 
 const VIEW_TABS = [
-    { key: "leaderboard", label: "Leaderboards" },
     { key: "progress", label: "Progress" },
+    { key: "leaderboard", label: "Leaderboards" },
     { key: "exercises", label: "Exercises" },
 ];
 
@@ -42,7 +42,7 @@ export default function Competition({ navigation, route }) {
         const pendingTab = consumePendingCompetitionTab();
         const requestedFromPending = resolveTabKey(pendingTab);
         if (requestedFromPending) return requestedFromPending;
-        return "leaderboard";
+        return "progress";
     });
     const [progressScrollSignal, setProgressScrollSignal] = useState(0);
 

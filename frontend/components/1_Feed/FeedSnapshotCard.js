@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Animated, Easing, StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -252,7 +252,7 @@ export default function FeedSnapshotCard({
             : null;
 
     const particles = useMemo(() => {
-        const particleCount = 48;
+        const particleCount = 20;
         const colors = rankTheme.particleColors?.length ? rankTheme.particleColors : goldTheme.particleColors;
         const originPoints = [
             { top: "50%", left: "34%" },
@@ -262,20 +262,74 @@ export default function FeedSnapshotCard({
         ];
         return Array.from({ length: particleCount }).map((_, index) => {
             const baseAngle = (Math.PI * 2 * index) / particleCount;
-            const distance = scaled(120 + Math.random() * 160);
+            const distance = scaled(60 + Math.random() * 110);
             const origin = originPoints[index % originPoints.length];
             return {
                 key: `rank-particle-${index}`,
                 offsetX: Math.cos(baseAngle) * distance,
                 offsetY: Math.sin(baseAngle) * distance,
-                size: scaled(5 + Math.random() * 9),
+                size: scaled(4 + Math.random() * 7),
                 color: colors[index % colors.length],
-                blur: 6 + Math.random() * 12,
+                blur: 4 + Math.random() * 8,
                 origin,
-                opacity: 0.3 + Math.random() * 0.35,
+                opacity: 0.35 + Math.random() * 0.4,
+                delay: 200 + (index % originPoints.length) * 120 + Math.random() * 200,
+                duration: 900 + Math.random() * 700,
+                cooldown: 600 + Math.random() * 700,
+                scaleFrom: 0.65 + Math.random() * 0.25,
+                scaleTo: 1.1 + Math.random() * 0.4,
             };
         });
     }, [rankTheme.key]);
+
+    const particleAnimatedValues = useMemo(
+        () => particles.map(() => new Animated.Value(0)),
+        [particles]
+    );
+
+    useEffect(() => {
+        if (!particleAnimatedValues.length) return undefined;
+
+        const loops = particleAnimatedValues
+            .map((value, index) => {
+                const particle = particles[index];
+                if (!particle) return null;
+                value.setValue(0);
+
+                const burstSequence = Animated.sequence([
+                    Animated.timing(value, {
+                        toValue: 1,
+                        duration: particle.duration,
+                        delay: particle.delay,
+                        easing: Easing.out(Easing.cubic),
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(value, {
+                        toValue: 1,
+                        duration: particle.cooldown,
+                        easing: Easing.linear,
+                        useNativeDriver: true,
+                    }),
+                ]);
+
+                const loop = Animated.loop(burstSequence, { resetBeforeIteration: true });
+                if (loop && typeof loop.start === "function") {
+                    loop.start();
+                    return loop;
+                }
+                return null;
+            })
+            .filter(Boolean);
+
+        return () => {
+            loops.forEach((loop) => loop?.stop());
+            particleAnimatedValues.forEach((value) =>
+                value.stopAnimation(() => {
+                    value.setValue(0);
+                })
+            );
+        };
+    }, [particleAnimatedValues, particles]);
 
     const isCardPressable = typeof onPressCard === "function";
     const CardWrapper = isCardPressable ? TouchableOpacity : View;
@@ -318,18 +372,41 @@ export default function FeedSnapshotCard({
                         })}
                     </View>
                 )}
-                {isRankTabActive ? (
-                    <CardWrapper style={styles.rankCardWrapper} {...cardWrapperProps}>
-                        <LinearGradient
-                            colors={rankTheme.gradientColors || goldTheme.gradientColors}
-                            locations={rankTheme.gradientLocations || goldTheme.gradientLocations}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={styles.rankCard}
-                        >
-                            <View pointerEvents="none" style={styles.rankParticleLayer}>
-                                {particles.map((particle) => (
-                                    <View
+                <CardWrapper
+                    style={[styles.rankCardWrapper, !isRankTabActive && styles.rankCardHidden]}
+                    {...cardWrapperProps}
+                >
+                    <LinearGradient
+                        colors={rankTheme.gradientColors || goldTheme.gradientColors}
+                        locations={rankTheme.gradientLocations || goldTheme.gradientLocations}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.rankCard}
+                    >
+                        <View pointerEvents="none" style={styles.rankParticleLayer}>
+                            {particles.map((particle, index) => {
+                                const progress = particleAnimatedValues[index];
+                                if (!progress) return null;
+
+                                const translateX = progress.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0, particle.offsetX],
+                                });
+                                const translateY = progress.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [0, particle.offsetY],
+                                });
+                                const opacity = progress.interpolate({
+                                    inputRange: [0, 0.3, 0.75, 1],
+                                    outputRange: [0, particle.opacity, particle.opacity * 0.45, 0],
+                                });
+                                const scale = progress.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [particle.scaleFrom, particle.scaleTo],
+                                });
+
+                                return (
+                                    <Animated.View
                                         key={particle.key}
                                         style={[
                                             styles.rankParticle,
@@ -343,177 +420,175 @@ export default function FeedSnapshotCard({
                                                 backgroundColor: particle.color,
                                                 shadowColor: particle.color,
                                                 shadowRadius: scaleSize(particle.blur),
-                                                opacity: particle.opacity,
-                                                transform: [
-                                                    { translateX: particle.offsetX },
-                                                    { translateY: particle.offsetY },
-                                                ],
+                                            },
+                                            {
+                                                opacity,
+                                                transform: [{ translateX }, { translateY }, { scale }],
                                             },
                                         ]}
                                     />
-                                ))}
-                            </View>
-                            <View style={styles.rankCardContent}>
-                                <View style={styles.rankBadgeCluster}>
-                                    <LinearGradient
-                                        colors={rankTheme.wingGradient || goldTheme.wingGradient}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={[styles.rankWing, styles.rankWingLeft]}
-                                    />
-                                    <LinearGradient
-                                        colors={rankTheme.wingGradient || goldTheme.wingGradient}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={[styles.rankWing, styles.rankWingRight]}
-                                    />
-                                    <LinearGradient
-                                        colors={rankTheme.badgeOuterGradient || goldTheme.badgeOuterGradient}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={styles.rankBadgeOuter}
-                                    >
-                                        <LinearGradient
-                                            colors={rankTheme.badgeInnerGradient || goldTheme.badgeInnerGradient}
-                                            start={{ x: 0, y: 0 }}
-                                            end={{ x: 1, y: 1 }}
-                                            style={styles.rankBadgeInner}
-                                        >
-                                            <View
-                                                style={[
-                                                    styles.rankBadgeCore,
-                                                    {
-                                                        backgroundColor:
-                                                            rankTheme.badgeCoreColor || goldTheme.badgeCoreColor,
-                                                        shadowColor:
-                                                            rankTheme.badgeCoreShadowColor ||
-                                                            goldTheme.badgeCoreShadowColor,
-                                                    },
-                                                ]}
-                                            >
-                                                <View
-                                                    style={[
-                                                        styles.rankBadgeGem,
-                                                        {
-                                                            backgroundColor:
-                                                                rankTheme.badgeGemColor || goldTheme.badgeGemColor,
-                                                            borderColor:
-                                                                rankTheme.badgeGemBorderColor ||
-                                                                goldTheme.badgeGemBorderColor,
-                                                        },
-                                                    ]}
-                                                />
-                                                <View
-                                                    style={[
-                                                        styles.rankBadgeGemInner,
-                                                        {
-                                                            backgroundColor:
-                                                                rankTheme.badgeGemInnerColor ||
-                                                                goldTheme.badgeGemInnerColor,
-                                                            borderColor:
-                                                                rankTheme.badgeGemInnerBorderColor ||
-                                                                goldTheme.badgeGemInnerBorderColor,
-                                                        },
-                                                    ]}
-                                                />
-                                            </View>
-                                        </LinearGradient>
-                                    </LinearGradient>
-                                </View>
-                                <Text
-                                    style={[styles.rankTitle, { color: rankTheme.titleColor || goldTheme.titleColor }]}
+                                );
+                            })}
+                        </View>
+                        <View style={styles.rankCardContent}>
+                            <View style={styles.rankBadgeCluster}>
+                                <LinearGradient
+                                    colors={rankTheme.wingGradient || goldTheme.wingGradient}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={[styles.rankWing, styles.rankWingLeft]}
+                                />
+                                <LinearGradient
+                                    colors={rankTheme.wingGradient || goldTheme.wingGradient}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={[styles.rankWing, styles.rankWingRight]}
+                                />
+                                <LinearGradient
+                                    colors={rankTheme.badgeOuterGradient || goldTheme.badgeOuterGradient}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    style={styles.rankBadgeOuter}
                                 >
-                                    {resolvedRankLabel}
-                                    <Text
-                                        style={[
-                                            styles.rankTitleSecondary,
-                                            { color: rankTheme.titleSecondaryColor || goldTheme.titleSecondaryColor },
-                                        ]}
+                                    <LinearGradient
+                                        colors={rankTheme.badgeInnerGradient || goldTheme.badgeInnerGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={styles.rankBadgeInner}
                                     >
-                                        {` · ${resolvedOverallRating} OVR`}
-                                    </Text>
-                                </Text>
-                            </View>
-                            <View
-                                pointerEvents="none"
-                                style={[
-                                    styles.rankCardBorderTop,
-                                    { backgroundColor: rankTheme.borderColor || goldTheme.borderColor },
-                                ]}
-                            />
-                            <View
-                                pointerEvents="none"
-                                style={[
-                                    styles.rankCardBorderBottom,
-                                    { backgroundColor: rankTheme.borderColor || goldTheme.borderColor },
-                                ]}
-                            />
-                        </LinearGradient>
-                    </CardWrapper>
-                ) : isBodygraphTabActive ? (
-                    <View style={[styles.rankCard, styles.bodygraphCard]}>
-                        <View style={styles.bodygraphContent}>
-                            <View style={styles.bodygraphLegend}>
-                                {BODYGRAPH_KEY_ITEMS.map((item, index) => {
-                                    const isLast = index === BODYGRAPH_KEY_ITEMS.length - 1;
-                                    return (
                                         <View
-                                            key={item.label}
                                             style={[
-                                                styles.bodygraphLegendRow,
-                                                !isLast && styles.bodygraphLegendRowSpacing,
+                                                styles.rankBadgeCore,
+                                                {
+                                                    backgroundColor: rankTheme.badgeCoreColor || goldTheme.badgeCoreColor,
+                                                    shadowColor:
+                                                        rankTheme.badgeCoreShadowColor ||
+                                                        goldTheme.badgeCoreShadowColor,
+                                                },
                                             ]}
                                         >
                                             <View
                                                 style={[
-                                                    styles.bodygraphLegendSwatch,
-                                                    { backgroundColor: item.color },
+                                                    styles.rankBadgeGem,
+                                                    {
+                                                        backgroundColor:
+                                                            rankTheme.badgeGemColor || goldTheme.badgeGemColor,
+                                                        borderColor:
+                                                            rankTheme.badgeGemBorderColor ||
+                                                            goldTheme.badgeGemBorderColor,
+                                                    },
                                                 ]}
                                             />
-                                            <View style={styles.bodygraphLegendCopy}>
-                                                <Text style={styles.bodygraphLegendLabel}>{item.label}</Text>
-                                                {!!item.description && (
-                                                    <Text style={styles.bodygraphLegendSubtitle}>
-                                                        {item.description}
-                                                    </Text>
-                                                )}
-                                            </View>
+                                            <View
+                                                style={[
+                                                    styles.rankBadgeGemInner,
+                                                    {
+                                                        backgroundColor:
+                                                            rankTheme.badgeGemInnerColor ||
+                                                            goldTheme.badgeGemInnerColor,
+                                                        borderColor:
+                                                            rankTheme.badgeGemInnerBorderColor ||
+                                                            goldTheme.badgeGemInnerBorderColor,
+                                                    },
+                                                ]}
+                                            />
                                         </View>
-                                    );
-                                })}
+                                    </LinearGradient>
+                                </LinearGradient>
                             </View>
-                            <View style={styles.bodygraphFigures}>
-                                <View style={[styles.bodygraphFigureSlot, styles.bodygraphFigureSlotFront]}>
-                                    <HumanMuscleOutline
-                                        color={BODYGRAPH_OUTLINE_COLOR}
-                                        width="100%"
-                                        height="100%"
-                                        preserveAspectRatio="xMidYMax slice"
-                                        style={[styles.bodygraphFigure, styles.bodygraphFigureFront]}
-                                    />
+                            <Text style={[styles.rankTitle, { color: rankTheme.titleColor || goldTheme.titleColor }]}>
+                                {resolvedRankLabel}
+                                <Text
+                                    style={[
+                                        styles.rankTitleSecondary,
+                                        { color: rankTheme.titleSecondaryColor || goldTheme.titleSecondaryColor },
+                                    ]}
+                                >
+                                    {` · ${resolvedOverallRating} OVR`}
+                                </Text>
+                            </Text>
+                        </View>
+                        <View
+                            pointerEvents="none"
+                            style={[
+                                styles.rankCardBorderTop,
+                                { backgroundColor: rankTheme.borderColor || goldTheme.borderColor },
+                            ]}
+                        />
+                        <View
+                            pointerEvents="none"
+                            style={[
+                                styles.rankCardBorderBottom,
+                                { backgroundColor: rankTheme.borderColor || goldTheme.borderColor },
+                            ]}
+                        />
+                    </LinearGradient>
+                </CardWrapper>
+                {!isRankTabActive &&
+                    (isBodygraphTabActive ? (
+                        <View style={[styles.rankCard, styles.bodygraphCard]}>
+                            <View style={styles.bodygraphContent}>
+                                <View style={styles.bodygraphLegend}>
+                                    {BODYGRAPH_KEY_ITEMS.map((item, index) => {
+                                        const isLast = index === BODYGRAPH_KEY_ITEMS.length - 1;
+                                        return (
+                                            <View
+                                                key={item.label}
+                                                style={[
+                                                    styles.bodygraphLegendRow,
+                                                    !isLast && styles.bodygraphLegendRowSpacing,
+                                                ]}
+                                            >
+                                                <View
+                                                    style={[
+                                                        styles.bodygraphLegendSwatch,
+                                                        { backgroundColor: item.color },
+                                                    ]}
+                                                />
+                                                <View style={styles.bodygraphLegendCopy}>
+                                                    <Text style={styles.bodygraphLegendLabel}>{item.label}</Text>
+                                                    {!!item.description && (
+                                                        <Text style={styles.bodygraphLegendSubtitle}>
+                                                            {item.description}
+                                                        </Text>
+                                                    )}
+                                                </View>
+                                            </View>
+                                        );
+                                    })}
                                 </View>
-                                <View style={[styles.bodygraphFigureSlot, styles.bodygraphFigureSlotBack]}>
-                                    <HumanMuscleBackOutline
-                                        color={BODYGRAPH_OUTLINE_COLOR}
-                                        width="100%"
-                                        height="100%"
-                                        preserveAspectRatio="xMidYMax slice"
-                                        style={[styles.bodygraphFigure, styles.bodygraphFigureBack]}
-                                    />
+                                <View style={styles.bodygraphFigures}>
+                                    <View style={[styles.bodygraphFigureSlot, styles.bodygraphFigureSlotFront]}>
+                                        <HumanMuscleOutline
+                                            color={BODYGRAPH_OUTLINE_COLOR}
+                                            width="100%"
+                                            height="100%"
+                                            preserveAspectRatio="xMidYMax slice"
+                                            style={[styles.bodygraphFigure, styles.bodygraphFigureFront]}
+                                        />
+                                    </View>
+                                    <View style={[styles.bodygraphFigureSlot, styles.bodygraphFigureSlotBack]}>
+                                        <HumanMuscleBackOutline
+                                            color={BODYGRAPH_OUTLINE_COLOR}
+                                            width="100%"
+                                            height="100%"
+                                            preserveAspectRatio="xMidYMax slice"
+                                            style={[styles.bodygraphFigure, styles.bodygraphFigureBack]}
+                                        />
+                                    </View>
                                 </View>
                             </View>
                         </View>
-                    </View>
-                ) : (
-                    <View style={[styles.rankCard, styles.rankPlaceholderCard]}>
-                        <Text style={styles.rankPlaceholderTitle}>
-                            {placeholderCopy?.title || activeRankTabConfig.label}
-                        </Text>
-                        <Text style={styles.rankPlaceholderSubtitle}>
-                            {placeholderCopy?.subtitle || "Feature preview coming soon."}
-                        </Text>
-                    </View>
-                )}
+                    ) : (
+                        <View style={[styles.rankCard, styles.rankPlaceholderCard]}>
+                            <Text style={styles.rankPlaceholderTitle}>
+                                {placeholderCopy?.title || activeRankTabConfig.label}
+                            </Text>
+                            <Text style={styles.rankPlaceholderSubtitle}>
+                                {placeholderCopy?.subtitle || "Feature preview coming soon."}
+                            </Text>
+                        </View>
+                    ))}
             </View>
             {/* <CardWrapper style={styles.card} {...cardWrapperProps}>
                 <View style={styles.headerRow}>
@@ -633,6 +708,9 @@ const styles = StyleSheet.create({
     },
     rankCardWrapper: {
         width: "100%",
+    },
+    rankCardHidden: {
+        display: "none",
     },
     rankCardBorderTop: {
         position: "absolute",
@@ -818,7 +896,7 @@ const styles = StyleSheet.create({
     },
     bodygraphLegendLabel: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaled(14),
+        fontSize: scaled(13),
         color: "#f7f8ff",
         letterSpacing: 0.15,
     },
