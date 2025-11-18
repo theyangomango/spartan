@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import FastImage from "react-native-fast-image";
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons, FontAwesome6 } from "@expo/vector-icons";
 import { usePfp } from "../../helper/usePFPs";
 import { resolvePhotoURL } from "../../utils/profilePhoto";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -199,7 +199,7 @@ const FeedScopeSelector = memo(({ value = "following", onSelect, onScrollToTop }
             >
                 <Ionicons
                     name={visible ? "chevron-up" : "chevron-down"}
-                    size={scaleSize(18)}
+                    size={scaleSize(22)}
                     color={theme.textPrimary}
                     style={styles.scopeSelectorIcon}
                 />
@@ -444,8 +444,9 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
     return (
         <>
             <RNBounceable onPress={withStrongPress(open)} bounceEffectIn={0.5} style={[styles.searchIconBtn, visible && { opacity: 0 }]} accessibilityLabel="Search users" ref={iconRef} onLayout={measureAnchor} pointerEvents={visible ? 'none' : 'auto'}>
-                        <Ionicons name="search" size={dynamicStyles.iconSize} color="#CBD5E1" />
+                <Ionicons name="search" size={dynamicStyles.iconSize} color="#CBD5E1" />
             </RNBounceable>
+            <FontAwesome6 name="fire-flame-curved" size={dynamicStyles.iconSize} color="#f97316" style={styles.feedFlameIcon} />
 
             <Modal
                 key={modalKey}
@@ -809,7 +810,7 @@ const styles = StyleSheet.create({
     },
     scopeSelectorLabel: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(16.5),
+        fontSize: ts(17),
         color: theme.textPrimary,
         includeFontPadding: false,
     },
@@ -943,6 +944,9 @@ const styles = StyleSheet.create({
     cardName: { marginTop: scaleSize(s(2)), fontFamily: "Nunito_600SemiBold", fontSize: scaleSize(s(12.5)), color: theme.textSecondary },
     cardNameHighlight: { color: theme.textPrimary, fontFamily: "Nunito_700Bold" },
 
+    feedFlameIcon: {
+        marginLeft: scaleSize(19),
+    },
     searchIconBtn: {
         width: scaleSize(dynamicStyles.iconSize + 6),
         height: scaleSize(dynamicStyles.iconSize + 6),

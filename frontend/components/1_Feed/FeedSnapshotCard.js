@@ -21,12 +21,13 @@ const RANK_TAB_CONFIG = [
         placeholderTitle: "Bodygraph Insights",
         placeholderSubtitle: "Coming soon: visualize weekly trends and body stats here.",
     },
-    {
-        key: "leagues",
-        label: "Leagues",
-        placeholderTitle: "Leagues Overview",
-        placeholderSubtitle: "Track upcoming league placements and unlock rewards soon.",
-    },
+    // Temporarily hide the Leagues pill until the feature is ready.
+    // {
+    //     key: "leagues",
+    //     label: "Leagues",
+    //     placeholderTitle: "Leagues Overview",
+    //     placeholderSubtitle: "Track upcoming league placements and unlock rewards soon.",
+    // },
 ];
 
 const scaled = (value) => scaleSize(value);
