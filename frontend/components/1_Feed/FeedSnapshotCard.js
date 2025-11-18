@@ -252,7 +252,7 @@ export default function FeedSnapshotCard({
             : null;
 
     const particles = useMemo(() => {
-        const particleCount = 20;
+        const particleCount = 36;
         const colors = rankTheme.particleColors?.length ? rankTheme.particleColors : goldTheme.particleColors;
         const originPoints = [
             { top: "50%", left: "34%" },
@@ -261,23 +261,24 @@ export default function FeedSnapshotCard({
             { top: "53%", left: "60%" },
         ];
         return Array.from({ length: particleCount }).map((_, index) => {
-            const baseAngle = (Math.PI * 2 * index) / particleCount;
-            const distance = scaled(60 + Math.random() * 110);
+            const angleSeed = (Math.PI * 2 * (index / particleCount));
+            const baseAngle = angleSeed + (Math.random() - 0.5) * (Math.PI / 2);
+            const distance = scaled(100 + Math.random() * 180);
             const origin = originPoints[index % originPoints.length];
             return {
                 key: `rank-particle-${index}`,
                 offsetX: Math.cos(baseAngle) * distance,
                 offsetY: Math.sin(baseAngle) * distance,
-                size: scaled(4 + Math.random() * 7),
+                size: scaled(4 + Math.random() * 8),
                 color: colors[index % colors.length],
-                blur: 4 + Math.random() * 8,
+                blur: 6 + Math.random() * 10,
                 origin,
-                opacity: 0.35 + Math.random() * 0.4,
-                delay: 200 + (index % originPoints.length) * 120 + Math.random() * 200,
-                duration: 900 + Math.random() * 700,
-                cooldown: 600 + Math.random() * 700,
-                scaleFrom: 0.65 + Math.random() * 0.25,
-                scaleTo: 1.1 + Math.random() * 0.4,
+                opacity: 0.45 + Math.random() * 0.35,
+                delay: 120 + (index % originPoints.length) * 70 + Math.random() * 140,
+                duration: 520 + Math.random() * 480,
+                cooldown: 320 + Math.random() * 420,
+                scaleFrom: 0.55 + Math.random() * 0.35,
+                scaleTo: 1.3 + Math.random() * 0.5,
             };
         });
     }, [rankTheme.key]);
