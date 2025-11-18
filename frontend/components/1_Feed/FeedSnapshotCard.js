@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
 import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
-import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
@@ -8,6 +7,8 @@ import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
 // import { subscribeUserData } from "../../utils/userDataEvents";
 import { strong as triggerStrongHaptic } from "../../utils/haptics";
+import HumanMuscleOutline from "../../assets/human_muscle_outline";
+import HumanMuscleBackOutline from "../../assets/human_muscle_back_outline";
 
 const RANK_TAB_CONFIG = [
     {
@@ -29,6 +30,7 @@ const RANK_TAB_CONFIG = [
 ];
 
 const scaled = (value) => scaleSize(value);
+const BODYGRAPH_OUTLINE_COLOR = "#40485c";
 
 
 export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
@@ -48,14 +50,15 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
         () => RANK_TAB_CONFIG.find((tab) => tab.key === activeRankTab) || RANK_TAB_CONFIG[0],
         [activeRankTab]
     );
+    const isRankTabActive = activeRankTabConfig.key === "rank";
+    const isBodygraphTabActive = activeRankTabConfig.key === "bodygraph";
     const placeholderCopy =
-        activeRankTabConfig.key === "rank"
-            ? null
-            : {
+        !isRankTabActive && !isBodygraphTabActive
+            ? {
                   title: activeRankTabConfig.placeholderTitle || activeRankTabConfig.label,
                   subtitle: activeRankTabConfig.placeholderSubtitle || "Content coming soon.",
-              };
-    const isRankTabActive = activeRankTabConfig.key === "rank";
+              }
+            : null;
 
     const particles = useMemo(() => {
         const particleCount = 48;
@@ -197,6 +200,35 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
                         <View pointerEvents="none" style={styles.rankCardBorderTop} />
                         <View pointerEvents="none" style={styles.rankCardBorderBottom} />
                     </LinearGradient>
+                ) : isBodygraphTabActive ? (
+                    <View style={[styles.rankCard, styles.bodygraphCard]}>
+                        <View style={styles.bodygraphContent}>
+                            <View style={styles.bodygraphTextBlock}>
+                                <Text style={styles.bodygraphTitle}>This Week</Text>
+                                <Text style={styles.bodygraphSubtitle}>Week 47</Text>
+                            </View>
+                            <View style={styles.bodygraphFigures}>
+                                <View style={styles.bodygraphFigureSlot}>
+                                    <HumanMuscleOutline
+                                        color={BODYGRAPH_OUTLINE_COLOR}
+                                        width="100%"
+                                        height="100%"
+                                        preserveAspectRatio="xMidYMax slice"
+                                        style={[styles.bodygraphFigure, styles.bodygraphFigureFront]}
+                                    />
+                                </View>
+                                <View style={[styles.bodygraphFigureSlot, styles.bodygraphFigureSlotBack]}>
+                                    <HumanMuscleBackOutline
+                                        color={BODYGRAPH_OUTLINE_COLOR}
+                                        width="100%"
+                                        height="100%"
+                                        preserveAspectRatio="xMidYMax slice"
+                                        style={[styles.bodygraphFigure, styles.bodygraphFigureBack]}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                    </View>
                 ) : (
                     <View style={[styles.rankCard, styles.rankPlaceholderCard]}>
                         <Text style={styles.rankPlaceholderTitle}>
@@ -320,7 +352,6 @@ const styles = StyleSheet.create({
         paddingVertical: scaled(26),
         paddingHorizontal: scaleSize(24),
         justifyContent: "center",
-        overflow: "hidden",
         position: "relative",
         minHeight: scaleSize(190),
         height: scaleSize(190),
@@ -473,6 +504,66 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_600SemiBold",
         color: "#f9da73ff",
         fontSize: scaled(20),
+    },
+    bodygraphCard: {
+        backgroundColor: "#050609",
+        borderWidth: 0,
+        height: scaleSize(220),
+        paddingHorizontal: scaleSize(20),
+        justifyContent: "center",
+    },
+    bodygraphContent: {
+        flexDirection: "row",
+        alignItems: "flex-end",
+        justifyContent: "space-between",
+        flex: 1,
+    },
+    bodygraphTextBlock: {
+        // flexShrink: 0,
+        // paddingRight: scaleSize(16),
+        width: '40%'
+    },
+    bodygraphTitle: {
+        fontFamily: "Outfit_800ExtraBold",
+        fontSize: scaled(32),
+        color: "#ffffff",
+        letterSpacing: 0.3,
+        textTransform: "capitalize",
+    },
+    bodygraphSubtitle: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaled(28),
+        color: "#bfc5d2",
+        letterSpacing: 0.3,
+        marginTop: scaled(6),
+    },
+    bodygraphFigures: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "flex-end",
+        justifyContent: "space-evenly",
+        gap: scaleSize(16),
+        minHeight: scaleSize(170),
+    },
+    bodygraphFigureSlot: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "flex-end",
+        height: "100%",
+    },
+    bodygraphFigureSlotBack: {
+        flex: 1,
+        height: "100%",
+    },
+    bodygraphFigure: {
+        width: "100%",
+        height: "100%",
+    },
+    bodygraphFigureFront: {
+        transform: [{ scale: 1.18 }, { translateY: scaleSize(6) }],
+    },
+    bodygraphFigureBack: {
+        transform: [{ scale: 1.18 }, { translateY: scaleSize(6) }],
     },
     card: {
         backgroundColor: theme.surface,
