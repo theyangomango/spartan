@@ -45,10 +45,11 @@ import { toMillis as toMillisSafe } from "../utils/friends";
 import deletePost from "../../backend/posts/deletePost";
 import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
-import { emitUserDataUpdate } from "../utils/userDataEvents";
+import { emitUserDataUpdate, subscribeUserData } from "../utils/userDataEvents";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import { strong as hapticStrong } from "../utils/haptics";
 import FeedSnapshotCard from "../components/1_Feed/FeedSnapshotCard";
+import HistoryCalendarModal from "../components/common/HistoryCalendarModal";
 import FeedLoadingSkeleton from "../components/1_Feed/FeedLoadingSkeleton";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import { navigateOneWay, jumpToTab } from "../../navigationRef";
@@ -66,6 +67,57 @@ const CREATE_POST_MENU_WIDTH = Math.max(
     0,
     Math.min(210, Math.round(SCREEN_WIDTH - scaleSize(48))),
 );
+
+const toDayKeyString = (value) => {
+    if (!value) return null;
+    if (typeof value === "string") {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+        const parsed = new Date(trimmed);
+        if (!Number.isNaN(parsed.getTime())) {
+            parsed.setHours(0, 0, 0, 0);
+            return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+        }
+        return null;
+    }
+    if (typeof value === "number" && Number.isFinite(value)) {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+            parsed.setHours(0, 0, 0, 0);
+            return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+        }
+    }
+    if (value?.toDate) {
+        try {
+            const parsed = value.toDate();
+            if (parsed && !Number.isNaN(parsed.getTime())) {
+                parsed.setHours(0, 0, 0, 0);
+                return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+            }
+        } catch { }
+    }
+    return null;
+};
+
+const buildWorkoutDaySet = (user) => {
+    const set = new Set();
+    if (!user) return set;
+    const workoutsByDate = user?.workoutsByDate;
+    if (workoutsByDate && typeof workoutsByDate === "object") {
+        Object.keys(workoutsByDate).forEach((key) => {
+            if (typeof key === "string" && key) set.add(key);
+        });
+    }
+    const workouts = Array.isArray(user?.completedWorkouts) ? user.completedWorkouts : [];
+    workouts.forEach((wk) => {
+        const candidate = wk?.dayKey || wk?.date || wk?.day;
+        const fallback = wk?.finishedAt || wk?.completedAt || wk?.createdAt;
+        const key = toDayKeyString(candidate || fallback);
+        if (key) set.add(key);
+    });
+    return set;
+};
 
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
@@ -155,8 +207,28 @@ export default function Feed({ navigation, route }) {
         primeAllUsers().catch(() => {});
     }, []);
 
+    useEffect(() => {
+        const unsubscribe = subscribeUserData((payload) => {
+            setCalendarMarkedDays(buildWorkoutDaySet(payload));
+        });
+        return unsubscribe;
+    }, []);
+
     const toggleFeedVideosMuted = useCallback(() => {
         setFeedVideosMuted((prev) => !prev);
+    }, []);
+
+    const openCalendar = useCallback(() => {
+        setCalendarVisible(true);
+    }, []);
+
+    const closeCalendar = useCallback(() => {
+        setCalendarVisible(false);
+    }, []);
+
+    const handleSelectCalendarDate = useCallback((timestamp) => {
+        if (!timestamp) return;
+        setCalendarSelectedDate(timestamp);
     }, []);
 
     useEffect(() => {
@@ -193,6 +265,9 @@ export default function Feed({ navigation, route }) {
     const highlightPidRef = useRef(null);
     const [highlightSignal, setHighlightSignal] = useState(0);
     const [pendingScrollRequest, setPendingScrollRequest] = useState(null);
+    const [calendarVisible, setCalendarVisible] = useState(false);
+    const [calendarSelectedDate, setCalendarSelectedDate] = useState(() => Date.now());
+    const [calendarMarkedDays, setCalendarMarkedDays] = useState(() => buildWorkoutDaySet(global?.userData));
 
     const headerVisibility = useRef(new Animated.Value(1)).current;
     const [headerPointerEvents, setHeaderPointerEvents] = useState("auto");
@@ -1024,8 +1099,9 @@ export default function Feed({ navigation, route }) {
             centerTextPreset="feed"
             feedScope={feedScope}
             onChangeFeedScope={setFeedScope}
+            onOpenCalendar={openCalendar}
         />
-    ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef, feedScope]);
+    ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef, feedScope, openCalendar]);
 
     const renderLoadingList = useCallback(() => (
         <FeedLoadingSkeleton />
@@ -1312,6 +1388,15 @@ export default function Feed({ navigation, route }) {
                     </Animated.View>
                 </TouchableOpacity>
             </View>
+
+            <HistoryCalendarModal
+                visible={calendarVisible}
+                onClose={closeCalendar}
+                onSelectDate={handleSelectCalendarDate}
+                selectedDate={calendarSelectedDate}
+                markedDayKeys={calendarMarkedDays}
+                title="Calendar"
+            />
 
             <CommentsBottomSheet
                 isVisible={commentsVisible}

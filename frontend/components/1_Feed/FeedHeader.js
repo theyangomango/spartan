@@ -244,7 +244,7 @@ const FeedScopeSelector = memo(({ value = "following", onSelect, onScrollToTop }
 });
 
 /* --------------------------- Full-takeover Search --------------------------- */
-const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
+const SearchUsersBar = ({ navigation, allUsersRef, onOpenCalendar, disabled = false }) => {
     const insets = useSafeAreaInsets();
     const [visible, setVisible] = useState(false);
     const [modalKey, setModalKey] = useState(0);
@@ -446,7 +446,15 @@ const SearchUsersBar = ({ navigation, allUsersRef, disabled = false }) => {
             <RNBounceable onPress={withStrongPress(open)} bounceEffectIn={0.5} style={[styles.searchIconBtn, visible && { opacity: 0 }]} accessibilityLabel="Search users" ref={iconRef} onLayout={measureAnchor} pointerEvents={visible ? 'none' : 'auto'}>
                 <Ionicons name="search" size={dynamicStyles.iconSize} color="#CBD5E1" />
             </RNBounceable>
-            <FontAwesome6 name="fire-flame-curved" size={dynamicStyles.iconSize} color="#f97316" style={styles.feedFlameIcon} />
+            <RNBounceable
+                onPress={onOpenCalendar ? withStrongPress(onOpenCalendar) : undefined}
+                style={styles.feedFlameButton}
+                accessibilityLabel="View workout calendar"
+                accessibilityRole="button"
+                disabled={!onOpenCalendar}
+            >
+                <FontAwesome6 name="fire-flame-curved" size={dynamicStyles.iconSize} color="#f97316" style={styles.feedFlameIcon} />
+            </RNBounceable>
 
             <Modal
                 key={modalKey}
@@ -576,6 +584,7 @@ const FeedHeader = ({
     scrollToTop,
     navigation,
     allUsersRef,
+    onOpenCalendar,
 
     // workout props intentionally ignored so header layout stays static
     workout: _workout,
@@ -628,7 +637,7 @@ const FeedHeader = ({
         ]}>
             {/* Left: Search */}
             <View style={styles.leftArea}>
-                <SearchUsersBar navigation={navigation} allUsersRef={allUsersRef} />
+                <SearchUsersBar navigation={navigation} allUsersRef={allUsersRef} onOpenCalendar={onOpenCalendar} />
             </View>
             {/* Center: fixed-height slot */}
             <View style={styles.centerArea}>
@@ -944,8 +953,15 @@ const styles = StyleSheet.create({
     cardName: { marginTop: scaleSize(s(2)), fontFamily: "Nunito_600SemiBold", fontSize: scaleSize(s(12.5)), color: theme.textSecondary },
     cardNameHighlight: { color: theme.textPrimary, fontFamily: "Nunito_700Bold" },
 
-    feedFlameIcon: {
+    feedFlameButton: {
         marginLeft: scaleSize(19),
+        padding: scaleSize(6),
+        borderRadius: scaleSize((dynamicStyles.iconSize + 6) / 2),
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    feedFlameIcon: {
+        marginLeft: 0,
     },
     searchIconBtn: {
         width: scaleSize(dynamicStyles.iconSize + 6),
