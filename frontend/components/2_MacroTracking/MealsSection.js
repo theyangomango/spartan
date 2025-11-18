@@ -21,7 +21,9 @@ function MealsSection({
     PlusIcon,
     dayKey,
     compact = false,
-    streakCount = 0,
+    caloriesBurned = 0,
+    calorieOffsetEnabled = false,
+    onToggleCalorieOffset,
 }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const navigation = useNavigation();
@@ -29,7 +31,13 @@ function MealsSection({
         <View>
             <View style={styles.sectionHeaderRow}>
                 <Text style={styles.sectionTitle}>{title}</Text>
-                <MacroStreakBadge streakCount={streakCount} COLORS={COLORS} />
+                <MacroStreakBadge
+                    dayKey={dayKey}
+                    caloriesBurned={caloriesBurned}
+                    COLORS={COLORS}
+                    offsetEnabled={calorieOffsetEnabled}
+                    onToggleOffset={onToggleCalorieOffset}
+                />
             </View>
             {mealsMeta.map((m) => {
                 const list = meals[m.name] ?? [];
@@ -83,7 +91,8 @@ const propsEqual = (prev, next) => {
         prev.COLORS === next.COLORS &&
         prev.title === next.title &&
         prev.dayKey === next.dayKey &&
-        prev.streakCount === next.streakCount
+        prev.caloriesBurned === next.caloriesBurned &&
+        prev.calorieOffsetEnabled === next.calorieOffsetEnabled
     );
 };
 

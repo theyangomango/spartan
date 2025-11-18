@@ -21,9 +21,12 @@ function MacroDayPage({
   deleteFood,
   PlusIcon,
   date,
+  dayKey,
   isFocused,
   mealsMeta,
-  streakCount = 0,
+  caloriesBurned = 0,
+  calorieOffsetEnabled = false,
+  onToggleCalorieOffset,
 }) {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
@@ -61,8 +64,10 @@ function MacroDayPage({
         onDelete={deleteFood}
         COLORS={COLORS}
         PlusIcon={PlusIcon}
-        dayKey={toDayKey(date)}
-        streakCount={streakCount}
+        dayKey={dayKey || toDayKey(date)}
+        calorieOffsetEnabled={calorieOffsetEnabled}
+        onToggleCalorieOffset={onToggleCalorieOffset}
+        caloriesBurned={caloriesBurned}
         // compact={!isFocused}
       />
     </ScrollView>
@@ -76,9 +81,11 @@ const propsEqual = (prev, next) => (
   prev.meals === next.meals &&
   prev.totals === next.totals &&
   toDayKey(prev.date) === toDayKey(next.date) &&
+  prev.dayKey === next.dayKey &&
   prev.isFocused === next.isFocused &&
   prev.mealsMeta === next.mealsMeta &&
-  prev.streakCount === next.streakCount
+  prev.caloriesBurned === next.caloriesBurned &&
+  prev.calorieOffsetEnabled === next.calorieOffsetEnabled
 );
 
 export default React.memo(MacroDayPage, propsEqual);

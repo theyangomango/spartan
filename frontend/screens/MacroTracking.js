@@ -25,11 +25,12 @@ import useStableSafeAreaInsets from '../hooks/useStableSafeAreaInsets';
 // 🔥 Firestore (load + save macro goals)
 import { db } from '../../firebase.config';
 import theme from '../theme/mfpDark';
-import { toDayKey } from '../utils/date';
-import { buildFromGlobal, getLoggedFoodStreak } from '../logic/macroLogsIndexer';
+import { toDayKey, toMillis } from '../utils/date';
+import { buildFromGlobal } from '../logic/macroLogsIndexer';
 import { doc, onSnapshot, updateDoc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { touchRecentFood } from '../utils/recentFoods';
 import { parseMacrosFromDescription, scaleMacros } from '../utils/nutrition';
+import { subscribeUserData } from '../utils/userDataEvents';
 
 // scaleSize primarily used for floating controls; child components handle their own scaling
 
@@ -96,6 +97,143 @@ const clampForwardDelta = (delta, baseDate) => {
     return Math.min(delta, maxForward);
 };
 
+const DAY_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const toDayKeyString = (value) => {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+        if (DAY_KEY_PATTERN.test(trimmed)) return trimmed;
+        const parsed = new Date(trimmed);
+        if (!Number.isNaN(parsed.getTime())) {
+            parsed.setHours(0, 0, 0, 0);
+            return toDayKey(parsed);
+        }
+        return null;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+            parsed.setHours(0, 0, 0, 0);
+            return toDayKey(parsed);
+        }
+        return null;
+    }
+    if (value instanceof Date) {
+        const copy = new Date(value);
+        if (!Number.isNaN(copy.getTime())) {
+            copy.setHours(0, 0, 0, 0);
+            return toDayKey(copy);
+        }
+    }
+    return null;
+};
+
+const resolveWorkoutTimestamp = (workout) => {
+    if (!workout || typeof workout !== 'object') return 0;
+    const candidates = [
+        workout?.completedAt,
+        workout?.finishedAt,
+        workout?.endedAt,
+        workout?.timestamp,
+        workout?.updatedAt,
+        workout?.createdAt,
+        workout?.created,
+        workout?.startedAt,
+    ];
+    for (const candidate of candidates) {
+        const millis = toMillis(candidate);
+        if (millis) return millis;
+    }
+    return toMillis(workout?.date) || 0;
+};
+
+const resolveWorkoutDayKey = (workout) => {
+    const direct = toDayKeyString(workout?.dayKey ?? workout?.date ?? workout?.day);
+    if (direct) return direct;
+    const millis = resolveWorkoutTimestamp(workout);
+    if (!millis) return null;
+    const d = new Date(millis);
+    if (Number.isNaN(d.getTime())) return null;
+    d.setHours(0, 0, 0, 0);
+    return toDayKey(d);
+};
+
+const parseCaloriesValue = (value) => {
+    if (value === null || value === undefined) return 0;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) return 0;
+        const numeric = Number(trimmed);
+        if (Number.isFinite(numeric)) return numeric;
+        const cleaned = Number(trimmed.replace(/[^0-9.\-]/g, ''));
+        return Number.isFinite(cleaned) ? cleaned : 0;
+    }
+    if (typeof value === 'object') {
+        const numeric = Number(value);
+        if (Number.isFinite(numeric)) return numeric;
+    }
+    return 0;
+};
+
+const getCompletedWorkoutsArray = () => {
+    try {
+        if (Array.isArray(global?.userData?.completedWorkouts)) {
+            return global.userData.completedWorkouts;
+        }
+    } catch { }
+    return [];
+};
+
+const sumWorkoutCaloriesForDay = (dateObj) => {
+    const day = startOfDay(dateObj || new Date());
+    const dk = toDayKey(day);
+    const workouts = getCompletedWorkoutsArray();
+    if (!workouts.length) return 0;
+    let total = 0;
+    workouts.forEach((workout) => {
+        const workoutDay = resolveWorkoutDayKey(workout);
+        if (!workoutDay || workoutDay !== dk) return;
+        const calories = parseCaloriesValue(
+            workout?.calories ??
+            workout?.caloriesBurned ??
+            workout?.calories_burned
+        );
+        if (calories > 0) total += calories;
+    });
+    return Math.round(Math.max(0, total));
+};
+
+const computeCompletedWorkoutsSignature = (src) => {
+    const list = Array.isArray(src) ? src : getCompletedWorkoutsArray();
+    if (!list.length) return 'len:0';
+    const parts = [`len:${list.length}`];
+    const tail = list.slice(-10);
+    tail.forEach((workout, idx) => {
+        const ts = resolveWorkoutTimestamp(workout) || idx;
+        const cal = Math.round(parseCaloriesValue(workout?.calories ?? workout?.caloriesBurned));
+        const id = workout?.wid ?? workout?.id ?? workout?.pid ?? idx;
+        parts.push(`${id}:${ts}:${cal}`);
+    });
+    return parts.join('|');
+};
+
+const scaleGoalsWithBurn = (baseGoals, caloriesBurned) => {
+    const safeGoals = baseGoals || {};
+    const baseCalories = Math.max(1, Number(safeGoals.calories) || 0);
+    const bonus = Math.max(0, Number(caloriesBurned) || 0);
+    if (bonus <= 0) return safeGoals;
+    const nextCalories = Math.round(baseCalories + bonus);
+    const multiplier = nextCalories / baseCalories;
+    return {
+        calories: nextCalories,
+        protein: Math.round((Number(safeGoals.protein) || 0) * multiplier),
+        carbs: Math.round((Number(safeGoals.carbs) || 0) * multiplier),
+        fat: Math.round((Number(safeGoals.fat) || 0) * multiplier),
+    };
+};
+
 export default function MacroTracking({ navigation, route }) {
     const insets = useStableSafeAreaInsets();
     const { width: screenWidth } = useWindowDimensions();
@@ -131,7 +269,10 @@ export default function MacroTracking({ navigation, route }) {
     // Local state derived from global.loggedFoods for the focused day
     const [meals, setMeals] = useState(() => ({ Breakfast: [], Lunch: [], Dinner: [], Snacks: [] }));
     const [totals, setTotals] = useState(() => ({ calories: 0, protein: 0, carbs: 0, fat: 0 }));
-    const [loggedStreak, setLoggedStreak] = useState(() => getLoggedFoodStreak());
+    const [completedWorkoutsSig, setCompletedWorkoutsSig] = useState(() =>
+        computeCompletedWorkoutsSignature(global?.userData?.completedWorkouts)
+    );
+    const [calorieOffsetDays, setCalorieOffsetDays] = useState(() => ({}));
 
     // -------- goals (load from user doc, save back) --------
     const [macroGoals, setMacroGoals] = useState({ calories: 2340, carbs: 285, fat: 70, protein: 140 });
@@ -150,6 +291,16 @@ export default function MacroTracking({ navigation, route }) {
         fat: String(macroGoals.fat),
         protein: String(macroGoals.protein),
     }));
+
+    useEffect(() => {
+        const unsubscribe = subscribeUserData((payload) => {
+            const nextSig = computeCompletedWorkoutsSignature(payload?.completedWorkouts);
+            setCompletedWorkoutsSig((prev) => (prev === nextSig ? prev : nextSig));
+        });
+        return () => {
+            try { unsubscribe?.(); } catch { }
+        };
+    }, []);
 
     // Subscribe to user's macro goals in Firestore
     useEffect(() => {
@@ -378,7 +529,6 @@ export default function MacroTracking({ navigation, route }) {
                 try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch {}
             }
         } catch { }
-        setLoggedStreak(getLoggedFoodStreak());
         try {
             if (uid) {
                 const uref = doc(db, 'usersPrivate', uid);
@@ -393,8 +543,7 @@ export default function MacroTracking({ navigation, route }) {
         const built = buildFromGlobal(focusedDate);
         setMeals(built.meals);
         setTotals(built.totals);
-        setLoggedStreak(getLoggedFoodStreak());
-    }, [focusedDate, getLoggedFoodStreak, buildFromGlobal]);
+    }, [focusedDate, buildFromGlobal]);
 
     // MacroDayPage extracted into separate file for clarity
 
@@ -507,7 +656,6 @@ export default function MacroTracking({ navigation, route }) {
             carbs: Math.round((prev.carbs || 0) + (macros.carbs || 0)),
             fat: Math.round((prev.fat || 0) + (macros.fat || 0)),
         }));
-        setLoggedStreak(getLoggedFoodStreak());
         try {
             if (uid) {
                 const uref = doc(db, 'usersPrivate', uid);
@@ -535,6 +683,19 @@ export default function MacroTracking({ navigation, route }) {
         } catch { }
         closeSearch();
     }, [selectedMeal, focusedDate, closeSearch]);
+
+    const onToggleCalorieOffset = useCallback((dayKey, enabled) => {
+        if (!dayKey) return;
+        setCalorieOffsetDays((prev) => {
+            const next = { ...(prev || {}) };
+            if (enabled) {
+                next[dayKey] = true;
+            } else {
+                delete next[dayKey];
+            }
+            return next;
+        });
+    }, []);
 
     const openGoalsSheet = () => { try { haptic(); } catch {} setGoalsSheetIndex(0); setGoalsOpenSignal((s) => (s == null ? 1 : s + 1)); };
     const closeGoalsSheet = () => { setGoalsSheetIndex(-1); };
@@ -654,12 +815,13 @@ export default function MacroTracking({ navigation, route }) {
                     snapToInterval={screenWidth}
                     snapToAlignment="start"
                     disableIntervalMomentum
-                    scrollEnabled
-                    bounces={false}
-                    overScrollMode="never"
-                    scrollEventThrottle={16}
-                    showsHorizontalScrollIndicator={false}
-                    keyExtractor={(item, index) => String(index)}
+                scrollEnabled
+                bounces={false}
+                overScrollMode="never"
+                scrollEventThrottle={16}
+                extraData={completedWorkoutsSig}
+                showsHorizontalScrollIndicator={false}
+                keyExtractor={(item, index) => String(index)}
                     getItemCount={() => TOTAL_PAGES}
                     getItem={(_data, index) => index}
                     initialScrollIndex={baseIndex}
@@ -724,6 +886,7 @@ export default function MacroTracking({ navigation, route }) {
                         const d = new Date(focusedDate);
                         d.setDate(d.getDate() + offset);
                         d.setHours(0, 0, 0, 0);
+                        const dayKey = toDayKey(d);
                         const fromGlobal = buildFromGlobal(d);
                         const hasLocalMeals = (meals?.Breakfast?.length || meals?.Lunch?.length || meals?.Dinner?.length || meals?.Snacks?.length);
                         const mealsForPage = offset === 0
@@ -732,11 +895,16 @@ export default function MacroTracking({ navigation, route }) {
                         const totalsForPage = offset === 0
                             ? ((totals?.calories || totals?.protein || totals?.carbs || totals?.fat) ? totals : fromGlobal.totals)
                             : fromGlobal.totals;
+                        const caloriesBurnedForPage = sumWorkoutCaloriesForDay(d);
+                        const offsetEnabled = !!calorieOffsetDays[dayKey];
+                        const goalsForPage = (offsetEnabled && caloriesBurnedForPage > 0)
+                            ? scaleGoalsWithBurn(macroGoals, caloriesBurnedForPage)
+                            : macroGoals;
                         return (
                             <MacroDayPage
                                 screenWidth={screenWidth}
                                 COLORS={COLORS}
-                                macroGoals={macroGoals}
+                                macroGoals={goalsForPage}
                                 meals={mealsForPage}
                                 totals={totalsForPage}
                                 collapsed={collapsedMeals}
@@ -746,9 +914,12 @@ export default function MacroTracking({ navigation, route }) {
                                 deleteFood={deleteFood}
                                 PlusIcon={PlusIcon}
                                 date={d}
+                                dayKey={dayKey}
                                 isFocused={Math.abs(offset) <= 1}
                                 mealsMeta={mealsMeta}
-                                streakCount={loggedStreak}
+                                caloriesBurned={caloriesBurnedForPage}
+                                calorieOffsetEnabled={offsetEnabled}
+                                onToggleCalorieOffset={onToggleCalorieOffset}
                             />
                         );
                     }}

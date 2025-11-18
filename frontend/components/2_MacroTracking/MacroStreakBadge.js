@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet, Animated, Modal, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Animated, Modal, TouchableOpacity, Dimensions, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import scaleSize from "../../helper/scaleSize";
@@ -10,7 +10,14 @@ import { getUnifiedHeaderMetrics } from '../../theme/headerMetrics';
 const METRICS = getUnifiedHeaderMetrics();
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-export default function MacroStreakBadge({ streakCount = 0, COLORS = {}, style }) {
+export default function MacroStreakBadge({
+    dayKey,
+    caloriesBurned = 0,
+    COLORS = {},
+    style,
+    offsetEnabled = false,
+    onToggleOffset,
+}) {
     const streakColor = COLORS?.streak || '#FF6C1A';
     const withAlpha = useCallback((hex, alpha) => {
         if (typeof hex !== 'string') return null;
@@ -20,26 +27,35 @@ export default function MacroStreakBadge({ streakCount = 0, COLORS = {}, style }
     }, []);
     const streakBgColor = withAlpha(streakColor, '26') || 'rgba(255,108,26,0.18)';
     const streakBorderColor = withAlpha(streakColor, '85') || 'rgba(255,108,26,0.52)';
+    const streakActiveBg = withAlpha(streakColor, '40') || 'rgba(255,108,26,0.35)';
+    const offsetBadgeBg = withAlpha(streakColor, '33') || 'rgba(255,255,255,0.12)';
     const styles = useMemo(
-        () => makeStyles(COLORS, streakBgColor, streakBorderColor),
-        [COLORS, streakBgColor, streakBorderColor]
+        () => makeStyles(COLORS, streakBgColor, streakBorderColor, streakColor, streakActiveBg, offsetBadgeBg),
+        [COLORS, streakBgColor, streakBorderColor, streakColor, streakActiveBg, offsetBadgeBg]
     );
     const pillRef = useRef(null);
     const [infoPanelVisible, setInfoPanelVisible] = useState(false);
     const [panelPosition, setPanelPosition] = useState({ left: 0, top: 0, width: 0, height: 0 });
     const panelScale = useRef(new Animated.Value(0.96)).current;
     const panelOpacity = useRef(new Animated.Value(0)).current;
-    const displayStreak = useMemo(() => {
-        const value = Number(streakCount);
-        if (!Number.isFinite(value) || value < 0) return 0;
+    const displayCalories = useMemo(() => {
+        const value = Number(caloriesBurned);
+        if (!Number.isFinite(value) || value <= 0) return 0;
         return Math.round(value);
-    }, [streakCount]);
-    const pillOpacity = displayStreak > 0 ? 1 : 0.75;
-    const streakLabel = `${displayStreak}`;
+    }, [caloriesBurned]);
+    const pillOpacity = displayCalories > 0 ? 1 : 0.75;
+    const caloriesLabel = displayCalories > 0 ? `${displayCalories}` : '0';
 
     const closeInfoPanel = useCallback(() => {
         setInfoPanelVisible(false);
-    }, []);
+    }, [dayKey, onToggleOffset]);
+
+    const toggleOffset = useCallback((value) => {
+        try { haptic(); } catch {}
+        if (typeof onToggleOffset === 'function') {
+            onToggleOffset(dayKey, value);
+        }
+    }, [dayKey, onToggleOffset]);
 
     const openStreakPanel = useCallback(() => {
         try { haptic(); } catch {}
@@ -86,12 +102,22 @@ export default function MacroStreakBadge({ streakCount = 0, COLORS = {}, style }
                 ref={pillRef}
                 onPress={openStreakPanel}
                 hitSlop={8}
-                style={[styles.streakPill, style, { opacity: pillOpacity }]}
+                style={[
+                    styles.streakPill,
+                    offsetEnabled ? styles.streakPillActive : null,
+                    style,
+                    { opacity: pillOpacity },
+                ]}
             >
                 <Ionicons name="flame" size={scaledSize(16)} color={streakColor} />
                 <Text style={[styles.streakText, { color: streakColor }]}>
-                    {streakLabel}
+                    {caloriesLabel}
                 </Text>
+                {offsetEnabled ? (
+                    <View style={styles.offsetBadge}>
+                        <Text style={styles.offsetBadgeText}>GOAL+</Text>
+                    </View>
+                ) : null}
             </Pressable>
             <Modal transparent animationType="none" visible={infoPanelVisible} onRequestClose={closeInfoPanel}>
                 <View style={styles.infoOverlay}>
@@ -110,10 +136,24 @@ export default function MacroStreakBadge({ streakCount = 0, COLORS = {}, style }
                         ]}
                     >
                         <View style={[styles.infoCaret, { left: caretLeft, backgroundColor: panelBackground }]} />
-                        <Text style={styles.infoTitle}>Macro streak</Text>
+                        <Text style={styles.infoTitle}>Calories burned</Text>
                         <Text style={styles.infoText}>
-                            Tracks consecutive days you log food. Miss a day and the streak resets.
+                            Adds up the estimated calories from workouts you finished on this day.
                         </Text>
+                        <View style={styles.toggleRow}>
+                            <View style={styles.toggleTextCol}>
+                                <Text style={styles.toggleTitle}>Add to calorie goal</Text>
+                                <Text style={styles.toggleCaption}>
+                                    When on, this burn amount increases today's calorie limit and scales each macro target.
+                                </Text>
+                            </View>
+                            <Switch
+                                value={!!offsetEnabled}
+                                onValueChange={toggleOffset}
+                                trackColor={{ false: 'rgba(255,255,255,0.2)', true: streakColor }}
+                                thumbColor="#0F172A"
+                            />
+                        </View>
                     </Animated.View>
                 </View>
             </Modal>
@@ -121,7 +161,7 @@ export default function MacroStreakBadge({ streakCount = 0, COLORS = {}, style }
     );
 }
 
-const makeStyles = (COLORS, streakBgColor, streakBorderColor) =>
+const makeStyles = (COLORS, streakBgColor, streakBorderColor, streakColor, streakActiveBg, offsetBadgeBg) =>
     StyleSheet.create({
         streakPill: {
             flexDirection: 'row',
@@ -134,10 +174,27 @@ const makeStyles = (COLORS, streakBgColor, streakBorderColor) =>
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: streakBorderColor,
         },
+        streakPillActive: {
+            backgroundColor: streakActiveBg,
+            borderColor: streakColor || streakBorderColor,
+        },
         streakText: {
             marginLeft: scaleSize(4),
             fontFamily: 'Poppins_600SemiBold',
             fontSize: scaleSize(15),
+        },
+        offsetBadge: {
+            marginLeft: scaleSize(8),
+            paddingHorizontal: scaleSize(8),
+            paddingVertical: scaleSize(2),
+            borderRadius: scaleSize(10),
+            backgroundColor: offsetBadgeBg,
+        },
+        offsetBadgeText: {
+            color: streakColor || COLORS.text,
+            fontFamily: 'Nunito_800ExtraBold',
+            fontSize: scaleSize(10),
+            letterSpacing: 0.5,
         },
         infoOverlay: {
             flex: 1,
@@ -176,5 +233,27 @@ const makeStyles = (COLORS, streakBgColor, streakBorderColor) =>
             fontSize: scaleSize(13),
             lineHeight: scaleSize(18),
             marginBottom: scaleSize(12),
+        },
+        toggleRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: scaleSize(16),
+            paddingBottom: scaleSize(10),
+        },
+        toggleTextCol: {
+            flex: 1,
+        },
+        toggleTitle: {
+            color: COLORS.text || '#FFFFFF',
+            fontFamily: 'Nunito_800ExtraBold',
+            fontSize: scaleSize(14),
+            marginBottom: scaleSize(4),
+        },
+        toggleCaption: {
+            color: COLORS.subtext || '#CBD5F5',
+            fontFamily: 'Nunito_600SemiBold',
+            fontSize: scaleSize(12),
+            lineHeight: scaleSize(16),
         },
     });
