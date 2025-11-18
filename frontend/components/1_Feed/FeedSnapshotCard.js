@@ -31,6 +31,23 @@ const RANK_TAB_CONFIG = [
 
 const scaled = (value) => scaleSize(value);
 const BODYGRAPH_OUTLINE_COLOR = "#40485c";
+const BODYGRAPH_KEY_ITEMS = [
+    {
+        label: "High volume",
+        description: "Most trained groups",
+        color: "#fcb653",
+    },
+    {
+        label: "Maintaining",
+        description: "Steady weekly work",
+        color: "#5cc6ff",
+    },
+    {
+        label: "Recovery",
+        description: "Needs more focus",
+        color: "#8189a8",
+    },
+];
 
 
 export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
@@ -203,12 +220,37 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
                 ) : isBodygraphTabActive ? (
                     <View style={[styles.rankCard, styles.bodygraphCard]}>
                         <View style={styles.bodygraphContent}>
-                            <View style={styles.bodygraphTextBlock}>
-                                <Text style={styles.bodygraphTitle}>This Week</Text>
-                                <Text style={styles.bodygraphSubtitle}>Week 47</Text>
+                            <View style={styles.bodygraphLegend}>
+                                {BODYGRAPH_KEY_ITEMS.map((item, index) => {
+                                    const isLast = index === BODYGRAPH_KEY_ITEMS.length - 1;
+                                    return (
+                                        <View
+                                            key={item.label}
+                                            style={[
+                                                styles.bodygraphLegendRow,
+                                                !isLast && styles.bodygraphLegendRowSpacing,
+                                            ]}
+                                        >
+                                            <View
+                                                style={[
+                                                    styles.bodygraphLegendSwatch,
+                                                    { backgroundColor: item.color },
+                                                ]}
+                                            />
+                                            <View style={styles.bodygraphLegendCopy}>
+                                                <Text style={styles.bodygraphLegendLabel}>{item.label}</Text>
+                                                {!!item.description && (
+                                                    <Text style={styles.bodygraphLegendSubtitle}>
+                                                        {item.description}
+                                                    </Text>
+                                                )}
+                                            </View>
+                                        </View>
+                                    );
+                                })}
                             </View>
                             <View style={styles.bodygraphFigures}>
-                                <View style={styles.bodygraphFigureSlot}>
+                                <View style={[styles.bodygraphFigureSlot, styles.bodygraphFigureSlotFront]}>
                                     <HumanMuscleOutline
                                         color={BODYGRAPH_OUTLINE_COLOR}
                                         width="100%"
@@ -353,8 +395,8 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(24),
         justifyContent: "center",
         position: "relative",
-        minHeight: scaleSize(190),
-        height: scaleSize(190),
+        minHeight: scaleSize(220),
+        height: scaleSize(220),
     },
     rankCardBorderTop: {
         position: "absolute",
@@ -508,34 +550,47 @@ const styles = StyleSheet.create({
     bodygraphCard: {
         backgroundColor: "#050609",
         borderWidth: 0,
-        height: scaleSize(220),
         paddingHorizontal: scaleSize(20),
         justifyContent: "center",
     },
     bodygraphContent: {
         flexDirection: "row",
-        alignItems: "flex-end",
+        alignItems: "center",
         justifyContent: "space-between",
         flex: 1,
     },
-    bodygraphTextBlock: {
-        // flexShrink: 0,
-        // paddingRight: scaleSize(16),
-        width: '40%'
+    bodygraphLegend: {
+        width: "40%",
+        paddingRight: scaleSize(12),
     },
-    bodygraphTitle: {
-        fontFamily: "Outfit_800ExtraBold",
-        fontSize: scaled(32),
-        color: "#ffffff",
-        letterSpacing: 0.3,
-        textTransform: "capitalize",
+    bodygraphLegendRow: {
+        flexDirection: "row",
+        alignItems: "flex-start",
     },
-    bodygraphSubtitle: {
+    bodygraphLegendRowSpacing: {
+        marginBottom: scaleSize(16),
+    },
+    bodygraphLegendSwatch: {
+        width: scaled(16),
+        height: scaled(16),
+        borderRadius: scaleSize(4),
+        marginRight: scaleSize(10),
+        marginTop: scaleSize(3),
+    },
+    bodygraphLegendCopy: {
+        flex: 1,
+    },
+    bodygraphLegendLabel: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaled(28),
-        color: "#bfc5d2",
-        letterSpacing: 0.3,
-        marginTop: scaled(6),
+        fontSize: scaled(14),
+        color: "#f7f8ff",
+        letterSpacing: 0.15,
+    },
+    bodygraphLegendSubtitle: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaled(11),
+        color: "rgba(255,255,255,0.72)",
+        marginTop: scaleSize(2),
     },
     bodygraphFigures: {
         flex: 1,
@@ -551,9 +606,13 @@ const styles = StyleSheet.create({
         justifyContent: "flex-end",
         height: "100%",
     },
+    bodygraphFigureSlotFront: {
+        paddingRight: scaleSize(6),
+    },
     bodygraphFigureSlotBack: {
         flex: 1,
         height: "100%",
+        paddingLeft: scaleSize(6),
     },
     bodygraphFigure: {
         width: "100%",
