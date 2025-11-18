@@ -1,13 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { StyleSheet, View, Text, TouchableOpacity, Animated, Easing } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
-import formatHexStat from "../../utils/formatHexStat";
-import { subscribeUserData } from "../../utils/userDataEvents";
+// import { subscribeUserData } from "../../utils/userDataEvents";
 import { strong as triggerStrongHaptic } from "../../utils/haptics";
 
 const RANK_TAB_CONFIG = [
@@ -31,282 +30,8 @@ const RANK_TAB_CONFIG = [
 
 const scaled = (value) => scaleSize(value);
 
-const roundTo = (value, decimals = 1) => {
-    const factor = 10 ** decimals;
-    return Math.round(value * factor) / factor;
-};
-
-const ensureNumber = (value, fallback = 0) => {
-    const num = Number(value);
-    return Number.isFinite(num) ? num : fallback;
-};
-
-const toMillis = (value) => {
-    if (typeof value === "number") {
-        return Number.isFinite(value) ? value : null;
-    }
-    if (value instanceof Date) {
-        const ms = value.getTime();
-        return Number.isFinite(ms) ? ms : null;
-    }
-    if (value && typeof value === "object") {
-        if (typeof value.toMillis === "function") {
-            const ms = value.toMillis();
-            return Number.isFinite(ms) ? ms : null;
-        }
-        if (typeof value.seconds === "number") {
-            const ms = value.seconds * 1000;
-            return Number.isFinite(ms) ? ms : null;
-        }
-    }
-    if (typeof value === "string") {
-        const parsed = Date.parse(value);
-        return Number.isFinite(parsed) ? parsed : null;
-    }
-    return null;
-};
-
-const resolveWorkoutTimestamp = (workout) => {
-    if (!workout) return null;
-    const candidates = [
-        workout?.finishedAt,
-        workout?.completedAt,
-        workout?.endedAt,
-        workout?.timestamp,
-        workout?.loggedAt,
-        workout?.updatedAt,
-        workout?.createdAt,
-        workout?.created,
-        workout?.startTime,
-        workout?.date,
-    ];
-    for (const candidate of candidates) {
-        const ms = toMillis(candidate);
-        if (Number.isFinite(ms) && ms > 0) return ms;
-    }
-    return null;
-};
-
-const resolvePreferredWeightUnit = (user) => {
-    const rawUnit =
-        user?.settings?.units ||
-        user?.units ||
-        user?.personalInfo?.weightUnit ||
-        user?.stats?.weightUnit;
-    if (typeof rawUnit === "string") {
-        const normalized = rawUnit.trim().toLowerCase();
-        if (normalized.startsWith("k")) return "kg";
-        if (normalized.includes("kilo")) return "kg";
-    }
-    return "lb";
-};
-
-const toDisplayWeightUnit = (unit, fallback = "lbs") => {
-    if (typeof unit === "string") {
-        const trimmed = unit.trim();
-        const normalized = trimmed.toLowerCase();
-        if (normalized) {
-            if (normalized.startsWith("kg")) return "kg";
-            if (normalized === "lb" || normalized === "lbs" || normalized.startsWith("lb")) return "lbs";
-            return trimmed;
-        }
-    }
-    return fallback;
-};
-
-const formatCompactNumber = (value) => {
-    const number = ensureNumber(value, 0);
-    if (number >= 1_000_000_000) return `${roundTo(number / 1_000_000_000, 1)}b`;
-    if (number >= 1_000_000) return `${roundTo(number / 1_000_000, 1)}m`;
-    if (number >= 1_000) return `${roundTo(number / 1_000, 1)}k`;
-    return `${Math.round(number)}`;
-};
-
-const formatDurationLabel = (hoursInput) => {
-    const totalMinutes = Math.max(0, Math.round(ensureNumber(hoursInput, 0) * 60));
-    const totalHours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    if (!totalHours && !minutes) return "0h";
-    if (totalHours && minutes) return `${totalHours}h ${minutes}m`;
-    if (totalHours) return `${totalHours}h`;
-    return `${minutes}m`;
-};
-
-const formatShortMonthDay = (timestamp) => {
-    if (!Number.isFinite(timestamp)) return "--/--";
-    try {
-        return new Date(timestamp).toLocaleDateString("en-US", {
-            month: "numeric",
-            day: "numeric",
-        });
-    } catch {
-        return "--/--";
-    }
-};
-
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
-const getWeekNumberLabel = (timestamp) => {
-    if (!Number.isFinite(timestamp)) return null;
-    try {
-        const date = new Date(timestamp);
-        date.setHours(0, 0, 0, 0);
-        const dayShift = (date.getDay() + 6) % 7; // shift so Monday is 0
-        date.setDate(date.getDate() - dayShift + 3);
-        const firstThursday = new Date(date.getFullYear(), 0, 4);
-        const week = 1 + Math.round((date - firstThursday) / WEEK_MS);
-        return Number.isFinite(week) ? week : null;
-    } catch {
-        return null;
-    }
-};
-
-
-const computeSnapshot = (user) => {
-    const workouts = Array.isArray(user?.completedWorkouts) ? user.completedWorkouts : [];
-    const now = Date.now();
-    const weekStart = now - WEEK_MS;
-    const weeklyWorkouts = workouts.filter((workout) => {
-        const ts = resolveWorkoutTimestamp(workout);
-        return Number.isFinite(ts) && ts >= weekStart;
-    });
-
-    const preferredUnit = resolvePreferredWeightUnit(user);
-    const displayUnit = toDisplayWeightUnit(preferredUnit);
-
-    const formattedRange = `${formatShortMonthDay(weekStart)} - ${formatShortMonthDay(now)}`;
-    const weekNumber = getWeekNumberLabel(now);
-    const rangeLabel = weekNumber ? `${formattedRange}, Week ${weekNumber}` : formattedRange;
-
-    let weeklyVolume = 0;
-    let weeklyDurationMs = 0;
-    let weeklyRecords = 0;
-    const weeklyHexCandidates = [];
-
-    for (const workout of weeklyWorkouts) {
-        const volume = ensureNumber(
-            workout?.volume ??
-                workout?.totalVolume ??
-                workout?.stats?.volume ??
-                (Array.isArray(workout?.exercises)
-                    ? workout.exercises.reduce((acc, ex) => {
-                          if (!Array.isArray(ex?.sets)) return acc;
-                          return (
-                              acc +
-                              ex.sets.reduce((setAcc, set) => {
-                                  const weight = ensureNumber(
-                                      set?.weight ?? set?.kg ?? set?.lbs ?? set?.weightKg ?? set?.weightLbs
-                                  );
-                                  const reps = ensureNumber(set?.reps ?? set?.rep ?? set?.r);
-                                  return weight > 0 && reps > 0 ? setAcc + weight * reps : setAcc;
-                              }, 0)
-                          );
-                      }, 0)
-                    : 0)
-        );
-        if (volume > 0) weeklyVolume += volume;
-
-        const durationMs = (() => {
-            const direct = ensureNumber(workout?.duration);
-            if (direct > 0) return direct;
-            const seconds = ensureNumber(workout?.durationSeconds ?? workout?.elapsedSeconds);
-            if (seconds > 0) return seconds * 1000;
-            const minutes = ensureNumber(workout?.durationMinutes);
-            if (minutes > 0) return minutes * 60 * 1000;
-            return 0;
-        })();
-        if (durationMs > 0) weeklyDurationMs += durationMs;
-
-        const records = ensureNumber(workout?.PBs ?? workout?.pbs ?? workout?.pr);
-        if (records > 0) weeklyRecords += records;
-
-        const hexCandidate = ensureNumber(
-            workout?.hexScore ??
-                workout?.overall ??
-                workout?.statsHexagon?.overall ??
-                workout?.sessionStats?.overall ??
-                workout?.metrics?.overall ??
-                0,
-            0
-        );
-        if (hexCandidate > 0) weeklyHexCandidates.push(hexCandidate);
-    }
-
-    const weeklyHours = weeklyDurationMs / (1000 * 60 * 60);
-    const resolvedHex =
-        weeklyHexCandidates.length > 0
-            ? weeklyHexCandidates.reduce((sum, value) => sum + value, 0) / weeklyHexCandidates.length
-            : ensureNumber(user?.statsHexagon?.overall, 0);
-
-    const workoutCount = weeklyWorkouts.length;
-    const workoutCountLabel = workoutCount === 1 ? "1 workout" : `${workoutCount} workouts`;
-
-    return {
-        displayUnit,
-        volumeValue: weeklyVolume,
-        volumeLabel: `${formatCompactNumber(weeklyVolume)} ${displayUnit}`,
-        durationLabel: formatDurationLabel(weeklyHours),
-        recordsLabel: formatCompactNumber(weeklyRecords),
-        recordsValue: weeklyRecords,
-        volumeRaw: weeklyVolume,
-        durationHours: weeklyHours,
-        hexScore: formatHexStat(resolvedHex, "0.0"),
-        workoutCount,
-        workoutCountLabel,
-        rangeLabel,
-    };
-};
-
-const EMPTY_SNAPSHOT = computeSnapshot(null);
 
 export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
-    const [snapshot, setSnapshot] = useState(() => {
-        try {
-            return computeSnapshot(global?.userData || null);
-        } catch {
-            return EMPTY_SNAPSHOT;
-        }
-    });
-
-    useEffect(() => {
-        const unsubscribe = subscribeUserData((nextUser) => {
-            try {
-                setSnapshot(computeSnapshot(nextUser));
-            } catch {
-                setSnapshot(EMPTY_SNAPSHOT);
-            }
-        });
-        return unsubscribe;
-    }, []);
-
-    const metrics = useMemo(
-        () => [
-            {
-                key: "volume",
-                label: "Volume",
-                value: snapshot.volumeLabel,
-            },
-            {
-                key: "duration",
-                label: "Duration",
-                value: snapshot.durationLabel,
-                showDivider: true,
-            },
-            {
-                key: "records",
-                label: "Records",
-                value: snapshot.recordsLabel,
-                showDivider: true,
-            },
-            {
-                key: "overall",
-                label: "OVR",
-                value: snapshot.hexScore,
-                accent: true,
-            },
-        ],
-        [snapshot.durationLabel, snapshot.hexScore, snapshot.recordsLabel, snapshot.volumeLabel]
-    );
 
     const [activeRankTab, setActiveRankTab] = useState(RANK_TAB_CONFIG[0].key);
     const handleRankTabPress = useCallback(
@@ -334,7 +59,7 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
 
     const particles = useMemo(() => {
         const particleCount = 48;
-        const colors = ["rgba(230, 220, 147, 0.95)", "rgba(255,209,93,0.95)", "rgba(255,157,43,0.92)"];
+        const colors = ["rgba(230, 220, 147, 0.65)", "rgba(255,209,93,0.6)", "rgba(255,157,43,0.55)"];
         const originPoints = [
             { top: "50%", left: "34%" },
             { top: "46%", left: "48%" },
@@ -343,71 +68,20 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
         ];
         return Array.from({ length: particleCount }).map((_, index) => {
             const baseAngle = (Math.PI * 2 * index) / particleCount;
-            const jitter = (Math.random() - 0.5) * 1.5;
+            const distance = scaled(120 + Math.random() * 160);
             const origin = originPoints[index % originPoints.length];
             return {
                 key: `rank-particle-${index}`,
-                progress: new Animated.Value(0),
-                angle: baseAngle + jitter,
-                distance: scaled(120 + Math.random() * 160),
+                offsetX: Math.cos(baseAngle) * distance,
+                offsetY: Math.sin(baseAngle) * distance,
                 size: scaled(5 + Math.random() * 9),
-                delay: Math.random() * 600,
-                duration: 600 + Math.random() * 800,
                 color: colors[index % colors.length],
                 blur: 6 + Math.random() * 12,
                 origin,
+                opacity: 0.3 + Math.random() * 0.35,
             };
         });
     }, []);
-
-    useEffect(() => {
-        if (!isRankTabActive) {
-            particles.forEach((particle) => {
-                if (typeof particle.progress.stopAnimation === "function") {
-                    try {
-                        particle.progress.stopAnimation();
-                    } catch { }
-                }
-                particle.progress.setValue(0);
-            });
-            return undefined;
-        }
-
-        let isMounted = true;
-        const activeAnimations = new Map();
-
-        const startBurst = (particle) => {
-            if (!isMounted) return;
-            particle.progress.setValue(0);
-            const animation = Animated.sequence([
-                Animated.delay(particle.delay),
-                Animated.timing(particle.progress, {
-                    toValue: 1,
-                    duration: particle.duration,
-                    easing: Easing.out(Easing.cubic),
-                    useNativeDriver: true,
-                }),
-            ]);
-            activeAnimations.set(particle.key, animation);
-            animation.start(({ finished }) => {
-                if (finished && isMounted) {
-                    startBurst(particle);
-                }
-            });
-        };
-
-        particles.forEach(startBurst);
-
-        return () => {
-            isMounted = false;
-            activeAnimations.forEach((animation) => {
-                try {
-                    animation.stop();
-                } catch { }
-            });
-            activeAnimations.clear();
-        };
-    }, [isRankTabActive, particles]);
 
     const isCardPressable = typeof onPressCard === "function";
     const CardWrapper = isCardPressable ? TouchableOpacity : View;
@@ -457,45 +131,30 @@ export default function FeedSnapshotCard({ onPressOverall, onPressCard }) {
                         style={styles.rankCard}
                     >
                         <View pointerEvents="none" style={styles.rankParticleLayer}>
-                            {particles.map((particle) => {
-                                const translateX = particle.progress.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [0, Math.cos(particle.angle) * particle.distance],
-                                });
-                                const translateY = particle.progress.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: [0, Math.sin(particle.angle) * particle.distance],
-                                });
-                                const opacity = particle.progress.interpolate({
-                                    inputRange: [0, 0.2, 0.8, 1],
-                                    outputRange: [0, 1, 0.4, 0],
-                                });
-                                const scale = particle.progress.interpolate({
-                                    inputRange: [0, 0.35, 1],
-                                    outputRange: [0.3, 1, 0.2],
-                                });
-                                return (
-                                    <Animated.View
-                                        key={particle.key}
-                                        style={[
-                                            styles.rankParticle,
-                                            {
-                                                top: particle.origin.top,
-                                                left: particle.origin.left,
-                                                width: particle.size,
-                                                height: particle.size,
-                                                marginLeft: -particle.size / 2,
-                                                marginTop: -particle.size / 2,
-                                                backgroundColor: particle.color,
-                                                shadowColor: particle.color,
-                                                shadowRadius: scaleSize(particle.blur),
-                                                opacity,
-                                                transform: [{ translateX }, { translateY }, { scale }],
-                                            },
-                                        ]}
-                                    />
-                                );
-                            })}
+                            {particles.map((particle) => (
+                                <View
+                                    key={particle.key}
+                                    style={[
+                                        styles.rankParticle,
+                                        {
+                                            top: particle.origin.top,
+                                            left: particle.origin.left,
+                                            width: particle.size,
+                                            height: particle.size,
+                                            marginLeft: -particle.size / 2,
+                                            marginTop: -particle.size / 2,
+                                            backgroundColor: particle.color,
+                                            shadowColor: particle.color,
+                                            shadowRadius: scaleSize(particle.blur),
+                                            opacity: particle.opacity,
+                                            transform: [
+                                                { translateX: particle.offsetX },
+                                                { translateY: particle.offsetY },
+                                            ],
+                                        },
+                                    ]}
+                                />
+                            ))}
                         </View>
                         <View style={styles.rankCardContent}>
                             <View style={styles.rankBadgeCluster}>
