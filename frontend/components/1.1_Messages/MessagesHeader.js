@@ -12,6 +12,11 @@ const HAIRLINE = theme.hairline;
 const BACK_ICON_COLOR = theme.textSecondary;
 
 const BASE_TOP_PADDING = scaleSize(6);
+const PILL_ACTIVE_BG = "#59a9ff";
+const PILL_INACTIVE_BG = "rgba(8,8,21,0.92)";
+const PILL_INACTIVE_BORDER = "rgba(255,255,255,0.18)";
+const PILL_ACTIVE_TEXT = "#05060f";
+const PILL_INACTIVE_TEXT = "rgba(255,255,255,0.7)";
 
 export default function MessagesHeader({
     toFeedScreen,
@@ -38,11 +43,16 @@ export default function MessagesHeader({
             onPress={onPress}
             style={[
                 styles.chip,
-                active && styles.chipActive,
+                active ? styles.chipActive : styles.chipInactive,
                 { width: scaleSize(105), height: scaleSize(34) },
             ]}
         >
-            <Text style={[styles.chipText, active && styles.chipTextActive]}>
+            <Text
+                style={[
+                    styles.chipText,
+                    active ? styles.chipTextActive : styles.chipTextInactive,
+                ]}
+            >
                 {label}
             </Text>
         </RNBounceable>
@@ -174,25 +184,34 @@ const styles = StyleSheet.create({
         elevation: 1,
     },
     chip: {
-        borderRadius: scaleSize(999),
+        borderRadius: scaleSize(20),
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: theme.surface,
+        marginHorizontal: scaleSize(3),
+        borderWidth: scaleSize(2),
+    },
+    chipInactive: {
+        backgroundColor: PILL_INACTIVE_BG,
+        borderColor: PILL_INACTIVE_BORDER,
     },
     chipActive: {
-        backgroundColor: ACCENT,
-        shadowColor: ACCENT,
-        shadowOpacity: 0.15,
-        shadowRadius: scaleSize(8),
-        shadowOffset: { width: 0, height: scaleSize(3) },
+        backgroundColor: PILL_ACTIVE_BG,
+        borderColor: PILL_ACTIVE_BG,
+        shadowColor: PILL_ACTIVE_BG,
+        shadowOpacity: 0.35,
+        shadowRadius: scaleSize(12),
+        shadowOffset: { width: 0, height: scaleSize(4) },
         elevation: 2,
     },
     chipText: {
-        fontSize: scaleSize(12.5),
+        fontSize: scaleSize(14),
         fontFamily: "Outfit_600SemiBold",
-        color: theme.textSecondary,
+        letterSpacing: 0.3,
     },
     chipTextActive: {
-        color: theme.textPrimary,
+        color: PILL_ACTIVE_TEXT,
+    },
+    chipTextInactive: {
+        color: PILL_INACTIVE_TEXT,
     },
 });

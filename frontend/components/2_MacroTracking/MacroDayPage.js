@@ -23,6 +23,7 @@ function MacroDayPage({
   date,
   isFocused,
   mealsMeta,
+  streakCount = 0,
 }) {
   const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
@@ -61,6 +62,7 @@ function MacroDayPage({
         COLORS={COLORS}
         PlusIcon={PlusIcon}
         dayKey={toDayKey(date)}
+        streakCount={streakCount}
         // compact={!isFocused}
       />
     </ScrollView>
@@ -75,7 +77,8 @@ const propsEqual = (prev, next) => (
   prev.totals === next.totals &&
   toDayKey(prev.date) === toDayKey(next.date) &&
   prev.isFocused === next.isFocused &&
-  prev.mealsMeta === next.mealsMeta
+  prev.mealsMeta === next.mealsMeta &&
+  prev.streakCount === next.streakCount
 );
 
 export default React.memo(MacroDayPage, propsEqual);
@@ -109,4 +112,3 @@ const makeStyles = (COLORS) => StyleSheet.create({
   },
   editGoalsText: { fontFamily: 'Outfit_700Bold', color: COLORS.text, fontSize: scaleSize(12), letterSpacing: 0.15 },
 });
-

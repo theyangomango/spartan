@@ -1012,6 +1012,10 @@ const SimpleFeedPost = ({
         return formatDuration(elapsed);
     })();
     const volumeLabel = formatNumber(workout?.volume);
+    const caloriesLabel = (() => {
+        const raw = typeof workout?.calories === "number" ? workout.calories : Number(workout?.calories);
+        return Number.isFinite(raw) ? formatNumber(raw) : "--";
+    })();
     const recordsLabel = formatNumber(workout?.PBs ?? workout?.pbs ?? 0);
 
     const displayName = useMemo(() => {
@@ -1489,6 +1493,17 @@ const SimpleFeedPost = ({
                                 </View>
                                 <Text style={styles.metricValue}>{volumeLabel} {weightUnit}</Text>
                             </View>
+
+                            <View style={[styles.metricColumnLeft, styles.metricCenter]}>
+                                <View style={styles.metricLabelRow}>
+                                    {isLivePost ? <View style={styles.metricLiveDot} /> : null}
+                                    <Text style={styles.metricLabel}>Calories</Text>
+                                </View>
+                                <Text style={styles.metricValue}>
+                                    {caloriesLabel}
+                                    {caloriesLabel !== "--" ? " kcal" : ""}
+                                </Text>
+                            </View>
                         </View>
 
                         <View style={[styles.metricColumn, styles.metricRight]}>
@@ -1864,7 +1879,7 @@ const styles = StyleSheet.create({
         paddingTop: scaleSize(14),
     },
     metricColumnLeft: {
-        width: '32%'
+        width: '31%'
     },
     sectionBottom: {
         paddingTop: scaleSize(6),

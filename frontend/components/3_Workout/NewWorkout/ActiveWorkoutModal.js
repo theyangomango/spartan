@@ -53,6 +53,8 @@ import useWorkoutEditing from "./hooks/useWorkoutEditing";
 
 import scaleSize from "../../../helper/scaleSize";
 import calculate1RM from "../../../helper/calculate1RM";
+import { estimateWorkoutCalories } from "../../../helper/estimateWorkoutCalories";
+import { resolveUserBodyweight } from "../../../utils/bodyweight";
 import { formatWorkoutTimestamp } from "../../../utils/date";
 import ConfirmWorkoutModal from "./components/ConfirmWorkoutModal";
 // import WorkoutReminderModal from "./components/WorkoutReminderModal";
@@ -210,6 +212,54 @@ const deriveWorkoutMetrics = (workout) => {
     };
 };
 
+const normalizeCalorieValue = (value) => {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+};
+
+const buildExercisesForCalories = (workout) => {
+    const exercises = Array.isArray(workout?.exercises) ? workout.exercises : [];
+    return exercises
+        .map((exercise) => {
+            const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
+            const doneSets = sets.filter((set) => !!set?.isDone);
+            if (!doneSets.length) return null;
+            return { ...exercise, sets: doneSets };
+        })
+        .filter(Boolean);
+};
+
+const resolveDurationForCalories = (workout) => {
+    const explicit = Number(workout?.duration);
+    if (Number.isFinite(explicit) && explicit > 0) return explicit;
+    const created = Number(workout?.created);
+    if (Number.isFinite(created) && created > 0) {
+        return Math.max(0, Date.now() - created);
+    }
+    return 0;
+};
+
+const computeWorkoutCalories = (workout) => {
+    const sanitizedExercises = buildExercisesForCalories(workout);
+    if (!sanitizedExercises.length) return null;
+    let userData = null;
+    try {
+        userData = global?.userData || null;
+    } catch {
+        userData = null;
+    }
+    const weightLb = resolveUserBodyweight(userData, null);
+    if (!weightLb || weightLb <= 0) return null;
+    const payload = {
+        ...workout,
+        duration: resolveDurationForCalories(workout),
+        exercises: sanitizedExercises,
+    };
+    const estimate = estimateWorkoutCalories(payload, { weightLb, user: userData });
+    const calories = Number(estimate?.calories);
+    return Number.isFinite(calories) ? calories : null;
+};
+
 const ensureWorkoutMetrics = (workout) => {
     if (!workout || typeof workout !== "object") return workout;
 
@@ -231,11 +281,23 @@ const ensureWorkoutMetrics = (workout) => {
         prevReps !== reps ||
         prevPBs !== PBs;
 
-    if (!needsUpdate) return workout;
+    const nextCalories = computeWorkoutCalories(workout);
+    const prevCalories = normalizeCalorieValue(workout?.calories);
+    const caloriesChanged = nextCalories !== prevCalories;
 
-    const nextWorkout = { ...workout, volume, reps, PBs };
-    if (Object.prototype.hasOwnProperty.call(nextWorkout, "pbs")) {
-        delete nextWorkout.pbs;
+    if (!needsUpdate && !caloriesChanged) return workout;
+
+    const nextWorkout = { ...workout };
+    if (needsUpdate) {
+        nextWorkout.volume = volume;
+        nextWorkout.reps = reps;
+        nextWorkout.PBs = PBs;
+        if (Object.prototype.hasOwnProperty.call(nextWorkout, "pbs")) {
+            delete nextWorkout.pbs;
+        }
+    }
+    if (caloriesChanged) {
+        nextWorkout.calories = nextCalories;
     }
     return nextWorkout;
 };

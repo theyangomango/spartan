@@ -635,7 +635,6 @@ export default function MacroTracking({ navigation, route }) {
                         onHistoryPress={openLoggedFoodsHistory}
                         COLORS={COLORS}
                         isToday={isHeaderDateToday}
-                        streakCount={loggedStreak}
                     />
                 </View>
 
@@ -749,6 +748,7 @@ export default function MacroTracking({ navigation, route }) {
                                 date={d}
                                 isFocused={Math.abs(offset) <= 1}
                                 mealsMeta={mealsMeta}
+                                streakCount={loggedStreak}
                             />
                         );
                     }}

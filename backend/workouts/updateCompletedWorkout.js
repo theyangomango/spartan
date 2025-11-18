@@ -2,6 +2,8 @@ import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import computeHexagonFromStats from "../../shared/computeHexagon.js";
 import updateDoc from "../helper/firebase/updateDoc.js";
+import { estimateWorkoutCalories } from "../../frontend/helper/estimateWorkoutCalories.js";
+import { resolveUserBodyweight } from "../../frontend/utils/bodyweight.js";
 
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
@@ -427,6 +429,44 @@ export default async function updateCompletedWorkout(uid, identifierInput, updat
         mergedWorkout.volume = metrics.volume;
         mergedWorkout.reps = metrics.reps;
         mergedWorkout.PBs = metrics.PBs;
+        const exercisesForCalories = Array.isArray(mergedWorkout?.exercises)
+            ? mergedWorkout.exercises
+                .map((exercise) => ({
+                    ...exercise,
+                    sets: Array.isArray(exercise?.sets) ? exercise.sets.filter((set) => !!set?.isDone) : [],
+                }))
+                .filter((exercise) => Array.isArray(exercise.sets) && exercise.sets.length > 0)
+            : [];
+        const calorieWorkout = { ...mergedWorkout, exercises: exercisesForCalories };
+        let weightContext = null;
+        try {
+            const globalUser = global?.userData || null;
+            if (globalUser && String(globalUser?.uid || globalUser?.id || globalUser?.userUid) === normalizedUid) {
+                weightContext = globalUser;
+            }
+        } catch {
+            weightContext = null;
+        }
+        if (!weightContext) {
+            const publicData = publicSnap.exists() ? publicSnap.data() : {};
+            const privateData = privateSnap.exists() ? privateSnap.data() : {};
+            weightContext = {
+                ...(data || {}),
+                ...(publicData || {}),
+                privateData: privateData || (data?.privateData ?? null),
+            };
+        }
+        try {
+            const weightLb = resolveUserBodyweight(weightContext, null);
+            const estimate = estimateWorkoutCalories(calorieWorkout, { weightLb, user: weightContext });
+            if (Number.isFinite(estimate?.calories)) {
+                mergedWorkout.calories = estimate.calories;
+            } else if (estimate?.calories === null) {
+                mergedWorkout.calories = null;
+            }
+        } catch {
+            mergedWorkout.calories = mergedWorkout?.calories ?? null;
+        }
 
         const updatedTimestamp = Date.now();
 

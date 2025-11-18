@@ -7,13 +7,30 @@ import { useNavigation } from '@react-navigation/native';
 
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
+import MacroStreakBadge from './MacroStreakBadge';
 
-function MealsSection({ title = 'Daily meals', mealsMeta, meals, collapsed, toggleMeal, onAddPress, onDelete, COLORS, PlusIcon, dayKey, compact = false }) {
+function MealsSection({
+    title = 'Daily meals',
+    mealsMeta,
+    meals,
+    collapsed,
+    toggleMeal,
+    onAddPress,
+    onDelete,
+    COLORS,
+    PlusIcon,
+    dayKey,
+    compact = false,
+    streakCount = 0,
+}) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
     const navigation = useNavigation();
     return (
         <View>
-            <Text style={styles.sectionTitle}>{title}</Text>
+            <View style={styles.sectionHeaderRow}>
+                <Text style={styles.sectionTitle}>{title}</Text>
+                <MacroStreakBadge streakCount={streakCount} COLORS={COLORS} />
+            </View>
             {mealsMeta.map((m) => {
                 const list = meals[m.name] ?? [];
                 const mealCalories = Math.round(list.reduce((s, e) => s + (e?.macros?.calories || 0), 0));
@@ -65,7 +82,8 @@ const propsEqual = (prev, next) => {
         prev.mealsMeta === next.mealsMeta &&
         prev.COLORS === next.COLORS &&
         prev.title === next.title &&
-        prev.dayKey === next.dayKey
+        prev.dayKey === next.dayKey &&
+        prev.streakCount === next.streakCount
     );
 };
 
@@ -73,7 +91,14 @@ export default memo(MealsSection, propsEqual);
 
 const makeStyles = (COLORS) =>
     StyleSheet.create({
-        sectionTitle: { fontSize: scaleSize(16), marginLeft: scaleSize(18), marginTop: scaleSize(24), color: COLORS.text, fontFamily: 'Nunito_800ExtraBold' },
+        sectionHeaderRow: {
+            marginTop: scaleSize(24),
+            paddingHorizontal: scaleSize(18),
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+        },
+        sectionTitle: { fontSize: scaleSize(16), color: COLORS.text, fontFamily: 'Nunito_800ExtraBold' },
         // Full-width list like MyFitnessPal: no outer horizontal padding,
         // each row handles its own left/right padding.
         underMealList: { paddingHorizontal: 0, marginTop: 0, marginBottom: 0 },

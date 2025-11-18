@@ -234,11 +234,16 @@ const deriveConfidence = ({ totalSets, missingSignals, durationWasMeasured, tota
 };
 
 export const estimateWorkoutCalories = (workout, options = {}) => {
+  const emptyEstimate = { calories: null, confidence: 0, breakdown: { exercises: [] } };
   if (!workout) {
-    return { calories: 0, confidence: 0.2, breakdown: { exercises: [] } };
+    return { ...emptyEstimate, confidence: 0.2 };
   }
-  const weightLb = normalizeNumber(options?.weightLb) || resolveUserBodyweight(options?.user, BODYWEIGHT_DEFAULT_LB);
-  const userWeightKg = weightLb * KG_PER_LB;
+  const explicitWeight = normalizeNumber(options?.weightLb);
+  const resolvedWeightLb = explicitWeight > 0 ? explicitWeight : resolveUserBodyweight(options?.user, null);
+  if (!resolvedWeightLb || resolvedWeightLb <= 0) {
+    return emptyEstimate;
+  }
+  const userWeightKg = resolvedWeightLb * KG_PER_LB;
   const durationMs = resolveDurationMs(workout);
   const exercises = Array.isArray(workout?.exercises) ? workout.exercises : [];
   const breakdown = [];

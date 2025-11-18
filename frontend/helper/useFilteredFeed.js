@@ -345,6 +345,10 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
             duration: Number(workout?.duration) || Math.max(0, Date.now() - createdMs),
             volume: Number(workout?.volume) || 0,
             PBs: Number(workout?.PBs ?? workout?.pbs ?? 0),
+            calories: (() => {
+                const raw = typeof workout?.calories === "number" ? workout.calories : Number(workout?.calories);
+                return Number.isFinite(raw) ? raw : null;
+            })(),
         };
 
         return {

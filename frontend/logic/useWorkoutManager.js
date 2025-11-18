@@ -30,6 +30,8 @@ import { emitHexagonUpdate } from "../utils/hexagonEvents";
 import { coercePrivacyMode } from "../utils/workoutPrivacy";
 import { emitUserDataUpdate } from "../utils/userDataEvents";
 import { resolvePhotoURL } from "../utils/profilePhoto";
+import { estimateWorkoutCalories } from "../helper/estimateWorkoutCalories";
+import { resolveUserBodyweight } from "../utils/bodyweight";
 
 /* ---------------- helpers ---------------- */
 const toMillis = (v) => {
@@ -69,6 +71,12 @@ const extractFollowerUids = () => {
         return [];
     }
 };
+const normalizeCalories = (value) => {
+    if (value === null || value === undefined) return null;
+    const num = Number(value);
+    return Number.isFinite(num) ? num : null;
+};
+
 const sanitizeWorkout = (w) => {
     if (!w) return null;
     const created = toMillis(w.created ?? w.createdAt);
@@ -100,6 +108,7 @@ const sanitizeWorkout = (w) => {
         volume: Number(w?.volume) || 0,
         reps: Number(w?.reps) || 0,
         PBs: Number(w?.PBs) || 0,
+        calories: normalizeCalories(w?.calories),
     };
 };
 
@@ -433,6 +442,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 volume: Number(normalized?.volume || 0),
                 reps: Number(normalized?.reps || 0),
                 PBs: Number(normalized?.PBs ?? normalized?.pbs ?? 0),
+                calories: normalizeCalories(normalized?.calories),
                 privacyMode: normalized?.privacyMode,
                 exercises: Array.isArray(normalized?.exercises) ? normalized.exercises : [],
             };
@@ -822,6 +832,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     volume: 0,
                     reps: 0,
                     PBs: 0,
+                    calories: null,
                     privacyMode: appliedPrivacy,
                     ...(creatorHandle ? { creatorHandle } : {}),
                     ...(creatorDisplayName ? { creatorName: creatorDisplayName } : {}),
@@ -947,14 +958,20 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             const currW = useWorkoutStore.getState().workout;
             if (currW) {
                 captureHexSnapshot(global?.userData?.statsHexagon || {}, null);
-                const cleanedExercises = (Array.isArray(currW.exercises) ? currW.exercises : [])
+                const exercisesForCalories = (Array.isArray(currW.exercises) ? currW.exercises : [])
+                    .map((ex) => ({
+                        ...ex,
+                        sets: (Array.isArray(ex.sets) ? ex.sets : []).filter((s) => !!s?.isDone),
+                    }))
+                    .filter((ex) => Array.isArray(ex.sets) && ex.sets.length > 0);
+
+                const cleanedExercises = exercisesForCalories
                     .map((ex) => ({
                         ...ex,
                         sets: (Array.isArray(ex.sets) ? ex.sets : []).filter((s) => {
                             const reps = Number(s?.reps) || 0;
                             const weight = Number(s?.weight) || 0;
-                            const isDone = !!s?.isDone;
-                            return isDone && reps > 0 && weight > 0;
+                            return reps > 0 && weight > 0;
                         }),
                     }))
                     .filter((ex) => ex.sets && ex.sets.length > 0);
@@ -984,6 +1001,23 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     }
                 } catch { /* keep zeros on failure */ }
 
+                let calories = null;
+                try {
+                    const latestWeightLb = resolveUserBodyweight(global?.userData, null);
+                    const calorieSource = {
+                        ...currW,
+                        duration,
+                        exercises: exercisesForCalories,
+                    };
+                    const estimate = estimateWorkoutCalories(calorieSource, {
+                        weightLb: latestWeightLb,
+                        user: global?.userData || null,
+                    });
+                    if (Number.isFinite(estimate?.calories)) {
+                        calories = estimate.calories;
+                    }
+                } catch { /* leave calories null on failure */ }
+
                 // Ensure a stable name exists on the completed workout
                 const ensuredName = (currW?.name && String(currW.name).trim())
                     ? String(currW.name).trim()
@@ -996,6 +1030,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     reps: totalReps,
                     volume: totalVolume,
                     PBs: totalPBs,
+                    calories,
                     privacyMode: coercePrivacyMode(currW?.privacyMode),
                 };
 
@@ -1287,7 +1322,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     users: [],
                     exercises: [],
                     tid: null,
-                    volume: 0, reps: 0, PBs: 0,
+                    volume: 0, reps: 0, PBs: 0, calories: null,
                 });
                 // Tag locally as just started/joined so UI can show reminder once.
                 localJoined = { ...joined, __justStarted: true, __focusTitle: true };

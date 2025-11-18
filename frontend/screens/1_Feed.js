@@ -21,7 +21,7 @@ import {
     ActivityIndicator,
     Animated,
     Easing,
-    useWindowDimensions,
+    Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -60,9 +60,12 @@ import { primeAllUsers } from "../helper/getAllUsers";
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
 const MIN_HEADER_MEASURE = scaleSize(24);
-const MIN_CREATE_POST_MENU_WIDTH = 230;
-const MAX_CREATE_POST_MENU_WIDTH = 260;
-const CREATE_POST_MENU_MARGIN = scaleSize(24);
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+// Clamp floating create menu width so share option subtext consistently stays on two lines.
+const CREATE_POST_MENU_WIDTH = Math.max(
+    0,
+    Math.min(210, Math.round(SCREEN_WIDTH - scaleSize(48))),
+);
 
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
@@ -118,7 +121,6 @@ const ensureAtHandle = (value) => {
 };
 
 export default function Feed({ navigation, route }) {
-    const { width: windowWidth } = useWindowDimensions();
     const insets = useStableSafeAreaInsets();
     const isScreenFocused = useIsFocused();
 
@@ -187,16 +189,6 @@ export default function Feed({ navigation, route }) {
         return true;
     });
     const createMenuAnim = useRef(new Animated.Value(0)).current;
-    // Keep share options wide enough for two-line subtitles without overflowing small screens.
-    const createPostMenuWidth = useMemo(() => {
-        const available = Math.max(0, windowWidth - CREATE_POST_MENU_MARGIN);
-        if (available <= 0) return MIN_CREATE_POST_MENU_WIDTH;
-        const clampedRange = Math.min(
-            MAX_CREATE_POST_MENU_WIDTH,
-            Math.max(MIN_CREATE_POST_MENU_WIDTH, available),
-        );
-        return Math.min(clampedRange, available);
-    }, [windowWidth]);
 
     const highlightPidRef = useRef(null);
     const [highlightSignal, setHighlightSignal] = useState(0);
@@ -1216,7 +1208,6 @@ export default function Feed({ navigation, route }) {
                         style={[
                             styles.createPostMenu,
                             {
-                                width: createPostMenuWidth,
                                 opacity: createMenuAnim,
                                 transform: [
                                     {
@@ -1373,7 +1364,6 @@ const styles = StyleSheet.create({
     },
     headerWrap: {
         backgroundColor: theme.bg,
-        paddingBottom: scaleSize(2),
         zIndex: 2,
         elevation: 2,
     },
@@ -1415,6 +1405,7 @@ const styles = StyleSheet.create({
     },
     createPostMenu: {
         marginBottom: scaleSize(16),
+        width: CREATE_POST_MENU_WIDTH,
     },
     createPostMenuButton: {
         borderRadius: scaleSize(14),
@@ -1449,7 +1440,7 @@ const styles = StyleSheet.create({
     },
     createPostMenuSubtext: {
         fontFamily: "Outfit_400Regular",
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(13),
         marginTop: scaleSize(4),
         color: "#A0A8BA",
     },

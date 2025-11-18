@@ -410,6 +410,11 @@ const PastWorkoutScreen = () => {
 
     const durationLabel = useMemo(() => formatDuration(workout?.duration), [workout?.duration]);
     const volumeLabel = useMemo(() => formatNumber(workout?.volume), [workout?.volume]);
+    const caloriesLabel = useMemo(() => {
+        const raw = typeof workout?.calories === "number" ? workout.calories : Number(workout?.calories);
+        if (Number.isFinite(raw)) return formatNumber(raw);
+        return "--";
+    }, [workout?.calories]);
     const recordsLabel = useMemo(
         () => formatNumber(workout?.PBs ?? workout?.pbs ?? 0),
         [workout?.PBs, workout?.pbs]
@@ -1010,6 +1015,17 @@ const PastWorkoutScreen = () => {
                                                 {volumeLabel} {weightUnit}
                                             </Text>
                                         </View>
+
+                                        <View style={[styles.metricColumnLeft, styles.metricCenter]}>
+                                            <View style={styles.metricLabelRow}>
+                                                {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
+                                                <Text style={styles.metricLabel}>Calories</Text>
+                                            </View>
+                                            <Text style={styles.metricValue}>
+                                                {caloriesLabel}
+                                                {caloriesLabel !== "--" ? " kcal" : ""}
+                                            </Text>
+                                        </View>
                                     </View>
 
                                     <View style={styles.metricRight}>
@@ -1243,7 +1259,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
     },
     metricColumnLeft: {
-        width: "32%",
+        width: "31%",
     },
     metricCenter: {
         paddingHorizontal: scaleSize(1),
