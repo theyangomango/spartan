@@ -48,14 +48,14 @@ export default function MacroStreakBadge({
 
     const closeInfoPanel = useCallback(() => {
         setInfoPanelVisible(false);
-    }, [dayKey, onToggleOffset]);
+    }, []);
 
     const toggleOffset = useCallback((value) => {
         try { haptic(); } catch {}
         if (typeof onToggleOffset === 'function') {
-            onToggleOffset(dayKey, value);
+            onToggleOffset(value);
         }
-    }, [dayKey, onToggleOffset]);
+    }, [onToggleOffset]);
 
     const openStreakPanel = useCallback(() => {
         try { haptic(); } catch {}
@@ -144,7 +144,7 @@ export default function MacroStreakBadge({
                             <View style={styles.toggleTextCol}>
                                 <Text style={styles.toggleTitle}>Add to calorie goal</Text>
                                 <Text style={styles.toggleCaption}>
-                                    When on, this burn amount increases today's calorie limit and scales each macro target.
+                                    When on, burn calories automatically raise your daily calorie and macro goals for every day.
                                 </Text>
                             </View>
                             <Switch

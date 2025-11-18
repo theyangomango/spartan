@@ -272,7 +272,9 @@ export default function MacroTracking({ navigation, route }) {
     const [completedWorkoutsSig, setCompletedWorkoutsSig] = useState(() =>
         computeCompletedWorkoutsSignature(global?.userData?.completedWorkouts)
     );
-    const [calorieOffsetDays, setCalorieOffsetDays] = useState(() => ({}));
+    const [applyWorkoutCalories, setApplyWorkoutCalories] = useState(
+        () => !!(global?.userData?.macroSettings?.applyWorkoutCaloriesToGoals)
+    );
 
     // -------- goals (load from user doc, save back) --------
     const [macroGoals, setMacroGoals] = useState({ calories: 2340, carbs: 285, fat: 70, protein: 140 });
@@ -332,6 +334,19 @@ export default function MacroTracking({ navigation, route }) {
                     global.userData = { ...(global.userData || {}), macroGoals: next };
                 } catch { }
             }
+
+            const applySettingRaw = data?.macroSettings?.applyWorkoutCaloriesToGoals;
+            const applySetting = applySettingRaw === undefined ? false : !!applySettingRaw;
+            setApplyWorkoutCalories((prev) => (prev === applySetting ? prev : applySetting));
+            try {
+                global.userData = {
+                    ...(global.userData || {}),
+                    macroSettings: {
+                        ...(global.userData?.macroSettings || {}),
+                        applyWorkoutCaloriesToGoals: applySetting,
+                    },
+                };
+            } catch { }
 
             // Also hydrate personal info if present (non-destructive for non-empty fields)
             try {
@@ -684,17 +699,26 @@ export default function MacroTracking({ navigation, route }) {
         closeSearch();
     }, [selectedMeal, focusedDate, closeSearch]);
 
-    const onToggleCalorieOffset = useCallback((dayKey, enabled) => {
-        if (!dayKey) return;
-        setCalorieOffsetDays((prev) => {
-            const next = { ...(prev || {}) };
-            if (enabled) {
-                next[dayKey] = true;
-            } else {
-                delete next[dayKey];
-            }
-            return next;
-        });
+    const onToggleCalorieOffset = useCallback((enabled) => {
+        setApplyWorkoutCalories(enabled);
+        const uid = global?.userData?.uid || global?.userData?.id;
+        if (uid) {
+            try {
+                updateDoc(doc(db, 'usersPrivate', uid), {
+                    'macroSettings.applyWorkoutCaloriesToGoals': enabled,
+                    updatedAt: serverTimestamp(),
+                }).catch(() => {});
+            } catch { }
+        }
+        try {
+            global.userData = {
+                ...(global.userData || {}),
+                macroSettings: {
+                    ...(global.userData?.macroSettings || {}),
+                    applyWorkoutCaloriesToGoals: enabled,
+                },
+            };
+        } catch { }
     }, []);
 
     const openGoalsSheet = () => { try { haptic(); } catch {} setGoalsSheetIndex(0); setGoalsOpenSignal((s) => (s == null ? 1 : s + 1)); };
@@ -819,7 +843,7 @@ export default function MacroTracking({ navigation, route }) {
                 bounces={false}
                 overScrollMode="never"
                 scrollEventThrottle={16}
-                extraData={completedWorkoutsSig}
+                extraData={`${completedWorkoutsSig}:${applyWorkoutCalories ? '1' : '0'}`}
                 showsHorizontalScrollIndicator={false}
                 keyExtractor={(item, index) => String(index)}
                     getItemCount={() => TOTAL_PAGES}
@@ -896,7 +920,7 @@ export default function MacroTracking({ navigation, route }) {
                             ? ((totals?.calories || totals?.protein || totals?.carbs || totals?.fat) ? totals : fromGlobal.totals)
                             : fromGlobal.totals;
                         const caloriesBurnedForPage = sumWorkoutCaloriesForDay(d);
-                        const offsetEnabled = !!calorieOffsetDays[dayKey];
+                        const offsetEnabled = applyWorkoutCalories;
                         const goalsForPage = (offsetEnabled && caloriesBurnedForPage > 0)
                             ? scaleGoalsWithBurn(macroGoals, caloriesBurnedForPage)
                             : macroGoals;

@@ -220,6 +220,16 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
         else performScroll();
     }, [visible, months, targetMonthIndex]);
 
+    const handleDayPress = useCallback((cell) => {
+        if (!cell || !cell.key || !cell.timestamp || typeof onSelectDate !== "function") return;
+        onSelectDate({
+            dayKey: cell.key,
+            timestamp: cell.timestamp,
+            isMarked: Boolean(cell.isMarked),
+            isToday: Boolean(cell.isToday),
+        });
+    }, [onSelectDate]);
+
     if (!mounted && !visible) return null;
 
     return (
@@ -267,26 +277,38 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
                                         if (!cell) {
                                             return <View key={key} style={styles.cell} />;
                                         }
+                                        const isDisabled = !cell.isMarked;
                                         return (
                                             <View key={key} style={styles.cell}>
-                                                <View
+                                                <Pressable
+                                                    onPress={() => handleDayPress(cell)}
                                                     style={[
+                                                        styles.cellPressable,
+                                                        isDisabled && styles.cellPressableDisabled,
+                                                    ]}
+                                                    disabled={isDisabled}
+                                                    hitSlop={8}
+                                                    accessibilityRole="button"
+                                                    accessibilityLabel={`Select ${MONTH_NAMES[new Date(cell.timestamp).getMonth()]} ${cell.day}`}
+                                                >
+                                                    <View
+                                                        style={[
                                                         styles.dayCircle,
                                                         cell.isToday && styles.dayToday,
-                                                        cell.isSelected && styles.daySelected,
                                                         cell.isMarked && styles.dayLogged,
                                                     ]}
                                                 >
                                                     <Text
                                                         style={[
                                                             styles.dayText,
-                                                            (cell.isMarked || cell.isSelected) && styles.dayTextActive,
+                                                            cell.isMarked && styles.dayTextActive,
                                                         ]}
                                                     >
                                                         {cell.day}
                                                     </Text>
-                                                    {cell.isMarked && <View style={styles.dayDot} />}
-                                                </View>
+                                                        {cell.isMarked && <View style={styles.dayDot} />}
+                                                    </View>
+                                                </Pressable>
                                             </View>
                                         );
                                     })}
@@ -331,7 +353,7 @@ const styles = StyleSheet.create({
     closeBtn: {
         padding: scaleSize(6),
     },
-    title: { fontFamily: "Nunito_800ExtraBold", fontSize: scaleSize(18), color: theme.textPrimary },
+    title: { fontFamily: "Nunito_800ExtraBold", fontSize: scaleSize(17), color: theme.textPrimary },
     headerSpacer: { width: scaleSize(34), height: scaleSize(34) },
     weekHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: scaleSize(14), paddingLeft: scaleSize(20) },
     weekdayText: { flex: 1, textAlign: "center", fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(13.5), color: theme.muted },
@@ -340,6 +362,15 @@ const styles = StyleSheet.create({
     monthLabel: { fontFamily: "Nunito_800ExtraBold", fontSize: scaleSize(16.5), color: theme.textPrimary, marginBottom: scaleSize(12) },
     grid: { flexDirection: "row", flexWrap: "wrap" },
     cell: { width: "14.2857%", aspectRatio: 1, alignItems: "center", justifyContent: "center", marginBottom: scaleSize(14) },
+    cellPressable: {
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    cellPressableDisabled: {
+        opacity: 0.5,
+    },
     dayCircle: {
         width: scaleSize(38),
         height: scaleSize(38),
@@ -349,8 +380,7 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
     },
     dayLogged: {},
-    dayToday: { borderWidth: StyleSheet.hairlineWidth, borderColor: theme.primary, borderRadius: scaleSize(19) },
-    daySelected: { borderWidth: scaleSize(2), borderColor: "#3b82f6", borderRadius: scaleSize(19) },
+    dayToday: { borderWidth: scaleSize(2), borderColor: "#3b82f6", borderRadius: scaleSize(19) },
     dayText: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(14), color: theme.textSecondary },
     dayTextActive: { color: theme.textPrimary },
     dayDot: {

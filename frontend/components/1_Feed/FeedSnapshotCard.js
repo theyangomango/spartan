@@ -215,6 +215,7 @@ export default function FeedSnapshotCard({
     rankTier = "gold",
     rankLabel,
     overallRating = null,
+    showRankTabs = true,
     onPressOverall,
     onPressCard,
 }) {
@@ -291,160 +292,164 @@ export default function FeedSnapshotCard({
     return (
         <View style={styles.wrapper}>
             <View style={styles.rankSection}>
-                <View style={styles.rankTabsRow}>
-                    {RANK_TAB_CONFIG.map((tab) => {
-                        const isActive = tab.key === activeRankTabConfig.key;
-                        return (
-                            <TouchableOpacity
-                                key={tab.key}
-                                style={[styles.rankTab, isActive ? styles.rankTabActive : styles.rankTabInactive]}
-                                onPress={() => handleRankTabPress(tab.key)}
-                                activeOpacity={0.85}
-                                accessibilityRole="button"
-                                accessibilityLabel={tab.label}
-                            >
-                                <Text
-                                    style={[
-                                        styles.rankTabText,
-                                        isActive ? styles.rankTabTextActive : styles.rankTabTextInactive,
-                                    ]}
+                {showRankTabs && (
+                    <View style={styles.rankTabsRow}>
+                        {RANK_TAB_CONFIG.map((tab) => {
+                            const isActive = tab.key === activeRankTabConfig.key;
+                            return (
+                                <TouchableOpacity
+                                    key={tab.key}
+                                    style={[styles.rankTab, isActive ? styles.rankTabActive : styles.rankTabInactive]}
+                                    onPress={() => handleRankTabPress(tab.key)}
+                                    activeOpacity={0.85}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={tab.label}
                                 >
-                                    {tab.label}
-                                </Text>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </View>
+                                    <Text
+                                        style={[
+                                            styles.rankTabText,
+                                            isActive ? styles.rankTabTextActive : styles.rankTabTextInactive,
+                                        ]}
+                                    >
+                                        {tab.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                )}
                 {isRankTabActive ? (
-                    <LinearGradient
-                        colors={rankTheme.gradientColors || goldTheme.gradientColors}
-                        locations={rankTheme.gradientLocations || goldTheme.gradientLocations}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.rankCard}
-                    >
-                        <View pointerEvents="none" style={styles.rankParticleLayer}>
-                            {particles.map((particle) => (
-                                <View
-                                    key={particle.key}
-                                    style={[
-                                        styles.rankParticle,
-                                        {
-                                            top: particle.origin.top,
-                                            left: particle.origin.left,
-                                            width: particle.size,
-                                            height: particle.size,
-                                            marginLeft: -particle.size / 2,
-                                            marginTop: -particle.size / 2,
-                                            backgroundColor: particle.color,
-                                            shadowColor: particle.color,
-                                            shadowRadius: scaleSize(particle.blur),
-                                            opacity: particle.opacity,
-                                            transform: [
-                                                { translateX: particle.offsetX },
-                                                { translateY: particle.offsetY },
-                                            ],
-                                        },
-                                    ]}
-                                />
-                            ))}
-                        </View>
-                        <View style={styles.rankCardContent}>
-                            <View style={styles.rankBadgeCluster}>
-                                <LinearGradient
-                                    colors={rankTheme.wingGradient || goldTheme.wingGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={[styles.rankWing, styles.rankWingLeft]}
-                                />
-                                <LinearGradient
-                                    colors={rankTheme.wingGradient || goldTheme.wingGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={[styles.rankWing, styles.rankWingRight]}
-                                />
-                                <LinearGradient
-                                    colors={rankTheme.badgeOuterGradient || goldTheme.badgeOuterGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={styles.rankBadgeOuter}
-                                >
+                    <CardWrapper style={styles.rankCardWrapper} {...cardWrapperProps}>
+                        <LinearGradient
+                            colors={rankTheme.gradientColors || goldTheme.gradientColors}
+                            locations={rankTheme.gradientLocations || goldTheme.gradientLocations}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            style={styles.rankCard}
+                        >
+                            <View pointerEvents="none" style={styles.rankParticleLayer}>
+                                {particles.map((particle) => (
+                                    <View
+                                        key={particle.key}
+                                        style={[
+                                            styles.rankParticle,
+                                            {
+                                                top: particle.origin.top,
+                                                left: particle.origin.left,
+                                                width: particle.size,
+                                                height: particle.size,
+                                                marginLeft: -particle.size / 2,
+                                                marginTop: -particle.size / 2,
+                                                backgroundColor: particle.color,
+                                                shadowColor: particle.color,
+                                                shadowRadius: scaleSize(particle.blur),
+                                                opacity: particle.opacity,
+                                                transform: [
+                                                    { translateX: particle.offsetX },
+                                                    { translateY: particle.offsetY },
+                                                ],
+                                            },
+                                        ]}
+                                    />
+                                ))}
+                            </View>
+                            <View style={styles.rankCardContent}>
+                                <View style={styles.rankBadgeCluster}>
                                     <LinearGradient
-                                        colors={rankTheme.badgeInnerGradient || goldTheme.badgeInnerGradient}
+                                        colors={rankTheme.wingGradient || goldTheme.wingGradient}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 1 }}
-                                        style={styles.rankBadgeInner}
+                                        style={[styles.rankWing, styles.rankWingLeft]}
+                                    />
+                                    <LinearGradient
+                                        colors={rankTheme.wingGradient || goldTheme.wingGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={[styles.rankWing, styles.rankWingRight]}
+                                    />
+                                    <LinearGradient
+                                        colors={rankTheme.badgeOuterGradient || goldTheme.badgeOuterGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={styles.rankBadgeOuter}
                                     >
-                                        <View
-                                            style={[
-                                                styles.rankBadgeCore,
-                                                {
-                                                    backgroundColor:
-                                                        rankTheme.badgeCoreColor || goldTheme.badgeCoreColor,
-                                                    shadowColor:
-                                                        rankTheme.badgeCoreShadowColor ||
-                                                        goldTheme.badgeCoreShadowColor,
-                                                },
-                                            ]}
+                                        <LinearGradient
+                                            colors={rankTheme.badgeInnerGradient || goldTheme.badgeInnerGradient}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 1 }}
+                                            style={styles.rankBadgeInner}
                                         >
                                             <View
                                                 style={[
-                                                    styles.rankBadgeGem,
+                                                    styles.rankBadgeCore,
                                                     {
                                                         backgroundColor:
-                                                            rankTheme.badgeGemColor || goldTheme.badgeGemColor,
-                                                        borderColor:
-                                                            rankTheme.badgeGemBorderColor ||
-                                                            goldTheme.badgeGemBorderColor,
+                                                            rankTheme.badgeCoreColor || goldTheme.badgeCoreColor,
+                                                        shadowColor:
+                                                            rankTheme.badgeCoreShadowColor ||
+                                                            goldTheme.badgeCoreShadowColor,
                                                     },
                                                 ]}
-                                            />
-                                            <View
-                                                style={[
-                                                    styles.rankBadgeGemInner,
-                                                    {
-                                                        backgroundColor:
-                                                            rankTheme.badgeGemInnerColor ||
-                                                            goldTheme.badgeGemInnerColor,
-                                                        borderColor:
-                                                            rankTheme.badgeGemInnerBorderColor ||
-                                                            goldTheme.badgeGemInnerBorderColor,
-                                                    },
-                                                ]}
-                                            />
-                                        </View>
+                                            >
+                                                <View
+                                                    style={[
+                                                        styles.rankBadgeGem,
+                                                        {
+                                                            backgroundColor:
+                                                                rankTheme.badgeGemColor || goldTheme.badgeGemColor,
+                                                            borderColor:
+                                                                rankTheme.badgeGemBorderColor ||
+                                                                goldTheme.badgeGemBorderColor,
+                                                        },
+                                                    ]}
+                                                />
+                                                <View
+                                                    style={[
+                                                        styles.rankBadgeGemInner,
+                                                        {
+                                                            backgroundColor:
+                                                                rankTheme.badgeGemInnerColor ||
+                                                                goldTheme.badgeGemInnerColor,
+                                                            borderColor:
+                                                                rankTheme.badgeGemInnerBorderColor ||
+                                                                goldTheme.badgeGemInnerBorderColor,
+                                                        },
+                                                    ]}
+                                                />
+                                            </View>
+                                        </LinearGradient>
                                     </LinearGradient>
-                                </LinearGradient>
-                            </View>
-                            <Text
-                                style={[styles.rankTitle, { color: rankTheme.titleColor || goldTheme.titleColor }]}
-                            >
-                                {resolvedRankLabel}
+                                </View>
                                 <Text
-                                    style={[
-                                        styles.rankTitleSecondary,
-                                        { color: rankTheme.titleSecondaryColor || goldTheme.titleSecondaryColor },
-                                    ]}
+                                    style={[styles.rankTitle, { color: rankTheme.titleColor || goldTheme.titleColor }]}
                                 >
-                                    {` · ${resolvedOverallRating} OVR`}
+                                    {resolvedRankLabel}
+                                    <Text
+                                        style={[
+                                            styles.rankTitleSecondary,
+                                            { color: rankTheme.titleSecondaryColor || goldTheme.titleSecondaryColor },
+                                        ]}
+                                    >
+                                        {` · ${resolvedOverallRating} OVR`}
+                                    </Text>
                                 </Text>
-                            </Text>
-                        </View>
-                        <View
-                            pointerEvents="none"
-                            style={[
-                                styles.rankCardBorderTop,
-                                { backgroundColor: rankTheme.borderColor || goldTheme.borderColor },
-                            ]}
-                        />
-                        <View
-                            pointerEvents="none"
-                            style={[
-                                styles.rankCardBorderBottom,
-                                { backgroundColor: rankTheme.borderColor || goldTheme.borderColor },
-                            ]}
-                        />
-                    </LinearGradient>
+                            </View>
+                            <View
+                                pointerEvents="none"
+                                style={[
+                                    styles.rankCardBorderTop,
+                                    { backgroundColor: rankTheme.borderColor || goldTheme.borderColor },
+                                ]}
+                            />
+                            <View
+                                pointerEvents="none"
+                                style={[
+                                    styles.rankCardBorderBottom,
+                                    { backgroundColor: rankTheme.borderColor || goldTheme.borderColor },
+                                ]}
+                            />
+                        </LinearGradient>
+                    </CardWrapper>
                 ) : isBodygraphTabActive ? (
                     <View style={[styles.rankCard, styles.bodygraphCard]}>
                         <View style={styles.bodygraphContent}>
@@ -625,6 +630,9 @@ const styles = StyleSheet.create({
         position: "relative",
         minHeight: scaleSize(220),
         height: scaleSize(220),
+    },
+    rankCardWrapper: {
+        width: "100%",
     },
     rankCardBorderTop: {
         position: "absolute",

@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState, useCallback } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
@@ -90,7 +91,7 @@ export default function DateHeader({
                             hitSlop={8}
                             style={{ opacity: onHistoryPress ? 1 : 0.4 }}
                         >
-                            <Ionicons name="time-outline" size={METRICS.iconSize} color={highlightColor} />
+                            <HistoryClockIcon size={METRICS.iconSize} color={highlightColor} />
                         </Pressable>
                     ) : showNextIcon ? (
                         <Pressable onPress={() => { try { haptic(); } catch {} onNext?.(); }} hitSlop={8}>
@@ -104,6 +105,31 @@ export default function DateHeader({
         </View>
     );
 }
+
+const HistoryClockIcon = ({ size = METRICS.iconSize, color = '#2563EB' }) => {
+    const iconSize = (size || METRICS.iconSize) * 1.08;
+    const strokeWidth = Math.min(2.6, Math.max(1.8, iconSize * 0.095));
+    return (
+        <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
+            <Circle
+                cx="12"
+                cy="12"
+                r="8.5"
+                stroke={color}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            <Path
+                d="M12 7.5v4.6l3 1.7"
+                stroke={color}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+        </Svg>
+    );
+};
 
 const makeStyles = (COLORS) =>
     StyleSheet.create({

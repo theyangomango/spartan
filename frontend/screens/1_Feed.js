@@ -52,8 +52,7 @@ import FeedSnapshotCard from "../components/1_Feed/FeedSnapshotCard";
 import HistoryCalendarModal from "../components/common/HistoryCalendarModal";
 import FeedLoadingSkeleton from "../components/1_Feed/FeedLoadingSkeleton";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
-import { navigateOneWay, jumpToTab } from "../../navigationRef";
-import { requestCompetitionTabFocus } from "../utils/competitionTabEvents";
+import { navigateOneWay } from "../../navigationRef";
 import { logFeedSignal } from "../helper/feedSignals";
 import { isClipPost } from "../utils/postTypes";
 import { primeAllUsers } from "../helper/getAllUsers";
@@ -68,34 +67,69 @@ const CREATE_POST_MENU_WIDTH = Math.max(
     Math.min(210, Math.round(SCREEN_WIDTH - scaleSize(48))),
 );
 
+const dateToDayKey = (date) => {
+    if (!(date instanceof Date)) return null;
+    const ms = date.getTime();
+    if (!Number.isFinite(ms)) return null;
+    const normalized = new Date(ms);
+    normalized.setHours(0, 0, 0, 0);
+    return `${normalized.getFullYear()}-${String(normalized.getMonth() + 1).padStart(2, "0")}-${String(normalized.getDate()).padStart(2, "0")}`;
+};
+
+const dayKeyToTimestamp = (key) => {
+    if (typeof key !== "string" || !key) return null;
+    const parts = key.split("-");
+    if (parts.length !== 3) return null;
+    const [yearStr, monthStr, dayStr] = parts;
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const day = Number(dayStr);
+    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+    const date = new Date(year, month - 1, day);
+    if (Number.isNaN(date.getTime())) return null;
+    date.setHours(0, 0, 0, 0);
+    return date.getTime();
+};
+
 const toDayKeyString = (value) => {
-    if (!value) return null;
+    if (value === undefined || value === null) return null;
     if (typeof value === "string") {
         const trimmed = value.trim();
         if (!trimmed) return null;
         if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
         const parsed = new Date(trimmed);
-        if (!Number.isNaN(parsed.getTime())) {
-            parsed.setHours(0, 0, 0, 0);
-            return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
-        }
-        return null;
+        return dateToDayKey(parsed);
+    }
+    if (value instanceof Date) {
+        return dateToDayKey(value);
     }
     if (typeof value === "number" && Number.isFinite(value)) {
-        const parsed = new Date(value);
-        if (!Number.isNaN(parsed.getTime())) {
-            parsed.setHours(0, 0, 0, 0);
-            return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
-        }
+        return dateToDayKey(new Date(value));
     }
-    if (value?.toDate) {
+    if (typeof value?.toDate === "function") {
         try {
             const parsed = value.toDate();
-            if (parsed && !Number.isNaN(parsed.getTime())) {
-                parsed.setHours(0, 0, 0, 0);
-                return `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}-${String(parsed.getDate()).padStart(2, "0")}`;
+            return dateToDayKey(parsed);
+        } catch {
+            return null;
+        }
+    }
+    if (typeof value?.toMillis === "function") {
+        try {
+            const millis = value.toMillis();
+            if (Number.isFinite(millis)) {
+                return dateToDayKey(new Date(millis));
             }
-        } catch { }
+        } catch {
+            return null;
+        }
+    }
+    if (typeof value === "object") {
+        const seconds = Number(value?.seconds);
+        if (Number.isFinite(seconds)) {
+            const millis = (seconds * 1000) + (Number(value?.nanoseconds) / 1000000 || 0);
+            return dateToDayKey(new Date(millis));
+        }
     }
     return null;
 };
@@ -117,6 +151,44 @@ const buildWorkoutDaySet = (user) => {
         if (key) set.add(key);
     });
     return set;
+};
+
+const getWorkoutDayKeyFromPost = (post) => {
+    if (!post) return null;
+    const workout = post?.workout || null;
+    const workoutCandidates = workout ? [
+        workout.dayKey,
+        workout.day,
+        workout.date,
+        workout.logDay,
+        workout.logDate,
+        workout.completedDay,
+        workout.finishedDay,
+        workout.finishedAt,
+        workout.completedAt,
+        workout.startedAt,
+        workout.createdAt,
+        workout.created,
+    ] : [];
+
+    for (const entry of workoutCandidates) {
+        const key = toDayKeyString(entry);
+        if (key) return key;
+    }
+
+    const postCandidates = [
+        post.dayKey,
+        post.date,
+        post.createdAt,
+        post.created,
+    ];
+
+    for (const entry of postCandidates) {
+        const key = toDayKeyString(entry);
+        if (key) return key;
+    }
+
+    return null;
 };
 
 const toNumber = (value, fallback = 0) => {
@@ -179,6 +251,14 @@ export default function Feed({ navigation, route }) {
     const UID = route?.params?.uid ?? global?.userData?.uid ?? null;
 
     const followingList = global.userData ? global.userData?.following : [];
+    const viewerUid = (() => {
+        try {
+            const rawUid = global?.userData?.uid;
+            return rawUid ? String(rawUid) : null;
+        } catch {
+            return null;
+        }
+    })();
     const [feedScope, setFeedScope] = useState("forYou");
     const {
         posts: personalizedPosts,
@@ -224,11 +304,6 @@ export default function Feed({ navigation, route }) {
 
     const closeCalendar = useCallback(() => {
         setCalendarVisible(false);
-    }, []);
-
-    const handleSelectCalendarDate = useCallback((timestamp) => {
-        if (!timestamp) return;
-        setCalendarSelectedDate(timestamp);
     }, []);
 
     useEffect(() => {
@@ -310,6 +385,24 @@ export default function Feed({ navigation, route }) {
         }
         return Array.isArray(personalizedPosts) ? personalizedPosts : [];
     }, [feedScope, followingPosts, personalPosts, personalizedPosts]);
+
+    const workoutPostIndexByDay = useMemo(() => {
+        if (!viewerUid || !Array.isArray(listData) || listData.length === 0) {
+            return new Map();
+        }
+        const lookup = new Map();
+        listData.forEach((post, index) => {
+            if (!post) return;
+            const ownerUid = post.uid ?? post.creatorUid ?? null;
+            if (!ownerUid || String(ownerUid) !== viewerUid) return;
+            const dayKey = getWorkoutDayKeyFromPost(post);
+            if (!dayKey || lookup.has(dayKey)) return;
+            const pid = String(post.pid || post.id || "");
+            if (!pid) return;
+            lookup.set(dayKey, { pid, index });
+        });
+        return lookup;
+    }, [listData, viewerUid]);
 
     const showFeedSkeleton = (!hydratedFromCache || !initialSyncComplete)
         && (!Array.isArray(listData) || listData.length === 0);
@@ -983,6 +1076,44 @@ export default function Feed({ navigation, route }) {
         return true;
     }, [listData]);
 
+    const handleSelectCalendarDate = useCallback((payload) => {
+        let rawTimestamp = null;
+        let selectedDayKey = null;
+        let isMarked = false;
+
+        if (payload && typeof payload === "object") {
+            if (payload.timestamp !== undefined && payload.timestamp !== null) {
+                const numericValue = Number(payload.timestamp);
+                if (Number.isFinite(numericValue)) rawTimestamp = numericValue;
+            }
+            if (payload.dayKey) {
+                selectedDayKey = toDayKeyString(payload.dayKey);
+            }
+            if (payload.isMarked) {
+                isMarked = true;
+            }
+        } else if (payload !== undefined && payload !== null) {
+            const numericValue = Number(payload);
+            if (Number.isFinite(numericValue)) rawTimestamp = numericValue;
+        }
+
+        if (!selectedDayKey) {
+            selectedDayKey = toDayKeyString(rawTimestamp);
+        }
+
+        if (!selectedDayKey) return;
+
+        const normalizedTimestamp = rawTimestamp ?? dayKeyToTimestamp(selectedDayKey) ?? Date.now();
+        setCalendarSelectedDate(normalizedTimestamp);
+
+        if (!isMarked) return;
+
+        const lookup = workoutPostIndexByDay.get(selectedDayKey);
+        closeCalendar();
+        if (!lookup?.pid) return;
+        scrollToPid(lookup.pid);
+    }, [closeCalendar, workoutPostIndexByDay, scrollToPid]);
+
     useEffect(() => {
         if (route?.params?.scrollToTop) {
             const id = setTimeout(() => scrollToTop(), 30);
@@ -1178,36 +1309,23 @@ export default function Feed({ navigation, route }) {
         try { setIsUserStatsBottomSheetVisible(true); } catch { setIsUserStatsBottomSheetVisible(true); }
     }, []);
 
-    const handleNavigateCompetitionProgress = useCallback(() => {
+    const handleNavigateRankLadder = useCallback(() => {
         try { hapticStrong(); } catch {}
-        const targetTab = "progress";
-        requestCompetitionTabFocus(targetTab);
-        const tabParams = { focusTab: targetTab };
-        const routeParams = { ...tabParams, transition: "slide-from-right" };
-
-        if (jumpToTab("Competition", tabParams)) {
-            return;
-        }
-
         try {
-            navigation.navigate("Competition", routeParams);
+            navigation?.navigate?.("RankLadder", { transition: "slide-from-right" });
             return;
         } catch {}
-
-        navigateOneWay("Competition", {
-            animation: "slide-from-right",
-            params: tabParams,
-        });
+        navigateOneWay("RankLadder", { animation: "slide-from-right" });
     }, [navigation]);
 
     const renderSnapshotCard = useCallback(
         () => (
             <FeedSnapshotCard
                 onPressOverall={handleOpenUserStats}
-                onPressCard={handleNavigateCompetitionProgress}
+                onPressCard={handleNavigateRankLadder}
             />
         ),
-        [handleOpenUserStats, handleNavigateCompetitionProgress]
+        [handleOpenUserStats, handleNavigateRankLadder]
     );
 
     return (
