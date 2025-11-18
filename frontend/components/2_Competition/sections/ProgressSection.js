@@ -1294,6 +1294,7 @@ const ManageMeasurementsModal = ({
                             </View>
                         )}
                     </View>
+
                 </View>
             </View>
         </Modal>
@@ -2041,7 +2042,6 @@ const completedWorkouts = useMemo(
         if (hasVolumeChartData) return "volume";
         if (hasRepsChartData) return "reps";
         if (hasPersonalRecordChartData) return "personalRecords";
-        if (hasChartData) return "weight";
         return "volume";
     });
     const metricTabs = useMemo(
@@ -2049,9 +2049,8 @@ const completedWorkouts = useMemo(
             { key: "volume", label: "Volume", icon: "bar-chart-outline", hasData: hasVolumeChartData },
             { key: "reps", label: "Reps", icon: "stats-chart-outline", hasData: hasRepsChartData },
             { key: "personalRecords", label: "PRs", icon: "trophy-outline", hasData: hasPersonalRecordChartData },
-            { key: "weight", label: "Weight", icon: "fitness-outline", hasData: hasChartData },
         ],
-        [hasChartData, hasPersonalRecordChartData, hasRepsChartData, hasVolumeChartData]
+        [hasPersonalRecordChartData, hasRepsChartData, hasVolumeChartData]
     );
 
     const weightActivePoint = activeIndex != null ? weightChartPoints[activeIndex] : null;
@@ -2367,50 +2366,6 @@ const completedWorkouts = useMemo(
                 contentContainerStyle={styles.container}
                 showsVerticalScrollIndicator={false}
             >
-                <View
-                    style={[
-                        styles.metricToggleRow,
-                        { paddingHorizontal: cardHorizontalPadding },
-                    ]}
-                >
-                    {metricTabs.map((tab) => {
-                        const isActive = tab.key === activeMetricKey;
-                        const iconColor = isActive
-                            ? theme.textPrimary ?? "#F6F8FF"
-                            : "rgba(216,226,255,0.75)";
-                        return (
-                            <Pressable
-                                key={tab.key}
-                                onPress={() => setActiveMetricKey(tab.key)}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Show ${tab.label} progress`}
-                                style={[
-                                    styles.metricToggleButton,
-                                    isActive && styles.metricToggleButtonActive,
-                                    !tab.hasData && !isActive && styles.metricToggleButtonMuted,
-                                ]}
-                            >
-                                {tab.icon ? (
-                                    <Ionicons
-                                        name={tab.icon}
-                                        size={scaleSize(16)}
-                                        color={iconColor}
-                                        style={styles.metricToggleIcon}
-                                    />
-                                ) : null}
-                                <Text
-                                    style={[
-                                        styles.metricToggleLabel,
-                                        isActive && styles.metricToggleLabelActive,
-                                        !tab.hasData && !isActive && styles.metricToggleLabelMuted,
-                                    ]}
-                                >
-                                    {tab.label}
-                                </Text>
-                            </Pressable>
-                        );
-                    })}
-                </View>
                 {activeMetricKey === "volume" ? (
                     <View
                         style={[
@@ -3254,14 +3209,62 @@ const completedWorkouts = useMemo(
                         </View>
                     </View>
                 ) : null}
-                {activeMetricKey === "weight" ? (
-                    <View
-                        style={[
-                            chartCardLayout.card,
-                            styles.card,
-                            { paddingHorizontal: cardHorizontalPadding },
-                        ]}
-                    >
+
+                <View
+                    style={[
+                        styles.metricToggleRow,
+                        { paddingHorizontal: cardHorizontalPadding },
+                    ]}
+                >
+                    {metricTabs.map((tab) => {
+                        const isActive = tab.key === activeMetricKey;
+                        const iconColor = isActive
+                            ? theme.textPrimary ?? "#F6F8FF"
+                            : "rgba(216,226,255,0.75)";
+                        return (
+                            <Pressable
+                                key={tab.key}
+                                onPress={() => setActiveMetricKey(tab.key)}
+                                accessibilityRole="button"
+                                accessibilityLabel={`Show ${tab.label} progress`}
+                                style={[
+                                    styles.metricToggleButton,
+                                    isActive && styles.metricToggleButtonActive,
+                                    !tab.hasData && !isActive && styles.metricToggleButtonMuted,
+                                ]}
+                            >
+                                {tab.icon ? (
+                                    <Ionicons
+                                        name={tab.icon}
+                                        size={scaleSize(16)}
+                                        color={iconColor}
+                                        style={styles.metricToggleIcon}
+                                    />
+                                ) : null}
+                                <Text
+                                    style={[
+                                        styles.metricToggleLabel,
+                                        isActive && styles.metricToggleLabelActive,
+                                        !tab.hasData && !isActive && styles.metricToggleLabelMuted,
+                                    ]}
+                                >
+                                    {tab.label}
+                                </Text>
+                            </Pressable>
+                        );
+                    })}
+                </View>
+
+                <View style={styles.chartDivider} />
+
+                <View
+                    style={[
+                        chartCardLayout.card,
+                        styles.card,
+                        styles.weightCard,
+                        { paddingHorizontal: cardHorizontalPadding },
+                    ]}
+                >
                     <View style={[chartCardLayout.header, styles.header]}>
                         <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Body Weight</Text>
                         <View style={styles.headerActions}>
@@ -3541,7 +3544,6 @@ const completedWorkouts = useMemo(
                             </View>
                         )}
                     </View>
-
                     <View style={styles.measurementsRowContainer}>
                         <Pressable
                             onPress={() => navigation.navigate("WeightMeasurements")}
@@ -3567,8 +3569,7 @@ const completedWorkouts = useMemo(
                             />
                         </Pressable>
                     </View>
-                    </View>
-                ) : null}
+                </View>
             </ScrollView>
 
         <ManageMeasurementsModal
@@ -3640,11 +3641,20 @@ const styles = StyleSheet.create({
     metricToggleLabelMuted: {
         color: "rgba(216, 226, 255, 0.5)",
     },
+    chartDivider: {
+        height: scaleSize(18),
+        width: "100%",
+        backgroundColor: theme.surface,
+        marginVertical: scaleSize(18),
+    },
     card: {
         backgroundColor: "transparent",
         borderTopWidth: 0,
         borderBottomWidth: 0,
         borderColor: "transparent",
+    },
+    weightCard: {
+        backgroundColor: theme.bg,
     },
     volumeCard: {
         marginBottom: scaleSize(32),
