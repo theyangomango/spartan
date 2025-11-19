@@ -23,7 +23,7 @@ const DISPLAY_TITLES = {
 const CURRENT_RANK = { tier: "diamond", level: "III" };
 
 const CARD_THEME_COLORS = {
-    bronze: { gradient: ["#c67f57ff", "#845b34ff"], accent: "#f7d6a0" },
+    bronze: { gradient: ["#713b08ff", "#e19c73ff"], accent: "#f7d6a0" },
     silver: { gradient: ["#59759cff", "#a8c2e6ff"], accent: "#e5f2ff" },
     gold: { gradient: ["#a1650cff", "#f0c15a"], accent: "#ffe9b8" },
     ruby: { gradient: ["#511222ff", "#e54b73"], accent: "#ffc6d9" },
