@@ -15,6 +15,7 @@ import {
 } from "../../../../shared/rankProgress.js";
 import RankTierMiniBadge from "../RankTierMiniBadge";
 import { subscribeUserData } from "../../../utils/userDataEvents";
+import { LADDER_SCROLL_TARGET_KEY } from "../../../utils/competitionTabEvents";
 
 const CARD_THEME_COLORS = {
     bronze: { gradient: ["#6f3600ff", "#e19c73ff"], accent: "#f9cba1ff" },
@@ -125,13 +126,27 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
         [onScroll]
     );
 
-    const attemptCenterCurrentCard = useCallback(
+const attemptCenterCurrentCard = useCallback(
         (options = { animated: false }) => {
-            if (!currentRankKey) return;
             if (scrollContainerHeight <= 0) return;
             const scrollView = scrollViewRef.current;
             if (!scrollView) return;
-            const layout = cardLayoutsRef.current[currentRankKey];
+
+            let targetKey = currentRankKey;
+            try {
+                const desiredKey = global?.[LADDER_SCROLL_TARGET_KEY];
+                if (desiredKey && typeof desiredKey === "string") {
+                    targetKey = desiredKey;
+                    if (!options?.preserveTarget) {
+                        global[LADDER_SCROLL_TARGET_KEY] = null;
+                    }
+                }
+            } catch {
+                // ignore read errors
+            }
+            if (!targetKey) return;
+
+            const layout = cardLayoutsRef.current[targetKey];
             if (!layout) return;
             const targetOffset = Math.max(
                 0,
@@ -151,13 +166,13 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
 
     useEffect(() => {
         if (hasCenteredRef.current) return;
-        attemptCenterCurrentCard({ animated: false });
+        attemptCenterCurrentCard({ animated: false, preserveTarget: true });
     }, [attemptCenterCurrentCard]);
 
     useEffect(() => {
         if (!scrollSignal) return;
         if (scrollSignal > 0) {
-            attemptCenterCurrentCard({ animated: true, forceKeep: true });
+            attemptCenterCurrentCard({ animated: true, forceKeep: true, preserveTarget: true });
         }
     }, [scrollSignal, attemptCenterCurrentCard]);
 
@@ -170,7 +185,7 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
         (key, layout) => {
             if (!key || !layout) return;
             cardLayoutsRef.current[key] = layout;
-            attemptCenterCurrentCard({ animated: false });
+            attemptCenterCurrentCard({ animated: false, preserveTarget: true });
         },
         [attemptCenterCurrentCard]
     );

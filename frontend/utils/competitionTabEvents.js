@@ -1,5 +1,6 @@
 const LISTENERS_KEY = "__competitionTabListeners";
 const PENDING_KEY = "__competitionPendingTab";
+export const LADDER_SCROLL_TARGET_KEY = "__ladderScrollTarget";
 
 const getListenerSet = () => {
     try {

@@ -68,11 +68,13 @@ export default function Competition({ navigation, route }) {
     const indicatorWidth = useRef(new Animated.Value(0)).current;
     const indicatorReady = useRef(false);
     const [tabLayouts, setTabLayouts] = useState({});
+    const skipTabAnimationRef = useRef(true);
 
     useEffect(() => {
         const unsubscribe = subscribeCompetitionTabRequests((tabKey) => {
             const resolved = resolveTabKey(tabKey);
             if (!resolved) return;
+            skipTabAnimationRef.current = true;
             setActiveTab((current) => (current === resolved ? current : resolved));
             clearPendingCompetitionTab();
         });
@@ -82,6 +84,7 @@ export default function Competition({ navigation, route }) {
     useEffect(() => {
         const requested = resolveTabKey(route?.params?.focusTab);
         if (!requested) return;
+        skipTabAnimationRef.current = true;
         setActiveTab((current) => (current === requested ? current : requested));
         navigation?.setParams?.({ focusTab: undefined });
         clearPendingCompetitionTab();
@@ -119,8 +122,9 @@ export default function Competition({ navigation, route }) {
         const target = -windowWidth * getTabIndex(activeTab);
         const widthChanged = prevWidthRef.current !== windowWidth;
         prevWidthRef.current = windowWidth;
-        if (isFirstRender.current || widthChanged) {
+        if (isFirstRender.current || widthChanged || skipTabAnimationRef.current) {
             slideAnim.setValue(target);
+            skipTabAnimationRef.current = false;
             isFirstRender.current = false;
             return;
         }
@@ -137,10 +141,13 @@ export default function Competition({ navigation, route }) {
         if (!layout) return;
         const targetWidth = layout.width * 0.55;
         const targetX = layout.x + (layout.width - targetWidth) / 2;
-        if (!indicatorReady.current) {
+        if (!indicatorReady.current || skipTabAnimationRef.current) {
             indicatorX.setValue(targetX);
             indicatorWidth.setValue(targetWidth);
             indicatorReady.current = true;
+            if (skipTabAnimationRef.current) {
+                skipTabAnimationRef.current = false;
+            }
             return;
         }
         Animated.parallel([

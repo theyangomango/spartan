@@ -4,7 +4,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
         tasks: [
             "Achieve 18.0+ Score Overall",
             "Achieve 16.0+ Score in Shoulders",
-            "Lift 12,000 lbs Total",
+            "Lift 1,000 lbs Total",
         ],
     },
     "bronze-ii": {
@@ -12,7 +12,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
         tasks: [
             "Achieve 22.0+ Score Overall",
             "Achieve 20.0+ Score in Shoulders",
-            "Lift 25,000 lbs Total",
+            "Lift 5,000 lbs Total",
         ],
     },
     "bronze-iii": {
@@ -21,7 +21,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Achieve 28.0+ Score Overall",
             "Achieve 22.0+ Score in Chest",
             "Achieve 22.0+ Score in Arms",
-            "Lift 40,000 lbs Total",
+            "Lift 12,000 lbs Total",
         ],
     },
     "bronze-iv": {
@@ -30,7 +30,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Achieve 32.0+ Score Overall",
             "Achieve 26.0+ Score in Shoulders",
             "Achieve 24.0+ Score in Legs",
-            "Lift 55,000 lbs Total",
+            "Lift 22,000 lbs Total",
         ],
     },
     "bronze-v": {
@@ -39,7 +39,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Achieve 36.0+ Score Overall",
             "Achieve 30.0+ Score in Shoulders",
             "Achieve 28.0+ Score in Legs",
-            "Lift 70,000 lbs Total",
+            "Lift 35,000 lbs Total",
         ],
     },
     "silver-i": {
@@ -49,7 +49,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Achieve 45.0+ Score Overall",
             "Achieve 35.0+ Score in Shoulders",
             "Achieve 35.0+ Score in Legs",
-            "Lift 140,000 lbs Total",
+            "Lift 55,000 lbs Total",
         ],
     },
     "silver-ii": {
@@ -58,7 +58,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 9 Workouts",
             "Achieve 50.0+ Score Overall",
             "Achieve 40.0+ Score in Shoulders",
-            "Lift 165,000 lbs Total",
+            "Lift 70,000 lbs Total",
         ],
     },
     "silver-iii": {
@@ -68,7 +68,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Achieve 54.0+ Score Overall",
             "Achieve 42.0+ Score in Shoulders",
             "Achieve 42.0+ Score in Legs",
-            "Lift 190,000 lbs Total",
+            "Lift 90,000 lbs Total",
         ],
     },
     "silver-iv": {
@@ -77,7 +77,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 10 Workouts",
             "Achieve 58.0+ Score Overall",
             "Achieve 46.0+ Score in Shoulders",
-            "Lift 215,000 lbs Total",
+            "Lift 110,000 lbs Total",
         ],
     },
     "silver-v": {
@@ -86,7 +86,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 11 Workouts",
             "Achieve 62.0+ Score Overall",
             "Achieve 50.0+ Score in Shoulders",
-            "Lift 245,000 lbs Total",
+            "Lift 135,000 lbs Total",
         ],
     },
     "gold-i": {
@@ -95,7 +95,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 12 Workouts",
             "Achieve 65.0+ Score Overall",
             "Achieve 54.0+ Score in Shoulders",
-            "Lift 270,000 lbs Total",
+            "Lift 160,000 lbs Total",
         ],
     },
     "gold-ii": {
@@ -104,7 +104,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 13 Workouts",
             "Achieve 68.0+ Score Overall",
             "Achieve 57.0+ Score in Shoulders",
-            "Lift 295,000 lbs Total",
+            "Lift 185,000 lbs Total",
         ],
     },
     "gold-iii": {
@@ -114,7 +114,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Achieve 70.0+ Score Overall",
             "Achieve 56.0+ Score in Shoulders",
             "Achieve 56.0+ Score in Legs",
-            "Lift 320,000 lbs Total",
+            "Lift 210,000 lbs Total",
         ],
     },
     "gold-iv": {
@@ -123,7 +123,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 13 Workouts",
             "Achieve 72.0+ Score Overall",
             "Achieve 62.0+ Score in Shoulders",
-            "Lift 345,000 lbs Total",
+            "Lift 235,000 lbs Total",
         ],
     },
     "gold-v": {
@@ -131,7 +131,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
         tasks: [
             "Log 14 Workouts",
             "Achieve 74.0+ Score Overall",
-            "Lift 375,000 lbs Total",
+            "Lift 260,000 lbs Total",
         ],
     },
     "ruby-i": {
@@ -140,7 +140,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 14 Workouts",
             "Achieve 76.0+ Score Overall",
             "Achieve 66.0+ Score in Shoulders",
-            "Lift 400,000 lbs Total",
+            "Lift 290,000 lbs Total",
         ],
     },
     "ruby-ii": {
@@ -150,7 +150,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Achieve 78.0+ Score Overall",
             "Achieve 64.0+ Score in Shoulders",
             "Achieve 64.0+ Score in Legs",
-            "Lift 425,000 lbs Total",
+            "Lift 320,000 lbs Total",
         ],
     },
     "ruby-iii": {
@@ -159,7 +159,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 15 Workouts",
             "Achieve 80.0+ Score Overall",
             "Achieve 70.0+ Score in Shoulders",
-            "Lift 450,000 lbs Total",
+            "Lift 350,000 lbs Total",
         ],
     },
     "ruby-iv": {
@@ -168,7 +168,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 16 Workouts",
             "Achieve 82.0+ Score Overall",
             "Achieve 72.0+ Score in Shoulders",
-            "Lift 475,000 lbs Total",
+            "Lift 380,000 lbs Total",
         ],
     },
     "ruby-v": {
@@ -178,7 +178,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Achieve 84.0+ Score Overall",
             "Achieve 72.0+ Score in Shoulders",
             "Achieve 72.0+ Score in Legs",
-            "Lift 500,000 lbs Total",
+            "Lift 410,000 lbs Total",
         ],
     },
     "platinum-i": {
@@ -187,7 +187,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 17 Workouts",
             "Achieve 85.0+ Score Overall",
             "Achieve 76.0+ Score in Shoulders",
-            "Lift 530,000 lbs Total",
+            "Lift 440,000 lbs Total",
         ],
     },
     "platinum-ii": {
@@ -196,7 +196,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 17 Workouts",
             "Achieve 86.0+ Score Overall",
             "Achieve 78.0+ Score in Shoulders",
-            "Lift 555,000 lbs Total",
+            "Lift 470,000 lbs Total",
         ],
     },
     "platinum-iii": {
@@ -205,7 +205,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 18 Workouts",
             "Achieve 87.0+ Score Overall",
             "Achieve 80.0+ Score in Shoulders",
-            "Lift 580,000 lbs Total",
+            "Lift 500,000 lbs Total",
         ],
     },
     "platinum-iv": {
@@ -214,7 +214,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 18 Workouts",
             "Achieve 88.0+ Score Overall",
             "Achieve 82.0+ Score in Shoulders",
-            "Lift 605,000 lbs Total",
+            "Lift 530,000 lbs Total",
         ],
     },
     "platinum-v": {
@@ -223,7 +223,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 19 Workouts",
             "Achieve 89.0+ Score Overall",
             "Achieve 84.0+ Score in Shoulders",
-            "Lift 630,000 lbs Total",
+            "Lift 560,000 lbs Total",
         ],
     },
     "diamond-i": {
@@ -232,7 +232,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 20 Workouts",
             "Achieve 90.0+ Score Overall",
             "Achieve 86.0+ Score in Shoulders",
-            "Lift 660,000 lbs Total",
+            "Lift 590,000 lbs Total",
         ],
     },
     "diamond-ii": {
@@ -241,7 +241,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 20 Workouts",
             "Achieve 91.0+ Score Overall",
             "Achieve 87.0+ Score in Shoulders",
-            "Lift 690,000 lbs Total",
+            "Lift 620,000 lbs Total",
         ],
     },
     "diamond-iii": {
@@ -250,7 +250,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 21 Workouts",
             "Achieve 92.0+ Score Overall",
             "Achieve 88.0+ Score in Shoulders",
-            "Lift 720,000 lbs Total",
+            "Lift 650,000 lbs Total",
         ],
     },
     "diamond-iv": {
@@ -259,7 +259,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Log 22 Workouts",
             "Log 100 Workouts",
             "Achieve 94.0+ Score Overall",
-            "Lift 750,000 lbs Total",
+            "Lift 680,000 lbs Total",
         ],
     },
 };

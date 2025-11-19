@@ -46,6 +46,7 @@ import deletePost from "../../backend/posts/deletePost";
 import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
 import { emitUserDataUpdate, subscribeUserData } from "../utils/userDataEvents";
+import { LADDER_SCROLL_TARGET_KEY } from "../utils/competitionTabEvents";
 import { requestCompetitionTabFocus } from "../utils/competitionTabEvents";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import { strong as hapticStrong } from "../utils/haptics";
@@ -1324,12 +1325,19 @@ const [currentRank, setCurrentRank] = useState(() => {
         } catch {
             requestCompetitionTabFocus("exercises");
         }
+        if (currentRank?.key && typeof global === "object") {
+            try {
+                global[LADDER_SCROLL_TARGET_KEY] = currentRank.key;
+            } catch {
+                // ignore global assignment issues
+            }
+        }
         try {
             navigation?.navigate("Competition", { focusTab: "exercises" });
         } catch {
             navigation?.navigate?.("Competition");
         }
-    }, [navigation]);
+    }, [currentRank?.key, navigation]);
 
     const snapshotRankTier = currentRank?.tier ?? currentRank?.rankTier ?? undefined;
     const snapshotRankLabel = currentRank?.label ?? currentRank?.rankLabel ?? undefined;
