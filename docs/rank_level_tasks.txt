@@ -1,0 +1,178 @@
+Spartan Ladder Progression Tasks
+================================
+
+Every requirement references StatsHexagon metrics, training volume, workout totals, or PR counts gathered inside the app. Most tiers list three core tasks (late-tier jumps may include a fourth).
+
+Bronze I ➜ Bronze II
+--------------------
+- Reach an overall StatsHexagon score of at least 18.
+- Raise your Shoulders score to 16 or better.
+- Log 12,000 or more total training volume this tier.
+
+Bronze II ➜ Bronze III
+----------------------
+- Reach an overall StatsHexagon score of at least 22.
+- Push your Shoulders score to 20 or better.
+- Accumulate at least 25,000 volume while logging two PRs.
+
+Bronze III ➜ Bronze IV
+----------------------
+- Reach an overall StatsHexagon score of at least 28.
+- Raise both Chest and Arms scores to 22 or better.
+- Move at least 40,000 total volume while recording three PRs.
+
+Bronze IV ➜ Bronze V
+--------------------
+- Reach an overall StatsHexagon score of at least 32.
+- Push Shoulders to 26+ and Legs to 24+.
+- Accumulate 55,000 or more volume with four PRs this tier.
+
+Bronze V ➜ Silver I
+-------------------
+- Reach an overall StatsHexagon score of at least 36.
+- Raise Shoulders to 30+ and Legs to 28+.
+- Log 70,000+ total volume while recording five PRs.
+
+Silver I ➜ Silver II
+--------------------
+- Log at least eight workouts during the tier.
+- Keep every StatsHexagon axis at 35 or higher with overall 45+.
+- Accumulate 140,000 total volume and record six PRs.
+
+Silver II ➜ Silver III
+----------------------
+- Log at least nine workouts.
+- Reach an overall StatsHexagon score of 50+ with Shoulders 40+.
+- Move at least 165,000 total volume and collect seven PRs.
+
+Silver III ➜ Silver IV
+----------------------
+- Log ten workouts or more.
+- Keep Shoulders, Chest, Arms, and Legs at 42+ with overall 54+.
+- Move 190,000+ volume while recording eight PRs.
+
+Silver IV ➜ Silver V
+--------------------
+- Log ten workouts or more.
+- Reach overall 58+ and push Shoulders to 46+.
+- Move 215,000+ volume and record nine PRs (three single-rep).
+
+Silver V ➜ Gold I
+-----------------
+- Log eleven workouts or more.
+- Reach overall 62+ and raise Shoulders to 50+.
+- Move 245,000+ volume while recording ten PRs.
+
+Gold I ➜ Gold II
+----------------
+- Log at least twelve workouts.
+- Reach overall 65+ with Shoulders 54+.
+- Move 270,000+ volume and record eleven PRs (two single-rep).
+
+Gold II ➜ Gold III
+------------------
+- Log twelve workouts plus one assessment.
+- Reach overall 68+ and push Shoulders to 57+.
+- Move 295,000+ volume while recording twelve PRs.
+
+Gold III ➜ Gold IV
+------------------
+- Log thirteen workouts or more.
+- Keep every Stat axis at 56+ with overall 70+.
+- Move 320,000+ volume and record twelve PRs (two multi-rep).
+
+Gold IV ➜ Gold V
+----------------
+- Log thirteen workouts or more.
+- Reach overall 72+ and push Shoulders to 62+.
+- Move 345,000+ volume while logging thirteen PRs.
+
+Gold V ➜ Ruby I
+---------------
+- Log fourteen workouts or more.
+- Reach overall 74+ and improve your weakest axis by three points.
+- Move 375,000+ volume while recording fourteen PRs.
+
+Ruby I ➜ Ruby II
+----------------
+- Log fourteen workouts or more.
+- Reach overall 76+ with Shoulders 66+.
+- Accumulate 400,000+ volume while recording fifteen PRs (two double-bodyweight if possible).
+
+Ruby II ➜ Ruby III
+------------------
+- Log fifteen workouts or more.
+- Keep all axes at 64+ with overall 78+.
+- Move 425,000+ volume and record fifteen PRs (four multi-rep).
+
+Ruby III ➜ Ruby IV
+------------------
+- Log fifteen workouts or more.
+- Reach overall 80+ with Shoulders 70+.
+- Move 450,000+ volume and record sixteen PRs.
+
+Ruby IV ➜ Ruby V
+----------------
+- Log sixteen workouts or more.
+- Reach overall 82+ with Shoulders 72+.
+- Move 475,000+ volume while recording sixteen PRs.
+
+Ruby V ➜ Platinum I
+-------------------
+- Log sixteen workouts or more.
+- Reach overall 84+ and keep every axis at 72+.
+- Move 500,000+ volume while recording seventeen PRs.
+
+Platinum I ➜ Platinum II
+------------------------
+- Log seventeen workouts or more.
+- Reach overall 85+ with Shoulders 76+.
+- Move 530,000+ volume while recording eighteen PRs.
+
+Platinum II ➜ Platinum III
+--------------------------
+- Log seventeen workouts or more.
+- Reach overall 86+ with Shoulders 78+.
+- Move 555,000+ volume while recording eighteen PRs (three total-strength).
+
+Platinum III ➜ Platinum IV
+--------------------------
+- Log eighteen workouts or more.
+- Reach overall 87+ with Shoulders 80+.
+- Move 580,000+ volume while logging nineteen PRs.
+
+Platinum IV ➜ Platinum V
+------------------------
+- Log eighteen workouts or more.
+- Reach overall 88+ with Shoulders 82+.
+- Move 605,000+ volume while recording nineteen PRs (four multi-rep).
+
+Platinum V ➜ Diamond I
+----------------------
+- Log nineteen workouts or more.
+- Reach overall 89+ with Shoulders 84+.
+- Move 630,000+ volume while recording twenty PRs.
+
+Diamond I ➜ Diamond II
+----------------------
+- Log twenty workouts or more.
+- Reach overall 90+ with Shoulders 86+.
+- Move 660,000+ volume while recording twenty-one PRs (four improved single-rep).
+
+Diamond II ➜ Diamond III
+------------------------
+- Log twenty workouts or more.
+- Reach overall 91+ with Shoulders 87+.
+- Move 690,000+ volume while recording twenty-one PRs and 190 lifetime PRs.
+
+Diamond III ➜ Diamond IV
+------------------------
+- Log twenty-one workouts or more.
+- Reach overall 92+ with Shoulders 88+.
+- Move 720,000+ volume while recording twenty-two PRs.
+
+Diamond IV ➜ Diamond V
+----------------------
+- Log twenty-two workouts or more.
+- Hit at least 100 lifetime workouts.
+- Reach overall 94+ while moving 750,000+ volume and recording twenty-four PRs (two top-one-percent lifts).

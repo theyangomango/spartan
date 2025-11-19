@@ -1,9 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import theme from "../../../theme/mfpDark";
 import { scaleSize } from "../layoutConstants";
 import FeedSnapshotCard from "../../1_Feed/FeedSnapshotCard";
+import rankLevelPromotionRequirements from "../../../data/rankLevelTasks";
+
+const SCREEN_WIDTH = Dimensions.get("window").width || 360;
+const REQUIREMENT_TEXT_WIDTH = SCREEN_WIDTH * 0.4;
 
 const TIER_ORDER_DESC = ["diamond", "platinum", "ruby", "gold", "silver", "bronze"];
 const LEVEL_ORDER_DESC = ["V", "IV", "III", "II", "I"];
@@ -31,6 +35,16 @@ const LADDER_LEVELS = TIER_ORDER_DESC.flatMap((tier) =>
 );
 const CURRENT_RANK_INDEX = LADDER_LEVELS.findIndex((entry) => entry.isCurrent);
 const CURRENT_RANK_KEY = CURRENT_RANK_INDEX >= 0 ? LADDER_LEVELS[CURRENT_RANK_INDEX]?.key : null;
+
+const buildLevelKey = (tier, rankLabel) => {
+    const normalizedTier = String(tier || "").toLowerCase().trim();
+    if (!normalizedTier) return null;
+    const tokens = String(rankLabel || "").trim().split(" ");
+    const levelToken = tokens[tokens.length - 1]?.toLowerCase()?.replace(/[^iv]+/g, "") || tokens[tokens.length - 1]?.toLowerCase();
+    const normalizedLevel = levelToken || tokens[tokens.length - 1]?.toLowerCase();
+    if (!normalizedLevel) return null;
+    return `${normalizedTier}-${normalizedLevel}`;
+};
 
 export default function ExercisesSection({ onScroll }) {
     const scrollViewRef = useRef(null);
@@ -95,6 +109,14 @@ export default function ExercisesSection({ onScroll }) {
             {LADDER_LEVELS.map((entry, index) => {
                 const shouldDim =
                     CURRENT_RANK_INDEX >= 0 ? index < CURRENT_RANK_INDEX : !entry.isCurrent;
+                const nextLevelEntry = index < LADDER_LEVELS.length - 1 ? LADDER_LEVELS[index + 1] : null;
+                const promotionKey = nextLevelEntry
+                    ? buildLevelKey(nextLevelEntry.rankTier, nextLevelEntry.rankLabel)
+                    : null;
+                const promotionRequirements = promotionKey ? rankLevelPromotionRequirements[promotionKey] : null;
+                const nextLevelIndex = nextLevelEntry ? index + 1 : null;
+                const requirementsCompleted =
+                    typeof nextLevelIndex === "number" && CURRENT_RANK_INDEX < nextLevelIndex;
                 return (
                     <View
                         key={entry.key}
@@ -112,6 +134,37 @@ export default function ExercisesSection({ onScroll }) {
                             forceTabKey="rank"
                             enableRankAnimations={entry.isCurrent}
                         />
+                        {promotionRequirements && (
+                            <View style={styles.requirementsTimeline}>
+                                {promotionRequirements.tasks.map((task, requirementIndex) => {
+                                    const isLast = requirementIndex === promotionRequirements.tasks.length - 1;
+                                    return (
+                                        <React.Fragment key={`${entry.key}-requirement-${requirementIndex}`}>
+                                            <View style={styles.requirementStep}>
+                                                <View style={styles.requirementMarkerStack}>
+                                                    <View style={[styles.requirementGlow, requirementsCompleted && styles.requirementGlowCompleted]} />
+                                                    <View
+                                                        style={[
+                                                            styles.requirementMarker,
+                                                            requirementsCompleted && styles.requirementMarkerCompleted,
+                                                        ]}
+                                                    />
+                                                </View>
+                                                <Text
+                                                    style={[
+                                                        styles.requirementText,
+                                                        requirementsCompleted && styles.requirementTextCompleted,
+                                                    ]}
+                                                >
+                                                    {task}
+                                                </Text>
+                                            </View>
+                                            {!isLast && <View style={styles.requirementSpacer} />}
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </View>
+                        )}
                     </View>
                 );
             })}
@@ -136,5 +189,62 @@ const styles = StyleSheet.create({
     },
     dimmedCard: {
         opacity: 0.18,
+    },
+    requirementsTimeline: {
+        marginTop: scaleSize(20),
+        marginBottom: scaleSize(20),
+        alignItems: "center",
+    },
+    requirementStep: {
+        alignItems: "center",
+        marginBottom: scaleSize(8),
+    },
+    requirementMarkerStack: {
+        alignItems: "center",
+        justifyContent: "center",
+        position: "relative",
+    },
+    requirementGlow: {
+        position: "absolute",
+        width: scaleSize(64),
+        height: scaleSize(64),
+        borderRadius: scaleSize(32),
+        backgroundColor: "rgba(92,198,255,0.08)",
+    },
+    requirementGlowCompleted: {
+        backgroundColor: "rgba(92,198,255,0.24)",
+    },
+    requirementMarker: {
+        width: scaleSize(30),
+        height: scaleSize(30),
+        borderRadius: scaleSize(15),
+        borderWidth: scaleSize(3),
+        borderColor: "#5cc6ff",
+        backgroundColor: "rgba(92,198,255,0.12)",
+        shadowColor: "#5cc6ff",
+        shadowOffset: { width: 0, height: scaleSize(2) },
+        shadowOpacity: 0.25,
+        shadowRadius: scaleSize(4),
+    },
+    requirementMarkerCompleted: {
+        backgroundColor: "#5cc6ff",
+        borderColor: "#c9f2ff",
+    },
+    requirementSpacer: {
+        height: scaleSize(42),
+    },
+    requirementText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(15),
+        color: "#f6f8ff",
+        textAlign: "center",
+        marginTop: scaleSize(18),
+        letterSpacing: 0.6,
+        width: REQUIREMENT_TEXT_WIDTH,
+        alignSelf: "center",
+    },
+    requirementTextCompleted: {
+        color: "rgba(245, 247, 255, 0.5)",
+        textDecorationLine: "line-through",
     },
 });
