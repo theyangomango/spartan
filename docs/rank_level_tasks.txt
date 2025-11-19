@@ -1,178 +1,209 @@
 Spartan Ladder Progression Tasks
 ================================
 
-Every requirement references StatsHexagon metrics, training volume, workout totals, or PR counts gathered inside the app. Most tiers list three core tasks (late-tier jumps may include a fourth).
+Every requirement references StatsHexagon overall or axis scores, total training volume, or workout counts gathered inside the app. Each promotion lists three to five tasks while keeping the same Achieve/Lift/Log phrasing shown in the Ladder UI.
 
 Bronze I ➜ Bronze II
 --------------------
-- Reach an overall StatsHexagon score of at least 18.
-- Raise your Shoulders score to 16 or better.
-- Log 12,000 or more total training volume this tier.
+- Achieve 18+ Score Overall
+- Achieve 16+ Score in Shoulders
+- Lift 12,000 lbs Total
 
 Bronze II ➜ Bronze III
 ----------------------
-- Reach an overall StatsHexagon score of at least 22.
-- Push your Shoulders score to 20 or better.
-- Accumulate at least 25,000 volume while logging two PRs.
+- Achieve 22+ Score Overall
+- Achieve 20+ Score in Shoulders
+- Lift 25,000 lbs Total
 
 Bronze III ➜ Bronze IV
 ----------------------
-- Reach an overall StatsHexagon score of at least 28.
-- Raise both Chest and Arms scores to 22 or better.
-- Move at least 40,000 total volume while recording three PRs.
+- Achieve 28+ Score Overall
+- Achieve 22+ Score in Chest
+- Achieve 22+ Score in Arms
+- Lift 40,000 lbs Total
 
 Bronze IV ➜ Bronze V
 --------------------
-- Reach an overall StatsHexagon score of at least 32.
-- Push Shoulders to 26+ and Legs to 24+.
-- Accumulate 55,000 or more volume with four PRs this tier.
+- Achieve 32+ Score Overall
+- Achieve 26+ Score in Shoulders
+- Achieve 24+ Score in Legs
+- Lift 55,000 lbs Total
 
 Bronze V ➜ Silver I
 -------------------
-- Reach an overall StatsHexagon score of at least 36.
-- Raise Shoulders to 30+ and Legs to 28+.
-- Log 70,000+ total volume while recording five PRs.
+- Achieve 36+ Score Overall
+- Achieve 30+ Score in Shoulders
+- Achieve 28+ Score in Legs
+- Lift 70,000 lbs Total
 
 Silver I ➜ Silver II
 --------------------
-- Log at least eight workouts during the tier.
-- Keep every StatsHexagon axis at 35 or higher with overall 45+.
-- Accumulate 140,000 total volume and record six PRs.
+- Log 8 Workouts
+- Achieve 45+ Score Overall
+- Achieve 35+ Score in Shoulders
+- Achieve 35+ Score in Legs
+- Lift 140,000 lbs Total
 
 Silver II ➜ Silver III
 ----------------------
-- Log at least nine workouts.
-- Reach an overall StatsHexagon score of 50+ with Shoulders 40+.
-- Move at least 165,000 total volume and collect seven PRs.
+- Log 9 Workouts
+- Achieve 50+ Score Overall
+- Achieve 40+ Score in Shoulders
+- Lift 165,000 lbs Total
 
 Silver III ➜ Silver IV
 ----------------------
-- Log ten workouts or more.
-- Keep Shoulders, Chest, Arms, and Legs at 42+ with overall 54+.
-- Move 190,000+ volume while recording eight PRs.
+- Log 10 Workouts
+- Achieve 54+ Score Overall
+- Achieve 42+ Score in Shoulders
+- Achieve 42+ Score in Legs
+- Lift 190,000 lbs Total
 
 Silver IV ➜ Silver V
 --------------------
-- Log ten workouts or more.
-- Reach overall 58+ and push Shoulders to 46+.
-- Move 215,000+ volume and record nine PRs (three single-rep).
+- Log 10 Workouts
+- Achieve 58+ Score Overall
+- Achieve 46+ Score in Shoulders
+- Lift 215,000 lbs Total
 
 Silver V ➜ Gold I
 -----------------
-- Log eleven workouts or more.
-- Reach overall 62+ and raise Shoulders to 50+.
-- Move 245,000+ volume while recording ten PRs.
+- Log 11 Workouts
+- Achieve 62+ Score Overall
+- Achieve 50+ Score in Shoulders
+- Lift 245,000 lbs Total
 
 Gold I ➜ Gold II
 ----------------
-- Log at least twelve workouts.
-- Reach overall 65+ with Shoulders 54+.
-- Move 270,000+ volume and record eleven PRs (two single-rep).
+- Log 12 Workouts
+- Achieve 65+ Score Overall
+- Achieve 54+ Score in Shoulders
+- Lift 270,000 lbs Total
 
 Gold II ➜ Gold III
 ------------------
-- Log twelve workouts plus one assessment.
-- Reach overall 68+ and push Shoulders to 57+.
-- Move 295,000+ volume while recording twelve PRs.
+- Log 13 Workouts
+- Achieve 68+ Score Overall
+- Achieve 57+ Score in Shoulders
+- Lift 295,000 lbs Total
 
 Gold III ➜ Gold IV
 ------------------
-- Log thirteen workouts or more.
-- Keep every Stat axis at 56+ with overall 70+.
-- Move 320,000+ volume and record twelve PRs (two multi-rep).
+- Log 13 Workouts
+- Achieve 70+ Score Overall
+- Achieve 56+ Score in Shoulders
+- Achieve 56+ Score in Legs
+- Lift 320,000 lbs Total
 
 Gold IV ➜ Gold V
 ----------------
-- Log thirteen workouts or more.
-- Reach overall 72+ and push Shoulders to 62+.
-- Move 345,000+ volume while logging thirteen PRs.
+- Log 13 Workouts
+- Achieve 72+ Score Overall
+- Achieve 62+ Score in Shoulders
+- Lift 345,000 lbs Total
 
 Gold V ➜ Ruby I
 ---------------
-- Log fourteen workouts or more.
-- Reach overall 74+ and improve your weakest axis by three points.
-- Move 375,000+ volume while recording fourteen PRs.
+- Log 14 Workouts
+- Achieve 74+ Score Overall
+- Lift 375,000 lbs Total
 
 Ruby I ➜ Ruby II
 ----------------
-- Log fourteen workouts or more.
-- Reach overall 76+ with Shoulders 66+.
-- Accumulate 400,000+ volume while recording fifteen PRs (two double-bodyweight if possible).
+- Log 14 Workouts
+- Achieve 76+ Score Overall
+- Achieve 66+ Score in Shoulders
+- Lift 400,000 lbs Total
 
 Ruby II ➜ Ruby III
 ------------------
-- Log fifteen workouts or more.
-- Keep all axes at 64+ with overall 78+.
-- Move 425,000+ volume and record fifteen PRs (four multi-rep).
+- Log 15 Workouts
+- Achieve 78+ Score Overall
+- Achieve 64+ Score in Shoulders
+- Achieve 64+ Score in Legs
+- Lift 425,000 lbs Total
 
 Ruby III ➜ Ruby IV
 ------------------
-- Log fifteen workouts or more.
-- Reach overall 80+ with Shoulders 70+.
-- Move 450,000+ volume and record sixteen PRs.
+- Log 15 Workouts
+- Achieve 80+ Score Overall
+- Achieve 70+ Score in Shoulders
+- Lift 450,000 lbs Total
 
 Ruby IV ➜ Ruby V
 ----------------
-- Log sixteen workouts or more.
-- Reach overall 82+ with Shoulders 72+.
-- Move 475,000+ volume while recording sixteen PRs.
+- Log 16 Workouts
+- Achieve 82+ Score Overall
+- Achieve 72+ Score in Shoulders
+- Lift 475,000 lbs Total
 
 Ruby V ➜ Platinum I
 -------------------
-- Log sixteen workouts or more.
-- Reach overall 84+ and keep every axis at 72+.
-- Move 500,000+ volume while recording seventeen PRs.
+- Log 16 Workouts
+- Achieve 84+ Score Overall
+- Achieve 72+ Score in Shoulders
+- Achieve 72+ Score in Legs
+- Lift 500,000 lbs Total
 
 Platinum I ➜ Platinum II
 ------------------------
-- Log seventeen workouts or more.
-- Reach overall 85+ with Shoulders 76+.
-- Move 530,000+ volume while recording eighteen PRs.
+- Log 17 Workouts
+- Achieve 85+ Score Overall
+- Achieve 76+ Score in Shoulders
+- Lift 530,000 lbs Total
 
 Platinum II ➜ Platinum III
 --------------------------
-- Log seventeen workouts or more.
-- Reach overall 86+ with Shoulders 78+.
-- Move 555,000+ volume while recording eighteen PRs (three total-strength).
+- Log 17 Workouts
+- Achieve 86+ Score Overall
+- Achieve 78+ Score in Shoulders
+- Lift 555,000 lbs Total
 
 Platinum III ➜ Platinum IV
 --------------------------
-- Log eighteen workouts or more.
-- Reach overall 87+ with Shoulders 80+.
-- Move 580,000+ volume while logging nineteen PRs.
+- Log 18 Workouts
+- Achieve 87+ Score Overall
+- Achieve 80+ Score in Shoulders
+- Lift 580,000 lbs Total
 
 Platinum IV ➜ Platinum V
 ------------------------
-- Log eighteen workouts or more.
-- Reach overall 88+ with Shoulders 82+.
-- Move 605,000+ volume while recording nineteen PRs (four multi-rep).
+- Log 18 Workouts
+- Achieve 88+ Score Overall
+- Achieve 82+ Score in Shoulders
+- Lift 605,000 lbs Total
 
 Platinum V ➜ Diamond I
 ----------------------
-- Log nineteen workouts or more.
-- Reach overall 89+ with Shoulders 84+.
-- Move 630,000+ volume while recording twenty PRs.
+- Log 19 Workouts
+- Achieve 89+ Score Overall
+- Achieve 84+ Score in Shoulders
+- Lift 630,000 lbs Total
 
 Diamond I ➜ Diamond II
 ----------------------
-- Log twenty workouts or more.
-- Reach overall 90+ with Shoulders 86+.
-- Move 660,000+ volume while recording twenty-one PRs (four improved single-rep).
+- Log 20 Workouts
+- Achieve 90+ Score Overall
+- Achieve 86+ Score in Shoulders
+- Lift 660,000 lbs Total
 
 Diamond II ➜ Diamond III
 ------------------------
-- Log twenty workouts or more.
-- Reach overall 91+ with Shoulders 87+.
-- Move 690,000+ volume while recording twenty-one PRs and 190 lifetime PRs.
+- Log 20 Workouts
+- Achieve 91+ Score Overall
+- Achieve 87+ Score in Shoulders
+- Lift 690,000 lbs Total
 
 Diamond III ➜ Diamond IV
 ------------------------
-- Log twenty-one workouts or more.
-- Reach overall 92+ with Shoulders 88+.
-- Move 720,000+ volume while recording twenty-two PRs.
+- Log 21 Workouts
+- Achieve 92+ Score Overall
+- Achieve 88+ Score in Shoulders
+- Lift 720,000 lbs Total
 
 Diamond IV ➜ Diamond V
 ----------------------
-- Log twenty-two workouts or more.
-- Hit at least 100 lifetime workouts.
-- Reach overall 94+ while moving 750,000+ volume and recording twenty-four PRs (two top-one-percent lifts).
+- Log 22 Workouts
+- Log 100 Workouts
+- Achieve 94+ Score Overall
+- Lift 750,000 lbs Total

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
+import Svg, { Path } from "react-native-svg";
 
 import theme from "../../../theme/mfpDark";
 import { scaleSize } from "../layoutConstants";
@@ -8,6 +9,7 @@ import rankLevelPromotionRequirements from "../../../data/rankLevelTasks";
 
 const SCREEN_WIDTH = Dimensions.get("window").width || 360;
 const REQUIREMENT_TEXT_WIDTH = SCREEN_WIDTH * 0.4;
+const COMPLETED_TASK_COLOR = "rgba(245, 247, 255, 0.5)";
 
 const TIER_ORDER_DESC = ["diamond", "platinum", "ruby", "gold", "silver", "bronze"];
 const LEVEL_ORDER_DESC = ["V", "IV", "III", "II", "I"];
@@ -142,13 +144,29 @@ export default function ExercisesSection({ onScroll }) {
                                         <React.Fragment key={`${entry.key}-requirement-${requirementIndex}`}>
                                             <View style={styles.requirementStep}>
                                                 <View style={styles.requirementMarkerStack}>
-                                                    <View style={[styles.requirementGlow, requirementsCompleted && styles.requirementGlowCompleted]} />
                                                     <View
                                                         style={[
                                                             styles.requirementMarker,
                                                             requirementsCompleted && styles.requirementMarkerCompleted,
                                                         ]}
-                                                    />
+                                                    >
+                                                        {requirementsCompleted && (
+                                                            <Svg
+                                                                width={scaleSize(22)}
+                                                                height={scaleSize(22)}
+                                                                viewBox="0 0 24 24"
+                                                            >
+                                                                <Path
+                                                                    d="M5 13l4 4L19 7"
+                                                                    fill="none"
+                                                                    stroke="#000000"
+                                                                    strokeWidth={scaleSize(3)}
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                />
+                                                            </Svg>
+                                                        )}
+                                                    </View>
                                                 </View>
                                                 <Text
                                                     style={[
@@ -197,22 +215,12 @@ const styles = StyleSheet.create({
     },
     requirementStep: {
         alignItems: "center",
-        marginBottom: scaleSize(8),
+        // marginBottom: scaleSize(8),
     },
     requirementMarkerStack: {
         alignItems: "center",
         justifyContent: "center",
         position: "relative",
-    },
-    requirementGlow: {
-        position: "absolute",
-        width: scaleSize(64),
-        height: scaleSize(64),
-        borderRadius: scaleSize(32),
-        backgroundColor: "rgba(92,198,255,0.08)",
-    },
-    requirementGlowCompleted: {
-        backgroundColor: "rgba(92,198,255,0.24)",
     },
     requirementMarker: {
         width: scaleSize(30),
@@ -225,26 +233,26 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: scaleSize(2) },
         shadowOpacity: 0.25,
         shadowRadius: scaleSize(4),
+        alignItems: "center",
+        justifyContent: "center",
     },
     requirementMarkerCompleted: {
         backgroundColor: "#5cc6ff",
-        borderColor: "#c9f2ff",
     },
     requirementSpacer: {
         height: scaleSize(42),
     },
     requirementText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(17),
         color: "#f6f8ff",
         textAlign: "center",
-        marginTop: scaleSize(18),
         letterSpacing: 0.6,
+        marginTop: scaleSize(10),
         width: REQUIREMENT_TEXT_WIDTH,
         alignSelf: "center",
     },
     requirementTextCompleted: {
-        color: "rgba(245, 247, 255, 0.5)",
-        textDecorationLine: "line-through",
+        color: COMPLETED_TASK_COLOR,
     },
 });
