@@ -30,9 +30,9 @@ import {
 } from "../utils/competitionTabEvents";
 
 const VIEW_TABS = [
-    { key: "exercises", label: "Ladder" },
-    { key: "leaderboard", label: "Compete" },
     { key: "progress", label: "Progress" },
+    { key: "leaderboard", label: "Compete" },
+    { key: "exercises", label: "Ladder" },
 ];
 const resolveTabKey = (candidate) => {
     if (typeof candidate !== "string") return null;

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
-import Svg, { Path } from "react-native-svg";
+import { LinearGradient } from "expo-linear-gradient";
 
 import theme from "../../../theme/mfpDark";
 import { scaleSize } from "../layoutConstants";
@@ -22,18 +22,16 @@ const DISPLAY_TITLES = {
 };
 const CURRENT_RANK = { tier: "gold", level: "III" };
 
-const RANK_REQUIREMENT_COLORS = {
-    bronze: "#f0f6ffd5",
-    silver: "#f0f6ffd5",
-    gold: "#f0f6ffd5",
-    platinum: "#f0f6ffd5",
-    ruby: "#f0f6ffd5",
-    sapphire: "#f0f6ffd5",
-    diamond: "#f0f6ffd5",
+const CARD_THEME_COLORS = {
+    bronze: { gradient: ["#402515", "#8b5a2b"], accent: "#f7d6a0" },
+    silver: { gradient: ["#4e617c", "#a1b7d6"], accent: "#e5f2ff" },
+    gold: { gradient: ["#6b4000", "#f0c15a"], accent: "#ffe9b8" },
+    ruby: { gradient: ["#6c1a2e", "#e54b73"], accent: "#ffc6d9" },
+    platinum: { gradient: ["#324a63", "#7dbff2"], accent: "#daf0ff" },
+    diamond: { gradient: ["#0c2538", "#6ae0ff"], accent: "#d8fbff" },
 };
-const DEFAULT_REQUIREMENT_COLOR = "#f0f6ffd5";
 
-const CURRENT_CARD_OFFSET = scaleSize(-350);
+const CURRENT_CARD_OFFSET = scaleSize(-400);
 
 const LADDER_LEVELS = TIER_ORDER_DESC.flatMap((tier) =>
     LEVEL_ORDER_DESC.map((level) => {
@@ -49,11 +47,6 @@ const LADDER_LEVELS = TIER_ORDER_DESC.flatMap((tier) =>
 );
 const CURRENT_RANK_INDEX = LADDER_LEVELS.findIndex((entry) => entry.isCurrent);
 const CURRENT_RANK_KEY = CURRENT_RANK_INDEX >= 0 ? LADDER_LEVELS[CURRENT_RANK_INDEX]?.key : null;
-
-const resolveTierColor = (tier) => {
-    const normalized = String(tier || "").toLowerCase().trim();
-    return RANK_REQUIREMENT_COLORS[normalized] || DEFAULT_REQUIREMENT_COLOR;
-};
 
 const buildLevelKey = (tier, rankLabel) => {
     const normalizedTier = String(tier || "").toLowerCase().trim();
@@ -148,6 +141,8 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                     ? buildLevelKey(nextLevelEntry.rankTier, nextLevelEntry.rankLabel)
                     : null;
                 const promotionRequirements = promotionKey ? rankLevelPromotionRequirements[promotionKey] : null;
+                const promotionThemeKey =
+                    promotionRequirements?.theme || nextLevelEntry?.rankTier || entry.rankTier;
                 const nextLevelIndex = nextLevelEntry ? index + 1 : null;
                 const isImmediatePromotionTarget =
                     typeof nextLevelIndex === "number" && nextLevelIndex === CURRENT_RANK_INDEX;
@@ -155,11 +150,6 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                     !isImmediatePromotionTarget &&
                     typeof nextLevelIndex === "number" &&
                     CURRENT_RANK_INDEX < nextLevelIndex;
-                const requirementTextColor = nextLevelEntry
-                    ? resolveTierColor(nextLevelEntry.rankTier)
-                    : DEFAULT_REQUIREMENT_COLOR;
-                const shouldDimRequirementText =
-                    requirementsCompleted && !isImmediatePromotionTarget && !entry.isCurrent;
                 const shouldDimRequirementsBlock = cardShouldDim && !isImmediatePromotionTarget;
                 return (
                     <View
@@ -182,52 +172,68 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                         {promotionRequirements && (
                             <View
                                 style={[
-                                    styles.requirementsTimeline,
+                                    styles.requirementCardsColumn,
                                     shouldDimRequirementsBlock && styles.dimmedCard,
                                 ]}
                             >
                                 {promotionRequirements.tasks.map((task, requirementIndex) => {
-                                    const isLast = requirementIndex === promotionRequirements.tasks.length - 1;
+                                    const themeKey = promotionThemeKey || entry.rankTier;
+                                    const themeColors = CARD_THEME_COLORS[themeKey] || CARD_THEME_COLORS.gold;
+                                    const taskComplete = requirementsCompleted;
                                     return (
-                                        <React.Fragment key={`${entry.key}-requirement-${requirementIndex}`}>
-                                            <View style={styles.requirementStep}>
-                                                <View style={styles.requirementMarkerStack}>
+                                        <View key={`${entry.key}-requirement-${requirementIndex}`} style={styles.requirementCardWrapper}>
+                                            <LinearGradient colors={themeColors.gradient} style={styles.requirementCard}>
+                                                <View style={styles.requirementCardRow}>
+                                                    <View style={[styles.requirementTicket, { backgroundColor: `${themeColors.accent}25` }]}>
+                                                        <Text style={styles.requirementTicketText}>
+                                                            {String(requirementIndex + 1).padStart(2, "0")}
+                                                        </Text>
+                                                    </View>
+                                                    <View style={styles.requirementTextContainer}>
+                                                        <Text
+                                                            style={[
+                                                                styles.requirementCardTitle,
+                                                                taskComplete && styles.requirementTextCompleted,
+                                                            ]}
+                                                        >
+                                                            {task}
+                                                        </Text>
+                                                    </View>
                                                     <View
                                                         style={[
-                                                            styles.requirementMarker,
-                                                            requirementsCompleted && styles.requirementMarkerCompleted,
+                                                            styles.requirementStatusBadge,
+                                                            taskComplete
+                                                                ? [styles.requirementStatusBadgeDone, { backgroundColor: themeColors.accent }]
+                                                                : styles.requirementStatusBadgeActive,
                                                         ]}
                                                     >
-                                                        {requirementsCompleted && (
-                                                            <Svg
-                                                                width={scaleSize(22)}
-                                                                height={scaleSize(22)}
-                                                                viewBox="0 0 24 24"
-                                                            >
-                                                                <Path
-                                                                    d="M5 13l4 4L19 7"
-                                                                    fill="none"
-                                                                    stroke="#000000"
-                                                                    strokeWidth={scaleSize(3)}
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                />
-                                                            </Svg>
-                                                        )}
-                                                    </View>
+                                                        <Text
+                                                            style={[
+                                                                styles.requirementStatusIcon,
+                                                                taskComplete && styles.requirementStatusIconDone,
+                                                            ]}
+                                                        >
+                                                            ✓
+                                                        </Text>
                                                 </View>
-                                                    <Text
+                                                </View>
+                                                <View style={styles.requirementProgressTrack}>
+                                                    <View
                                                         style={[
-                                                            styles.requirementText,
-                                                            { color: requirementTextColor },
-                                                            shouldDimRequirementText && styles.requirementTextCompleted,
+                                                            styles.requirementProgressFill,
+                                                            {
+                                                                width: taskComplete ? "100%" : "30%",
+                                                                backgroundColor: themeColors.accent,
+                                                                opacity: taskComplete ? 1 : 0.5,
+                                                            },
                                                         ]}
-                                                    >
-                                                        {task}
+                                                    />
+                                                    <Text style={styles.requirementProgressText}>
+                                                        {taskComplete ? "1 / 1" : "0 / 1"}
                                                     </Text>
-                                            </View>
-                                            {!isLast && <View style={styles.requirementSpacer} />}
-                                        </React.Fragment>
+                                                </View>
+                                            </LinearGradient>
+                                        </View>
                                     );
                                 })}
                             </View>
@@ -249,7 +255,7 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(140),
     },
     cardWrapper: {
-        marginBottom: scaleSize(20),
+        // marginBottom: scaleSize(20),
     },
     firstCard: {
         marginTop: scaleSize(8),
@@ -257,49 +263,97 @@ const styles = StyleSheet.create({
     dimmedCard: {
         opacity: 0.18,
     },
-    requirementsTimeline: {
-        marginTop: scaleSize(20),
-        marginBottom: scaleSize(20),
-        alignItems: "center",
+    requirementCardsColumn: {
+        marginTop: scaleSize(18),
     },
-    requirementStep: {
-        alignItems: "center",
-        // marginBottom: scaleSize(8),
-    },
-    requirementMarkerStack: {
-        alignItems: "center",
-        justifyContent: "center",
-        position: "relative",
-    },
-    requirementMarker: {
-        width: scaleSize(30),
-        height: scaleSize(30),
-        borderRadius: scaleSize(15),
-        borderWidth: scaleSize(3),
-        borderColor: "#5cc6ff",
-        backgroundColor: "rgba(92,198,255,0.12)",
-        shadowColor: "#5cc6ff",
-        shadowOffset: { width: 0, height: scaleSize(2) },
+    requirementCardWrapper: {
+        marginBottom: scaleSize(18),
+        borderRadius: scaleSize(18),
+        overflow: "hidden",
+        shadowColor: "#000000",
         shadowOpacity: 0.25,
-        shadowRadius: scaleSize(4),
+        shadowOffset: { width: 0, height: scaleSize(5) },
+        shadowRadius: scaleSize(8),
+    },
+    requirementCard: {
+        borderRadius: scaleSize(18),
+        paddingVertical: scaleSize(14),
+        paddingHorizontal: scaleSize(16),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.2)",
+    },
+    requirementCardRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        marginBottom: scaleSize(12),
+    },
+    requirementTicket: {
+        borderRadius: scaleSize(14),
+        paddingHorizontal: scaleSize(10),
+        paddingVertical: scaleSize(4),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.25)",
+    },
+    requirementTicketText: {
+        fontFamily: "Outfit_800ExtraBold",
+        fontSize: scaleSize(12),
+        color: "#fff",
+    },
+    requirementTextContainer: {
+        flex: 1,
+        paddingHorizontal: scaleSize(10),
+    },
+    requirementCardTitle: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(15),
+        color: "#fffdf3",
+        letterSpacing: 0.5,
+    },
+    requirementStatusBadge: {
+        width: scaleSize(32),
+        height: scaleSize(32),
+        borderRadius: scaleSize(16),
         alignItems: "center",
         justifyContent: "center",
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.35)",
+        backgroundColor: "rgba(0,0,0,0.25)",
     },
-    requirementMarkerCompleted: {
-        backgroundColor: "#5cc6ff",
+    requirementStatusBadgeDone: {
+        backgroundColor: theme.primary,
     },
-    requirementSpacer: {
-        height: scaleSize(40),
+    requirementStatusBadgeActive: {
+        backgroundColor: "rgba(255,255,255,0.15)",
     },
-    requirementText: {
+    requirementStatusIcon: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(16),
+        color: "#1c1c1c",
+    },
+    requirementStatusIconDone: {
+        color: "#ffffff",
+    },
+    requirementProgressTrack: {
+        height: scaleSize(16),
+        borderRadius: scaleSize(10),
+        backgroundColor: "rgba(0,0,0,0.35)",
+        overflow: "hidden",
+        justifyContent: "center",
+    },
+    requirementProgressFill: {
+        position: "absolute",
+        left: 0,
+        top: 0,
+        bottom: 0,
+        borderRadius: scaleSize(10),
+    },
+    requirementProgressText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(11),
+        color: "rgba(10,10,10,0.78)",
         textAlign: "center",
-        letterSpacing: 0.6,
-        marginTop: scaleSize(8),
-        width: REQUIREMENT_TEXT_WIDTH,
-        alignSelf: "center",
     },
     requirementTextCompleted: {
+        color: "rgba(255,255,255,0.55)",
     },
 });
