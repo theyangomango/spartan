@@ -29,10 +29,64 @@ import { subscribeUserData } from "../../../utils/userDataEvents";
 import { derivePublicWeightFields } from "../../../utils/weightEntries";
 import { DEVICE_WIDTH, scaleSize, ts } from "../layoutConstants";
 import { chartPointerStyles, chartTypography, chartCardTypography, chartCardLayout } from "../../charts/chartStyles";
-import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from "react-native-svg";
+import Svg, { Circle, Defs, G, LinearGradient, Line, Path, Stop } from "react-native-svg";
 import { navigateOneWay } from "../../../../navigationRef";
 
 const WORKOUT_TIMESTAMP_FIELDS = ["created"];
+
+const CHART_ACCENTS = {
+    standard: { r: 100, g: 160, b: 255 },
+    weight: { r: 45, g: 158, b: 255 },
+};
+
+const accentToRgba = (accent, alpha) => {
+    const { r, g, b } = accent;
+    const boundedAlpha = Math.max(0, Math.min(alpha, 1));
+    return `rgba(${r}, ${g}, ${b}, ${boundedAlpha})`;
+};
+
+// Renders the multi-layer bubble with halo and highlight for a chart data point.
+const ChartBubble = ({ cx, cy, isActive, accent = CHART_ACCENTS.standard }) => {
+    const coreRadius = isActive ? scaleSize(6.4) : scaleSize(4.8);
+    const ringRadius = coreRadius + scaleSize(isActive ? 2.2 : 1.5);
+    const haloRadius = coreRadius + scaleSize(isActive ? 6.2 : 4.6);
+    const highlightRadius = coreRadius * (isActive ? 0.42 : 0.36);
+    const innerStrokeWidth = isActive ? scaleSize(1) : scaleSize(0.8);
+
+    return (
+        <G>
+            <Circle
+                cx={cx}
+                cy={cy}
+                r={haloRadius}
+                fill={accentToRgba(accent, isActive ? 0.32 : 0.18)}
+            />
+            <Circle
+                cx={cx}
+                cy={cy}
+                r={ringRadius}
+                stroke={accentToRgba(accent, isActive ? 0.78 : 0.5)}
+                strokeWidth={isActive ? scaleSize(2) : scaleSize(1.2)}
+                fill="rgba(255, 255, 255, 0.08)"
+            />
+            <Circle
+                cx={cx}
+                cy={cy}
+                r={coreRadius}
+                fill={isActive ? "#F8FBFF" : "#E3EBFF"}
+                stroke="rgba(14, 24, 35, 0.35)"
+                strokeWidth={innerStrokeWidth}
+            />
+            <Circle
+                cx={cx}
+                cy={cy - scaleSize(isActive ? 1.2 : 0.9)}
+                r={highlightRadius}
+                fill="rgba(255, 255, 255, 0.95)"
+                opacity={isActive ? 0.95 : 0.55}
+            />
+        </G>
+    );
+};
 
 const toMillisSafe = (value) => {
     if (value === null || value === undefined) return 0;
@@ -2665,28 +2719,14 @@ const completedWorkouts = useMemo(
                                             />
                                         ) : null}
 
-                                        {volumeChartPoints.map((point, index) => {
-                                            const isActive = index === volumeActiveIndex;
-                                            const radius = isActive ? scaleSize(6) : scaleSize(4.2);
-                                            const strokeWidth = isActive ? scaleSize(2) : scaleSize(1);
-                                            const strokeColor = isActive
-                                                ? "rgba(100, 160, 255, 0.9)"
-                                                : "rgba(100, 160, 255, 0.45)";
-                                            const fillColor = isActive
-                                                ? "#E1EEFF"
-                                                : "rgba(225, 238, 255, 0.78)";
-                                            return (
-                                                <Circle
-                                                    key={point.entry?.id || `volume-point-${index}`}
-                                                    cx={point.x}
-                                                    cy={point.y}
-                                                    r={radius}
-                                                    fill={fillColor}
-                                                    stroke={strokeColor}
-                                                    strokeWidth={strokeWidth}
-                                                />
-                                            );
-                                        })}
+                                        {volumeChartPoints.map((point, index) => (
+                                            <ChartBubble
+                                                key={point.entry?.id || `volume-point-${index}`}
+                                                cx={point.x}
+                                                cy={point.y}
+                                                isActive={index === volumeActiveIndex}
+                                            />
+                                        ))}
                                     </Svg>
 
                                     {volumeXAxisLabels.length ? (
@@ -2953,28 +2993,14 @@ const completedWorkouts = useMemo(
                                             />
                                         ) : null}
 
-                                        {repsChartPoints.map((point, index) => {
-                                            const isActive = index === repsActiveIndex;
-                                            const radius = isActive ? scaleSize(6) : scaleSize(4.2);
-                                            const strokeWidth = isActive ? scaleSize(2) : scaleSize(1);
-                                            const strokeColor = isActive
-                                                ? "rgba(100, 160, 255, 0.9)"
-                                                : "rgba(100, 160, 255, 0.45)";
-                                            const fillColor = isActive
-                                                ? "#E1EEFF"
-                                                : "rgba(225, 238, 255, 0.78)";
-                                            return (
-                                                <Circle
-                                                    key={point.entry?.id || `reps-point-${index}`}
-                                                    cx={point.x}
-                                                    cy={point.y}
-                                                    r={radius}
-                                                    fill={fillColor}
-                                                    stroke={strokeColor}
-                                                    strokeWidth={strokeWidth}
-                                                />
-                                            );
-                                        })}
+                                        {repsChartPoints.map((point, index) => (
+                                            <ChartBubble
+                                                key={point.entry?.id || `reps-point-${index}`}
+                                                cx={point.x}
+                                                cy={point.y}
+                                                isActive={index === repsActiveIndex}
+                                            />
+                                        ))}
                                     </Svg>
 
                                     {repsXAxisLabels.length ? (
@@ -3251,28 +3277,14 @@ const completedWorkouts = useMemo(
                                                 />
                                             ) : null}
 
-                                            {personalRecordChartPoints.map((point, index) => {
-                                                const isActive = index === personalRecordActiveIndex;
-                                                const radius = isActive ? scaleSize(6) : scaleSize(4.2);
-                                                const strokeWidth = isActive ? scaleSize(2) : scaleSize(1);
-                                                const strokeColor = isActive
-                                                    ? 'rgba(100, 160, 255, 0.9)'
-                                                    : 'rgba(100, 160, 255, 0.45)';
-                                                const fillColor = isActive
-                                                    ? '#E1EEFF'
-                                                    : 'rgba(225, 238, 255, 0.78)';
-                                                return (
-                                                    <Circle
-                                                        key={`personal-record-point-${index}`}
-                                                        cx={point.x}
-                                                        cy={point.y}
-                                                        r={radius}
-                                                        fill={fillColor}
-                                                        stroke={strokeColor}
-                                                        strokeWidth={strokeWidth}
-                                                    />
-                                                );
-                                            })}
+                                            {personalRecordChartPoints.map((point, index) => (
+                                                <ChartBubble
+                                                    key={`personal-record-point-${index}`}
+                                                    cx={point.x}
+                                                    cy={point.y}
+                                                    isActive={index === personalRecordActiveIndex}
+                                                />
+                                            ))}
                                         </Svg>
 
                                         {personalRecordXAxisLabels.length ? (
@@ -3542,28 +3554,15 @@ const completedWorkouts = useMemo(
                                             />
                                         ) : null}
 
-                                        {weightChartPoints.map((point, index) => {
-                                            const isActive = index === activeIndex;
-                                            const radius = isActive ? scaleSize(6) : scaleSize(4.2);
-                                            const strokeWidth = isActive ? scaleSize(2) : scaleSize(1);
-                                            const strokeColor = isActive
-                                                ? "rgba(45, 158, 255, 0.9)"
-                                                : "rgba(45, 158, 255, 0.45)";
-                                            const fillColor = isActive
-                                                ? "#E1EEFF"
-                                                : "rgba(225, 238, 255, 0.78)";
-                                            return (
-                                                <Circle
-                                                    key={point.entry?.id || `point-${index}`}
-                                                    cx={point.x}
-                                                    cy={point.y}
-                                                    r={radius}
-                                                    fill={fillColor}
-                                                    stroke={strokeColor}
-                                                    strokeWidth={strokeWidth}
-                                                />
-                                            );
-                                        })}
+                                        {weightChartPoints.map((point, index) => (
+                                            <ChartBubble
+                                                key={point.entry?.id || `point-${index}`}
+                                                cx={point.x}
+                                                cy={point.y}
+                                                isActive={index === activeIndex}
+                                                accent={CHART_ACCENTS.weight}
+                                            />
+                                        ))}
                                     </Svg>
 
                                     {weightXAxisLabels.length ? (
@@ -3732,10 +3731,10 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(130),
     },
     chartDivider: {
-        height: scaleSize(18),
+        height: scaleSize(4),
         width: "100%",
         backgroundColor: theme.surface,
-        marginVertical: scaleSize(18),
+        marginVertical: scaleSize(4),
     },
     card: {
         backgroundColor: theme.bg,

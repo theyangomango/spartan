@@ -9,6 +9,7 @@ import scaleSize from "../../helper/scaleSize";
 import { strong as triggerStrongHaptic } from "../../utils/haptics";
 import HumanMuscleOutline from "../../assets/human_muscle_outline";
 import HumanMuscleBackOutline from "../../assets/human_muscle_back_outline";
+import { deriveBadgeDetailColors, resolveLevelStage, withAlpha } from "../2_Competition/rankBadgeLevelHelpers";
 
 const RANK_TAB_CONFIG = [
     {
@@ -206,9 +207,21 @@ const sanitizeTabKey = (key) => {
     return RANK_TAB_CONFIG.some((tab) => tab.key === normalized) ? normalized : null;
 };
 
+const extractLevelFromLabel = (label) => {
+    if (typeof label !== "string") return null;
+    const trimmed = label.trim();
+    if (!trimmed) return null;
+    const tokens = trimmed.split(/\s+/);
+    const candidate = tokens[tokens.length - 1];
+    if (!candidate) return null;
+    const roman = candidate.replace(/[^ivIV]+/g, "");
+    return roman || candidate;
+};
+
 export default function FeedSnapshotCard({
     rankTier = "gold",
     rankLabel,
+    rankLevel = null,
     overallRating = null,
     showRankTabs = true,
     enableRankAnimations = true,
@@ -220,8 +233,18 @@ export default function FeedSnapshotCard({
     const normalizedRankTier = String(rankTier || "gold").toLowerCase();
     const rankTheme = RANK_TIER_THEMES[normalizedRankTier] || RANK_TIER_THEMES.gold;
     const resolvedRankLabel = rankLabel || rankTheme.displayName || normalizedRankTier;
+    const resolvedRankLevel = rankLevel || extractLevelFromLabel(resolvedRankLabel);
     const resolvedOverallRating =
         (overallRating ?? rankTheme.overallRating ?? RANK_TIER_THEMES.gold.overallRating);
+    const rankLevelStage = resolveLevelStage(resolvedRankLevel);
+    const badgeDetailColors = deriveBadgeDetailColors(rankTheme, RANK_TIER_THEMES.gold);
+    const showSeedGem = rankLevelStage === 1;
+    const showGem = rankLevelStage >= 2;
+    const showInnerShell = rankLevelStage >= 3;
+    const showOuterShell = rankLevelStage >= 4;
+    const showBadgeWings = rankLevelStage >= 5;
+    const minimalShellColor = withAlpha(badgeDetailColors.accentPrimary, 0.12);
+    const minimalShellBorder = withAlpha(badgeDetailColors.accentPrimary, 0.45);
 
     const pointsToNextRank = useMemo(() => {
         const ratingNumber = Number(resolvedOverallRating);
@@ -267,6 +290,179 @@ export default function FeedSnapshotCard({
                   subtitle: activeRankTabConfig.placeholderSubtitle || "Content coming soon.",
               }
             : null;
+
+    const renderBadgeCore = () => (
+        <View
+            style={[
+                styles.rankBadgeCore,
+                !showInnerShell && !showOuterShell ? styles.rankBadgeCoreExpanded : null,
+                {
+                    backgroundColor: rankTheme.badgeCoreColor || goldTheme.badgeCoreColor,
+                    shadowColor: rankTheme.badgeCoreShadowColor || goldTheme.badgeCoreShadowColor,
+                },
+            ]}
+        >
+            <View pointerEvents="none" style={styles.rankBadgeLevelLayer}>
+                {rankLevelStage >= 2 && (
+                    <View
+                        style={[
+                            styles.rankBadgeLevelRing,
+                            { borderColor: badgeDetailColors.ringColor },
+                        ]}
+                    />
+                )}
+                {rankLevelStage >= 3 && (
+                    <>
+                        <View
+                            style={[
+                                styles.rankBadgeLevelRay,
+                                { backgroundColor: badgeDetailColors.sparkleColor },
+                            ]}
+                        />
+                        <View
+                            style={[
+                                styles.rankBadgeLevelRay,
+                                styles.rankBadgeLevelRayVertical,
+                                { backgroundColor: badgeDetailColors.sparkleColor },
+                            ]}
+                        />
+                    </>
+                )}
+                {rankLevelStage >= 4 && (
+                    <>
+                        <View
+                            style={[
+                                styles.rankBadgeLevelSparkle,
+                                styles.rankBadgeLevelSparkleTopLeft,
+                                {
+                                    backgroundColor: badgeDetailColors.sparkleColor,
+                                    shadowColor: badgeDetailColors.sparkleColor,
+                                },
+                            ]}
+                        />
+                        <View
+                            style={[
+                                styles.rankBadgeLevelSparkle,
+                                styles.rankBadgeLevelSparkleBottomRight,
+                                {
+                                    backgroundColor: badgeDetailColors.sparkleColor,
+                                    shadowColor: badgeDetailColors.sparkleColor,
+                                },
+                            ]}
+                        />
+                    </>
+                )}
+                {showBadgeWings && (
+                    <>
+                        <View
+                            style={[
+                                styles.rankBadgeLevelFlare,
+                                styles.rankBadgeLevelFlareLeft,
+                                {
+                                    backgroundColor: badgeDetailColors.wingColor,
+                                    shadowColor: badgeDetailColors.wingColor,
+                                },
+                            ]}
+                        />
+                        <View
+                            style={[
+                                styles.rankBadgeLevelFlare,
+                                styles.rankBadgeLevelFlareRight,
+                                {
+                                    backgroundColor: badgeDetailColors.wingColor,
+                                    shadowColor: badgeDetailColors.wingColor,
+                                },
+                            ]}
+                        />
+                    </>
+                )}
+            </View>
+            {showSeedGem && (
+                <View
+                    style={[
+                        styles.rankBadgeSeedGem,
+                        {
+                            backgroundColor: badgeDetailColors.accentPrimary,
+                        },
+                    ]}
+                />
+            )}
+            {showGem ? (
+                <>
+                    <View
+                        style={[
+                            styles.rankBadgeGem,
+                            !showInnerShell && !showOuterShell ? styles.rankBadgeGemStandalone : null,
+                            {
+                                backgroundColor: rankTheme.badgeGemColor || goldTheme.badgeGemColor,
+                                borderColor: rankTheme.badgeGemBorderColor || goldTheme.badgeGemBorderColor,
+                            },
+                        ]}
+                    />
+                    <View
+                        style={[
+                            styles.rankBadgeGemInner,
+                            !showInnerShell && !showOuterShell ? styles.rankBadgeGemInnerStandalone : null,
+                            {
+                                backgroundColor:
+                                    rankTheme.badgeGemInnerColor || goldTheme.badgeGemInnerColor,
+                                borderColor:
+                                    rankTheme.badgeGemInnerBorderColor || goldTheme.badgeGemInnerBorderColor,
+                            },
+                        ]}
+                    />
+                </>
+            ) : null}
+        </View>
+    );
+
+    const renderBadgeShell = () => {
+        const core = renderBadgeCore();
+        if (showOuterShell) {
+            return (
+                <LinearGradient
+                    colors={rankTheme.badgeOuterGradient || goldTheme.badgeOuterGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.rankBadgeOuter}
+                >
+                    <LinearGradient
+                        colors={rankTheme.badgeInnerGradient || goldTheme.badgeInnerGradient}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 1 }}
+                        style={styles.rankBadgeInner}
+                    >
+                        {core}
+                    </LinearGradient>
+                </LinearGradient>
+            );
+        }
+        if (showInnerShell) {
+            return (
+                <LinearGradient
+                    colors={rankTheme.badgeInnerGradient || goldTheme.badgeInnerGradient}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.rankBadgeInnerStandalone}
+                >
+                    {core}
+                </LinearGradient>
+            );
+        }
+        return (
+            <View
+                style={[
+                    styles.rankBadgeMinimalShell,
+                    {
+                        backgroundColor: minimalShellColor,
+                        borderColor: minimalShellBorder,
+                    },
+                ]}
+            >
+                {core}
+            </View>
+        );
+    };
 
     const particles = useMemo(() => {
         if (!enableRankAnimations) return [];
@@ -496,69 +692,23 @@ export default function FeedSnapshotCard({
                                     enableRankAnimations ? { transform: [{ scale: badgePulseScale }] } : null,
                                 ]}
                             >
-                                <LinearGradient
-                                    colors={rankTheme.wingGradient || goldTheme.wingGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={[styles.rankWing, styles.rankWingLeft]}
-                                />
-                                <LinearGradient
-                                    colors={rankTheme.wingGradient || goldTheme.wingGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={[styles.rankWing, styles.rankWingRight]}
-                                />
-                                <LinearGradient
-                                    colors={rankTheme.badgeOuterGradient || goldTheme.badgeOuterGradient}
-                                    start={{ x: 0, y: 0 }}
-                                    end={{ x: 1, y: 1 }}
-                                    style={styles.rankBadgeOuter}
-                                >
+                                {showBadgeWings && (
                                     <LinearGradient
-                                        colors={rankTheme.badgeInnerGradient || goldTheme.badgeInnerGradient}
+                                        colors={rankTheme.wingGradient || goldTheme.wingGradient}
                                         start={{ x: 0, y: 0 }}
                                         end={{ x: 1, y: 1 }}
-                                        style={styles.rankBadgeInner}
-                                    >
-                                        <View
-                                            style={[
-                                                styles.rankBadgeCore,
-                                                {
-                                                    backgroundColor: rankTheme.badgeCoreColor || goldTheme.badgeCoreColor,
-                                                    shadowColor:
-                                                        rankTheme.badgeCoreShadowColor ||
-                                                        goldTheme.badgeCoreShadowColor,
-                                                },
-                                            ]}
-                                        >
-                                            <View
-                                                style={[
-                                                    styles.rankBadgeGem,
-                                                    {
-                                                        backgroundColor:
-                                                            rankTheme.badgeGemColor || goldTheme.badgeGemColor,
-                                                        borderColor:
-                                                            rankTheme.badgeGemBorderColor ||
-                                                            goldTheme.badgeGemBorderColor,
-                                                    },
-                                                ]}
-                                            />
-                                            <View
-                                                style={[
-                                                    styles.rankBadgeGemInner,
-                                                    {
-                                                        backgroundColor:
-                                                            rankTheme.badgeGemInnerColor ||
-                                                            goldTheme.badgeGemInnerColor,
-                                                        borderColor:
-                                                            rankTheme.badgeGemInnerBorderColor ||
-                                                            goldTheme.badgeGemInnerBorderColor,
-                                                    },
-                                                ]}
-                                            />
-                                        </View>
-                                    </LinearGradient>
-                                </LinearGradient>
+                                        style={[styles.rankWing, styles.rankWingLeft]}
+                                    />
+                                )}
+                                {showBadgeWings && (
+                                    <LinearGradient
+                                        colors={rankTheme.wingGradient || goldTheme.wingGradient}
+                                        start={{ x: 0, y: 0 }}
+                                        end={{ x: 1, y: 1 }}
+                                        style={[styles.rankWing, styles.rankWingRight]}
+                                    />
+                                )}
+                                {renderBadgeShell()}
                             </Animated.View>
                             <Text style={[styles.rankTitle, { color: rankTheme.titleColor || goldTheme.titleColor }]}>
                                 {resolvedRankLabel}
@@ -854,6 +1004,23 @@ const styles = StyleSheet.create({
         borderWidth: scaleSize(1),
         borderColor: "rgba(255,255,255,0.25)",
     },
+    rankBadgeInnerStandalone: {
+        width: "80%",
+        height: "78%",
+        borderRadius: scaleSize(22),
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: scaleSize(1),
+        borderColor: "rgba(255,255,255,0.25)",
+    },
+    rankBadgeMinimalShell: {
+        width: "78%",
+        height: "74%",
+        borderRadius: scaleSize(22),
+        justifyContent: "center",
+        alignItems: "center",
+        borderWidth: StyleSheet.hairlineWidth,
+    },
     rankBadgeCore: {
         width: "78%",
         height: "74%",
@@ -867,6 +1034,10 @@ const styles = StyleSheet.create({
         shadowRadius: scaleSize(10),
         elevation: 4,
     },
+    rankBadgeCoreExpanded: {
+        width: "86%",
+        height: "80%",
+    },
     rankBadgeGem: {
         width: scaled(28),
         height: scaled(28),
@@ -875,6 +1046,10 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(6),
         borderWidth: scaleSize(1),
         borderColor: "rgba(166,106,13,0.4)",
+    },
+    rankBadgeGemStandalone: {
+        width: scaled(32),
+        height: scaled(32),
     },
     rankBadgeGemInner: {
         position: "absolute",
@@ -889,6 +1064,18 @@ const styles = StyleSheet.create({
         left: "50%",
         marginLeft: -scaled(7),
         marginTop: -scaled(7),
+    },
+    rankBadgeGemInnerStandalone: {
+        width: scaled(16),
+        height: scaled(16),
+    },
+    rankBadgeSeedGem: {
+        position: "absolute",
+        width: scaled(14),
+        height: scaled(14),
+        borderRadius: scaled(3),
+        transform: [{ rotate: "45deg" }],
+        opacity: 0.85,
     },
     rankProgressText: {
         fontFamily: "Outfit_500Medium",

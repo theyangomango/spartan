@@ -42,6 +42,7 @@ const LADDER_LEVELS = TIER_ORDER_DESC.flatMap((tier) =>
             key: `${tier}-${level}`,
             rankTier: tier,
             rankLabel: label,
+            rankLevel: level,
             isCurrent,
         };
     })
@@ -134,6 +135,9 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
             onLayout={handleScrollViewLayout}
             scrollEventThrottle={16}
         >
+            <Text style={[styles.topNoticeText, styles.dimmedCard]}>
+                More ranks coming soon!
+            </Text>
             {LADDER_LEVELS.map((entry, index) => {
                 const cardShouldDim =
                     CURRENT_RANK_INDEX >= 0 ? index < CURRENT_RANK_INDEX : !entry.isCurrent;
@@ -144,6 +148,7 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                 const promotionRequirements = promotionKey ? rankLevelPromotionRequirements[promotionKey] : null;
                 const promotionThemeKey =
                     promotionRequirements?.theme || nextLevelEntry?.rankTier || entry.rankTier;
+                const promotionLevel = nextLevelEntry?.rankLevel;
                 const nextLevelIndex = nextLevelEntry ? index + 1 : null;
                 const isImmediatePromotionTarget =
                     typeof nextLevelIndex === "number" && nextLevelIndex === CURRENT_RANK_INDEX;
@@ -165,6 +170,7 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                             <FeedSnapshotCard
                                 rankTier={entry.rankTier}
                                 rankLabel={entry.rankLabel}
+                                rankLevel={entry.rankLevel}
                                 showRankTabs={false}
                                 forceTabKey="rank"
                                 enableRankAnimations={entry.isCurrent}
@@ -187,6 +193,7 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                                                 <View style={styles.requirementCardRow}>
                                                     <RankTierMiniBadge
                                                         tier={promotionThemeKey}
+                                                        level="III"
                                                         size={scaleSize(30)}
                                                         style={styles.requirementBadge}
                                                     />
@@ -254,6 +261,14 @@ const styles = StyleSheet.create({
         paddingTop: scaleSize(6),
         paddingBottom: scaleSize(140),
     },
+    topNoticeText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(13),
+        color: "#f5f6ff",
+        letterSpacing: 0.3,
+        textAlign: "center",
+        marginBottom: scaleSize(10),
+    },
     cardWrapper: {
         // marginBottom: scaleSize(20),
     },
@@ -297,7 +312,7 @@ const styles = StyleSheet.create({
     requirementCardTitle: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(15),
-        color: "#fffdf3",
+        color: "#ffffff",
         letterSpacing: 0.5,
     },
     requirementStatusBadge: {
@@ -341,10 +356,10 @@ const styles = StyleSheet.create({
     requirementProgressText: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(11),
-        color: "rgba(10,10,10,0.78)",
+        color: "#0a0a0a",
         textAlign: "center",
     },
     requirementTextCompleted: {
-        color: "rgba(255,255,255,0.55)",
+        color: "#ffffff",
     },
 });
