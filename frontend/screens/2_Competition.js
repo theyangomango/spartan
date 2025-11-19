@@ -57,6 +57,10 @@ export default function Competition({ navigation, route }) {
         return "progress";
     });
     const [progressScrollSignal, setProgressScrollSignal] = useState(0);
+    const [exercisesScrollSignal, setExercisesScrollSignal] = useState(0);
+    const triggerExercisesScroll = useCallback(() => {
+        setExercisesScrollSignal(Date.now());
+    }, []);
     const slideAnim = useRef(new Animated.Value(0)).current;
     const isFirstRender = useRef(true);
     const prevWidthRef = useRef(windowWidth);
@@ -83,9 +87,15 @@ export default function Competition({ navigation, route }) {
         clearPendingCompetitionTab();
     }, [route?.params?.focusTab, navigation]);
 
-    const handleTabPress = useCallback((key) => {
-        setActiveTab(key);
-    }, []);
+    const handleTabPress = useCallback(
+        (key) => {
+            setActiveTab((current) => (current === key ? current : key));
+            if (key === "exercises" && activeTab === "exercises") {
+                triggerExercisesScroll();
+            }
+        },
+        [activeTab, triggerExercisesScroll]
+    );
     const handleTabLayout = useCallback((key, event) => {
         const { x, width } = event.nativeEvent.layout;
         setTabLayouts((prev) => {
@@ -149,6 +159,12 @@ export default function Competition({ navigation, route }) {
         ]).start();
     }, [activeTab, tabLayouts, indicatorX, indicatorWidth]);
 
+    useEffect(() => {
+        if (activeTab === "exercises") {
+            triggerExercisesScroll();
+        }
+    }, [activeTab, triggerExercisesScroll]);
+
     const sectionComponents = useMemo(
         () => ({
             leaderboard: (
@@ -164,9 +180,14 @@ export default function Competition({ navigation, route }) {
                     onScroll={handleSectionScroll}
                 />
             ),
-            exercises: <ExercisesSection onScroll={handleSectionScroll} />,
+            exercises: (
+                <ExercisesSection
+                    onScroll={handleSectionScroll}
+                    scrollSignal={exercisesScrollSignal}
+                />
+            ),
         }),
-        [navigation, handleRequestBodyWeightEntry, progressScrollSignal, handleSectionScroll]
+        [navigation, handleRequestBodyWeightEntry, progressScrollSignal, exercisesScrollSignal, handleSectionScroll]
     );
 
     return (

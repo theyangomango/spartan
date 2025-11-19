@@ -33,6 +33,8 @@ const RANK_REQUIREMENT_COLORS = {
 };
 const DEFAULT_REQUIREMENT_COLOR = "#f0f6ffd5";
 
+const CURRENT_CARD_OFFSET = scaleSize(-350);
+
 const LADDER_LEVELS = TIER_ORDER_DESC.flatMap((tier) =>
     LEVEL_ORDER_DESC.map((level) => {
         const label = `${DISPLAY_TITLES[tier] || tier} ${level}`;
@@ -63,7 +65,7 @@ const buildLevelKey = (tier, rankLabel) => {
     return `${normalizedTier}-${normalizedLevel}`;
 };
 
-export default function ExercisesSection({ onScroll }) {
+export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
     const scrollViewRef = useRef(null);
     const cardLayoutsRef = useRef({});
     const hasCenteredRef = useRef(false);
@@ -78,26 +80,41 @@ export default function ExercisesSection({ onScroll }) {
         [onScroll]
     );
 
-    const attemptCenterCurrentCard = useCallback(() => {
-        if (hasCenteredRef.current) return;
-        if (!CURRENT_RANK_KEY) return;
-        const scrollView = scrollViewRef.current;
-        if (!scrollView) return;
-        const layout = cardLayoutsRef.current[CURRENT_RANK_KEY];
-        if (!layout) return;
-        const containerHeight = scrollContainerHeight > 0 ? scrollContainerHeight : layout.height || 0;
-        const targetOffset = Math.max(0, layout.y - containerHeight / 2 + (layout.height || 0) / 2);
-        try {
-            scrollView.scrollTo({ y: targetOffset, animated: false });
-            hasCenteredRef.current = true;
-        } catch {
-            // ignore scroll failures
-        }
-    }, [scrollContainerHeight]);
+    const attemptCenterCurrentCard = useCallback(
+        (options = { animated: false }) => {
+            if (!CURRENT_RANK_KEY) return;
+            if (scrollContainerHeight <= 0) return;
+            const scrollView = scrollViewRef.current;
+            if (!scrollView) return;
+            const layout = cardLayoutsRef.current[CURRENT_RANK_KEY];
+            if (!layout) return;
+            const targetOffset = Math.max(
+                0,
+                layout.y - scrollContainerHeight / 2 + (layout.height || 0) / 2 + CURRENT_CARD_OFFSET
+            );
+            try {
+                scrollView.scrollTo({ y: targetOffset, animated: options.animated });
+                if (!options.forceKeep) {
+                    hasCenteredRef.current = true;
+                }
+            } catch {
+                // ignore scroll failures
+            }
+        },
+        [scrollContainerHeight]
+    );
 
     useEffect(() => {
-        attemptCenterCurrentCard();
+        if (hasCenteredRef.current) return;
+        attemptCenterCurrentCard({ animated: false });
     }, [attemptCenterCurrentCard]);
+
+    useEffect(() => {
+        if (!scrollSignal) return;
+        if (scrollSignal > 0) {
+            attemptCenterCurrentCard({ animated: true, forceKeep: true });
+        }
+    }, [scrollSignal, attemptCenterCurrentCard]);
 
     const handleScrollViewLayout = useCallback((event) => {
         const height = event?.nativeEvent?.layout?.height || 0;
@@ -108,7 +125,7 @@ export default function ExercisesSection({ onScroll }) {
         (key, layout) => {
             if (!key || !layout) return;
             cardLayoutsRef.current[key] = layout;
-            attemptCenterCurrentCard();
+            attemptCenterCurrentCard({ animated: false });
         },
         [attemptCenterCurrentCard]
     );
