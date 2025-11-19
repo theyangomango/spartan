@@ -108,7 +108,7 @@ export default function DateHeader({
 
 const HistoryClockIcon = ({ size = METRICS.iconSize, color = '#2563EB' }) => {
     const iconSize = (size || METRICS.iconSize) * 1.08;
-    const strokeWidth = Math.min(2.6, Math.max(1.8, iconSize * 0.095));
+    const strokeWidth = Math.min(2.3, Math.max(1.6, iconSize * 0.085));
     return (
         <Svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none">
             <Circle

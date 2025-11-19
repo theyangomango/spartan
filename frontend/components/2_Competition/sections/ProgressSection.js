@@ -2105,6 +2105,50 @@ const completedWorkouts = useMemo(
         ],
         [hasPersonalRecordChartData, hasRepsChartData, hasVolumeChartData]
     );
+    const renderMetricToggleRow = useCallback(
+        () => (
+            <View style={styles.metricToggleRow}>
+                {metricTabs.map((tab) => {
+                    const isActive = tab.key === activeMetricKey;
+                    const iconColor = isActive
+                        ? theme.textPrimary ?? "#F6F8FF"
+                        : "rgba(216,226,255,0.75)";
+                    return (
+                        <Pressable
+                            key={tab.key}
+                            onPress={() => setActiveMetricKey(tab.key)}
+                            accessibilityRole="button"
+                            accessibilityLabel={`Show ${tab.label} progress`}
+                            style={[
+                                styles.metricToggleButton,
+                                isActive && styles.metricToggleButtonActive,
+                                !tab.hasData && !isActive && styles.metricToggleButtonMuted,
+                            ]}
+                        >
+                            {tab.icon ? (
+                                <Ionicons
+                                    name={tab.icon}
+                                    size={scaleSize(16)}
+                                    color={iconColor}
+                                    style={styles.metricToggleIcon}
+                                />
+                            ) : null}
+                            <Text
+                                style={[
+                                    styles.metricToggleLabel,
+                                    isActive && styles.metricToggleLabelActive,
+                                    !tab.hasData && !isActive && styles.metricToggleLabelMuted,
+                                ]}
+                            >
+                                {tab.label}
+                            </Text>
+                        </Pressable>
+                    );
+                })}
+            </View>
+        ),
+        [activeMetricKey, metricTabs]
+    );
 
     const weightActivePoint = activeIndex != null ? weightChartPoints[activeIndex] : null;
     const weightActiveEntry = activeIndex != null ? chartData[activeIndex]?.entry : null;
@@ -2438,19 +2482,29 @@ const completedWorkouts = useMemo(
                         enableRankAnimations={false}
                         forceTabKey="bodygraph"
                     />
-                    {activeMetricKey === "volume" ? (
+                {activeMetricKey === "volume" ? (
+                    <View
+                        style={[
+                            chartCardLayout.card,
+                            styles.card,
+                            styles.volumeCard,
+                        ]}
+                    >
                         <View
                             style={[
-                                chartCardLayout.card,
-                                styles.card,
-                                styles.volumeCard,
+                                chartCardLayout.header,
+                                styles.header,
                             ]}
                         >
-                    <View style={[chartCardLayout.header, styles.header]}>
                         <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Total Volume</Text>
-                        <View style={styles.autoUpdateHintWrapper}>
+                        <View style={styles.headerActions}>
+                            <View style={styles.autoUpdateHintWrapper}>
                             <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>Auto-updates from</Text>
                             <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>completed workouts.</Text>
+                            </View>
+                            <View style={[styles.metricToggleRowContainer, styles.inlineToggleRow]}>
+                                {renderMetricToggleRow()}
+                            </View>
                         </View>
                     </View>
 
@@ -2708,10 +2762,10 @@ const completedWorkouts = useMemo(
                             </View>
                         ) : (
                             <View style={styles.chartEmptyState}>
-                                <Text style={styles.placeholderText}>Complete workouts to build volume.</Text>
+                                    <Text style={styles.placeholderText}>Complete workouts to build volume.</Text>
                             </View>
                         )}
-                    </View>
+                        </View>
                     </View>
                 ) : null}
                 {activeMetricKey === "reps" ? (
@@ -2724,11 +2778,21 @@ const completedWorkouts = useMemo(
                             },
                         ]}
                     >
-                    <View style={[chartCardLayout.header, styles.header]}>
+                        <View
+                            style={[
+                                chartCardLayout.header,
+                                styles.header,
+                            ]}
+                        >
                         <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Total Reps</Text>
-                        <View style={styles.autoUpdateHintWrapper}>
+                        <View style={styles.headerActions}>
+                            <View style={styles.autoUpdateHintWrapper}>
                             <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>Auto-updates from</Text>
                             <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>completed workouts.</Text>
+                        </View>
+                            <View style={[styles.metricToggleRowContainer, styles.inlineToggleRow]}>
+                                {renderMetricToggleRow()}
+                            </View>
                         </View>
                     </View>
 
@@ -2988,7 +3052,7 @@ const completedWorkouts = useMemo(
                                 <Text style={styles.placeholderText}>Complete workouts to log reps.</Text>
                             </View>
                         )}
-                    </View>
+                        </View>
                     </View>
                 ) : null}
 
@@ -3000,17 +3064,27 @@ const completedWorkouts = useMemo(
                             { marginBottom: scaleSize(32) },
                         ]}
                     >
-                        <View style={[chartCardLayout.header, styles.header]}>
+                        <View
+                            style={[
+                                chartCardLayout.header,
+                                styles.header,
+                            ]}
+                        >
                             <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>
                                 Total Personal Records
                             </Text>
-                            <View style={styles.autoUpdateHintWrapper}>
+                            <View style={styles.headerActions}>
+                                <View style={styles.autoUpdateHintWrapper}>
                                 <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>
                                     Auto-updates when you
                                 </Text>
                                 <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>
                                     hit new PRs.
                                 </Text>
+                            </View>
+                                <View style={[styles.metricToggleRowContainer, styles.inlineToggleRow]}>
+                                    {renderMetricToggleRow()}
+                                </View>
                             </View>
                         </View>
 
@@ -3272,53 +3346,13 @@ const completedWorkouts = useMemo(
                                     </View>
                                 </View>
                             ) : (
-                                <View style={styles.chartEmptyState}>
-                                    <Text style={styles.placeholderText}>Log workouts to set new PRs.</Text>
-                                </View>
-                            )}
+                            <View style={styles.chartEmptyState}>
+                                <Text style={styles.placeholderText}>Log workouts to set new PRs.</Text>
+                            </View>
+                        )}
                         </View>
                     </View>
                 ) : null}
-
-                <View style={styles.metricToggleRow}>
-                    {metricTabs.map((tab) => {
-                        const isActive = tab.key === activeMetricKey;
-                        const iconColor = isActive
-                            ? theme.textPrimary ?? "#F6F8FF"
-                            : "rgba(216,226,255,0.75)";
-                        return (
-                            <Pressable
-                                key={tab.key}
-                                onPress={() => setActiveMetricKey(tab.key)}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Show ${tab.label} progress`}
-                                style={[
-                                    styles.metricToggleButton,
-                                    isActive && styles.metricToggleButtonActive,
-                                    !tab.hasData && !isActive && styles.metricToggleButtonMuted,
-                                ]}
-                            >
-                                {tab.icon ? (
-                                    <Ionicons
-                                        name={tab.icon}
-                                        size={scaleSize(16)}
-                                        color={iconColor}
-                                        style={styles.metricToggleIcon}
-                                    />
-                                ) : null}
-                                <Text
-                                    style={[
-                                        styles.metricToggleLabel,
-                                        isActive && styles.metricToggleLabelActive,
-                                        !tab.hasData && !isActive && styles.metricToggleLabelMuted,
-                                    ]}
-                                >
-                                    {tab.label}
-                                </Text>
-                            </Pressable>
-                        );
-                    })}
-                </View>
 
                 <View style={styles.chartDivider} />
 
@@ -3329,7 +3363,7 @@ const completedWorkouts = useMemo(
                         styles.weightCard,
                     ]}
                 >
-                    <View style={[chartCardLayout.header, styles.header]}>
+                        <View style={[chartCardLayout.header, styles.header]}>
                         <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Body Weight</Text>
                         <View style={styles.headerActions}>
                             <RNBounceable
@@ -3668,12 +3702,12 @@ const styles = StyleSheet.create({
         paddingBottom: 0,
         backgroundColor: theme.bg,
     },
+    metricToggleRowContainer: {
+        marginTop: scaleSize(10),
+    },
     metricToggleRow: {
         flexDirection: "row",
         flexWrap: "wrap",
-        marginHorizontal: scaleSize(16),
-        marginTop: scaleSize(20),
-        marginBottom: scaleSize(24),
     },
     metricToggleButton: {
         flexDirection: "row",
@@ -3712,7 +3746,7 @@ const styles = StyleSheet.create({
         marginBottom: 0,
     },
     contentSurface: {
-        marginTop: scaleSize(20),
+        paddingTop: scaleSize(14),
         backgroundColor: theme.surface,
         paddingBottom: scaleSize(130),
         gap: scaleSize(10)

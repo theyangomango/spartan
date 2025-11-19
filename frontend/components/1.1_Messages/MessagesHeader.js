@@ -1,6 +1,6 @@
 // components/1.1_Messages/MessagesHeader.jsx
-import React, { useState } from "react";
-import { StyleSheet, View, Text, TouchableOpacity } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FontAwesome5, Ionicons } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -17,6 +17,12 @@ const PILL_INACTIVE_BG = "rgba(8,8,21,0.92)";
 const PILL_INACTIVE_BORDER = "rgba(255,255,255,0.18)";
 const PILL_ACTIVE_TEXT = "#05060f";
 const PILL_INACTIVE_TEXT = "rgba(255,255,255,0.7)";
+const CHIP_WIDTH = scaleSize(105);
+const CHIP_HEIGHT = scaleSize(34);
+const CHIP_MARGIN_HORIZONTAL = scaleSize(3);
+const SEGMENT_PADDING = scaleSize(4);
+const CHIP_SLIDE_DISTANCE = CHIP_WIDTH + CHIP_MARGIN_HORIZONTAL * 2;
+const SLIDER_BASE_LEFT = SEGMENT_PADDING + CHIP_MARGIN_HORIZONTAL;
 
 export default function MessagesHeader({
     toFeedScreen,
@@ -26,6 +32,7 @@ export default function MessagesHeader({
 }) {
     const insets = useSafeAreaInsets();
     const [selectedButton, setSelectedButton] = useState("All");
+    const sliderProgress = useRef(new Animated.Value(0)).current;
 
     const safeTop = Math.max(
         typeof topInset === "number" ? topInset : insets?.top || 0,
@@ -38,14 +45,25 @@ export default function MessagesHeader({
         setScope(tab);
     };
 
+    useEffect(() => {
+        Animated.spring(sliderProgress, {
+            toValue: selectedButton === "Group" ? 1 : 0,
+            stiffness: 320,
+            damping: 26,
+            mass: 0.7,
+            useNativeDriver: true,
+        }).start();
+    }, [selectedButton, sliderProgress]);
+
+    const sliderTranslateX = sliderProgress.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0, CHIP_SLIDE_DISTANCE],
+    });
+
     const Chip = ({ label, active, onPress }) => (
         <RNBounceable
             onPress={onPress}
-            style={[
-                styles.chip,
-                active ? styles.chipActive : styles.chipInactive,
-                { width: scaleSize(105), height: scaleSize(34) },
-            ]}
+            style={styles.chip}
         >
             <Text
                 style={[
@@ -92,6 +110,13 @@ export default function MessagesHeader({
                 {/* Segmented control */}
                 <View style={styles.segmentWrap}>
                     <View style={styles.segmentBg}>
+                        <Animated.View
+                            pointerEvents="none"
+                            style={[
+                                styles.segmentSlider,
+                                { transform: [{ translateX: sliderTranslateX }] },
+                            ]}
+                        />
                         <Chip
                             label="All"
                             active={selectedButton === "All"}
@@ -130,7 +155,7 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(100),
         backgroundColor: theme.surface,
         borderWidth: scaleSize(1),
-        borderColor: theme.hairline,
+        borderColor: HAIRLINE,
         alignItems: "center",
         justifyContent: "center",
         shadowColor: "#000",
@@ -171,37 +196,43 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(999),
     },
     segmentBg: {
+        position: "relative",
         flexDirection: "row",
-        backgroundColor: theme.surface,
+        backgroundColor: PILL_INACTIVE_BG,
         borderRadius: scaleSize(999),
-        padding: scaleSize(4),
+        padding: SEGMENT_PADDING,
         borderWidth: scaleSize(1),
-        borderColor: HAIRLINE,
+        borderColor: PILL_INACTIVE_BORDER,
         shadowColor: "#000",
         shadowOpacity: 0.12,
         shadowRadius: scaleSize(8),
         shadowOffset: { width: 0, height: scaleSize(4) },
         elevation: 1,
     },
-    chip: {
+    segmentSlider: {
+        position: "absolute",
+        left: SLIDER_BASE_LEFT,
+        top: SEGMENT_PADDING,
+        width: CHIP_WIDTH,
+        height: CHIP_HEIGHT,
         borderRadius: scaleSize(20),
-        alignItems: "center",
-        justifyContent: "center",
-        marginHorizontal: scaleSize(3),
-        borderWidth: scaleSize(2),
-    },
-    chipInactive: {
-        backgroundColor: PILL_INACTIVE_BG,
-        borderColor: PILL_INACTIVE_BORDER,
-    },
-    chipActive: {
         backgroundColor: PILL_ACTIVE_BG,
+        borderWidth: scaleSize(2),
         borderColor: PILL_ACTIVE_BG,
         shadowColor: PILL_ACTIVE_BG,
         shadowOpacity: 0.35,
         shadowRadius: scaleSize(12),
         shadowOffset: { width: 0, height: scaleSize(4) },
         elevation: 2,
+    },
+    chip: {
+        width: CHIP_WIDTH,
+        height: CHIP_HEIGHT,
+        borderRadius: scaleSize(20),
+        alignItems: "center",
+        justifyContent: "center",
+        marginHorizontal: CHIP_MARGIN_HORIZONTAL,
+        zIndex: 1,
     },
     chipText: {
         fontSize: scaleSize(14),
