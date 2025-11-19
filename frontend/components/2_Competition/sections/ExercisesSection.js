@@ -289,14 +289,14 @@ const styles = StyleSheet.create({
         backgroundColor: "#5cc6ff",
     },
     requirementSpacer: {
-        height: scaleSize(42),
+        height: scaleSize(40),
     },
     requirementText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(17),
+        fontSize: scaleSize(16),
         textAlign: "center",
         letterSpacing: 0.6,
-        marginTop: scaleSize(10),
+        marginTop: scaleSize(8),
         width: REQUIREMENT_TEXT_WIDTH,
         alignSelf: "center",
     },

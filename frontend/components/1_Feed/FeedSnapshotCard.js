@@ -32,23 +32,9 @@ const RANK_TAB_CONFIG = [
 
 const scaled = (value) => scaleSize(value);
 const BODYGRAPH_OUTLINE_COLOR = "#40485c";
-const BODYGRAPH_KEY_ITEMS = [
-    {
-        label: "High volume",
-        description: "Most trained groups",
-        color: "#fcb653",
-    },
-    {
-        label: "Maintaining",
-        description: "Steady weekly work",
-        color: "#5cc6ff",
-    },
-    {
-        label: "Recovery",
-        description: "Needs more focus",
-        color: "#8189a8",
-    },
-];
+const BODYGRAPH_INTENSITY_GRADIENT = ["#8189a8", "#5cc6ff", "#fcb653"];
+const BODYGRAPH_INTENSITY_GRADIENT_LOCATIONS = [0, 0.55, 1];
+const BODYGRAPH_INTENSITY_SCALE_STOPS = [100, 75, 50, 25, 0];
 
 const bronzeTheme = {
     key: "bronze",
@@ -610,39 +596,32 @@ export default function FeedSnapshotCard({
                         <View style={[styles.rankCard, styles.bodygraphCard]}>
                             <View style={styles.bodygraphContent}>
                                 <View style={styles.bodygraphLegend}>
-                                    {BODYGRAPH_KEY_ITEMS.map((item, index) => {
-                                        const isLast = index === BODYGRAPH_KEY_ITEMS.length - 1;
-                                        return (
-                                            <View
-                                                key={item.label}
-                                                style={[
-                                                    styles.bodygraphLegendRow,
-                                                    !isLast && styles.bodygraphLegendRowSpacing,
-                                                ]}
-                                            >
+                                    <View style={styles.bodygraphLegendGradientWrapper}>
+                                        <LinearGradient
+                                            colors={BODYGRAPH_INTENSITY_GRADIENT}
+                                            locations={BODYGRAPH_INTENSITY_GRADIENT_LOCATIONS}
+                                            start={{ x: 0.5, y: 1 }}
+                                            end={{ x: 0.5, y: 0 }}
+                                            style={styles.bodygraphLegendGradient}
+                                        />
+                                        <View style={styles.bodygraphLegendScale}>
+                                            {BODYGRAPH_INTENSITY_SCALE_STOPS.map((value) => (
                                                 <View
-                                                    style={[
-                                                        styles.bodygraphLegendSwatch,
-                                                        { backgroundColor: item.color },
-                                                    ]}
-                                                />
-                                                <View style={styles.bodygraphLegendCopy}>
-                                                    <Text style={styles.bodygraphLegendLabel}>{item.label}</Text>
-                                                    {!!item.description && (
-                                                        <Text style={styles.bodygraphLegendSubtitle}>
-                                                            {item.description}
-                                                        </Text>
-                                                    )}
+                                                    key={`bodygraph-scale-${value}`}
+                                                    style={styles.bodygraphLegendScaleRow}
+                                                >
+                                                    <View style={styles.bodygraphLegendScaleTick} />
+                                                    <Text style={styles.bodygraphLegendScaleValue}>{value}</Text>
                                                 </View>
-                                            </View>
-                                        );
-                                    })}
+                                            ))}
+                                        </View>
+                                    </View>
                                 </View>
                                 <View style={styles.bodygraphFigures}>
                                     <View style={[styles.bodygraphFigureSlot, styles.bodygraphFigureSlotFront]}>
                                         <HumanMuscleOutline
                                             color={BODYGRAPH_OUTLINE_COLOR}
-                                            width="100%"
+                                            width="90%"
                                             height="100%"
                                             preserveAspectRatio="xMidYMax slice"
                                             style={[styles.bodygraphFigure, styles.bodygraphFigureFront]}
@@ -651,7 +630,7 @@ export default function FeedSnapshotCard({
                                     <View style={[styles.bodygraphFigureSlot, styles.bodygraphFigureSlotBack]}>
                                         <HumanMuscleBackOutline
                                             color={BODYGRAPH_OUTLINE_COLOR}
-                                            width="100%"
+                                            width="90%"
                                             height="100%"
                                             preserveAspectRatio="xMidYMax slice"
                                             style={[styles.bodygraphFigure, styles.bodygraphFigureBack]}
@@ -745,7 +724,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(12),
         paddingTop: scaled(4),
         paddingBottom: scaled(8),
-        marginBottom: scaled(2),
     },
     rankTab: {
         paddingVertical: scaled(7),
@@ -959,39 +937,42 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         flex: 1,
+        paddingTop: scaleSize(6)
     },
     bodygraphLegend: {
-        width: "40%",
+        width: "30%",
         paddingRight: scaleSize(12),
     },
-    bodygraphLegendRow: {
+    bodygraphLegendGradientWrapper: {
         flexDirection: "row",
-        alignItems: "flex-start",
+        alignItems: "stretch",
     },
-    bodygraphLegendRowSpacing: {
-        marginBottom: scaleSize(16),
+    bodygraphLegendGradient: {
+        width: scaleSize(12),
+        height: scaleSize(200),
+        borderRadius: scaleSize(12),
     },
-    bodygraphLegendSwatch: {
-        width: scaled(16),
-        height: scaled(16),
-        borderRadius: scaleSize(4),
-        marginRight: scaleSize(10),
-        marginTop: scaleSize(3),
-    },
-    bodygraphLegendCopy: {
+    bodygraphLegendScale: {
         flex: 1,
+        height: scaleSize(200),
+        justifyContent: "space-between",
+        marginLeft: scaleSize(14),
     },
-    bodygraphLegendLabel: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaled(13),
+    bodygraphLegendScaleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    bodygraphLegendScaleTick: {
+        width: scaleSize(14),
+        height: scaleSize(1),
+        backgroundColor: "rgba(255,255,255,0.35)",
+    },
+    bodygraphLegendScaleValue: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaled(12),
         color: "#f7f8ff",
-        letterSpacing: 0.15,
-    },
-    bodygraphLegendSubtitle: {
-        fontFamily: "Outfit_500Medium",
-        fontSize: scaled(11),
-        color: "rgba(255,255,255,0.72)",
-        marginTop: scaleSize(2),
+        letterSpacing: 0.25,
+        marginLeft: scaleSize(8),
     },
     bodygraphFigures: {
         flex: 1,
@@ -999,13 +980,15 @@ const styles = StyleSheet.create({
         alignItems: "flex-end",
         justifyContent: "space-evenly",
         gap: scaleSize(16),
-        minHeight: scaleSize(170),
+        minHeight: scaleSize(190),
+        paddingBottom: scaleSize(10),
     },
     bodygraphFigureSlot: {
         flex: 1,
         alignItems: "center",
         justifyContent: "flex-end",
         height: "100%",
+        overflow: "visible",
     },
     bodygraphFigureSlotFront: {
         paddingRight: scaleSize(6),
@@ -1020,10 +1003,10 @@ const styles = StyleSheet.create({
         height: "100%",
     },
     bodygraphFigureFront: {
-        transform: [{ scale: 1.18 }, { translateY: scaleSize(6) }],
+        transform: [{ scale: 1.18 }, { translateY: scaleSize(12) }],
     },
     bodygraphFigureBack: {
-        transform: [{ scale: 1.18 }, { translateY: scaleSize(6) }],
+        transform: [{ scale: 1.18 }, { translateY: scaleSize(12) }],
     },
     card: {
         backgroundColor: theme.surface,

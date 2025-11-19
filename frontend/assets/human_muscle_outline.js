@@ -8,8 +8,8 @@ import Svg, {
   Ellipse,
 } from "react-native-svg";
 
-const OUTLINE_STROKE_WIDTH = 4.5;
-const OUTLINE_STROKE_COLOR = "#1a1e2b";
+const OUTLINE_STROKE_WIDTH = 5;
+const OUTLINE_STROKE_COLOR = "#d8e2ff";
 
 const HumanMuscleOutline = ({ color = "#000", fills = {}, ...props }) => {
   const fillColor = (region) =>
