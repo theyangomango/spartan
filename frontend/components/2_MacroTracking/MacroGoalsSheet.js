@@ -462,16 +462,10 @@ export default function MacroGoalsSheet({
                             </View>
 
                             <Text style={styles.sheetDescription}>
-                                Edit protein, carbs, or fat to change their ratio. Calories update automatically based on those macros.
+                                Set your daily protein, carb, and fat targets in grams. Total calories below always reflect the macros you enter.
                             </Text>
 
-                            <View style={styles.totalCaloriesRow}>
-                                <Text style={styles.totalCaloriesInline}>Total Calories:</Text>
-                                <Text style={styles.totalCaloriesValue}>{macroCalories.total}</Text>
-                                <Text style={styles.totalCaloriesUnit}>kcal</Text>
-                            </View>
-
-                            <View style={[styles.row, { marginTop: scaleSize(10) }]}> 
+                            <View style={[styles.row, styles.macroInputsRow]}> 
                                 <View style={styles.macroColumn}>
                                     <LabeledNumber
                                         label="Protein"
@@ -488,7 +482,7 @@ export default function MacroGoalsSheet({
                                     <Text style={styles.macroCaloriesText}>{macroCalories.protein} kcal</Text>
                                 </View>
 
-                                <View style={{ width: scaleSize(12) }} />
+                                <View style={{ width: scaleSize(16) }} />
                                 <View style={styles.macroColumn}>
                                     <LabeledNumber
                                         label="Carbs"
@@ -504,7 +498,7 @@ export default function MacroGoalsSheet({
                                     />
                                     <Text style={styles.macroCaloriesText}>{macroCalories.carbs} kcal</Text>
                                 </View>
-                                <View style={{ width: scaleSize(12) }} />
+                                <View style={{ width: scaleSize(16) }} />
 
                                 <View style={styles.macroColumn}>
                                     <LabeledNumber
@@ -521,6 +515,12 @@ export default function MacroGoalsSheet({
                                     />
                                     <Text style={styles.macroCaloriesText}>{macroCalories.fat} kcal</Text>
                                 </View>
+                            </View>
+
+                            <View style={styles.totalCaloriesRow}>
+                                <Text style={styles.totalCaloriesInline}>Total Calories:</Text>
+                                <Text style={styles.totalCaloriesValue}>{macroCalories.total}</Text>
+                                <Text style={styles.totalCaloriesUnit}>kcal</Text>
                             </View>
 
                             {/* Inline “Calculate using Personal Info” row */}
@@ -599,6 +599,7 @@ const makeStyles = (COLORS) => {
     // Use a locally tuned hairline/field shade for stronger separation in sheets
     const hairline = 'rgba(255,255,255,0.14)';
     const accent = COLORS?.accentBlue ?? '#6FB8FF';
+    const streakColor = COLORS?.streak ?? '#FF6C1A';
     // Lift field background slightly from the sheet background
     const fieldBg = '#2B2F3A';
 
@@ -609,11 +610,11 @@ const makeStyles = (COLORS) => {
 
         modeWrap: { ...StyleSheet.absoluteFillObject },
 
-        scrollContent: { paddingHorizontal: scaleSize(18), paddingTop: scaleSize(10), paddingBottom: scaleSize(18) },
+        scrollContent: { paddingHorizontal: scaleSize(18), paddingTop: scaleSize(18), paddingBottom: scaleSize(32) },
 
-        headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: scaleSize(8) },
+        headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: scaleSize(12) },
         sheetTitle: { fontSize: scaleSize(18), fontFamily: 'Outfit_700Bold', color: text },
-        sheetDescription: { fontSize: scaleSize(12.5), fontFamily: 'Outfit_400Regular', color: subtext, marginBottom: scaleSize(12) },
+        sheetDescription: { fontSize: scaleSize(12.5), fontFamily: 'Outfit_400Regular', color: subtext, lineHeight: scaleSize(18) },
 
         smallLinkPill: {
             flexDirection: 'row',
@@ -627,9 +628,10 @@ const makeStyles = (COLORS) => {
         },
         smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12.5), color: text },
 
-        row: { flexDirection: 'row', alignItems: 'flex-start', marginTop: scaleSize(12) },
-        totalCaloriesRow: { flexDirection: 'row', alignItems: 'baseline', gap: scaleSize(6), marginTop: scaleSize(12) },
-        totalCaloriesInline: { fontSize: scaleSize(13.5), fontFamily: 'Outfit_500Medium', color: subtext },
+        row: { flexDirection: 'row', alignItems: 'flex-start' },
+        macroInputsRow: { marginTop: scaleSize(18), paddingVertical: scaleSize(6) },
+        totalCaloriesRow: { flexDirection: 'row', alignItems: 'baseline', gap: scaleSize(6), marginTop: scaleSize(22) },
+        totalCaloriesInline: { fontSize: scaleSize(15), fontFamily: 'Outfit_500Medium', color: subtext },
 
         inputLabel: { fontSize: scaleSize(13), color: subtext, marginBottom: scaleSize(6), fontFamily: 'Outfit_400Regular' },
         inputBox: {
@@ -652,19 +654,19 @@ const makeStyles = (COLORS) => {
             borderWidth: scaleSize(1.2),
         },
         input: { flex: 1, fontSize: scaleSize(16), fontFamily: 'Outfit_400Regular', color: text, paddingVertical: 0 },
-        totalCaloriesValue: { fontSize: scaleSize(16), fontFamily: 'Outfit_600SemiBold', color: text },
-        totalCaloriesUnit: { fontSize: scaleSize(13.5), fontFamily: 'Outfit_400Regular', color: subtext },
+        totalCaloriesValue: { fontSize: scaleSize(18), fontFamily: 'Outfit_600SemiBold', color: streakColor },
+        totalCaloriesUnit: { fontSize: scaleSize(15), fontFamily: 'Outfit_400Regular', color: streakColor },
         // Make placeholder slightly brighter for readability
         placeholder: { color: '#BAC3D2' },
         accent: { color: accent },
         inputSuffix: { marginLeft: scaleSize(8), color: subtext, fontFamily: 'Outfit_400Regular', fontSize: scaleSize(13) },
-        macroColumn: { flex: 1 },
-        macroCaloriesText: { marginTop: scaleSize(6), fontSize: scaleSize(12), color: subtext, fontFamily: 'Outfit_500Medium' },
+        macroColumn: { flex: 1, paddingVertical: scaleSize(4) },
+        macroCaloriesText: { marginTop: scaleSize(8), fontSize: scaleSize(12), color: subtext, fontFamily: 'Outfit_500Medium' },
 
         autoCalcRow: {
-            marginTop: scaleSize(16),
+            marginTop: scaleSize(24),
             paddingHorizontal: scaleSize(14),
-            paddingVertical: scaleSize(16),
+            paddingVertical: scaleSize(18),
             borderRadius: scaleSize(14),
             backgroundColor: theme.surface,
             borderWidth: scaleSize(1),
@@ -687,7 +689,7 @@ const makeStyles = (COLORS) => {
         },
         autoCalcText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(13), color: text },
 
-        sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: scaleSize(10), marginTop: scaleSize(18) },
+        sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: scaleSize(10), marginTop: scaleSize(28) },
         btn: { paddingVertical: scaleSize(12), paddingHorizontal: scaleSize(16), borderRadius: scaleSize(12) },
         // Give ghost button a clearer outline against the sheet
         btnGhost: { backgroundColor: theme.surface, borderWidth: scaleSize(1), borderColor: hairline },

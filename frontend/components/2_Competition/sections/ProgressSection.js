@@ -31,6 +31,7 @@ import { DEVICE_WIDTH, scaleSize, ts } from "../layoutConstants";
 import { chartPointerStyles, chartTypography, chartCardTypography, chartCardLayout } from "../../charts/chartStyles";
 import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from "react-native-svg";
 import { navigateOneWay } from "../../../../navigationRef";
+import FeedSnapshotCard from "../../1_Feed/FeedSnapshotCard";
 
 const WORKOUT_TIMESTAMP_FIELDS = ["created"];
 
@@ -1405,6 +1406,50 @@ const completedWorkouts = useMemo(
               formatVolumeValue
           )
         : null;
+    const resolvedRankTier = useMemo(() => {
+        const tierCandidates = [
+            userData?.rankTier,
+            userData?.stats?.rankTier,
+            userData?.profile?.rankTier,
+            userData?.competition?.rankTier,
+        ];
+        for (const candidate of tierCandidates) {
+            if (typeof candidate === "string" && candidate.trim()) {
+                return candidate.trim();
+            }
+        }
+        return "gold";
+    }, [userData]);
+
+    const resolvedRankLabel = useMemo(() => {
+        const labelCandidates = [
+            userData?.rankLabel,
+            userData?.stats?.rankLabel,
+            userData?.profile?.rankLabel,
+            userData?.competition?.rankLabel,
+        ];
+        for (const candidate of labelCandidates) {
+            if (typeof candidate === "string" && candidate.trim()) {
+                return candidate.trim();
+            }
+        }
+        return typeof resolvedRankTier === "string" ? resolvedRankTier : "Your Rank";
+    }, [userData, resolvedRankTier]);
+
+    const resolvedRankScore = useMemo(() => {
+        const scoreCandidates = [
+            userData?.rankScore,
+            userData?.stats?.rankScore,
+            userData?.stats?.overallScore,
+            userData?.competition?.rankScore,
+        ];
+        for (const candidate of scoreCandidates) {
+            const numericValue = Number(candidate);
+            if (Number.isFinite(numericValue)) return numericValue;
+        }
+        return null;
+    }, [userData]);
+
     const measurementRowSubtitle = useMemo(() => {
         if (!entries.length) return "No measurements yet";
         const count = entries.length;
@@ -2034,6 +2079,14 @@ const completedWorkouts = useMemo(
         [navigation, userData, workoutsByWid]
     );
 
+    const handleNavigateRankLadder = useCallback(() => {
+        try {
+            navigation?.navigate?.("RankLadder", { transition: "slide-from-right" });
+            return;
+        } catch {}
+        navigateOneWay("RankLadder", { animation: "slide-from-right" });
+    }, [navigation]);
+
     const hasChartData = chartData.length > 0;
     const hasVolumeChartData = volumeChartData.length > 0;
     const hasRepsChartData = repsChartData.length > 0;
@@ -2366,15 +2419,33 @@ const completedWorkouts = useMemo(
                 contentContainerStyle={styles.container}
                 showsVerticalScrollIndicator={false}
             >
-                {activeMetricKey === "volume" ? (
-                    <View
-                        style={[
-                            chartCardLayout.card,
-                            styles.card,
-                            styles.volumeCard,
-                            { paddingHorizontal: cardHorizontalPadding },
-                        ]}
-                    >
+                <View style={styles.rankCardContainer}>
+                    <FeedSnapshotCard
+                        rankTier={resolvedRankTier}
+                        rankLabel={resolvedRankLabel}
+                        overallRating={resolvedRankScore}
+                        onPressCard={handleNavigateRankLadder}
+                        showRankTabs={false}
+                        forceTabKey="rank"
+                    />
+                </View>
+                <View style={styles.contentSurface}>
+                    <FeedSnapshotCard
+                        rankTier={resolvedRankTier}
+                        rankLabel="Your Body"
+                        overallRating={resolvedRankScore}
+                        showRankTabs={false}
+                        enableRankAnimations={false}
+                        forceTabKey="bodygraph"
+                    />
+                    {activeMetricKey === "volume" ? (
+                        <View
+                            style={[
+                                chartCardLayout.card,
+                                styles.card,
+                                styles.volumeCard,
+                            ]}
+                        >
                     <View style={[chartCardLayout.header, styles.header]}>
                         <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Total Volume</Text>
                         <View style={styles.autoUpdateHintWrapper}>
@@ -2649,7 +2720,6 @@ const completedWorkouts = useMemo(
                             chartCardLayout.card,
                             styles.card,
                             {
-                                paddingHorizontal: cardHorizontalPadding,
                                 marginBottom: scaleSize(32),
                             },
                         ]}
@@ -2927,7 +2997,7 @@ const completedWorkouts = useMemo(
                         style={[
                             chartCardLayout.card,
                             styles.card,
-                            { paddingHorizontal: cardHorizontalPadding, marginBottom: scaleSize(32) },
+                            { marginBottom: scaleSize(32) },
                         ]}
                     >
                         <View style={[chartCardLayout.header, styles.header]}>
@@ -3210,12 +3280,7 @@ const completedWorkouts = useMemo(
                     </View>
                 ) : null}
 
-                <View
-                    style={[
-                        styles.metricToggleRow,
-                        { paddingHorizontal: cardHorizontalPadding },
-                    ]}
-                >
+                <View style={styles.metricToggleRow}>
                     {metricTabs.map((tab) => {
                         const isActive = tab.key === activeMetricKey;
                         const iconColor = isActive
@@ -3262,7 +3327,6 @@ const completedWorkouts = useMemo(
                         chartCardLayout.card,
                         styles.card,
                         styles.weightCard,
-                        { paddingHorizontal: cardHorizontalPadding },
                     ]}
                 >
                     <View style={[chartCardLayout.header, styles.header]}>
@@ -3570,6 +3634,7 @@ const completedWorkouts = useMemo(
                         </Pressable>
                     </View>
                 </View>
+                </View>
             </ScrollView>
 
         <ManageMeasurementsModal
@@ -3600,12 +3665,14 @@ const styles = StyleSheet.create({
     },
     container: {
         paddingTop: scaleSize(10),
-        paddingBottom: scaleSize(130),
+        paddingBottom: 0,
         backgroundColor: theme.bg,
     },
     metricToggleRow: {
         flexDirection: "row",
         flexWrap: "wrap",
+        marginHorizontal: scaleSize(16),
+        marginTop: scaleSize(20),
         marginBottom: scaleSize(24),
     },
     metricToggleButton: {
@@ -3641,6 +3708,15 @@ const styles = StyleSheet.create({
     metricToggleLabelMuted: {
         color: "rgba(216, 226, 255, 0.5)",
     },
+    rankCardContainer: {
+        marginBottom: 0,
+    },
+    contentSurface: {
+        marginTop: scaleSize(20),
+        backgroundColor: theme.surface,
+        paddingBottom: scaleSize(130),
+        gap: scaleSize(10)
+    },
     chartDivider: {
         height: scaleSize(18),
         width: "100%",
@@ -3648,10 +3724,7 @@ const styles = StyleSheet.create({
         marginVertical: scaleSize(18),
     },
     card: {
-        backgroundColor: "transparent",
-        borderTopWidth: 0,
-        borderBottomWidth: 0,
-        borderColor: "transparent",
+        backgroundColor: theme.bg,
     },
     weightCard: {
         backgroundColor: theme.bg,

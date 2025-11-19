@@ -213,6 +213,12 @@ const RANK_TIER_THEMES = {
 const NEXT_RANK_TARGET_SCORE = 100;
 
 
+const sanitizeTabKey = (key) => {
+    if (typeof key !== "string") return null;
+    const normalized = key.trim().toLowerCase();
+    return RANK_TAB_CONFIG.some((tab) => tab.key === normalized) ? normalized : null;
+};
+
 export default function FeedSnapshotCard({
     rankTier = "gold",
     rankLabel,
@@ -221,8 +227,9 @@ export default function FeedSnapshotCard({
     enableRankAnimations = true,
     onPressOverall,
     onPressCard,
+    initialTabKey = RANK_TAB_CONFIG[0].key,
+    forceTabKey = null,
 }) {
-
     const normalizedRankTier = String(rankTier || "gold").toLowerCase();
     const rankTheme = RANK_TIER_THEMES[normalizedRankTier] || RANK_TIER_THEMES.gold;
     const resolvedRankLabel = rankLabel || rankTheme.displayName || normalizedRankTier;
@@ -247,7 +254,9 @@ export default function FeedSnapshotCard({
         return `${formattedValue} pts to next rank`;
     }, [pointsToNextRank]);
 
-    const [activeRankTab, setActiveRankTab] = useState(RANK_TAB_CONFIG[0].key);
+    const [activeRankTab, setActiveRankTab] = useState(() => sanitizeTabKey(initialTabKey) || RANK_TAB_CONFIG[0].key);
+    const forcedTabKey = sanitizeTabKey(forceTabKey);
+    const resolvedActiveRankTabKey = forcedTabKey || activeRankTab;
     const handleRankTabPress = useCallback(
         (nextTabKey) => {
             setActiveRankTab((currentTabKey) => {
@@ -259,8 +268,8 @@ export default function FeedSnapshotCard({
         [setActiveRankTab, triggerStrongHaptic]
     );
     const activeRankTabConfig = useMemo(
-        () => RANK_TAB_CONFIG.find((tab) => tab.key === activeRankTab) || RANK_TAB_CONFIG[0],
-        [activeRankTab]
+        () => RANK_TAB_CONFIG.find((tab) => tab.key === resolvedActiveRankTabKey) || RANK_TAB_CONFIG[0],
+        [resolvedActiveRankTabKey]
     );
     const isRankTabActive = activeRankTabConfig.key === "rank";
     const isBodygraphTabActive = activeRankTabConfig.key === "bodygraph";
@@ -724,10 +733,9 @@ export default function FeedSnapshotCard({
 const styles = StyleSheet.create({
     wrapper: {
         paddingHorizontal: 0,
-        paddingBottom: scaled(10),
+        paddingBottom: 0,
     },
     rankSection: {
-        paddingBottom: scaled(16),
         backgroundColor: theme.bg,
     },
     rankTabsRow: {

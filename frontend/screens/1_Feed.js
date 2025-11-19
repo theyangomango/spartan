@@ -1320,10 +1320,12 @@ export default function Feed({ navigation, route }) {
 
     const renderSnapshotCard = useCallback(
         () => (
-            <FeedSnapshotCard
-                onPressOverall={handleOpenUserStats}
-                onPressCard={handleNavigateRankLadder}
-            />
+            <View style={styles.snapshotCardContainer}>
+                <FeedSnapshotCard
+                    onPressOverall={handleOpenUserStats}
+                    onPressCard={handleNavigateRankLadder}
+                />
+            </View>
         ),
         [handleOpenUserStats, handleNavigateRankLadder]
     );
@@ -1578,6 +1580,9 @@ const styles = StyleSheet.create({
     },
     listFooter: {
         paddingVertical: scaleSize(24),
+    },
+    snapshotCardContainer: {
+        marginBottom: scaleSize(18),
     },
     createPostButton: {
         width: scaleSize(56),
