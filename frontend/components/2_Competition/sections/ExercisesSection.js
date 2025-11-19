@@ -23,15 +23,15 @@ const DISPLAY_TITLES = {
 const CURRENT_RANK = { tier: "gold", level: "III" };
 
 const RANK_REQUIREMENT_COLORS = {
-    bronze: "#ffce9c",
-    silver: "#e1eaf9",
-    gold: "#ffe989ff",
-    platinum: "#d4ecff",
-    ruby: "#ffb6ca",
-    sapphire: "#ffb6ca",
-    diamond: "#8ff4ff",
+    bronze: "#f0f6ffd5",
+    silver: "#f0f6ffd5",
+    gold: "#f0f6ffd5",
+    platinum: "#f0f6ffd5",
+    ruby: "#f0f6ffd5",
+    sapphire: "#f0f6ffd5",
+    diamond: "#f0f6ffd5",
 };
-const DEFAULT_REQUIREMENT_COLOR = "#f6f8ff";
+const DEFAULT_REQUIREMENT_COLOR = "#f0f6ffd5";
 
 const LADDER_LEVELS = TIER_ORDER_DESC.flatMap((tier) =>
     LEVEL_ORDER_DESC.map((level) => {
@@ -124,7 +124,7 @@ export default function ExercisesSection({ onScroll }) {
             scrollEventThrottle={16}
         >
             {LADDER_LEVELS.map((entry, index) => {
-                const shouldDim =
+                const cardShouldDim =
                     CURRENT_RANK_INDEX >= 0 ? index < CURRENT_RANK_INDEX : !entry.isCurrent;
                 const nextLevelEntry = index < LADDER_LEVELS.length - 1 ? LADDER_LEVELS[index + 1] : null;
                 const promotionKey = nextLevelEntry
@@ -132,30 +132,43 @@ export default function ExercisesSection({ onScroll }) {
                     : null;
                 const promotionRequirements = promotionKey ? rankLevelPromotionRequirements[promotionKey] : null;
                 const nextLevelIndex = nextLevelEntry ? index + 1 : null;
+                const isImmediatePromotionTarget =
+                    typeof nextLevelIndex === "number" && nextLevelIndex === CURRENT_RANK_INDEX;
                 const requirementsCompleted =
-                    typeof nextLevelIndex === "number" && CURRENT_RANK_INDEX < nextLevelIndex;
+                    !isImmediatePromotionTarget &&
+                    typeof nextLevelIndex === "number" &&
+                    CURRENT_RANK_INDEX < nextLevelIndex;
                 const requirementTextColor = nextLevelEntry
                     ? resolveTierColor(nextLevelEntry.rankTier)
                     : DEFAULT_REQUIREMENT_COLOR;
+                const shouldDimRequirementText =
+                    requirementsCompleted && !isImmediatePromotionTarget && !entry.isCurrent;
+                const shouldDimRequirementsBlock = cardShouldDim && !isImmediatePromotionTarget;
                 return (
                     <View
                         key={entry.key}
                         style={[
                             styles.cardWrapper,
                             index === 0 && styles.firstCard,
-                            shouldDim && styles.dimmedCard,
                         ]}
                         onLayout={(event) => handleCardLayout(entry.key, event?.nativeEvent?.layout)}
                     >
-                        <FeedSnapshotCard
-                            rankTier={entry.rankTier}
-                            rankLabel={entry.rankLabel}
-                            showRankTabs={false}
-                            forceTabKey="rank"
-                            enableRankAnimations={entry.isCurrent}
-                        />
+                        <View style={cardShouldDim ? styles.dimmedCard : null}>
+                            <FeedSnapshotCard
+                                rankTier={entry.rankTier}
+                                rankLabel={entry.rankLabel}
+                                showRankTabs={false}
+                                forceTabKey="rank"
+                                enableRankAnimations={entry.isCurrent}
+                            />
+                        </View>
                         {promotionRequirements && (
-                            <View style={styles.requirementsTimeline}>
+                            <View
+                                style={[
+                                    styles.requirementsTimeline,
+                                    shouldDimRequirementsBlock && styles.dimmedCard,
+                                ]}
+                            >
                                 {promotionRequirements.tasks.map((task, requirementIndex) => {
                                     const isLast = requirementIndex === promotionRequirements.tasks.length - 1;
                                     return (
@@ -165,7 +178,6 @@ export default function ExercisesSection({ onScroll }) {
                                                     <View
                                                         style={[
                                                             styles.requirementMarker,
-                                                            !requirementsCompleted && { borderColor: requirementTextColor },
                                                             requirementsCompleted && styles.requirementMarkerCompleted,
                                                         ]}
                                                     >
@@ -191,7 +203,7 @@ export default function ExercisesSection({ onScroll }) {
                                                         style={[
                                                             styles.requirementText,
                                                             { color: requirementTextColor },
-                                                            requirementsCompleted && styles.requirementTextCompleted,
+                                                            shouldDimRequirementText && styles.requirementTextCompleted,
                                                         ]}
                                                     >
                                                         {task}
@@ -272,6 +284,5 @@ const styles = StyleSheet.create({
         alignSelf: "center",
     },
     requirementTextCompleted: {
-        opacity: 0.55,
     },
 });
