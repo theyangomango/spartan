@@ -28,7 +28,7 @@ const CARD_THEME_COLORS = {
     gold: { gradient: ["#a1650cff", "#f0c15a"], accent: "#ffe9b8" },
     ruby: { gradient: ["#511222ff", "#e54b73"], accent: "#ffc6d9" },
     platinum: { gradient: ["rgba(132, 162, 197, 1)", "#b7e0ffff"], accent: "#daf0ff" },
-    diamond: { gradient: ["#0c2538", "#6ae0ff"], accent: "#d8fbff" },
+    diamond: { gradient: ["#316478ff", "#86e7ffff"], accent: "#d8fbff" },
 };
 
 const CURRENT_CARD_OFFSET = scaleSize(-400);
