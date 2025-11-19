@@ -186,7 +186,7 @@ const diamondTheme = {
     titleSecondaryColor: "#8ff4ff",
 };
 
-const RANK_TIER_THEMES = {
+export const RANK_TIER_THEMES = {
     bronze: bronzeTheme,
     silver: silverTheme,
     gold: goldTheme,

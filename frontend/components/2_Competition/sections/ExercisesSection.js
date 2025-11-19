@@ -6,6 +6,7 @@ import theme from "../../../theme/mfpDark";
 import { scaleSize } from "../layoutConstants";
 import FeedSnapshotCard from "../../1_Feed/FeedSnapshotCard";
 import rankLevelPromotionRequirements from "../../../data/rankLevelTasks";
+import RankTierMiniBadge from "../RankTierMiniBadge";
 
 const SCREEN_WIDTH = Dimensions.get("window").width || 360;
 const REQUIREMENT_TEXT_WIDTH = SCREEN_WIDTH * 0.4;
@@ -184,11 +185,11 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                                         <View key={`${entry.key}-requirement-${requirementIndex}`} style={styles.requirementCardWrapper}>
                                             <LinearGradient colors={themeColors.gradient} style={styles.requirementCard}>
                                                 <View style={styles.requirementCardRow}>
-                                                    <View style={[styles.requirementTicket, { backgroundColor: `${themeColors.accent}25` }]}>
-                                                        <Text style={styles.requirementTicketText}>
-                                                            {String(requirementIndex + 1).padStart(2, "0")}
-                                                        </Text>
-                                                    </View>
+                                                    <RankTierMiniBadge
+                                                        tier={promotionThemeKey}
+                                                        size={scaleSize(30)}
+                                                        style={styles.requirementBadge}
+                                                    />
                                                     <View style={styles.requirementTextContainer}>
                                                         <Text
                                                             style={[
@@ -224,7 +225,6 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                                                             {
                                                                 width: taskComplete ? "100%" : "30%",
                                                                 backgroundColor: themeColors.accent,
-                                                                opacity: taskComplete ? 1 : 0.5,
                                                             },
                                                         ]}
                                                     />
@@ -287,17 +287,8 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: scaleSize(12),
     },
-    requirementTicket: {
-        borderRadius: scaleSize(14),
-        paddingHorizontal: scaleSize(10),
-        paddingVertical: scaleSize(4),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.25)",
-    },
-    requirementTicketText: {
-        fontFamily: "Outfit_800ExtraBold",
-        fontSize: scaleSize(12),
-        color: "#fff",
+    requirementBadge: {
+        marginRight: scaleSize(4),
     },
     requirementTextContainer: {
         flex: 1,

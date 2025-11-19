@@ -31,7 +31,6 @@ import { DEVICE_WIDTH, scaleSize, ts } from "../layoutConstants";
 import { chartPointerStyles, chartTypography, chartCardTypography, chartCardLayout } from "../../charts/chartStyles";
 import Svg, { Circle, Defs, LinearGradient, Line, Path, Stop } from "react-native-svg";
 import { navigateOneWay } from "../../../../navigationRef";
-import FeedSnapshotCard from "../../1_Feed/FeedSnapshotCard";
 
 const WORKOUT_TIMESTAMP_FIELDS = ["created"];
 
@@ -2467,14 +2466,6 @@ const completedWorkouts = useMemo(
                 scrollEventThrottle={16}
             >
                 <View style={styles.contentSurface}>
-                    <FeedSnapshotCard
-                        rankTier={resolvedRankTier}
-                        rankLabel="Your Body"
-                        overallRating={resolvedRankScore}
-                        showRankTabs={false}
-                        enableRankAnimations={false}
-                        forceTabKey="bodygraph"
-                    />
                 {activeMetricKey === "volume" ? (
                     <View
                         style={[
@@ -2494,9 +2485,6 @@ const completedWorkouts = useMemo(
                             <View style={styles.autoUpdateHintWrapper}>
                             <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>Auto-updates from</Text>
                             <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>completed workouts.</Text>
-                            </View>
-                            <View style={[styles.metricToggleRowContainer, styles.inlineToggleRow]}>
-                                {renderMetricToggleRow()}
                             </View>
                         </View>
                     </View>
@@ -2759,6 +2747,9 @@ const completedWorkouts = useMemo(
                             </View>
                         )}
                         </View>
+                        <View style={styles.metricToggleRowContainer}>
+                            {renderMetricToggleRow()}
+                        </View>
                     </View>
                 ) : null}
                 {activeMetricKey === "reps" ? (
@@ -2783,9 +2774,6 @@ const completedWorkouts = useMemo(
                             <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>Auto-updates from</Text>
                             <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>completed workouts.</Text>
                         </View>
-                            <View style={[styles.metricToggleRowContainer, styles.inlineToggleRow]}>
-                                {renderMetricToggleRow()}
-                            </View>
                         </View>
                     </View>
 
@@ -3046,6 +3034,9 @@ const completedWorkouts = useMemo(
                             </View>
                         )}
                         </View>
+                        <View style={styles.metricToggleRowContainer}>
+                            {renderMetricToggleRow()}
+                        </View>
                     </View>
                 ) : null}
 
@@ -3075,9 +3066,6 @@ const completedWorkouts = useMemo(
                                     hit new PRs.
                                 </Text>
                             </View>
-                                <View style={[styles.metricToggleRowContainer, styles.inlineToggleRow]}>
-                                    {renderMetricToggleRow()}
-                                </View>
                             </View>
                         </View>
 
@@ -3342,8 +3330,11 @@ const completedWorkouts = useMemo(
                             <View style={styles.chartEmptyState}>
                                 <Text style={styles.placeholderText}>Log workouts to set new PRs.</Text>
                             </View>
-                        )}
-                        </View>
+                            )}
+                            </View>
+                            <View style={styles.metricToggleRowContainer}>
+                                {renderMetricToggleRow()}
+                            </View>
                     </View>
                 ) : null}
 
@@ -3696,7 +3687,8 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
     },
     metricToggleRowContainer: {
-        marginTop: scaleSize(10),
+        marginTop: scaleSize(20),
+        alignSelf: "stretch",
     },
     metricToggleRow: {
         flexDirection: "row",
@@ -3736,10 +3728,8 @@ const styles = StyleSheet.create({
         color: "rgba(216, 226, 255, 0.5)",
     },
     contentSurface: {
-        paddingTop: scaleSize(14),
         backgroundColor: theme.surface,
         paddingBottom: scaleSize(130),
-        gap: scaleSize(10)
     },
     chartDivider: {
         height: scaleSize(18),
@@ -3749,12 +3739,12 @@ const styles = StyleSheet.create({
     },
     card: {
         backgroundColor: theme.bg,
+        paddingHorizontal: scaleSize(18)
     },
     weightCard: {
         backgroundColor: theme.bg,
     },
     volumeCard: {
-        marginBottom: scaleSize(32),
     },
     header: {},
     headerActions: {
