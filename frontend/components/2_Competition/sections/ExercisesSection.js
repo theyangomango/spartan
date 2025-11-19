@@ -23,12 +23,12 @@ const DISPLAY_TITLES = {
 const CURRENT_RANK = { tier: "diamond", level: "III" };
 
 const CARD_THEME_COLORS = {
-    bronze: { gradient: ["#6f3600ff", "#e19c73ff"], accent: "#f7d6a0" },
-    silver: { gradient: ["#59759cff", "#a8c2e6ff"], accent: "#e5f2ff" },
-    gold: { gradient: ["#a1650cff", "#f0c15a"], accent: "#ffe9b8" },
-    ruby: { gradient: ["#511222ff", "#e54b73"], accent: "#ffc6d9" },
-    platinum: { gradient: ["rgba(132, 162, 197, 1)", "#b7e0ffff"], accent: "#daf0ff" },
-    diamond: { gradient: ["#0d4156ff", "#86e7ffff"], accent: "#d8fbff" },
+    bronze: { gradient: ["#6f3600ff", "#e19c73ff"], accent: "#f9cba1ff" },
+    silver: { gradient: ["#2e3542ff", "#a8c2e6ff"], accent: "#c5e0ffff" },
+    gold: { gradient: ["#a1650cff", "#ffd987ff"], accent: "#ffedbbff" },
+    ruby: { gradient: ["#511222ff", "#e54b73"], accent: "#ffacc9ff" },
+    platinum: { gradient: ["rgba(141, 180, 225, 1)", "#dbefffff"], accent: "#f7fcffff" },
+    diamond: { gradient: ["#0d4156ff", "#86e7ffff"], accent: "#bff9ffff" },
 };
 
 const CURRENT_CARD_OFFSET = scaleSize(-400);
