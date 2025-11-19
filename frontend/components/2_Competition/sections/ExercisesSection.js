@@ -20,14 +20,14 @@ const DISPLAY_TITLES = {
     platinum: "Platinum",
     diamond: "Diamond",
 };
-const CURRENT_RANK = { tier: "gold", level: "III" };
+const CURRENT_RANK = { tier: "diamond", level: "III" };
 
 const CARD_THEME_COLORS = {
-    bronze: { gradient: ["#402515", "#8b5a2b"], accent: "#f7d6a0" },
-    silver: { gradient: ["#4e617c", "#a1b7d6"], accent: "#e5f2ff" },
-    gold: { gradient: ["#6b4000", "#f0c15a"], accent: "#ffe9b8" },
-    ruby: { gradient: ["#6c1a2e", "#e54b73"], accent: "#ffc6d9" },
-    platinum: { gradient: ["#324a63", "#7dbff2"], accent: "#daf0ff" },
+    bronze: { gradient: ["#c67f57ff", "#845b34ff"], accent: "#f7d6a0" },
+    silver: { gradient: ["#59759cff", "#a8c2e6ff"], accent: "#e5f2ff" },
+    gold: { gradient: ["#a1650cff", "#f0c15a"], accent: "#ffe9b8" },
+    ruby: { gradient: ["#511222ff", "#e54b73"], accent: "#ffc6d9" },
+    platinum: { gradient: ["rgba(132, 162, 197, 1)", "#b7e0ffff"], accent: "#daf0ff" },
     diamond: { gradient: ["#0c2538", "#6ae0ff"], accent: "#d8fbff" },
 };
 
