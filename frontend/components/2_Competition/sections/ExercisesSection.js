@@ -9,7 +9,6 @@ import rankLevelPromotionRequirements from "../../../data/rankLevelTasks";
 
 const SCREEN_WIDTH = Dimensions.get("window").width || 360;
 const REQUIREMENT_TEXT_WIDTH = SCREEN_WIDTH * 0.4;
-const COMPLETED_TASK_COLOR = "rgba(245, 247, 255, 0.5)";
 
 const TIER_ORDER_DESC = ["diamond", "platinum", "ruby", "gold", "silver", "bronze"];
 const LEVEL_ORDER_DESC = ["V", "IV", "III", "II", "I"];
@@ -22,6 +21,17 @@ const DISPLAY_TITLES = {
     diamond: "Diamond",
 };
 const CURRENT_RANK = { tier: "gold", level: "III" };
+
+const RANK_REQUIREMENT_COLORS = {
+    bronze: "#ffce9c",
+    silver: "#e1eaf9",
+    gold: "#ffe989ff",
+    platinum: "#d4ecff",
+    ruby: "#ffb6ca",
+    sapphire: "#ffb6ca",
+    diamond: "#8ff4ff",
+};
+const DEFAULT_REQUIREMENT_COLOR = "#f6f8ff";
 
 const LADDER_LEVELS = TIER_ORDER_DESC.flatMap((tier) =>
     LEVEL_ORDER_DESC.map((level) => {
@@ -37,6 +47,11 @@ const LADDER_LEVELS = TIER_ORDER_DESC.flatMap((tier) =>
 );
 const CURRENT_RANK_INDEX = LADDER_LEVELS.findIndex((entry) => entry.isCurrent);
 const CURRENT_RANK_KEY = CURRENT_RANK_INDEX >= 0 ? LADDER_LEVELS[CURRENT_RANK_INDEX]?.key : null;
+
+const resolveTierColor = (tier) => {
+    const normalized = String(tier || "").toLowerCase().trim();
+    return RANK_REQUIREMENT_COLORS[normalized] || DEFAULT_REQUIREMENT_COLOR;
+};
 
 const buildLevelKey = (tier, rankLabel) => {
     const normalizedTier = String(tier || "").toLowerCase().trim();
@@ -119,6 +134,9 @@ export default function ExercisesSection({ onScroll }) {
                 const nextLevelIndex = nextLevelEntry ? index + 1 : null;
                 const requirementsCompleted =
                     typeof nextLevelIndex === "number" && CURRENT_RANK_INDEX < nextLevelIndex;
+                const requirementTextColor = nextLevelEntry
+                    ? resolveTierColor(nextLevelEntry.rankTier)
+                    : DEFAULT_REQUIREMENT_COLOR;
                 return (
                     <View
                         key={entry.key}
@@ -147,6 +165,7 @@ export default function ExercisesSection({ onScroll }) {
                                                     <View
                                                         style={[
                                                             styles.requirementMarker,
+                                                            !requirementsCompleted && { borderColor: requirementTextColor },
                                                             requirementsCompleted && styles.requirementMarkerCompleted,
                                                         ]}
                                                     >
@@ -168,14 +187,15 @@ export default function ExercisesSection({ onScroll }) {
                                                         )}
                                                     </View>
                                                 </View>
-                                                <Text
-                                                    style={[
-                                                        styles.requirementText,
-                                                        requirementsCompleted && styles.requirementTextCompleted,
-                                                    ]}
-                                                >
-                                                    {task}
-                                                </Text>
+                                                    <Text
+                                                        style={[
+                                                            styles.requirementText,
+                                                            { color: requirementTextColor },
+                                                            requirementsCompleted && styles.requirementTextCompleted,
+                                                        ]}
+                                                    >
+                                                        {task}
+                                                    </Text>
                                             </View>
                                             {!isLast && <View style={styles.requirementSpacer} />}
                                         </React.Fragment>
@@ -245,7 +265,6 @@ const styles = StyleSheet.create({
     requirementText: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(17),
-        color: "#f6f8ff",
         textAlign: "center",
         letterSpacing: 0.6,
         marginTop: scaleSize(10),
@@ -253,6 +272,6 @@ const styles = StyleSheet.create({
         alignSelf: "center",
     },
     requirementTextCompleted: {
-        color: COMPLETED_TASK_COLOR,
+        opacity: 0.55,
     },
 });
