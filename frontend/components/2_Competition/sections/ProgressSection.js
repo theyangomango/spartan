@@ -1302,7 +1302,7 @@ const ManageMeasurementsModal = ({
     );
 };
 
-export default function ProgressSection({ scrollSignal = 0 }) {
+export default function ProgressSection({ scrollSignal = 0, onScroll }) {
     const [userData, setUserData] = useState(() => {
         try {
             return global?.userData || null;
@@ -2079,14 +2079,6 @@ const completedWorkouts = useMemo(
         [navigation, userData, workoutsByWid]
     );
 
-    const handleNavigateRankLadder = useCallback(() => {
-        try {
-            navigation?.navigate?.("RankLadder", { transition: "slide-from-right" });
-            return;
-        } catch {}
-        navigateOneWay("RankLadder", { animation: "slide-from-right" });
-    }, [navigation]);
-
     const hasChartData = chartData.length > 0;
     const hasVolumeChartData = volumeChartData.length > 0;
     const hasRepsChartData = repsChartData.length > 0;
@@ -2455,6 +2447,15 @@ const completedWorkouts = useMemo(
         return () => clearTimeout(timeout);
     }, [scrollSignal]);
 
+    const handleScrollEvent = useCallback(
+        (event) => {
+            if (typeof onScroll === "function") {
+                onScroll(event);
+            }
+        },
+        [onScroll]
+    );
+
     return (
         <>
             <ScrollView
@@ -2462,17 +2463,9 @@ const completedWorkouts = useMemo(
                 style={styles.scroll}
                 contentContainerStyle={styles.container}
                 showsVerticalScrollIndicator={false}
+                onScroll={handleScrollEvent}
+                scrollEventThrottle={16}
             >
-                <View style={styles.rankCardContainer}>
-                    <FeedSnapshotCard
-                        rankTier={resolvedRankTier}
-                        rankLabel={resolvedRankLabel}
-                        overallRating={resolvedRankScore}
-                        onPressCard={handleNavigateRankLadder}
-                        showRankTabs={false}
-                        forceTabKey="rank"
-                    />
-                </View>
                 <View style={styles.contentSurface}>
                     <FeedSnapshotCard
                         rankTier={resolvedRankTier}
@@ -3741,9 +3734,6 @@ const styles = StyleSheet.create({
     },
     metricToggleLabelMuted: {
         color: "rgba(216, 226, 255, 0.5)",
-    },
-    rankCardContainer: {
-        marginBottom: 0,
     },
     contentSurface: {
         paddingTop: scaleSize(14),

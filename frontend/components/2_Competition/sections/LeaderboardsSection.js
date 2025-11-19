@@ -361,7 +361,7 @@ function applyViewerHexOverride(list, hexKey) {
     return didOverride ? next : list;
 }
 
-export default function LeaderboardsSection({ navigation, onRequestBodyWeightEntry }) {
+export default function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll }) {
     const insets = useStableSafeAreaInsets();
     const podiumSectionHeight = useMemo(() => PODIUM_HEIGHT, []);
     const panelOverlap = useMemo(() => scaleSize(12), []);
@@ -1577,6 +1577,15 @@ useEffect(() => {
         </View>
     );
 
+    const handleScrollEvent = useCallback(
+        (event) => {
+            if (typeof onScroll === "function") {
+                onScroll(event);
+            }
+        },
+        [onScroll]
+    );
+
     return (
         <View style={styles.container}>
             <LinearGradient
@@ -1663,6 +1672,8 @@ useEffect(() => {
                 bounces
                 alwaysBounceVertical
                 overScrollMode="always"
+                onScroll={handleScrollEvent}
+                scrollEventThrottle={16}
             >
                 <InfoPanel isVisible={false} opacity={infoPanelOpacityRef.current} />
                 <View style={[styles.podiumSection, { height: podiumSectionHeight }]}>

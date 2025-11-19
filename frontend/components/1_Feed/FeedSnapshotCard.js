@@ -150,29 +150,29 @@ const platinumTheme = {
     titleSecondaryColor: "#d4ecff",
 };
 
-const sapphireTheme = {
-    key: "sapphire",
-    displayName: "Sapphire II",
-    overallRating: 90,
-    gradientColors: ["#c5dbff", "#2f73ff", "#0a1a47"],
+const rubyTheme = {
+    key: "ruby",
+    displayName: "Ruby II",
+    overallRating: 92,
+    gradientColors: ["#ffe4ec", "#ff4f78", "#3d0713"],
     gradientLocations: [0, 0.6, 1],
     particleColors: [
-        "rgba(136, 178, 255, 0.75)",
-        "rgba(71, 123, 255, 0.6)",
-        "rgba(15, 32, 82, 0.55)",
+        "rgba(255, 218, 232, 0.75)",
+        "rgba(255, 108, 140, 0.6)",
+        "rgba(69, 10, 22, 0.55)",
     ],
-    borderColor: "#5c8eff",
-    wingGradient: ["rgba(255,255,255,0.4)", "rgba(255,255,255,0.12)"],
-    badgeOuterGradient: ["#7eaefc", "#2f5fda"],
-    badgeInnerGradient: ["#9ac1ff", "#477bff"],
-    badgeCoreColor: "#345df6",
-    badgeCoreShadowColor: "#070d20",
-    badgeGemColor: "#b8d1ff",
-    badgeGemBorderColor: "rgba(35, 86, 194, 0.5)",
-    badgeGemInnerColor: "#5d88ff",
+    borderColor: "#ff87a3",
+    wingGradient: ["rgba(255,255,255,0.42)", "rgba(255,255,255,0.13)"],
+    badgeOuterGradient: ["#ffc6d6", "#ff5c7c"],
+    badgeInnerGradient: ["#ffdbe6", "#ff7b97"],
+    badgeCoreColor: "#ff5e81",
+    badgeCoreShadowColor: "#36030f",
+    badgeGemColor: "#ffe6ef",
+    badgeGemBorderColor: "rgba(181, 45, 76, 0.5)",
+    badgeGemInnerColor: "#ff8aa7",
     badgeGemInnerBorderColor: "rgba(255,255,255,0.55)",
-    titleColor: "#eef4ff",
-    titleSecondaryColor: "#a6c4ff",
+    titleColor: "#fff2f6",
+    titleSecondaryColor: "#ffb6ca",
 };
 
 const diamondTheme = {
@@ -205,8 +205,9 @@ const RANK_TIER_THEMES = {
     silver: silverTheme,
     gold: goldTheme,
     platinum: platinumTheme,
-    sapphire: sapphireTheme,
-    saphire: sapphireTheme,
+    ruby: rubyTheme,
+    sapphire: rubyTheme,
+    saphire: rubyTheme,
     diamond: diamondTheme,
 };
 

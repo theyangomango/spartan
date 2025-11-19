@@ -52,7 +52,6 @@ import FeedSnapshotCard from "../components/1_Feed/FeedSnapshotCard";
 import HistoryCalendarModal from "../components/common/HistoryCalendarModal";
 import FeedLoadingSkeleton from "../components/1_Feed/FeedLoadingSkeleton";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
-import { navigateOneWay } from "../../navigationRef";
 import { logFeedSignal } from "../helper/feedSignals";
 import { isClipPost } from "../utils/postTypes";
 import { primeAllUsers } from "../helper/getAllUsers";
@@ -1309,25 +1308,15 @@ export default function Feed({ navigation, route }) {
         try { setIsUserStatsBottomSheetVisible(true); } catch { setIsUserStatsBottomSheetVisible(true); }
     }, []);
 
-    const handleNavigateRankLadder = useCallback(() => {
-        try { hapticStrong(); } catch {}
-        try {
-            navigation?.navigate?.("RankLadder", { transition: "slide-from-right" });
-            return;
-        } catch {}
-        navigateOneWay("RankLadder", { animation: "slide-from-right" });
-    }, [navigation]);
-
     const renderSnapshotCard = useCallback(
         () => (
             <View style={styles.snapshotCardContainer}>
                 <FeedSnapshotCard
                     onPressOverall={handleOpenUserStats}
-                    onPressCard={handleNavigateRankLadder}
                 />
             </View>
         ),
-        [handleOpenUserStats, handleNavigateRankLadder]
+        [handleOpenUserStats]
     );
 
     return (

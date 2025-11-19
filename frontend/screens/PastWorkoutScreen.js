@@ -924,7 +924,7 @@ const PastWorkoutScreen = () => {
                                                 iconSize={scaleSize(15)}
                                                 numberOfLines={1}
                                                 ellipsizeMode="tail"
-                                                preserveTextAlignment
+                                                preserveTextAlignment={isOwnerVerified}
                                             />
                                         </Pressable>
                                         {!!timestampDisplay && (

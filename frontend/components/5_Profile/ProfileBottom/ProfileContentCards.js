@@ -35,7 +35,10 @@ const ProfileContentCards = ({
         () => `${workoutsCompletedSubtitle} • ${postsSubtitle}`,
         [workoutsCompletedSubtitle, postsSubtitle]
     );
-    const loggedFoodsSubtitle = useMemo(() => formatCount(loggedFoodsCount, 'Food'), [loggedFoodsCount]);
+    const loggedFoodsSubtitle = useMemo(() => {
+        if (loggedFoodsLocked) return 'Private';
+        return formatCount(loggedFoodsCount, 'Food');
+    }, [loggedFoodsCount, loggedFoodsLocked]);
 
     if (contentLocked) {
         return (

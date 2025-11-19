@@ -1,637 +1,121 @@
-import React, {
-    useCallback,
-    useDeferredValue,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-    useTransition,
-} from "react";
-import {
-    Animated,
-    Easing,
-    StyleSheet,
-    Text,
-    View,
-    ScrollView,
-    Pressable,
-    TextInput,
-} from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { ScrollView, StyleSheet, View } from "react-native";
 
-import useStableSafeAreaInsets from "../../../hooks/useStableSafeAreaInsets";
 import theme from "../../../theme/mfpDark";
-import ExercisesFlatlist from "../../3_Workout/NewWorkout/SelectExercise/ExercisesFlatlist";
-import MuscleGroupIcon from "../../3_Workout/NewWorkout/SelectExercise/MuscleGroupIcon";
-import ExerciseCard from "../../3_Workout/NewWorkout/SelectExercise/ExerciseCard";
-import { toExerciseSlug } from "../../common/exerciseImageMap";
-import { exercises as ALL_EXERCISES } from "../../3_Workout/NewWorkout/SelectExercise/EXERCISES";
 import { scaleSize } from "../layoutConstants";
-import useSyncSavedExercises from "../../../hooks/useSyncSavedExercises";
-import { subscribeUserData } from "../../../utils/userDataEvents";
-import { withStrongPress } from "../../../utils/haptics";
+import FeedSnapshotCard from "../../1_Feed/FeedSnapshotCard";
 
-const ICON_COLOR = "#D5E0F6";
-const TEXT_PRIMARY = "#F6F8FF";
-const TEXT_SECONDARY = "#9CA9C2";
-
-const MUSCLE_FILTERS = [
-    {
-        label: "Full Body",
-        value: null,
-        segments: [
-            "calves",
-            "quads",
-            "abs",
-            "obliques",
-            "back",
-            "forearms",
-            "arms",
-            "shoulders",
-            "chest",
-            "traps",
-        ],
-    },
-    { label: "Chest", value: "chest", segments: ["chest"] },
-    { label: "Shoulders", value: "shoulders", segments: ["shoulders"] },
-    { label: "Arms", value: "arms", segments: ["arms", "forearms"] },
-    { label: "Legs", value: "legs", segments: ["legs", "quads", "calves", "hamstrings", "glutes"] },
-    { label: "Abs", value: "abs", segments: ["abs", "obliques"] },
-    { label: "Back", value: "back", segments: ["back", "traps"] },
-];
-
-const EMPTY_STATS = Object.freeze({});
-
-const getSetCount = (statsMap = {}, name) => {
-    const exerciseStats = statsMap?.[name];
-    if (!exerciseStats) return 0;
-    const sets = exerciseStats?.sets;
-    if (Array.isArray(sets)) return sets.length;
-    if (typeof sets === "number") return sets;
-    const fallback = exerciseStats?.setCount ?? exerciseStats?.totalSets;
-    return typeof fallback === "number" ? fallback : 0;
+const TIER_ORDER_DESC = ["diamond", "platinum", "ruby", "gold", "silver", "bronze"];
+const LEVEL_ORDER_DESC = ["V", "IV", "III", "II", "I"];
+const DISPLAY_TITLES = {
+    bronze: "Bronze",
+    silver: "Silver",
+    gold: "Gold",
+    ruby: "Ruby",
+    platinum: "Platinum",
+    diamond: "Diamond",
 };
+const CURRENT_RANK = { tier: "gold", level: "III" };
 
-const normalizeEquipment = (raw) => {
-    const value = String(raw || "").toLowerCase();
-    if (value === "bodyweight" || value.includes("body weight")) return "Bodyweight";
-    if (value.includes("smith machine")) return "Smith Machine";
-    if (value.includes("machine")) return "Machine";
-    if (value.includes("barbell")) return "Barbell";
-    if (value.includes("dumbbell")) return "Dumbbell";
-    if (value.includes("cable")) return "Cable";
-    if (value.includes("band")) return "Band";
-    if (value.includes("kettlebell")) return "Kettlebell";
-    if (value.includes("trap bar")) return "Trap Bar";
-    return "Other";
-};
+const LADDER_LEVELS = TIER_ORDER_DESC.flatMap((tier) =>
+    LEVEL_ORDER_DESC.map((level) => {
+        const label = `${DISPLAY_TITLES[tier] || tier} ${level}`;
+        const isCurrent = tier === CURRENT_RANK.tier && level === CURRENT_RANK.level;
+        return {
+            key: `${tier}-${level}`,
+            rankTier: tier,
+            rankLabel: label,
+            isCurrent,
+        };
+    })
+);
+const CURRENT_RANK_INDEX = LADDER_LEVELS.findIndex((entry) => entry.isCurrent);
+const CURRENT_RANK_KEY = CURRENT_RANK_INDEX >= 0 ? LADDER_LEVELS[CURRENT_RANK_INDEX]?.key : null;
 
-const normalizeSavedExercises = (raw) => {
-    if (!raw) return {};
-    if (Array.isArray(raw)) {
-        return raw.reduce((acc, entry) => {
-            if (!entry) return acc;
-            const name = String(entry?.name || entry).trim();
-            if (!name) return acc;
-            const muscleGroup = entry?.muscleGroup ?? entry?.muscle ?? null;
-            acc[name] = {
-                name,
-                muscleGroup,
-                muscle: entry?.muscle ?? entry?.muscleGroup ?? muscleGroup ?? null,
-                slug: entry?.slug ?? null,
-            };
-            return acc;
-        }, {});
-    }
-    if (typeof raw === "object") {
-        return Object.entries(raw).reduce((acc, [key, value]) => {
-            if (!value && value !== 0) return acc;
-            const name = String(value?.name || key).trim();
-            if (!name) return acc;
-            const muscleGroup = value?.muscleGroup ?? value?.muscle ?? null;
-            acc[name] = {
-                name,
-                muscleGroup,
-                muscle: value?.muscle ?? value?.muscleGroup ?? muscleGroup ?? null,
-                slug: value?.slug ?? null,
-            };
-            return acc;
-        }, {});
-    }
-    return {};
-};
+export default function ExercisesSection({ onScroll }) {
+    const scrollViewRef = useRef(null);
+    const cardLayoutsRef = useRef({});
+    const hasCenteredRef = useRef(false);
+    const [scrollContainerHeight, setScrollContainerHeight] = useState(0);
 
-const savedExercisesSignature = (map) => {
-    if (!map || typeof map !== "object") return "";
-    const entries = Object.keys(map)
-        .sort((a, b) => a.localeCompare(b))
-        .map((key) => {
-            const value = map[key] || {};
-            return [
-                key,
-                value?.muscleGroup ?? null,
-                value?.muscle ?? null,
-                value?.slug ?? null,
-            ];
-        });
-    return JSON.stringify(entries);
-};
-
-export default function ExercisesSection() {
-    const navigation = useNavigation();
-    const insets = useStableSafeAreaInsets();
-    const [searchValue, setSearchValue] = useState("");
-    const [bodyPartValue, setBodyPartValue] = useState(null);
-    const [savedExercisesMap, setSavedExercisesMap] = useState(() =>
-        normalizeSavedExercises(global?.userData?.savedExercises)
-    );
-    const [statsExercises, setStatsExercises] = useState(
-        () => global?.userData?.statsExercises || EMPTY_STATS
-    );
-    const [, startFilterTransition] = useTransition();
-    const filterVisibility = useRef(new Animated.Value(1)).current;
-    const [filterMeasuredHeight, setFilterMeasuredHeight] = useState(0);
-    const [filterPointerEvents, setFilterPointerEvents] = useState("auto");
-    const lastScrollOffsetRef = useRef(0);
-    const lastScrollTimeRef = useRef(Date.now());
-    const isFilterHiddenRef = useRef(false);
-    const isAnimatingFilterRef = useRef(false);
-
-    const animateFilter = useCallback(
-        (toValue) => {
-            if (isAnimatingFilterRef.current) {
-                filterVisibility.stopAnimation?.();
-            }
-            isAnimatingFilterRef.current = true;
-            if (toValue === 1) {
-                setFilterPointerEvents("auto");
-            }
-            Animated.timing(filterVisibility, {
-                toValue,
-                duration: 220,
-                easing: Easing.out(Easing.cubic),
-                useNativeDriver: false,
-            }).start(() => {
-                isAnimatingFilterRef.current = false;
-                if (toValue === 0) {
-                    setFilterPointerEvents("none");
-                }
-            });
-        },
-        [filterVisibility]
-    );
-
-    const showFilter = useCallback(() => {
-        if (!isFilterHiddenRef.current) return;
-        isFilterHiddenRef.current = false;
-        animateFilter(1);
-    }, [animateFilter]);
-
-    const hideFilter = useCallback(() => {
-        if (isFilterHiddenRef.current) return;
-        isFilterHiddenRef.current = true;
-        animateFilter(0);
-    }, [animateFilter]);
-
-    const handleFilterLayout = useCallback(
+    const handleScroll = useCallback(
         (event) => {
-            const height = event?.nativeEvent?.layout?.height || 0;
-            if (
-                height > 0 &&
-                (filterMeasuredHeight === 0 || height > filterMeasuredHeight + 1)
-            ) {
-                setFilterMeasuredHeight(height);
+            if (typeof onScroll === "function") {
+                onScroll(event);
             }
         },
-        [filterMeasuredHeight]
+        [onScroll]
     );
 
-    const handleExercisesScroll = useCallback(
-        (event) => {
-            const offsetY = event?.nativeEvent?.contentOffset?.y ?? 0;
-            const lastOffset = lastScrollOffsetRef.current;
-            const delta = offsetY - lastOffset;
-            lastScrollOffsetRef.current = offsetY;
-            const now = Date.now();
-            const dt = Math.max(now - lastScrollTimeRef.current, 1);
-            lastScrollTimeRef.current = now;
-            const speedPerMs = Math.abs(delta) / dt;
-            const shouldTriggerSpeed = speedPerMs >= 1.2; // ~700 px/sec
-
-            if (offsetY <= 12) {
-                showFilter();
-                return;
-            }
-
-            if (delta > 20) {
-                hideFilter();
-            } else if (delta < -28 && shouldTriggerSpeed) {
-                showFilter();
-            }
-        },
-        [hideFilter, showFilter]
-    );
-
-    const filterHeightForAnimation = Math.max(filterMeasuredHeight, scaleSize(88));
-
-    const filterAnimatedStyle = useMemo(
-        () => ({
-            height: filterVisibility.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, filterHeightForAnimation],
-            }),
-            opacity: filterVisibility,
-            marginBottom: filterVisibility.interpolate({
-                inputRange: [0, 1],
-                outputRange: [0, scaleSize(4)],
-            }),
-            transform: [
-                {
-                    translateY: filterVisibility.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-(filterHeightForAnimation + scaleSize(12)), 0],
-                    }),
-                },
-            ],
-        }),
-        [filterHeightForAnimation, filterVisibility]
-    );
-
-    const bottomInsetPadding = useMemo(
-        () => (insets?.bottom || 0) + scaleSize(24),
-        [insets?.bottom]
-    );
-
-    const exercises = useMemo(() => {
-        const seen = new Set();
-        return ALL_EXERCISES.reduce((acc, exercise) => {
-            const rawName = typeof exercise?.name === "string" ? exercise.name.trim() : "";
-            if (!rawName) return acc;
-            const key = rawName.toLowerCase();
-            if (seen.has(key)) return acc;
-            seen.add(key);
-
-            const muscleGroup = (exercise?.muscleGroup || exercise?.muscle || "—").trim();
-            const equipment = exercise?.equipment || "Other";
-
-            acc.push({
-                ...exercise,
-                name: rawName,
-                title: rawName.replace(/\s*\(([^)]+)\)/g, "").replace(/\s+/g, " ").trim() || rawName,
-                muscleGroup,
-                muscle: muscleGroup,
-                equipment,
-                slug: toExerciseSlug(rawName),
-                nameLc: rawName.toLowerCase(),
-                mgLc: muscleGroup.toLowerCase(),
-                equipNorm: normalizeEquipment(equipment),
-            });
-            return acc;
-        }, []);
-    }, []);
-
-    const filterSegmentsLookup = useMemo(() => {
-        return MUSCLE_FILTERS.reduce((acc, option) => {
-            if (option?.value == null) return acc;
-            const segments = Array.isArray(option.segments) ? option.segments : [];
-            acc[option.value] = segments.length
-                ? segments.map((segment) => String(segment).toLowerCase())
-                : [String(option.value).toLowerCase()];
-            return acc;
-        }, {});
-    }, []);
-
-    const exercisesByName = useMemo(() => {
-        return exercises.reduce((acc, item) => {
-            if (!item?.name) return acc;
-            acc[item.name] = item;
-            return acc;
-        }, {});
-    }, [exercises]);
-
-    const exercisesByFilter = useMemo(() => {
-        const map = {};
-        Object.entries(filterSegmentsLookup).forEach(([value, segments]) => {
-            map[value] = exercises.filter((exercise) => {
-                const mgLc = exercise.mgLc;
-                if (!mgLc) return false;
-                return segments.some((segment) => mgLc.includes(segment));
-            });
-        });
-        return map;
-    }, [exercises, filterSegmentsLookup]);
-
-    useSyncSavedExercises(savedExercisesMap);
+    const attemptCenterCurrentCard = useCallback(() => {
+        if (hasCenteredRef.current) return;
+        if (!CURRENT_RANK_KEY) return;
+        const scrollView = scrollViewRef.current;
+        if (!scrollView) return;
+        const layout = cardLayoutsRef.current[CURRENT_RANK_KEY];
+        if (!layout) return;
+        const containerHeight = scrollContainerHeight > 0 ? scrollContainerHeight : layout.height || 0;
+        const targetOffset = Math.max(0, layout.y - containerHeight / 2 + (layout.height || 0) / 2);
+        try {
+            scrollView.scrollTo({ y: targetOffset, animated: false });
+            hasCenteredRef.current = true;
+        } catch {
+            // ignore scroll failures
+        }
+    }, [scrollContainerHeight]);
 
     useEffect(() => {
-        const unsubscribe = subscribeUserData((payload) => {
-            const next = normalizeSavedExercises(payload?.savedExercises);
-            setSavedExercisesMap((prev) => {
-                const prevSig = savedExercisesSignature(prev);
-                const nextSig = savedExercisesSignature(next);
-                if (prevSig === nextSig) return prev;
-                return next;
-            });
-            const nextStats = payload?.statsExercises || EMPTY_STATS;
-            setStatsExercises((prev) => (prev === nextStats ? prev : nextStats));
-        });
-        return unsubscribe;
+        attemptCenterCurrentCard();
+    }, [attemptCenterCurrentCard]);
+
+    const handleScrollViewLayout = useCallback((event) => {
+        const height = event?.nativeEvent?.layout?.height || 0;
+        setScrollContainerHeight((prev) => (Math.abs(prev - height) > 1 ? height : prev));
     }, []);
 
-    const normalizedSearch = useMemo(
-        () => searchValue.trim().toLowerCase(),
-        [searchValue]
-    );
-    const deferredSearch = useDeferredValue(normalizedSearch);
-
-    const filteredByBody = useMemo(() => {
-        if (!bodyPartValue) return exercises;
-        return exercisesByFilter[bodyPartValue] || exercises;
-    }, [bodyPartValue, exercises, exercisesByFilter]);
-
-    const filteredExercises = useMemo(() => {
-        const statsMap = statsExercises || {};
-        let matches;
-        if (!deferredSearch) {
-            matches = filteredByBody;
-        } else {
-            matches = filteredByBody.filter(
-                (exercise) =>
-                    exercise.nameLc.includes(deferredSearch) ||
-                    exercise.mgLc.includes(deferredSearch)
-            );
-        }
-        const list = Array.isArray(matches) ? [...matches] : [];
-        list.sort((a, b) => {
-            const setsA = getSetCount(statsMap, a.name);
-            const setsB = getSetCount(statsMap, b.name);
-            if (setsA !== setsB) return setsB - setsA;
-            return a.name.localeCompare(b.name);
-        });
-        return list;
-    }, [filteredByBody, deferredSearch, statsExercises]);
-
-    const emptySelection = useMemo(() => ({}), []);
-
-    const handleExercisePress = useCallback(
-        ({ name }) => {
-            if (!name) return;
-            const payload = exercisesByName[name];
-            if (!payload) return;
-            navigation.navigate("ExerciseDetail", { exercise: payload });
+    const handleCardLayout = useCallback(
+        (key, layout) => {
+            if (!key || !layout) return;
+            cardLayoutsRef.current[key] = layout;
+            attemptCenterCurrentCard();
         },
-        [navigation, exercisesByName]
+        [attemptCenterCurrentCard]
     );
-
-    const toggleSavedExercise = useCallback(({ name, muscle }) => {
-        if (!name) return;
-        setSavedExercisesMap((prev) => {
-            const next = { ...prev };
-            if (next[name]) {
-                delete next[name];
-            } else {
-                const fallback = exercisesByName[name] || {};
-                next[name] = {
-                    name,
-                    muscleGroup: muscle || fallback?.muscleGroup || fallback?.muscle || null,
-                    muscle: muscle || fallback?.muscle || fallback?.muscleGroup || null,
-                    slug: fallback?.slug || null,
-                };
-            }
-            return next;
-        });
-    }, [exercisesByName]);
-
-    const handleFilterPress = useCallback(
-        (value) => {
-            startFilterTransition(() => {
-                setBodyPartValue((prev) => (prev === value ? null : value));
-            });
-        },
-        [startFilterTransition]
-    );
-
-    const bookmarkedExercises = useMemo(() => {
-        const values = savedExercisesMap ? Object.values(savedExercisesMap) : [];
-        if (!values.length) return [];
-
-        return values
-            .map((entry) => {
-                if (!entry) return null;
-                if (typeof entry === "string") {
-                    const fallback = exercisesByName[entry] || {};
-                    return {
-                        ...fallback,
-                        name: entry,
-                        muscleGroup: fallback?.muscleGroup ?? fallback?.muscle ?? "—",
-                        muscle: fallback?.muscle ?? fallback?.muscleGroup ?? null,
-                        slug: fallback?.slug ?? null,
-                    };
-                }
-
-                const name = entry?.name;
-                if (!name) return null;
-                const fallback = exercisesByName[name] || {};
-                const muscleGroup =
-                    entry?.muscleGroup ??
-                    entry?.muscle ??
-                    fallback?.muscleGroup ??
-                    fallback?.muscle ??
-                    "—";
-                const muscle =
-                    entry?.muscle ??
-                    entry?.muscleGroup ??
-                    fallback?.muscle ??
-                    fallback?.muscleGroup ??
-                    null;
-
-                return {
-                    ...fallback,
-                    ...entry,
-                    name,
-                    muscleGroup,
-                    muscle,
-                    slug: entry?.slug ?? fallback?.slug ?? null,
-                };
-            })
-            .filter(Boolean)
-            .sort((a, b) => {
-                const nameA = a?.name || "";
-                const nameB = b?.name || "";
-                return nameA.localeCompare(nameB);
-            });
-    }, [savedExercisesMap, exercisesByName]);
-
-    const filteredBookmarkedExercises = useMemo(() => {
-        if (!bookmarkedExercises.length) return [];
-        if (!bodyPartValue) return bookmarkedExercises;
-        const segments =
-            filterSegmentsLookup[bodyPartValue] ||
-            [String(bodyPartValue || "").toLowerCase()];
-        return bookmarkedExercises.filter((exercise) => {
-            const muscleLc = String(
-                exercise?.muscleGroup || exercise?.muscle || ""
-            ).toLowerCase();
-            if (!muscleLc) return false;
-            return segments.some((segment) => muscleLc.includes(segment));
-        });
-    }, [bookmarkedExercises, bodyPartValue, filterSegmentsLookup]);
-
-    const bookmarkedRows = useMemo(() => {
-        if (!filteredBookmarkedExercises.length) return [];
-        const rows = [];
-        for (let i = 0; i < filteredBookmarkedExercises.length; i += 3) {
-            rows.push(filteredBookmarkedExercises.slice(i, i + 3));
-        }
-        return rows;
-    }, [filteredBookmarkedExercises]);
-
-    const hasBookmarkedMatches = bookmarkedRows.length > 0;
-    const hasAnyBookmarks = bookmarkedExercises.length > 0;
-
-    const listHeaderComponent = useMemo(() => {
-        return (
-            <View style={styles.bookmarkedSection}>
-                <Text style={styles.sectionTitle}>Bookmarked Exercises</Text>
-                {hasBookmarkedMatches ? (
-                    <View style={styles.bookmarkedGrid}>
-                        {bookmarkedRows.map((row, rowIndex) => (
-                            <View key={`row-${rowIndex}`} style={styles.bookmarkedRow}>
-                                {row.map((exercise, index) => (
-                                    <View key={`${exercise?.name || "bookmark"}-${rowIndex}-${index}`} style={styles.bookmarkedCardWrapper}>
-                                        <ExerciseCard
-                                            name={exercise.name}
-                                            muscleGroup={exercise.muscleGroup}
-                                            slug={exercise.slug}
-                                            selectExercise={handleExercisePress}
-                                            deselectExercise={handleExercisePress}
-                                            isSelected={false}
-                                            isSaved
-                                            toggleSaved={toggleSavedExercise}
-                                            touchable
-                                            style={styles.bookmarkedCard}
-                                        />
-                                    </View>
-                                ))}
-                                {row.length < 3 &&
-                                    Array.from({ length: 3 - row.length }).map((_, fillerIndex) => (
-                                        <View
-                                            key={`spacer-${rowIndex}-${fillerIndex}`}
-                                            style={styles.bookmarkedSpacer}
-                                        />
-                                    ))}
-                            </View>
-                        ))}
-                    </View>
-                ) : (
-                    <View style={styles.bookmarkedEmpty}>
-                        <Text style={styles.bookmarkedEmptyText}>
-                            {hasAnyBookmarks
-                                ? "No bookmarked exercises match this focus."
-                                : "No bookmarked exercises yet. Tap the bookmark icon to save favorites."}
-                        </Text>
-                    </View>
-                )}
-                <Text style={[styles.sectionTitle, styles.sectionTitleSpacer]}>All Exercises</Text>
-                {filteredExercises.length === 0 && (
-                    <View style={styles.emptyState}>
-                        <Text style={styles.emptyStateTitle}>No exercises found</Text>
-                        <Text style={styles.emptyStateSubtitle}>
-                            Try adjusting your search or filters.
-                        </Text>
-                    </View>
-                )}
-            </View>
-        );
-    }, [
-        bookmarkedRows,
-        filteredExercises.length,
-        handleExercisePress,
-        toggleSavedExercise,
-        hasAnyBookmarks,
-        hasBookmarkedMatches,
-    ]);
 
     return (
-        <View style={styles.screen}>
-            <View style={styles.searchOuter}>
-                <View style={styles.searchContainer}>
-                    <Ionicons
-                        name="search"
-                        size={scaleSize(18)}
-                        color="rgba(210,215,229,0.85)"
-                        style={styles.searchIcon}
-                    />
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search exercises..."
-                        placeholderTextColor="rgba(208,214,228,0.7)"
-                        value={searchValue}
-                        onChangeText={setSearchValue}
-                        returnKeyType="search"
-                    />
-                </View>
-            </View>
-
-            <Animated.View
-                pointerEvents={filterPointerEvents}
-                style={[styles.muscleFilterSection, filterAnimatedStyle]}
-                onLayout={handleFilterLayout}
-            >
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    style={styles.muscleFilterScroll}
-                    contentContainerStyle={styles.muscleFilterContent}
-                    snapToAlignment="start"
-                    decelerationRate="fast"
-                >
-                    <View style={styles.muscleFilterRow}>
-                        {MUSCLE_FILTERS.map((option, index) => {
-                            const isActive = option.value === bodyPartValue;
-                            return (
-                                <Pressable
-                                    key={option.label}
-                                    style={[
-                                        styles.muscleFilterChip,
-                                        isActive && styles.muscleFilterChipActive,
-                                        index === MUSCLE_FILTERS.length - 1 && styles.muscleFilterChipLast,
-                                    ]}
-                                    onPress={withStrongPress(() => handleFilterPress(option.value))}
-                                    accessibilityRole="button"
-                                    accessibilityLabel={option.label}
-                                >
-                                    <View
-                                        style={[
-                                            styles.muscleFilterIconWrap,
-                                            isActive && styles.muscleFilterIconWrapActive,
-                                        ]}
-                                    >
-                                        <MuscleGroupIcon segments={option.segments} dimmed={!isActive} />
-                                    </View>
-                                </Pressable>
-                            );
-                        })}
+        <ScrollView
+            ref={scrollViewRef}
+            style={styles.screen}
+            contentContainerStyle={styles.content}
+            showsVerticalScrollIndicator={false}
+            onScroll={handleScroll}
+            onLayout={handleScrollViewLayout}
+            scrollEventThrottle={16}
+        >
+            {LADDER_LEVELS.map((entry, index) => {
+                const shouldDim =
+                    CURRENT_RANK_INDEX >= 0 ? index < CURRENT_RANK_INDEX : !entry.isCurrent;
+                return (
+                    <View
+                        key={entry.key}
+                        style={[
+                            styles.cardWrapper,
+                            index === 0 && styles.firstCard,
+                            shouldDim && styles.dimmedCard,
+                        ]}
+                        onLayout={(event) => handleCardLayout(entry.key, event?.nativeEvent?.layout)}
+                    >
+                        <FeedSnapshotCard
+                            rankTier={entry.rankTier}
+                            rankLabel={entry.rankLabel}
+                            showRankTabs={false}
+                            forceTabKey="rank"
+                            enableRankAnimations={entry.isCurrent}
+                        />
                     </View>
-                </ScrollView>
-            </Animated.View>
-
-            <View style={styles.listWrapper}>
-                <ExercisesFlatlist
-                    exercises={filteredExercises}
-                    selectExercise={handleExercisePress}
-                    deselectExercise={handleExercisePress}
-                    toggleSavedExercise={toggleSavedExercise}
-                    selectedLookup={emptySelection}
-                    savedLookup={savedExercisesMap}
-                    animatedPress
-                    bottomPadding={bottomInsetPadding + scaleSize(140)}
-                    listHeaderComponent={listHeaderComponent}
-                    onScroll={handleExercisesScroll}
-                />
-            </View>
-        </View>
+                );
+            })}
+        </ScrollView>
     );
 }
 
@@ -639,157 +123,18 @@ const styles = StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: theme.bg,
-        paddingTop: scaleSize(4),
     },
-    searchOuter: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginHorizontal: scaleSize(16),
-        marginBottom: scaleSize(4),
+    content: {
+        paddingTop: scaleSize(6),
+        paddingBottom: scaleSize(140),
     },
-    searchContainer: {
-        flex: 1,
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: scaleSize(16),
-        paddingVertical: scaleSize(12),
-        borderRadius: scaleSize(18),
-        marginBottom: scaleSize(4),
-        backgroundColor: theme.surface,
+    cardWrapper: {
+        marginBottom: scaleSize(20),
     },
-    searchIcon: {
-        marginRight: scaleSize(10),
+    firstCard: {
+        marginTop: scaleSize(8),
     },
-    searchInput: {
-        flex: 1,
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(14),
-        color: TEXT_PRIMARY,
-    },
-    muscleFilterSection: {
-        justifyContent: "center",
-        overflow: "hidden",
-    },
-    muscleFilterScroll: {
-        height: scaleSize(72),
-        paddingHorizontal: scaleSize(10),
-    },
-    muscleFilterContent: {
-        paddingLeft: scaleSize(10),
-        paddingRight: scaleSize(20),
-        alignItems: "center",
-    },
-    muscleFilterRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        flexGrow: 0,
-    },
-    muscleFilterChip: {
-        width: scaleSize(74),
-        aspectRatio: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: scaleSize(8),
-        paddingVertical: 0,
-        flexShrink: 0,
-        flexGrow: 0,
-    },
-    muscleFilterChipActive: {},
-    muscleFilterChipLast: {
-        marginRight: scaleSize(16),
-    },
-    muscleFilterIconWrap: {
-        width: scaleSize(70),
-        aspectRatio: 1,
-        borderRadius: scaleSize(24),
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: 1.5,
-        borderColor: "rgba(255, 255, 255, 0.06)",
-        overflow: "hidden",
-    },
-    muscleFilterIconWrapActive: {
-        backgroundColor: "rgba(87, 185, 255, 0.18)",
-        borderColor: "#57B9FF",
-        shadowColor: "#57B9FF",
-        shadowOpacity: 0.2,
-        shadowRadius: scaleSize(6),
-    },
-    listWrapper: {
-        flex: 1,
-    },
-    bookmarkedSection: {
-        paddingBottom: scaleSize(6),
-    },
-    sectionTitle: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(14),
-        color: TEXT_PRIMARY,
-        marginTop: scaleSize(10),
-        marginBottom: scaleSize(8),
-        paddingHorizontal: scaleSize(20),
-    },
-    sectionTitleSpacer: {
-        marginTop: scaleSize(16),
-    },
-    bookmarkedGrid: {
-        flexDirection: "column",
-        marginBottom: scaleSize(4),
-    },
-    bookmarkedRow: {
-        width: "100%",
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginBottom: scaleSize(6),
-    },
-    bookmarkedCardWrapper: {
-        flexGrow: 0,
-        flexShrink: 0,
-        width: "32.5%",
-        maxWidth: "32.5%",
-    },
-    bookmarkedCard: {
-        width: "100%",
-        maxWidth: "100%",
-    },
-    bookmarkedSpacer: {
-        width: "32.5%",
-        maxWidth: "32.5%",
-        flexGrow: 0,
-        flexShrink: 0,
-        opacity: 0,
-    },
-    bookmarkedEmpty: {
-        marginBottom: scaleSize(12),
-        paddingHorizontal: scaleSize(16),
-        paddingVertical: scaleSize(14),
-        borderRadius: scaleSize(18),
-        marginHorizontal: scaleSize(6),
-        backgroundColor: theme.surface,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(90, 176, 255, 0.14)",
-    },
-    bookmarkedEmptyText: {
-        fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(12),
-        color: TEXT_SECONDARY,
-        lineHeight: scaleSize(16),
-    },
-    emptyState: {
-        paddingHorizontal: scaleSize(20),
-        paddingVertical: scaleSize(32),
-        alignItems: "center",
-    },
-    emptyStateTitle: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(14),
-        color: TEXT_PRIMARY,
-        marginBottom: scaleSize(6),
-    },
-    emptyStateSubtitle: {
-        fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(12),
-        color: TEXT_SECONDARY,
-        textAlign: "center",
+    dimmedCard: {
+        opacity: 0.18,
     },
 });

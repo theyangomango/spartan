@@ -68,7 +68,6 @@ import ProfileWorkoutsAndPostsScreen from './frontend/screens/ProfileWorkoutsAnd
 import ProfileLoggedFoodsScreen from './frontend/screens/ProfileLoggedFoodsScreen';
 import WeightMeasurementsScreen from './frontend/screens/WeightMeasurementsScreen';
 import NoInternet from './frontend/screens/NoInternet';
-import RankLadderScreen from './frontend/screens/RankLadderScreen';
 // Dark theme palette
 import theme from './frontend/theme/mfpDark';
 import ActiveWorkoutBottomSheet from './frontend/components/3_Workout/NewWorkout/ActiveWorkoutBottomSheet';
@@ -1565,8 +1564,6 @@ return (
                             component={ExerciseDetail}
                             options={{ headerShown: false }}
                         />
-
-                        <RootStack.Screen name="RankLadder" component={RankLadderScreen} />
 
                         <RootStack.Screen name="Profile" component={Profile} />
                         <RootStack.Screen name="ProfileWorkoutsAndPosts" component={ProfileWorkoutsAndPostsScreen} />

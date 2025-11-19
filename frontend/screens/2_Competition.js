@@ -8,6 +8,7 @@ import {
     Easing,
     useWindowDimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 import useStableSafeAreaInsets from "../hooks/useStableSafeAreaInsets";
@@ -29,11 +30,10 @@ import {
 } from "../utils/competitionTabEvents";
 
 const VIEW_TABS = [
-    { key: "progress", label: "Progress" },
+    { key: "exercises", label: "Ladder" },
     { key: "leaderboard", label: "Compete" },
-    { key: "exercises", label: "Exercises" },
+    { key: "progress", label: "Progress" },
 ];
-
 const resolveTabKey = (candidate) => {
     if (typeof candidate !== "string") return null;
     const key = candidate.trim().toLowerCase();
@@ -100,6 +100,10 @@ export default function Competition({ navigation, route }) {
         setProgressScrollSignal(Date.now());
     }, []);
 
+    const handleSectionScroll = useCallback(() => {
+        // Header remains static; keep callback for compatibility with section props.
+    }, []);
+
     useEffect(() => {
         if (!windowWidth) return;
         const target = -windowWidth * getTabIndex(activeTab);
@@ -151,63 +155,71 @@ export default function Competition({ navigation, route }) {
                 <LeaderboardsSection
                     navigation={navigation}
                     onRequestBodyWeightEntry={handleRequestBodyWeightEntry}
+                    onScroll={handleSectionScroll}
                 />
             ),
-            progress: <ProgressSection scrollSignal={progressScrollSignal} />,
-            exercises: <ExercisesSection />,
+            progress: (
+                <ProgressSection
+                    scrollSignal={progressScrollSignal}
+                    onScroll={handleSectionScroll}
+                />
+            ),
+            exercises: <ExercisesSection onScroll={handleSectionScroll} />,
         }),
-        [navigation, handleRequestBodyWeightEntry, progressScrollSignal]
+        [navigation, handleRequestBodyWeightEntry, progressScrollSignal, handleSectionScroll]
     );
 
     return (
-        <View style={styles.mainContainer}>
-            <View
-                style={[
-                    styles.tabsWrapper,
-                    { paddingTop: insets.top + SIZES.headerPaddingTop + scaleSize(12) },
-                ]}
-            >
+        <SafeAreaView style={styles.mainContainer} edges={["top"]}>
+            <View style={styles.tabsWrapper}>
                 <View
                     style={[
-                        styles.viewTabsContainer,
-                        { paddingHorizontal: SIZES.headerPaddingHorizontal },
+                        styles.tabsContent,
+                        { paddingTop: SIZES.headerPaddingTop + scaleSize(12) },
                     ]}
                 >
-                    {VIEW_TABS.map((tab) => {
-                        const isActive = activeTab === tab.key;
-                        return (
-                            <RNBounceable
-                                key={tab.key}
-                                onPress={withStrongPress(() => handleTabPress(tab.key))}
-                                style={styles.viewTabButton}
-                                activeScale={0.97}
-                                accessibilityRole="button"
-                                accessibilityLabel={`Switch to ${tab.label}`}
-                                onLayout={(event) => handleTabLayout(tab.key, event)}
-                            >
-                                <Text
-                                    style={[
-                                        styles.viewTabLabel,
-                                        isActive && styles.viewTabLabelActive,
-                                    ]}
+                    <View
+                        style={[
+                            styles.viewTabsContainer,
+                            { paddingHorizontal: SIZES.headerPaddingHorizontal },
+                        ]}
+                    >
+                        {VIEW_TABS.map((tab) => {
+                            const isActive = activeTab === tab.key;
+                            return (
+                                <RNBounceable
+                                    key={tab.key}
+                                    onPress={withStrongPress(() => handleTabPress(tab.key))}
+                                    style={styles.viewTabButton}
+                                    activeScale={0.97}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`Switch to ${tab.label}`}
+                                    onLayout={(event) => handleTabLayout(tab.key, event)}
                                 >
-                                    {tab.label}
-                                </Text>
-                            </RNBounceable>
-                        );
-                    })}
-                    {tabLayouts[activeTab] && (
-                        <Animated.View
-                            pointerEvents="none"
-                            style={[
-                                styles.viewTabIndicatorActive,
-                                {
-                                    transform: [{ translateX: indicatorX }],
-                                    width: indicatorWidth,
-                                },
-                            ]}
-                        />
-                    )}
+                                    <Text
+                                        style={[
+                                            styles.viewTabLabel,
+                                            isActive && styles.viewTabLabelActive,
+                                        ]}
+                                    >
+                                        {tab.label}
+                                    </Text>
+                                </RNBounceable>
+                            );
+                        })}
+                        {tabLayouts[activeTab] && (
+                            <Animated.View
+                                pointerEvents="none"
+                                style={[
+                                    styles.viewTabIndicatorActive,
+                                    {
+                                        transform: [{ translateX: indicatorX }],
+                                        width: indicatorWidth,
+                                    },
+                                ]}
+                            />
+                        )}
+                    </View>
                 </View>
             </View>
 
@@ -239,14 +251,19 @@ export default function Competition({ navigation, route }) {
             </View>
 
             <Footer currentScreenName="Competition" navigation={navigation} />
-        </View>
+        </SafeAreaView>
     );
 }
 
 const styles = StyleSheet.create({
     mainContainer: { flex: 1, backgroundColor: theme.bg },
     tabsWrapper: {
-        backgroundColor: "transparent",
+        backgroundColor: theme.bg,
+        zIndex: 2,
+        elevation: 2,
+    },
+    tabsContent: {
+        backgroundColor: theme.bg,
     },
     sectionContainer: {
         flex: 1,

@@ -93,6 +93,7 @@ const ParticipantHandle = ({ participant, textStyle, containerStyle, preserveTex
     const fallbackVerified = Boolean(user?.isVerified ?? user?.verified);
     const uid = user?.uid ? String(user.uid) : "";
     const isVerified = useUserVerified(uid, fallbackVerified);
+    const preserveSlot = preserveTextAlignment && isVerified;
 
     return (
         <VerifiedHandle
@@ -101,7 +102,7 @@ const ParticipantHandle = ({ participant, textStyle, containerStyle, preserveTex
             textStyle={textStyle}
             numberOfLines={1}
             ellipsizeMode="tail"
-            preserveTextAlignment={preserveTextAlignment}
+            preserveTextAlignment={preserveSlot}
             containerStyle={containerStyle}
         />
     );

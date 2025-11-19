@@ -23,19 +23,48 @@ const STACKED_PFP_RADIUS = Math.round(STACKED_PFP_SIZE / 2);
 const STACKED_OFFSET = scaleSize(4);
 const AVATAR_BORDER = Math.max(1, scaleSize(1));
 
+const sanitizeHandle = (user) => {
+    const base = typeof user?.handle === "string" ? user.handle : "";
+    const trimmed = base.replace(/^@+/, "").trim();
+    if (trimmed) return trimmed;
+    const name = typeof user?.name === "string" ? user.name.trim() : "";
+    return name || "Friend";
+};
+
+const ChatHeaderHandle = ({ participant, textStyle, containerStyle, iconSize }) => {
+    const handle = participant?.handle ?? "Friend";
+    const user = participant?.user ?? null;
+    const fallbackVerified = Boolean(user?.isVerified ?? user?.verified);
+    const uid = user?.uid ? String(user.uid) : "";
+    const isVerified = useUserVerified(uid, fallbackVerified);
+
+    return (
+        <VerifiedHandle
+            handle={handle}
+            isVerified={isVerified}
+            textStyle={textStyle}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            containerStyle={containerStyle}
+            iconSize={iconSize}
+        />
+    );
+};
+
 const ChatHeader = ({ usersExcludingSelf = [], toMessages, onPressParticipant }) => {
     const navigation = useNavigation();
-    const sanitizedHandles = usersExcludingSelf
-        .map((u) => {
-            const base = typeof u?.handle === 'string' ? u.handle : '';
-            const trimmed = base.replace(/^@+/, '').trim();
-            if (trimmed) return trimmed;
-            const name = typeof u?.name === 'string' ? u.name.trim() : '';
-            return name || 'Friend';
-        });
-    const handles = sanitizedHandles.filter(Boolean).join(", ");
-    // Show only first names (split by space)
-    const names = "";
+    const participantsMeta = React.useMemo(() => (
+        usersExcludingSelf.map((user, idx) => {
+            const handle = sanitizeHandle(user);
+            const uid = user?.uid ? String(user.uid) : "";
+            return {
+                key: uid || `participant-${idx}`,
+                handle,
+                user,
+            };
+        })
+    ), [usersExcludingSelf]);
+    const handlesLabel = participantsMeta.map((p) => p.handle).join(", ");
     const u0 = usersExcludingSelf[0] || null;
     const u1 = usersExcludingSelf[1] || null;
     const fallback0 = resolvePhotoURL(u0, "");
@@ -56,14 +85,11 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages, onPressParticipant })
         else navigation.goBack();
     };
 
-    const hasHandles = handles.length > 0;
-    const primaryLabel = hasHandles ? handles : 'Direct Message';
-    const firstUser = usersExcludingSelf[0] || null;
-    const fallbackVerified = Boolean(firstUser?.isVerified ?? firstUser?.verified);
-    const firstUid = firstUser?.uid ? String(firstUser.uid) : '';
-    const isFirstVerified = useUserVerified(firstUid, fallbackVerified);
-    const showSingleVerified = usersExcludingSelf.length === 1 && sanitizedHandles[0];
-    const canOpenProfile = usersExcludingSelf.length === 1 && typeof onPressParticipant === 'function';
+    const hasHandles = handlesLabel.length > 0;
+    const primaryLabel = hasHandles ? handlesLabel : "Direct Message";
+    const firstParticipant = participantsMeta[0] || null;
+    const isSingleConversation = participantsMeta.length === 1;
+    const canOpenProfile = isSingleConversation && typeof onPressParticipant === "function";
 
     const headerContent = (
         <>
@@ -89,17 +115,34 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages, onPressParticipant })
             </View>
 
             <View style={styles.textWrap}>
-                {showSingleVerified ? (
-                    <VerifiedHandle
-                        handle={sanitizedHandles[0]}
-                        isVerified={isFirstVerified}
+                {isSingleConversation && firstParticipant ? (
+                    <ChatHeaderHandle
+                        participant={firstParticipant}
                         textStyle={styles.nameText}
-                        numberOfLines={1}
-                        iconSize={scaleSize(19)}
-                        ellipsizeMode="tail"
-                        preserveTextAlignment
                         containerStyle={styles.nameRow}
+                        iconSize={scaleSize(19)}
                     />
+                ) : participantsMeta.length > 1 ? (
+                    <View style={styles.multiHandlesRow}>
+                        {participantsMeta.map((participant, idx) => (
+                            <React.Fragment key={participant.key}>
+                                <ChatHeaderHandle
+                                    participant={participant}
+                                    textStyle={styles.nameText}
+                                    containerStyle={styles.multiHandleItem}
+                                />
+                                {idx < participantsMeta.length - 1 && (
+                                    <Text
+                                        style={[styles.nameText, styles.handleComma]}
+                                        numberOfLines={1}
+                                        ellipsizeMode="clip"
+                                    >
+                                        ,{" "}
+                                    </Text>
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </View>
                 ) : (
                     <Text numberOfLines={1} style={styles.nameText}>
                         {primaryLabel}
@@ -209,11 +252,29 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         flexShrink: 1,
     },
+    multiHandlesRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        flexShrink: 1,
+        minWidth: 0,
+        overflow: "hidden",
+    },
+    multiHandleItem: {
+        flexDirection: "row",
+        alignItems: "center",
+        flexShrink: 1,
+        minWidth: 0,
+    },
+    handleComma: {
+        includeFontPadding: false,
+    },
     nameText: {
         fontFamily: "Nunito_700Bold",
         fontSize: ts(16),
         color: theme.textPrimary,
         includeFontPadding: false,
+        flexShrink: 1,
+        minWidth: 0,
     }
 });
 
