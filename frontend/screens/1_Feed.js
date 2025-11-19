@@ -46,6 +46,7 @@ import deletePost from "../../backend/posts/deletePost";
 import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
 import { emitUserDataUpdate, subscribeUserData } from "../utils/userDataEvents";
+import { requestCompetitionTabFocus } from "../utils/competitionTabEvents";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import { strong as hapticStrong } from "../utils/haptics";
 import FeedSnapshotCard from "../components/1_Feed/FeedSnapshotCard";
@@ -289,6 +290,7 @@ export default function Feed({ navigation, route }) {
     useEffect(() => {
         const unsubscribe = subscribeUserData((payload) => {
             setCalendarMarkedDays(buildWorkoutDaySet(payload));
+            setCurrentRank(payload?.currentRank || null);
         });
         return unsubscribe;
     }, []);
@@ -339,9 +341,16 @@ export default function Feed({ navigation, route }) {
     const highlightPidRef = useRef(null);
     const [highlightSignal, setHighlightSignal] = useState(0);
     const [pendingScrollRequest, setPendingScrollRequest] = useState(null);
-    const [calendarVisible, setCalendarVisible] = useState(false);
-    const [calendarSelectedDate, setCalendarSelectedDate] = useState(() => Date.now());
-    const [calendarMarkedDays, setCalendarMarkedDays] = useState(() => buildWorkoutDaySet(global?.userData));
+const [calendarVisible, setCalendarVisible] = useState(false);
+const [calendarSelectedDate, setCalendarSelectedDate] = useState(() => Date.now());
+const [calendarMarkedDays, setCalendarMarkedDays] = useState(() => buildWorkoutDaySet(global?.userData));
+const [currentRank, setCurrentRank] = useState(() => {
+    try {
+        return global?.userData?.currentRank || null;
+    } catch {
+        return null;
+    }
+});
 
     const headerVisibility = useRef(new Animated.Value(1)).current;
     const [headerPointerEvents, setHeaderPointerEvents] = useState("auto");
@@ -1308,15 +1317,37 @@ export default function Feed({ navigation, route }) {
         try { setIsUserStatsBottomSheetVisible(true); } catch { setIsUserStatsBottomSheetVisible(true); }
     }, []);
 
+    const handleOpenLadder = useCallback(() => {
+        try { hapticStrong(); } catch { }
+        try {
+            requestCompetitionTabFocus("exercises");
+        } catch {
+            requestCompetitionTabFocus("exercises");
+        }
+        try {
+            navigation?.navigate("Competition", { focusTab: "exercises" });
+        } catch {
+            navigation?.navigate?.("Competition");
+        }
+    }, [navigation]);
+
+    const snapshotRankTier = currentRank?.tier ?? currentRank?.rankTier ?? undefined;
+    const snapshotRankLabel = currentRank?.label ?? currentRank?.rankLabel ?? undefined;
+    const snapshotRankLevel = currentRank?.level ?? currentRank?.rankLevel ?? undefined;
+
     const renderSnapshotCard = useCallback(
         () => (
             <View style={styles.snapshotCardContainer}>
                 <FeedSnapshotCard
                     onPressOverall={handleOpenUserStats}
+                    onPressCard={handleOpenLadder}
+                    rankTier={snapshotRankTier}
+                    rankLabel={snapshotRankLabel}
+                    rankLevel={snapshotRankLevel}
                 />
             </View>
         ),
-        [handleOpenUserStats]
+        [snapshotRankLabel, snapshotRankLevel, snapshotRankTier, handleOpenLadder, handleOpenUserStats]
     );
 
     return (

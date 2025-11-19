@@ -1448,7 +1448,7 @@ useEffect(() => {
             };
         }
         return {
-            colors: [theme.bg, "#142548", "#264A7B", "#3167AF", "#3B82DF", theme.surface],
+            colors: [theme.bg, theme.bg, theme.bg, theme.bg, theme.bg, theme.surface],
             locations: [0, 0.22, 0.52, 0.74, 0.92, 1],
         };
     }, [isCustomTribe]);

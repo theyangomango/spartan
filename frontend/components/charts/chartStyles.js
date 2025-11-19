@@ -15,8 +15,9 @@ export const chartPointerStyles = StyleSheet.create({
     bubbleWrapper: {
         width: '100%',
         paddingHorizontal: scaleSize(8),
-        marginTop: scaleSize(4),
-        marginBottom: scaleSize(4),
+        marginTop: scaleSize(6),
+        marginBottom: scaleSize(6),
+        position: 'relative',
     },
     alignLeft: {
         alignItems: 'flex-start',
@@ -26,13 +27,18 @@ export const chartPointerStyles = StyleSheet.create({
     },
     bubble: {
         maxWidth: '100%',
-        minWidth: scaleSize(140),
-        paddingHorizontal: scaleSize(14),
-        paddingVertical: scaleSize(10),
-        borderRadius: scaleSize(16),
-        backgroundColor: 'rgba(9, 12, 18, 0.92)',
+        minWidth: scaleSize(150),
+        paddingHorizontal: scaleSize(16),
+        paddingVertical: scaleSize(12),
+        borderRadius: scaleSize(18),
+        backgroundColor: 'rgba(5, 8, 16, 0.96)',
         borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,255,255,0.12)',
+        borderColor: 'rgba(255,255,255,0.14)',
+        shadowColor: '#030A18',
+        shadowOffset: { width: 0, height: scaleSize(6) },
+        shadowOpacity: 0.55,
+        shadowRadius: scaleSize(12),
+        elevation: 6,
     },
 });
 

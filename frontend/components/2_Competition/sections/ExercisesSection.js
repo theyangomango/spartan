@@ -1,27 +1,20 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 
 import theme from "../../../theme/mfpDark";
 import { scaleSize } from "../layoutConstants";
 import FeedSnapshotCard from "../../1_Feed/FeedSnapshotCard";
-import rankLevelPromotionRequirements from "../../../data/rankLevelTasks";
+import rankLevelPromotionRequirements from "../../../../shared/rankLevelTasks.js";
+import {
+    computeRankProgressFromData,
+    LADDER_LEVELS,
+    buildLevelKey,
+    parseRequirementTask,
+    evaluateRequirementProgress,
+} from "../../../../shared/rankProgress.js";
 import RankTierMiniBadge from "../RankTierMiniBadge";
-
-const SCREEN_WIDTH = Dimensions.get("window").width || 360;
-const REQUIREMENT_TEXT_WIDTH = SCREEN_WIDTH * 0.4;
-
-const TIER_ORDER_DESC = ["diamond", "platinum", "ruby", "gold", "silver", "bronze"];
-const LEVEL_ORDER_DESC = ["V", "IV", "III", "II", "I"];
-const DISPLAY_TITLES = {
-    bronze: "Bronze",
-    silver: "Silver",
-    gold: "Gold",
-    ruby: "Ruby",
-    platinum: "Platinum",
-    diamond: "Diamond",
-};
-const CURRENT_RANK = { tier: "diamond", level: "III" };
+import { subscribeUserData } from "../../../utils/userDataEvents";
 
 const CARD_THEME_COLORS = {
     bronze: { gradient: ["#6f3600ff", "#e19c73ff"], accent: "#f9cba1ff" },
@@ -34,37 +27,94 @@ const CARD_THEME_COLORS = {
 
 const CURRENT_CARD_OFFSET = scaleSize(-400);
 
-const LADDER_LEVELS = TIER_ORDER_DESC.flatMap((tier) =>
-    LEVEL_ORDER_DESC.map((level) => {
-        const label = `${DISPLAY_TITLES[tier] || tier} ${level}`;
-        const isCurrent = tier === CURRENT_RANK.tier && level === CURRENT_RANK.level;
-        return {
-            key: `${tier}-${level}`,
-            rankTier: tier,
-            rankLabel: label,
-            rankLevel: level,
-            isCurrent,
-        };
-    })
-);
-const CURRENT_RANK_INDEX = LADDER_LEVELS.findIndex((entry) => entry.isCurrent);
-const CURRENT_RANK_KEY = CURRENT_RANK_INDEX >= 0 ? LADDER_LEVELS[CURRENT_RANK_INDEX]?.key : null;
+const formatScoreValue = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "0.0";
+    return numeric.toFixed(1);
+};
 
-const buildLevelKey = (tier, rankLabel) => {
-    const normalizedTier = String(tier || "").toLowerCase().trim();
-    if (!normalizedTier) return null;
-    const tokens = String(rankLabel || "").trim().split(" ");
-    const levelToken = tokens[tokens.length - 1]?.toLowerCase()?.replace(/[^iv]+/g, "") || tokens[tokens.length - 1]?.toLowerCase();
-    const normalizedLevel = levelToken || tokens[tokens.length - 1]?.toLowerCase();
-    if (!normalizedLevel) return null;
-    return `${normalizedTier}-${normalizedLevel}`;
+const formatCountValue = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "0";
+    const safeValue = Math.max(0, Math.floor(numeric));
+    try {
+        return new Intl.NumberFormat("en-US").format(safeValue);
+    } catch {
+        return String(safeValue);
+    }
+};
+
+const formatWeightValue = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return "0";
+    const safeValue = Math.max(0, Math.round(numeric));
+    try {
+        return new Intl.NumberFormat("en-US").format(safeValue);
+    } catch {
+        return String(safeValue);
+    }
+};
+
+const formatRequirementProgressText = (descriptor, currentValue, targetValue, fallback) => {
+    if (!descriptor || !descriptor.type) {
+        return fallback;
+    }
+    if (descriptor.type === "workouts" && Number.isFinite(targetValue)) {
+        return `${formatCountValue(currentValue)} / ${formatCountValue(targetValue)}`;
+    }
+    if (descriptor.type === "score" && Number.isFinite(targetValue)) {
+        return `${formatScoreValue(currentValue)} / ${formatScoreValue(targetValue)}`;
+    }
+    if (descriptor.type === "volume" && Number.isFinite(targetValue)) {
+        return `${formatWeightValue(currentValue)} / ${formatWeightValue(targetValue)}`;
+    }
+    return fallback;
+};
+
+const clampRatio = (value) => {
+    if (!Number.isFinite(value)) return 0;
+    return Math.min(1, Math.max(0, value));
 };
 
 export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
+    const [userData, setUserData] = useState(() => {
+        try {
+            return global?.userData || null;
+        } catch {
+            return null;
+        }
+    });
     const scrollViewRef = useRef(null);
     const cardLayoutsRef = useRef({});
     const hasCenteredRef = useRef(false);
     const [scrollContainerHeight, setScrollContainerHeight] = useState(0);
+
+    useEffect(() => {
+        const unsubscribe = subscribeUserData((payload) => {
+            setUserData(payload);
+        });
+        return unsubscribe;
+    }, []);
+
+    const completedWorkouts = useMemo(() => {
+        if (!Array.isArray(userData?.completedWorkouts)) return [];
+        return userData.completedWorkouts.filter(Boolean);
+    }, [userData?.completedWorkouts]);
+
+    const rankProgress = useMemo(
+        () =>
+            computeRankProgressFromData({
+                completedWorkouts,
+                statsHexagon: userData?.statsHexagon,
+            }),
+        [completedWorkouts, userData?.statsHexagon]
+    );
+    const currentRankKey =
+        rankProgress.currentRankKey || LADDER_LEVELS[LADDER_LEVELS.length - 1]?.key || null;
+    const currentRankIndex = Number.isFinite(rankProgress.currentRankIndexDesc)
+        ? rankProgress.currentRankIndexDesc
+        : LADDER_LEVELS.length - 1;
+    const promotionStatuses = rankProgress.promotionStatuses || new Map();
 
     const handleScroll = useCallback(
         (event) => {
@@ -77,11 +127,11 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
 
     const attemptCenterCurrentCard = useCallback(
         (options = { animated: false }) => {
-            if (!CURRENT_RANK_KEY) return;
+            if (!currentRankKey) return;
             if (scrollContainerHeight <= 0) return;
             const scrollView = scrollViewRef.current;
             if (!scrollView) return;
-            const layout = cardLayoutsRef.current[CURRENT_RANK_KEY];
+            const layout = cardLayoutsRef.current[currentRankKey];
             if (!layout) return;
             const targetOffset = Math.max(
                 0,
@@ -96,7 +146,7 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                 // ignore scroll failures
             }
         },
-        [scrollContainerHeight]
+        [scrollContainerHeight, currentRankKey]
     );
 
     useEffect(() => {
@@ -136,11 +186,12 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
             scrollEventThrottle={16}
         >
             <Text style={[styles.topNoticeText, styles.dimmedCard]}>
-                More ranks coming soon!
+                More Ranks Coming Soon!
             </Text>
             {LADDER_LEVELS.map((entry, index) => {
+                const entryIsCurrent = entry.key === currentRankKey;
                 const cardShouldDim =
-                    CURRENT_RANK_INDEX >= 0 ? index < CURRENT_RANK_INDEX : !entry.isCurrent;
+                    currentRankIndex >= 0 ? index < currentRankIndex : !entryIsCurrent;
                 const nextLevelEntry = index < LADDER_LEVELS.length - 1 ? LADDER_LEVELS[index + 1] : null;
                 const promotionKey = nextLevelEntry
                     ? buildLevelKey(nextLevelEntry.rankTier, nextLevelEntry.rankLabel)
@@ -148,15 +199,28 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                 const promotionRequirements = promotionKey ? rankLevelPromotionRequirements[promotionKey] : null;
                 const promotionThemeKey =
                     promotionRequirements?.theme || nextLevelEntry?.rankTier || entry.rankTier;
-                const promotionLevel = nextLevelEntry?.rankLevel;
                 const nextLevelIndex = nextLevelEntry ? index + 1 : null;
                 const isImmediatePromotionTarget =
-                    typeof nextLevelIndex === "number" && nextLevelIndex === CURRENT_RANK_INDEX;
-                const requirementsCompleted =
-                    !isImmediatePromotionTarget &&
-                    typeof nextLevelIndex === "number" &&
-                    CURRENT_RANK_INDEX < nextLevelIndex;
+                    typeof nextLevelIndex === "number" && nextLevelIndex === currentRankIndex;
                 const shouldDimRequirementsBlock = cardShouldDim && !isImmediatePromotionTarget;
+                const promotionStatus = promotionStatuses.get(entry.key);
+                const baseTasks = (promotionRequirements?.tasks || []).map((task) => {
+                    const descriptor = parseRequirementTask(task);
+                    const evaluation = evaluateRequirementProgress(descriptor, rankProgress.metrics);
+                    return {
+                        label: task,
+                        descriptor,
+                        ...evaluation,
+                    };
+                });
+                const tasksToRender =
+                    (promotionStatus?.tasks && promotionStatus.tasks.length > 0
+                        ? promotionStatus.tasks
+                        : baseTasks) || [];
+                const requirementsCompleted =
+                    promotionStatus?.allComplete ??
+                    (tasksToRender.length ? tasksToRender.every((task) => task.complete) : false);
+                const hasRequirements = tasksToRender.length > 0;
                 return (
                     <View
                         key={entry.key}
@@ -173,20 +237,39 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                                 rankLevel={entry.rankLevel}
                                 showRankTabs={false}
                                 forceTabKey="rank"
-                                enableRankAnimations={entry.isCurrent}
+                                enableRankAnimations={entryIsCurrent}
                             />
                         </View>
-                        {promotionRequirements && (
+                        {hasRequirements && (
                             <View
                                 style={[
                                     styles.requirementCardsColumn,
                                     shouldDimRequirementsBlock && styles.dimmedCard,
                                 ]}
                             >
-                                {promotionRequirements.tasks.map((task, requirementIndex) => {
+                                {tasksToRender.map((taskStatus, requirementIndex) => {
                                     const themeKey = promotionThemeKey || entry.rankTier;
                                     const themeColors = CARD_THEME_COLORS[themeKey] || CARD_THEME_COLORS.gold;
-                                    const taskComplete = requirementsCompleted;
+                                    const taskLabel = taskStatus?.label || "";
+                                    const descriptor = taskStatus?.descriptor || null;
+                                    const taskComplete = !!taskStatus?.complete;
+                                    const progressRatio = clampRatio(
+                                        typeof taskStatus?.ratio === "number"
+                                            ? taskStatus.ratio
+                                            : taskComplete
+                                            ? 1
+                                            : 0
+                                    );
+                                    const progressText = formatRequirementProgressText(
+                                        descriptor,
+                                        taskStatus?.currentValue,
+                                        descriptor?.target,
+                                        taskComplete ? "Completed" : "In progress"
+                                    );
+                                    const fillPercent = Math.min(
+                                        100,
+                                        Math.max(0, Math.round(progressRatio * 100))
+                                    );
                                     return (
                                         <View key={`${entry.key}-requirement-${requirementIndex}`} style={styles.requirementCardWrapper}>
                                             <LinearGradient colors={themeColors.gradient} style={styles.requirementCard}>
@@ -204,7 +287,7 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                                                                 taskComplete && styles.requirementTextCompleted,
                                                             ]}
                                                         >
-                                                            {task}
+                                                            {taskLabel}
                                                         </Text>
                                                     </View>
                                                     <View
@@ -230,13 +313,13 @@ export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                                                         style={[
                                                             styles.requirementProgressFill,
                                                             {
-                                                                width: taskComplete ? "100%" : "30%",
+                                                                width: `${fillPercent}%`,
                                                                 backgroundColor: themeColors.accent,
                                                             },
                                                         ]}
                                                     />
                                                     <Text style={styles.requirementProgressText}>
-                                                        {taskComplete ? "1 / 1" : "0 / 1"}
+                                                        {progressText}
                                                     </Text>
                                                 </View>
                                             </LinearGradient>
@@ -340,22 +423,26 @@ const styles = StyleSheet.create({
         color: "#ffffff",
     },
     requirementProgressTrack: {
-        height: scaleSize(16),
-        borderRadius: scaleSize(10),
+        height: scaleSize(22),
+        borderRadius: scaleSize(12),
         backgroundColor: "rgba(0,0,0,0.35)",
         overflow: "hidden",
         justifyContent: "center",
+        alignItems: "center",
+        alignSelf: "stretch",
+        width: "100%",
+        marginTop: scaleSize(4),
     },
     requirementProgressFill: {
         position: "absolute",
         left: 0,
         top: 0,
         bottom: 0,
-        borderRadius: scaleSize(10),
+        borderRadius: scaleSize(12),
     },
     requirementProgressText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(11),
+        fontSize: scaleSize(12),
         color: "#0a0a0a",
         textAlign: "center",
     },

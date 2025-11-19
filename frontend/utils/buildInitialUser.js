@@ -46,6 +46,17 @@ const TEMPLATE_PRESETS = [
   },
 ];
 
+const DEFAULT_CURRENT_RANK = Object.freeze({
+  key: "bronze-i",
+  tier: "bronze",
+  level: "I",
+  label: "Bronze I",
+  rankTier: "bronze",
+  rankLevel: "I",
+  rankLabel: "Bronze I",
+  index: 0,
+});
+
 export default function buildInitialUser({
   uid,
   handle,
@@ -107,6 +118,7 @@ export default function buildInitialUser({
     statsTotalVolume: 0,
     statsTotalWorkouts: 0,
     templates,
+    currentRank: { ...DEFAULT_CURRENT_RANK },
     settings: {
       profilePrivate: false,
       units: 'lb',

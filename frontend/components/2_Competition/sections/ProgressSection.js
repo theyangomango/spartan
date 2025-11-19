@@ -39,6 +39,13 @@ const CHART_ACCENTS = {
     weight: { r: 45, g: 158, b: 255 },
 };
 
+const POINTER_PANEL_ACCENTS = {
+    volume: CHART_ACCENTS.standard,
+    reps: { r: 156, g: 136, b: 255 },
+    prs: { r: 255, g: 183, b: 126 },
+    weight: CHART_ACCENTS.weight,
+};
+
 const accentToRgba = (accent, alpha) => {
     const { r, g, b } = accent;
     const boundedAlpha = Math.max(0, Math.min(alpha, 1));
@@ -85,6 +92,72 @@ const ChartBubble = ({ cx, cy, isActive, accent = CHART_ACCENTS.standard }) => {
                 opacity={isActive ? 0.95 : 0.55}
             />
         </G>
+    );
+};
+
+const PointerBubbleCard = ({
+    children,
+    accent = CHART_ACCENTS.standard,
+    label,
+    isRightAligned,
+    accessibilityLabel,
+}) => {
+    const accentSolid = accentToRgba(accent, 1);
+    const borderColor = accentToRgba(accent, 0.45);
+    const glowColor = accentToRgba(accent, 0.18);
+
+    return (
+        <View
+            pointerEvents="box-none"
+            style={[
+                chartPointerStyles.root,
+                isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
+            ]}
+            accessible={Boolean(accessibilityLabel)}
+            accessibilityRole={accessibilityLabel ? "summary" : undefined}
+            accessibilityLabel={accessibilityLabel}
+        >
+            <View
+                style={[
+                    chartPointerStyles.bubbleWrapper,
+                    isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
+                ]}
+            >
+                <View
+                    pointerEvents="none"
+                    style={[
+                        styles.pointerBubbleGlow,
+                        {
+                            backgroundColor: glowColor,
+                        },
+                    ]}
+                />
+                <View
+                    style={[
+                        chartPointerStyles.bubble,
+                        {
+                            borderColor,
+                        },
+                    ]}
+                >
+                    {label ? (
+                        <>
+                            <View style={styles.pointerBubbleHeaderRow}>
+                                <View
+                                    style={[
+                                        styles.pointerBubbleAccentDot,
+                                        { backgroundColor: accentSolid },
+                                    ]}
+                                />
+                                <Text style={styles.pointerBubbleHeaderLabel}>{label}</Text>
+                            </View>
+                            <View style={styles.pointerBubbleHeaderDivider} />
+                        </>
+                    ) : null}
+                    <View style={styles.pointerBubbleBody}>{children}</View>
+                </View>
+            </View>
+        </View>
     );
 };
 
@@ -178,7 +251,6 @@ const buildMetricDeltaDisplay = (delta, unitLabel, formatter = formatVolumeValue
 const formatWeightValue = (value) => {
     const num = Number(value);
     if (!Number.isFinite(num) || num <= 0) return "00";
-    if (num >= 100) return Math.round(num).toString();
     const rounded = Math.round(num * 10) / 10;
     return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 };
@@ -698,36 +770,21 @@ const PointerLabelBubble = React.memo(({ entry, unit, delta, isRightAligned }) =
     ];
 
     return (
-        <View
-            pointerEvents="box-none"
-            style={[
-                chartPointerStyles.root,
-                isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
-            ]}
-            accessible
-            accessibilityRole="summary"
+        <PointerBubbleCard
+            accent={POINTER_PANEL_ACCENTS.weight}
+            label="Body Weight"
+            isRightAligned={isRightAligned}
             accessibilityLabel={`Weight ${weightText} logged ${timestampText}`}
         >
-            <View
-                style={[
-                    chartPointerStyles.bubbleWrapper,
-                    isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
-                ]}
+            <Text style={chartTypography.pointerTitle}>{weightText}</Text>
+            {deltaText ? <Text style={deltaStyle}>{deltaText}</Text> : null}
+            <View style={styles.pointerBubbleDivider} />
+            <Text
+                style={[chartTypography.pointerTimestamp, styles.pointerBubbleTimestampSpacing]}
             >
-                <View style={chartPointerStyles.bubble}>
-                    <Text style={chartTypography.pointerTitle}>{weightText}</Text>
-                    {deltaText ? <Text style={deltaStyle}>{deltaText}</Text> : null}
-                    <Text
-                        style={[
-                            chartTypography.pointerTimestamp,
-                            styles.pointerBubbleTimestampSpacing,
-                        ]}
-                    >
-                        {timestampText}
-                    </Text>
-                </View>
-            </View>
-        </View>
+                {timestampText}
+            </Text>
+        </PointerBubbleCard>
     );
 });
 
@@ -742,73 +799,59 @@ const VolumePointerLabel = React.memo(({ entry, unit, isRightAligned, onWorkoutP
     const canNavigate = typeof onWorkoutPress === "function";
 
     return (
-        <View
-            pointerEvents="box-none"
-            style={[
-                chartPointerStyles.root,
-                isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
-            ]}
+        <PointerBubbleCard
+            label="Total Volume"
+            accent={POINTER_PANEL_ACCENTS.volume}
+            isRightAligned={isRightAligned}
+            accessibilityLabel={`Total volume ${totalText} recorded ${timestampText}`}
         >
-            <View
-                style={[
-                    chartPointerStyles.bubbleWrapper,
-                    isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
-                ]}
-            >
-                <View style={chartPointerStyles.bubble}>
-                    <Text style={chartTypography.pointerTitle}>{totalText}</Text>
-                    {incrementText ? (
+            <Text style={chartTypography.pointerTitle}>{totalText}</Text>
+            {incrementText ? (
+                <Text
+                    style={[
+                        chartTypography.pointerBody,
+                        styles.pointerBubbleLineSpacing,
+                        chartTypography.pointerAccentGreen,
+                    ]}
+                >
+                    {incrementText} this workout
+                </Text>
+            ) : null}
+            {workoutName ? (
+                canNavigate ? (
+                    <Pressable
+                        onPress={() => onWorkoutPress(entry)}
+                        hitSlop={8}
+                        accessibilityRole="link"
+                        accessibilityLabel={`View workout ${workoutName}`}
+                    >
                         <Text
                             style={[
                                 chartTypography.pointerBody,
                                 styles.pointerBubbleLineSpacing,
-                                chartTypography.pointerAccentGreen,
+                                chartTypography.pointerAccentBlue,
                             ]}
                         >
-                            {incrementText} this workout
+                            {workoutName}
                         </Text>
-                    ) : null}
-                    {workoutName ? (
-                        canNavigate ? (
-                            <Pressable
-                                onPress={() => onWorkoutPress(entry)}
-                                hitSlop={8}
-                                accessibilityRole="link"
-                                accessibilityLabel={`View workout ${workoutName}`}
-                            >
-                                <Text
-                                    style={[
-                                        chartTypography.pointerBody,
-                                        styles.pointerBubbleLineSpacing,
-                                        chartTypography.pointerAccentBlue,
-                                    ]}
-                                >
-                                    {workoutName}
-                                </Text>
-                            </Pressable>
-                        ) : (
-                            <Text
-                                style={[
-                                    chartTypography.pointerBody,
-                                    styles.pointerBubbleLineSpacing,
-                                    chartTypography.pointerAccentBlue,
-                                ]}
-                            >
-                                {workoutName}
-                            </Text>
-                        )
-                    ) : null}
+                    </Pressable>
+                ) : (
                     <Text
                         style={[
-                            chartTypography.pointerTimestamp,
-                            styles.pointerBubbleTimestampSpacing,
+                            chartTypography.pointerBody,
+                            styles.pointerBubbleLineSpacing,
+                            chartTypography.pointerAccentBlue,
                         ]}
                     >
-                        {timestampText}
+                        {workoutName}
                     </Text>
-                </View>
-            </View>
-        </View>
+                )
+            ) : null}
+            <View style={styles.pointerBubbleDivider} />
+            <Text style={[chartTypography.pointerTimestamp, styles.pointerBubbleTimestampSpacing]}>
+                {timestampText}
+            </Text>
+        </PointerBubbleCard>
     );
 });
 
@@ -822,73 +865,59 @@ const RepsPointerLabel = React.memo(({ entry, isRightAligned, onWorkoutPress }) 
     const canNavigate = typeof onWorkoutPress === "function";
 
     return (
-        <View
-            pointerEvents="box-none"
-            style={[
-                chartPointerStyles.root,
-                isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
-            ]}
+        <PointerBubbleCard
+            label="Total Reps"
+            accent={POINTER_PANEL_ACCENTS.reps}
+            isRightAligned={isRightAligned}
+            accessibilityLabel={`Total reps ${totalText} recorded ${timestampText}`}
         >
-            <View
-                style={[
-                    chartPointerStyles.bubbleWrapper,
-                    isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
-                ]}
-            >
-                <View style={chartPointerStyles.bubble}>
-                    <Text style={chartTypography.pointerTitle}>{totalText}</Text>
-                    {incrementText ? (
+            <Text style={chartTypography.pointerTitle}>{totalText}</Text>
+            {incrementText ? (
+                <Text
+                    style={[
+                        chartTypography.pointerBody,
+                        styles.pointerBubbleLineSpacing,
+                        chartTypography.pointerAccentGreen,
+                    ]}
+                >
+                    {incrementText} this workout
+                </Text>
+            ) : null}
+            {workoutName ? (
+                canNavigate ? (
+                    <Pressable
+                        onPress={() => onWorkoutPress(entry)}
+                        hitSlop={8}
+                        accessibilityRole="link"
+                        accessibilityLabel={`View workout ${workoutName}`}
+                    >
                         <Text
                             style={[
                                 chartTypography.pointerBody,
                                 styles.pointerBubbleLineSpacing,
-                                chartTypography.pointerAccentGreen,
+                                chartTypography.pointerAccentBlue,
                             ]}
                         >
-                            {incrementText} this workout
+                            {workoutName}
                         </Text>
-                    ) : null}
-                    {workoutName ? (
-                        canNavigate ? (
-                            <Pressable
-                                onPress={() => onWorkoutPress(entry)}
-                                hitSlop={8}
-                                accessibilityRole="link"
-                                accessibilityLabel={`View workout ${workoutName}`}
-                            >
-                                <Text
-                                    style={[
-                                        chartTypography.pointerBody,
-                                        styles.pointerBubbleLineSpacing,
-                                        chartTypography.pointerAccentBlue,
-                                    ]}
-                                >
-                                    {workoutName}
-                                </Text>
-                            </Pressable>
-                        ) : (
-                            <Text
-                                style={[
-                                    chartTypography.pointerBody,
-                                    styles.pointerBubbleLineSpacing,
-                                    chartTypography.pointerAccentBlue,
-                                ]}
-                            >
-                                {workoutName}
-                            </Text>
-                        )
-                    ) : null}
+                    </Pressable>
+                ) : (
                     <Text
                         style={[
-                            chartTypography.pointerTimestamp,
-                            styles.pointerBubbleTimestampSpacing,
+                            chartTypography.pointerBody,
+                            styles.pointerBubbleLineSpacing,
+                            chartTypography.pointerAccentBlue,
                         ]}
                     >
-                        {timestampText}
+                        {workoutName}
                     </Text>
-                </View>
-            </View>
-        </View>
+                )
+            ) : null}
+            <View style={styles.pointerBubbleDivider} />
+            <Text style={[chartTypography.pointerTimestamp, styles.pointerBubbleTimestampSpacing]}>
+                {timestampText}
+            </Text>
+        </PointerBubbleCard>
     );
 });
 
@@ -904,84 +933,70 @@ const PersonalRecordPointerLabel = React.memo(({ entry, isRightAligned, onWorkou
     const canNavigate = typeof onWorkoutPress === "function";
 
     return (
-        <View
-            pointerEvents="box-none"
-            style={[
-                chartPointerStyles.root,
-                isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
-            ]}
+        <PointerBubbleCard
+            label="Personal Records"
+            accent={POINTER_PANEL_ACCENTS.prs}
+            isRightAligned={isRightAligned}
+            accessibilityLabel={`Personal records ${totalText} recorded ${timestampText}`}
         >
-            <View
-                style={[
-                    chartPointerStyles.bubbleWrapper,
-                    isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
-                ]}
-            >
-                <View style={chartPointerStyles.bubble}>
-                    <Text style={chartTypography.pointerTitle}>{totalText}</Text>
-                    {incrementText ? (
+            <Text style={chartTypography.pointerTitle}>{totalText}</Text>
+            {incrementText ? (
+                <Text
+                    style={[
+                        chartTypography.pointerBody,
+                        styles.pointerBubbleLineSpacing,
+                        chartTypography.pointerAccentGreen,
+                    ]}
+                >
+                    {incrementText} this workout
+                </Text>
+            ) : null}
+            {workoutName ? (
+                canNavigate ? (
+                    <Pressable
+                        onPress={() => onWorkoutPress(entry)}
+                        hitSlop={8}
+                        accessibilityRole="link"
+                        accessibilityLabel={`View workout ${workoutName}`}
+                    >
                         <Text
                             style={[
                                 chartTypography.pointerBody,
                                 styles.pointerBubbleLineSpacing,
-                                chartTypography.pointerAccentGreen,
+                                chartTypography.pointerAccentBlue,
                             ]}
                         >
-                            {incrementText} this workout
+                            {workoutName}
                         </Text>
-                    ) : null}
-                    {workoutName ? (
-                        canNavigate ? (
-                            <Pressable
-                                onPress={() => onWorkoutPress(entry)}
-                                hitSlop={8}
-                                accessibilityRole="link"
-                                accessibilityLabel={`View workout ${workoutName}`}
-                            >
-                                <Text
-                                    style={[
-                                        chartTypography.pointerBody,
-                                        styles.pointerBubbleLineSpacing,
-                                        chartTypography.pointerAccentBlue,
-                                    ]}
-                                >
-                                    {workoutName}
-                                </Text>
-                            </Pressable>
-                        ) : (
-                            <Text
-                                style={[
-                                    chartTypography.pointerBody,
-                                    styles.pointerBubbleLineSpacing,
-                                    chartTypography.pointerAccentBlue,
-                                ]}
-                            >
-                                {workoutName}
-                            </Text>
-                        )
-                    ) : null}
-                    {noRecordText ? (
-                        <Text
-                            style={[
-                                chartTypography.pointerBody,
-                                styles.pointerBubbleLineSpacing,
-                                chartTypography.pointerDeltaNeutral,
-                            ]}
-                        >
-                            {noRecordText}
-                        </Text>
-                    ) : null}
+                    </Pressable>
+                ) : (
                     <Text
                         style={[
-                            chartTypography.pointerTimestamp,
-                            styles.pointerBubbleTimestampSpacing,
+                            chartTypography.pointerBody,
+                            styles.pointerBubbleLineSpacing,
+                            chartTypography.pointerAccentBlue,
                         ]}
                     >
-                        {timestampText}
+                        {workoutName}
                     </Text>
-                </View>
-            </View>
-        </View>
+                )
+            ) : null}
+            {noRecordText ? (
+                <Text
+                    style={[
+                        chartTypography.pointerBody,
+                        styles.pointerBubbleLineSpacing,
+                        chartTypography.pointerDeltaNeutral,
+                    ]}
+                >
+                    {noRecordText}
+                </Text>
+            ) : null}
+            <View style={styles.pointerBubbleDivider} />
+            <Text style={[chartTypography.pointerTimestamp, styles.pointerBubbleTimestampSpacing]}>
+                {timestampText}
+            </Text>
+        </PointerBubbleCard>
     );
 });
 
@@ -2797,9 +2812,6 @@ const completedWorkouts = useMemo(
                         style={[
                             chartCardLayout.card,
                             styles.card,
-                            {
-                                marginBottom: scaleSize(32),
-                            },
                         ]}
                     >
                         <View
@@ -3071,7 +3083,6 @@ const completedWorkouts = useMemo(
                         style={[
                             chartCardLayout.card,
                             styles.card,
-                            { marginBottom: scaleSize(32) },
                         ]}
                     >
                         <View
@@ -3880,6 +3891,46 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_500Medium",
         fontSize: ts(13),
         color: "rgba(255,255,255,0.55)",
+    },
+    pointerBubbleGlow: {
+        position: "absolute",
+        top: scaleSize(-6),
+        bottom: scaleSize(-16),
+        left: scaleSize(40),
+        right: scaleSize(40),
+        borderRadius: scaleSize(48),
+        opacity: 0.4,
+    },
+    pointerBubbleHeaderRow: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    pointerBubbleAccentDot: {
+        width: scaleSize(9),
+        height: scaleSize(9),
+        borderRadius: scaleSize(9) / 2,
+        marginRight: scaleSize(6),
+    },
+    pointerBubbleHeaderLabel: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(11),
+        letterSpacing: 0.5,
+        textTransform: "uppercase",
+        color: "rgba(226, 231, 255, 0.85)",
+    },
+    pointerBubbleHeaderDivider: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: "rgba(255,255,255,0.08)",
+        marginTop: scaleSize(8),
+    },
+    pointerBubbleBody: {
+        marginTop: scaleSize(10),
+    },
+    pointerBubbleDivider: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: "rgba(255,255,255,0.08)",
+        marginTop: scaleSize(10),
+        marginBottom: scaleSize(6),
     },
     pointerBubbleLineSpacing: {
         marginTop: scaleSize(2),

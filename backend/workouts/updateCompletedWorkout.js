@@ -1,6 +1,7 @@
 import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import computeHexagonFromStats from "../../shared/computeHexagon.js";
+import { computeRankProgressFromData } from "../../shared/rankProgress.js";
 import updateDoc from "../helper/firebase/updateDoc.js";
 import { estimateWorkoutCalories } from "../../frontend/helper/estimateWorkoutCalories.js";
 import { resolveUserBodyweight } from "../../frontend/utils/bodyweight.js";
@@ -484,9 +485,23 @@ export default async function updateCompletedWorkout(uid, identifierInput, updat
         nextWorkoutsForFirestore[index] = updatedForFirestore;
 
         const nextWorkoutsForClient = [...workouts];
-       nextWorkoutsForClient[index] = updatedForClient;
+        nextWorkoutsForClient[index] = updatedForClient;
 
         const rebuilt = rebuildStatsFromWorkouts(nextWorkoutsForClient);
+        const rankProgress = computeRankProgressFromData({
+            completedWorkouts: nextWorkoutsForClient,
+            statsHexagon: rebuilt.statsHexagon,
+        });
+        const currentRankEntry = rankProgress.currentRankEntry;
+        const currentRankData = currentRankEntry
+            ? {
+                  key: currentRankEntry.key,
+                  tier: currentRankEntry.rankTier,
+                  level: currentRankEntry.rankLevel,
+                  label: currentRankEntry.rankLabel,
+                  index: rankProgress.currentRankIndexDesc,
+              }
+            : null;
 
         const userUpdatePayload = {
             completedWorkouts: nextWorkoutsForFirestore,
@@ -500,6 +515,7 @@ export default async function updateCompletedWorkout(uid, identifierInput, updat
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
+            currentRank: currentRankData,
         };
 
         const publicUpdatePayload = {
@@ -514,6 +530,7 @@ export default async function updateCompletedWorkout(uid, identifierInput, updat
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
+            currentRank: currentRankData,
         };
 
         const privateUpdatePayload = {
@@ -528,6 +545,7 @@ export default async function updateCompletedWorkout(uid, identifierInput, updat
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
+            currentRank: currentRankData,
         };
 
         tx.update(userRef, userUpdatePayload);
@@ -557,6 +575,7 @@ export default async function updateCompletedWorkout(uid, identifierInput, updat
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
+            currentRank: currentRankData,
             postPid: postPidInsideTx,
         };
     });

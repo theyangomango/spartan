@@ -59,10 +59,9 @@ const toDisplayWeightUnit = (unit, fallback = "lbs") => {
 
 const formatWeightValue = (value) => {
     const num = Number(value);
-    if (!Number.isFinite(num) || num <= 0) return "00";
-    if (num >= 100) return Math.round(num).toString();
+    if (!Number.isFinite(num) || num <= 0) return "00.0";
     const rounded = Math.round(num * 10) / 10;
-    return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+    return rounded.toFixed(1);
 };
 
 const sanitizeEntries = (rawEntries) => {

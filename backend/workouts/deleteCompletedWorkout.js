@@ -1,6 +1,7 @@
 import { doc, runTransaction, serverTimestamp } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import computeHexagonFromStats from "../../shared/computeHexagon.js";
+import { computeRankProgressFromData } from "../../shared/rankProgress.js";
 import updateDoc from "../helper/firebase/updateDoc.js";
 
 const toNumber = (value, fallback = 0) => {
@@ -318,6 +319,21 @@ export default async function deleteCompletedWorkout(uid, identifier) {
         if (!removed) throw new Error("Workout not found");
 
         const rebuilt = rebuildStatsFromWorkouts(remaining);
+        const sanitizedWorkouts = remaining.map((entry) => sanitizeWorkoutForPublic(entry)).filter(Boolean);
+        const rankProgress = computeRankProgressFromData({
+            completedWorkouts: sanitizedWorkouts,
+            statsHexagon: rebuilt.statsHexagon,
+        });
+        const currentRankEntry = rankProgress.currentRankEntry;
+        const currentRankData = currentRankEntry
+            ? {
+                  key: currentRankEntry.key,
+                  tier: currentRankEntry.rankTier,
+                  level: currentRankEntry.rankLevel,
+                  label: currentRankEntry.rankLabel,
+                  index: rankProgress.currentRankIndexDesc,
+              }
+            : null;
 
         const userUpdatePayload = {
             completedWorkouts: remaining,
@@ -331,10 +347,11 @@ export default async function deleteCompletedWorkout(uid, identifier) {
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
+            currentRank: currentRankData,
         };
 
         const publicUpdatePayload = {
-            completedWorkouts: remaining.map((entry) => sanitizeWorkoutForPublic(entry)).filter(Boolean),
+            completedWorkouts: sanitizedWorkouts,
             statsExercises: rebuilt.statsExercises,
             statsHexagon: rebuilt.statsHexagon,
             statsHexagonMeta: {
@@ -345,10 +362,11 @@ export default async function deleteCompletedWorkout(uid, identifier) {
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
+            currentRank: currentRankData,
         };
 
         const privateUpdatePayload = {
-            completedWorkouts: remaining.map((entry) => sanitizeWorkoutForPublic(entry)).filter(Boolean),
+            completedWorkouts: sanitizedWorkouts,
             statsExercises: rebuilt.statsExercises,
             statsHexagon: rebuilt.statsHexagon,
             statsHexagonMeta: {
@@ -359,6 +377,7 @@ export default async function deleteCompletedWorkout(uid, identifier) {
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
+            currentRank: currentRankData,
         };
 
         tx.update(userRef, userUpdatePayload);
@@ -388,6 +407,7 @@ export default async function deleteCompletedWorkout(uid, identifier) {
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
+            currentRank: currentRankData,
             postPid: postPidInsideTx,
         };
     });

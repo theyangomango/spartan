@@ -5,6 +5,7 @@ import FastImage from "react-native-fast-image";
 import scaleSize from "../../helper/scaleSize";
 const ts = require('../../helper/scaleSize').ts;
 import VerifiedHandle from "../common/VerifiedHandle";
+import theme from "../../theme/mfpDark";
 
 const PODIUM_HEIGHT = scaleSize(240);
 export { PODIUM_HEIGHT };
@@ -230,6 +231,7 @@ const styles = StyleSheet.create({
     container: {
         width: '100%',
         position: 'relative',
+        backgroundColor: theme.bg,
     },
     // Subtle blue streaks only at the top portion
     streaks_container: {

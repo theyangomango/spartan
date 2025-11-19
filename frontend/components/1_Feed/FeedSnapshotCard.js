@@ -33,8 +33,17 @@ const RANK_TAB_CONFIG = [
 
 const scaled = (value) => scaleSize(value);
 const BODYGRAPH_OUTLINE_COLOR = "#40485c";
-const BODYGRAPH_INTENSITY_GRADIENT = ["#8189a8", "#5cc6ff", "#fcb653"];
-const BODYGRAPH_INTENSITY_GRADIENT_LOCATIONS = [0, 0.55, 1];
+const BODYGRAPH_INTENSITY_GRADIENT = [
+    "#6f7487",
+    "#7a2cff",
+    "#3566ff",
+    "#13b0ff",
+    "#39ff92",
+    "#ffec5c",
+    "#ff9f45",
+    "#ff2b41",
+];
+const BODYGRAPH_INTENSITY_GRADIENT_LOCATIONS = [0, 0.18, 0.33, 0.48, 0.63, 0.78, 0.9, 1];
 const BODYGRAPH_INTENSITY_SCALE_STOPS = [100, 75, 50, 25, 0];
 
 const bronzeTheme = {
