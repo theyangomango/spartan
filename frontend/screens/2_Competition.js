@@ -30,9 +30,9 @@ import {
 } from "../utils/competitionTabEvents";
 
 const VIEW_TABS = [
-    { key: "progress", label: "Progress" },
-    { key: "leaderboard", label: "Compete" },
     { key: "exercises", label: "Ladder" },
+    { key: "leaderboard", label: "Leaderboards" },
+    { key: "progress", label: "Progress" },
 ];
 const resolveTabKey = (candidate) => {
     if (typeof candidate !== "string") return null;
@@ -203,7 +203,7 @@ export default function Competition({ navigation, route }) {
                 <View
                     style={[
                         styles.tabsContent,
-                        { paddingTop: SIZES.headerPaddingTop + scaleSize(12) },
+                        { paddingTop: 0 },
                     ]}
                 >
                     <View
@@ -235,6 +235,7 @@ export default function Competition({ navigation, route }) {
                                 </RNBounceable>
                             );
                         })}
+                        <View pointerEvents="none" style={styles.viewTabBaseline} />
                         {tabLayouts[activeTab] && (
                             <Animated.View
                                 pointerEvents="none"
@@ -317,7 +318,8 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: "center",
         justifyContent: "center",
-        paddingVertical: scaleSize(4),
+        paddingTop: scaleSize(16),
+        paddingBottom: scaleSize(6),
     },
     viewTabLabel: {
         fontFamily: "Outfit_600SemiBold",
@@ -325,6 +327,7 @@ const styles = StyleSheet.create({
         color: "rgba(255,255,255,0.45)",
     },
     viewTabLabelActive: {
+        fontFamily: "Outfit_600SemiBold",
         color: "rgba(255,255,255,0.98)",
     },
     viewTabIndicatorActive: {
@@ -333,6 +336,14 @@ const styles = StyleSheet.create({
         left: 0,
         height: scaleSize(3),
         borderRadius: scaleSize(999),
-        backgroundColor: "rgba(34, 61, 100, 0.9)",
+        backgroundColor: "rgba(255,255,255,0.95)",
+    },
+    viewTabBaseline: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        height: Math.max(1, scaleSize(2)),
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
     },
 });

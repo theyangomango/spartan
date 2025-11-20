@@ -21,6 +21,7 @@ import FoodSearchOverlay from '../components/2_MacroTracking/FoodSearchOverlay';
 
 import scaleSize from '../helper/scaleSize';
 import useStableSafeAreaInsets from '../hooks/useStableSafeAreaInsets';
+import { getUnifiedHeaderSafeAreaOffset } from '../theme/headerMetrics';
 
 // 🔥 Firestore (load + save macro goals)
 import { db } from '../../firebase.config';
@@ -60,6 +61,8 @@ const COLORS = {
     shadow: '#000',
     modalCard: theme.surface,
 };
+
+const HEADER_SAFE_AREA_OFFSET = getUnifiedHeaderSafeAreaOffset();
 
 const mealsMeta = [
     { name: 'Breakfast', subtitle: 'Breakfast starts your day', icon: breakfastIcon, bgColor: '#FBEDD9' },
@@ -236,6 +239,7 @@ const scaleGoalsWithBurn = (baseGoals, caloriesBurned) => {
 
 export default function MacroTracking({ navigation, route }) {
     const insets = useStableSafeAreaInsets();
+    const headerSafeAreaPadding = Math.max(0, (insets.top || 0) - HEADER_SAFE_AREA_OFFSET);
     const { width: screenWidth } = useWindowDimensions();
     // Fast caches for global.loggedFoods → day-index and built meals
     const lastCountRef = useRef(0);
@@ -811,7 +815,7 @@ export default function MacroTracking({ navigation, route }) {
             <View style={{ flex: 1 }}>
                 <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
                 {/* Header */}
-                <View style={{ paddingTop: Math.max(0, insets.top), backgroundColor: COLORS.bg }}>
+                <View style={{ paddingTop: headerSafeAreaPadding, backgroundColor: COLORS.bg }}>
                     <DateHeader
                         title={formatDate(headerDate)}
                         onPrev={() => slideBy(-1)}

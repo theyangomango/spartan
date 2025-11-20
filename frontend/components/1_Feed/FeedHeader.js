@@ -847,10 +847,10 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: scaleSize(s(14)),
-        paddingVertical: scaleSize(s(10)),
-        borderRadius: scaleSize(s(12)),
-        marginBottom: scaleSize(s(4)),
+        paddingHorizontal: scaleSize(14),
+        paddingVertical: scaleSize(10),
+        borderRadius: scaleSize(12),
+        marginBottom: scaleSize(4),
     },
     scopeOptionLast: {
         marginBottom: 0,
@@ -860,7 +860,7 @@ const styles = StyleSheet.create({
     },
     scopeOptionLabel: {
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(15),
         color: theme.textPrimary,
     },
     scopeOptionLabelActive: {
