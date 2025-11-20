@@ -5,7 +5,8 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
-// import { subscribeUserData } from "../../utils/userDataEvents";
+import { subscribeUserData } from "../../utils/userDataEvents";
+import formatHexStat from "../../utils/formatHexStat";
 import { strong as triggerStrongHaptic } from "../../utils/haptics";
 import HumanMuscleOutline from "../../assets/human_muscle_outline";
 import HumanMuscleBackOutline from "../../assets/human_muscle_back_outline";
@@ -33,18 +34,40 @@ const RANK_TAB_CONFIG = [
 
 const scaled = (value) => scaleSize(value);
 const BODYGRAPH_OUTLINE_COLOR = "#40485c";
-const BODYGRAPH_INTENSITY_GRADIENT = [
-    "#6f7487",
-    "#7a2cff",
-    "#3566ff",
-    "#13b0ff",
-    "#39ff92",
-    "#ffec5c",
-    "#ff9f45",
-    "#ff2b41",
+const BODYGRAPH_STATS_CONFIG = [
+    { key: "shoulders", label: "Shoulders" },
+    { key: "chest", label: "Chest" },
+    { key: "arms", label: "Arms" },
+    { key: "back", label: "Back" },
+    { key: "legs", label: "Legs" },
+    { key: "abs", label: "Abs" },
 ];
-const BODYGRAPH_INTENSITY_GRADIENT_LOCATIONS = [0, 0.18, 0.33, 0.48, 0.63, 0.78, 0.9, 1];
-const BODYGRAPH_INTENSITY_SCALE_STOPS = [100, 75, 50, 25, 0];
+
+const getInitialStatsHexagon = () => {
+    try {
+        const stats = global?.userData?.statsHexagon;
+        if (stats && typeof stats === "object") {
+            return { ...stats };
+        }
+    } catch {
+        // ignore missing globals during cold start
+    }
+    return null;
+};
+
+const shallowEqualHex = (a, b) => {
+    if (a === b) return true;
+    if (!a || !b) return !a && !b;
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    for (let i = 0; i < keysA.length; i += 1) {
+        const key = keysA[i];
+        if (!Object.prototype.hasOwnProperty.call(b, key)) return false;
+        if (a[key] !== b[key]) return false;
+    }
+    return true;
+};
 
 const bronzeTheme = {
     key: "bronze",
@@ -238,6 +261,7 @@ export default function FeedSnapshotCard({
     onPressCard,
     initialTabKey = RANK_TAB_CONFIG[0].key,
     forceTabKey = null,
+    statsHexagon: statsHexagonOverride = null,
 }) {
     const normalizedRankTier = String(rankTier || "gold").toLowerCase();
     const rankTheme = RANK_TIER_THEMES[normalizedRankTier] || RANK_TIER_THEMES.gold;
@@ -299,6 +323,41 @@ export default function FeedSnapshotCard({
                   subtitle: activeRankTabConfig.placeholderSubtitle || "Content coming soon.",
               }
             : null;
+
+    const [viewerStatsHexagon, setViewerStatsHexagon] = useState(() => getInitialStatsHexagon());
+    const statsHexagon = statsHexagonOverride || viewerStatsHexagon;
+    const shouldSubscribeToStats = !statsHexagonOverride && (showRankTabs !== false || forcedTabKey === "bodygraph");
+
+    useEffect(() => {
+        if (!shouldSubscribeToStats) return undefined;
+        const unsubscribe = subscribeUserData((payload) => {
+            const nextHex = payload?.statsHexagon || null;
+            setViewerStatsHexagon((prev) => {
+                if (shallowEqualHex(prev, nextHex)) return prev;
+                return nextHex ? { ...nextHex } : null;
+            });
+        });
+        return unsubscribe;
+    }, [shouldSubscribeToStats]);
+
+    const bodygraphStats = useMemo(
+        () =>
+            BODYGRAPH_STATS_CONFIG.map((entry) => {
+                const rawValue = statsHexagon?.[entry.key];
+                const numericValue = Number(rawValue);
+                const hasValue = Number.isFinite(numericValue);
+                return {
+                    ...entry,
+                    hasValue,
+                    displayValue: hasValue ? formatHexStat(numericValue) : "--",
+                };
+            }),
+        [statsHexagon]
+    );
+    const hasBodygraphStats = bodygraphStats.some((stat) => stat.hasValue);
+    const overallStatNumber = Number(statsHexagon?.overall);
+    const hasOverallStat = Number.isFinite(overallStatNumber);
+    const overallStatDisplay = hasOverallStat ? formatHexStat(overallStatNumber) : "--";
 
     const renderBadgeCore = () => (
         <View
@@ -754,27 +813,44 @@ export default function FeedSnapshotCard({
                     (isBodygraphTabActive ? (
                         <View style={[styles.rankCard, styles.bodygraphCard]}>
                             <View style={styles.bodygraphContent}>
-                                <View style={styles.bodygraphLegend}>
-                                    <View style={styles.bodygraphLegendGradientWrapper}>
-                                        <LinearGradient
-                                            colors={BODYGRAPH_INTENSITY_GRADIENT}
-                                            locations={BODYGRAPH_INTENSITY_GRADIENT_LOCATIONS}
-                                            start={{ x: 0.5, y: 1 }}
-                                            end={{ x: 0.5, y: 0 }}
-                                            style={styles.bodygraphLegendGradient}
-                                        />
-                                        <View style={styles.bodygraphLegendScale}>
-                                            {BODYGRAPH_INTENSITY_SCALE_STOPS.map((value) => (
-                                                <View
-                                                    key={`bodygraph-scale-${value}`}
-                                                    style={styles.bodygraphLegendScaleRow}
-                                                >
-                                                    <View style={styles.bodygraphLegendScaleTick} />
-                                                    <Text style={styles.bodygraphLegendScaleValue}>{value}</Text>
+                                <View style={styles.bodygraphStatsColumn}>
+                                    {hasOverallStat ? (
+                                        <>
+                                            <View style={[styles.bodygraphStatsRow, styles.bodygraphOverallRow]}>
+                                                <Text style={[styles.bodygraphStatsLabel, styles.bodygraphOverallLabel]}>
+                                                    Overall
+                                                </Text>
+                                                <Text style={[styles.bodygraphStatsValue, styles.bodygraphOverallValue]}>
+                                                    {overallStatDisplay}
+                                                </Text>
+                                            </View>
+                                            <View style={[styles.bodygraphStatsDivider, styles.bodygraphOverallDivider]} />
+                                        </>
+                                    ) : null}
+                                    {hasBodygraphStats ? (
+                                        bodygraphStats.map((stat, index) => (
+                                            <View key={stat.key}>
+                                                <View style={styles.bodygraphStatsRow}>
+                                                    <Text style={styles.bodygraphStatsLabel}>{stat.label}</Text>
+                                                    <Text
+                                                        style={[
+                                                            styles.bodygraphStatsValue,
+                                                            !stat.hasValue && styles.bodygraphStatsValueEmpty,
+                                                        ]}
+                                                    >
+                                                        {stat.displayValue}
+                                                    </Text>
                                                 </View>
-                                            ))}
-                                        </View>
-                                    </View>
+                                                {index < bodygraphStats.length - 1 && (
+                                                    <View style={styles.bodygraphStatsDivider} />
+                                                )}
+                                            </View>
+                                        ))
+                                    ) : (
+                                        <Text style={styles.bodygraphStatsEmptyText}>
+                                            Log workouts to unlock insights.
+                                        </Text>
+                                    )}
                                 </View>
                                 <View style={styles.bodygraphFigures}>
                                     <View style={[styles.bodygraphFigureSlot, styles.bodygraphFigureSlotFront]}>
@@ -1133,42 +1209,59 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         flex: 1,
-        paddingTop: scaleSize(6)
+        paddingTop: scaleSize(6),
     },
-    bodygraphLegend: {
-        width: "30%",
+    bodygraphStatsColumn: {
+        width: "32%",
         paddingRight: scaleSize(12),
     },
-    bodygraphLegendGradientWrapper: {
-        flexDirection: "row",
-        alignItems: "stretch",
+    bodygraphOverallRow: {
+        paddingBottom: scaleSize(2),
     },
-    bodygraphLegendGradient: {
-        width: scaleSize(12),
-        height: scaleSize(200),
-        borderRadius: scaleSize(12),
+    bodygraphOverallLabel: {
+        textTransform: "uppercase",
+        fontFamily: "Outfit_600SemiBold",
+        letterSpacing: 0.25,
+        color: "rgba(247,248,255,0.85)",
     },
-    bodygraphLegendScale: {
-        flex: 1,
-        height: scaleSize(200),
-        justifyContent: "space-between",
-        marginLeft: scaleSize(14),
+    bodygraphOverallValue: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaled(20),
+        color: "#f7f8ff",
     },
-    bodygraphLegendScaleRow: {
+    bodygraphOverallDivider: {
+        marginBottom: scaleSize(8),
+    },
+    bodygraphStatsRow: {
         flexDirection: "row",
         alignItems: "center",
+        justifyContent: "space-between",
+        paddingVertical: scaleSize(4),
     },
-    bodygraphLegendScaleTick: {
-        width: scaleSize(14),
-        height: scaleSize(1),
-        backgroundColor: "rgba(255,255,255,0.35)",
-    },
-    bodygraphLegendScaleValue: {
-        fontFamily: "Outfit_600SemiBold",
+    bodygraphStatsLabel: {
+        fontFamily: "Outfit_500Medium",
         fontSize: scaled(12),
+        color: "rgba(247,248,255,0.78)",
+        letterSpacing: 0.25,
+    },
+    bodygraphStatsValue: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaled(13),
         color: "#f7f8ff",
         letterSpacing: 0.25,
-        marginLeft: scaleSize(8),
+    },
+    bodygraphStatsValueEmpty: {
+        color: "rgba(247,248,255,0.45)",
+    },
+    bodygraphStatsDivider: {
+        height: Math.max(1, scaleSize(1)),
+        backgroundColor: "rgba(255,255,255,0.08)",
+    },
+    bodygraphStatsEmptyText: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: scaled(12),
+        color: "rgba(247,248,255,0.6)",
+        letterSpacing: 0.25,
     },
     bodygraphFigures: {
         flex: 1,
