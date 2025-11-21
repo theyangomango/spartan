@@ -95,7 +95,7 @@ const renderRequirementLabel = (taskLabel, descriptor, taskComplete, emphasisCol
         const targetNumber = formatScoreValue(descriptor.target || 0);
         return (
             <Text style={baseStyle}>
-                Reach <Text style={emphasisStyle}>{targetNumber}</Text>+ Score <Text style={emphasisStyle}>{bodyLabel}</Text>
+                Reach <Text style={emphasisStyle}>{targetNumber}+</Text> Score <Text style={emphasisStyle}>{bodyLabel}</Text>
             </Text>
         );
     }
