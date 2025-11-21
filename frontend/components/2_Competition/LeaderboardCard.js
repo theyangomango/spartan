@@ -1,7 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View, Dimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
-import { Entypo, FontAwesome } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import scaleSize from '../../helper/scaleSize';
 import { withStrongPress } from '../../utils/haptics';
@@ -14,17 +13,14 @@ const { width } = Dimensions.get("window");
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
 const CARD_HEIGHT = scaleSize(64);
 const SELF_CARD_HEIGHT = scaleSize(86);
-const PFP_SIZE = scaleSize(37);
+const PFP_SIZE = scaleSize(44);
 
 const FONT_HANDLE = ts(13);
 const FONT_NAME = ts(12.5);
 const FONT_STAT = ts(13);
-const FONT_HEX_STAT = ts(13);
+const FONT_HEX_STAT = ts(15);
 const FONT_RANK = ts(12.5);
 const FONT_BEST = ts(13);
-
-const ICON_ARROW = scaleSize(20);
-const ICON_MINUS = scaleSize(16);
 
 /**
  * Props (new ones are optional & tribe-aware):
@@ -67,26 +63,6 @@ export default function LeaderboardCard({
     const showBestSet = String(metric) === '1RM';
     const bestSetIsNA = !bestSet || (bestSet.reps === 0 && bestSet.weight === 0);
 
-    const rankNumber = Number(rank);
-    const lastRankNumber = Number(lastRank);
-    const hasRank = Number.isFinite(rankNumber);
-    const hasLastRank = Number.isFinite(lastRankNumber) && lastRankNumber > 0;
-
-    let trendIcon = null;
-    if (hasRank) {
-        if (hasLastRank) {
-            if (lastRankNumber > rankNumber) {
-                trendIcon = <Entypo name='chevron-up' size={ICON_ARROW} color='#23B665' style={styles.arrow_icon} />;
-            } else if (lastRankNumber < rankNumber) {
-                trendIcon = <Entypo name='chevron-down' size={ICON_ARROW} color='red' style={styles.arrow_icon} />;
-            } else {
-                trendIcon = <FontAwesome name='minus' size={ICON_MINUS} color='#aaa' style={styles.minus_icon} />;
-            }
-        } else {
-            trendIcon = <FontAwesome name='minus' size={ICON_MINUS} color='#aaa' style={styles.minus_icon} />;
-        }
-    }
-
     return (
         <RNBounceable
             onPress={withStrongPress(handlePress)}
@@ -97,8 +73,9 @@ export default function LeaderboardCard({
             }
         >
             <View style={styles.card_left}>
-                <Text style={[styles.rank_text, { fontSize: scaleSize(FONT_RANK) }]}>{rank}</Text>
-                {trendIcon}
+                <View style={styles.rankWrapper}>
+                    <Text style={[styles.rank_text, { fontSize: scaleSize(FONT_RANK) }]}>{rank}</Text>
+                </View>
 
                 <View style={[styles.pfp_ctnr, { width: PFP_SIZE }]}>
                     <FastImage
@@ -201,8 +178,8 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(20),
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingLeft: scaleSize(10),
-        paddingRight: scaleSize(14),
+        paddingLeft: scaleSize(18),
+        paddingRight: scaleSize(24),
         marginBottom: scaleSize(12.5),
         backgroundColor: theme.surface,
     },
@@ -213,18 +190,26 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(20),
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingLeft: scaleSize(10),
-        paddingRight: scaleSize(14),
+        paddingLeft: scaleSize(16),
+        paddingRight: scaleSize(20),
         borderWidth: scaleSize(2.5),
         borderColor: '#57B2FF',
         backgroundColor: theme.surface,
+        marginBottom: scaleSize(12.5),
     },
     card_left: {
         flexDirection: 'row',
         alignItems: 'center',
+        paddingLeft: scaleSize(2),
+    },
+    rankWrapper: {
+        minWidth: scaleSize(32),
+        alignItems: 'flex-start',
+        marginRight: scaleSize(8),
     },
     pfp_ctnr: {
         aspectRatio: 1,
+        marginRight: scaleSize(10),
     },
     pfp: {
         flex: 1,
@@ -271,13 +256,5 @@ const styles = StyleSheet.create({
     rank_text: {
         fontFamily: 'Poppins_700Bold',
         color: require("../../theme/mfpDark").default.textPrimary,
-    },
-    arrow_icon: {
-        marginLeft: scaleSize(1),
-        marginRight: scaleSize(7),
-    },
-    minus_icon: {
-        marginLeft: scaleSize(7),
-        marginRight: scaleSize(10),
     },
 });

@@ -31,7 +31,7 @@ import {
 
 const VIEW_TABS = [
     { key: "exercises", label: "Ladder" },
-    { key: "leaderboard", label: "Leaderboards" },
+    { key: "leaderboard", label: "Compete" },
     { key: "progress", label: "Progress" },
 ];
 const resolveTabKey = (candidate) => {

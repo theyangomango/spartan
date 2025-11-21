@@ -5,7 +5,7 @@ import scaleSize from "../../helper/scaleSize";
 import TribeComparisonBannerCarousel from "./TribeComparisonBannerCarousel";
 
 // Scaled paddings and derived widths
-const H_PADDING = scaleSize(16);
+const H_PADDING = scaleSize(10);
 
 // Scaled fonts (slightly larger for readability)
 // Scaled layout
