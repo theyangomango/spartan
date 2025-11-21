@@ -7,24 +7,24 @@ const ts = require('../../helper/scaleSize').ts;
 import VerifiedHandle from "../common/VerifiedHandle";
 import theme from "../../theme/mfpDark";
 
-const PODIUM_HEIGHT = scaleSize(240);
+const PODIUM_HEIGHT = scaleSize(280);
 export { PODIUM_HEIGHT };
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
-const PFP_SIZE_LEFT = scaleSize(54);
-const PFP_SIZE_CENTER = scaleSize(58);
-const PFP_SIZE_RIGHT = scaleSize(50);
+const PFP_SIZE_LEFT = scaleSize(60);
+const PFP_SIZE_CENTER = scaleSize(64);
+const PFP_SIZE_RIGHT = scaleSize(56);
 
-const BAR_HEIGHT_LEFT = scaleSize(105);
-const BAR_HEIGHT_CENTER = scaleSize(133);
-const BAR_HEIGHT_RIGHT = scaleSize(83);
-const BAR_WIDTH = scaleSize(80);
+const BAR_HEIGHT_LEFT = scaleSize(120);
+const BAR_HEIGHT_CENTER = scaleSize(150);
+const BAR_HEIGHT_RIGHT = scaleSize(100);
+const BAR_WIDTH = scaleSize(86);
 
-const FONT_HANDLE = ts(14);
+const FONT_HANDLE = ts(16);
 const FONT_BAR = ts(27);
 
 const BAR_RADIUS = scaleSize(10);
-const BAR_MARGIN_H = scaleSize(13.5);
+const BAR_MARGIN_H = scaleSize(18);
 
 const HANDLE_PT = scaleSize(5);
 const HANDLE_PB = scaleSize(10);
@@ -269,10 +269,11 @@ const styles = StyleSheet.create({
         top: 0,
         width: '100%',
         height: '100%',
-        justifyContent: 'center',
+        justifyContent: 'space-evenly',
         flexDirection: 'row',
         alignItems: 'flex-end',
         backgroundColor: 'transparent',
+        paddingHorizontal: scaleSize(10),
     },
     bar_ctnr: {
         borderTopLeftRadius: BAR_RADIUS,

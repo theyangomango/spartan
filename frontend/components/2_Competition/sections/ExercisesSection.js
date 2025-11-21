@@ -92,24 +92,30 @@ const renderRequirementLabel = (taskLabel, descriptor, taskComplete, emphasisCol
 
     if (descriptor.type === "score") {
         const bodyLabel = descriptor.key === "overall" ? "Overall" : capitalizeLabel(descriptor.key);
-        const targetText = `${formatScoreValue(descriptor.target || 0)}+`;
-        return <Text style={baseStyle}>
-            Reach <Text style={emphasisStyle}>{targetText}</Text> Score <Text style={emphasisStyle}>{bodyLabel}</Text>
-        </Text>;
+        const targetNumber = formatScoreValue(descriptor.target || 0);
+        return (
+            <Text style={baseStyle}>
+                Reach <Text style={emphasisStyle}>{targetNumber}</Text>+ Score <Text style={emphasisStyle}>{bodyLabel}</Text>
+            </Text>
+        );
     }
 
     if (descriptor.type === "volume") {
-        const weightText = `${formatWeightValue(descriptor.target || 0)} lbs`;
-        return <Text style={baseStyle}>
-            Lift <Text style={emphasisStyle}>{weightText}</Text> Total
-        </Text>;
+        const weightNumber = formatWeightValue(descriptor.target || 0);
+        return (
+            <Text style={baseStyle}>
+                Lift <Text style={emphasisStyle}>{weightNumber}</Text> lbs Total
+            </Text>
+        );
     }
 
     if (descriptor.type === "workouts") {
-        const workoutsText = `${formatCountValue(descriptor.target || 0)} Workouts`;
-        return <Text style={baseStyle}>
-            Log <Text style={emphasisStyle}>{workoutsText}</Text>
-        </Text>;
+        const workoutsNumber = formatCountValue(descriptor.target || 0);
+        return (
+            <Text style={baseStyle}>
+                Log <Text style={emphasisStyle}>{workoutsNumber}</Text> Workouts
+            </Text>
+        );
     }
 
     return <Text style={baseStyle}>{taskLabel}</Text>;
