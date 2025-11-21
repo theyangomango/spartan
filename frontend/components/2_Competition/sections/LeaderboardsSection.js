@@ -1503,7 +1503,7 @@ useEffect(() => {
         return (
             <View style={styles.selectorShadow}>
                 <LinearGradient
-                    colors={["rgba(255,255,255,0.10)", "rgba(255,255,255,0.04)"]}
+                    colors={["transparent", "transparent"]}
                     start={{ x: 0, y: 0.1 }}
                     end={{ x: 1, y: 0.9 }}
                     style={styles.selectorPill}
@@ -1522,7 +1522,6 @@ useEffect(() => {
                         style={[styles.selectorSegment, styles.selectorSegmentLeft]}
                     >
                         <View ref={scopeToggleAnchorRef} style={styles.selectorContent} collapsable={false}>
-                            <Text style={styles.selectorEyebrow}>Scope</Text>
                             <View style={styles.selectorMainRow}>
                                 <Text style={styles.selectorValue} numberOfLines={1} ellipsizeMode="tail">
                                     {scopeLabel}
@@ -1531,13 +1530,9 @@ useEffect(() => {
                                     name={tribeMenuVisible ? "chevron-up" : "chevron-down"}
                                     size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
                                     color="rgba(255,255,255,0.95)"
+                                    style={styles.selectorIcon}
                                 />
                             </View>
-                            {scopeSubtitle ? (
-                                <Text style={styles.selectorSubtext} numberOfLines={1} ellipsizeMode="tail">
-                                    {scopeSubtitle}
-                                </Text>
-                            ) : null}
                         </View>
                     </RNBounceable>
 
@@ -1552,20 +1547,21 @@ useEffect(() => {
                             style={[styles.selectorSegment, styles.selectorSegmentRight]}
                         >
                             <View style={styles.selectorContent}>
-                                <Text style={styles.selectorEyebrow}>Tribe</Text>
-                                <View style={styles.selectorMainRow}>
-                                    <Text style={styles.selectorValue} numberOfLines={1} ellipsizeMode="tail">
+                                <View style={styles.selectorMainRowRight}>
+                                    <Text
+                                        style={[styles.selectorValue, styles.selectorValueRight]}
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                    >
                                         Manage
                                     </Text>
                                     <Ionicons
                                         name="settings-outline"
                                         size={16}
                                         color="rgba(255,255,255,0.96)"
+                                        style={styles.selectorIcon}
                                     />
                                 </View>
-                                <Text style={styles.selectorSubtext} numberOfLines={1} ellipsizeMode="tail">
-                                    {scopeSubtitle || "Custom comparison"}
-                                </Text>
                             </View>
                         </RNBounceable>
                     ) : (
@@ -1577,20 +1573,21 @@ useEffect(() => {
                             style={[styles.selectorSegment, styles.selectorSegmentRight]}
                         >
                             <View ref={focusToggleAnchorRef} style={styles.selectorContent} collapsable={false}>
-                                <Text style={styles.selectorEyebrow}>Muscle</Text>
-                                <View style={styles.selectorMainRow}>
-                                    <Text style={styles.selectorValue} numberOfLines={1} ellipsizeMode="tail">
+                                <View style={styles.selectorMainRowRight}>
+                                    <Text
+                                        style={[styles.selectorValue, styles.selectorValueRight]}
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                    >
                                         {bodyFocusLabel}
                                     </Text>
                                     <Ionicons
                                         name={isBodyFocusMenuVisible ? "chevron-up" : "chevron-down"}
                                         size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
                                         color="rgba(255,255,255,0.95)"
+                                        style={styles.selectorIcon}
                                     />
                                 </View>
-                                <Text style={styles.selectorSubtext} numberOfLines={1} ellipsizeMode="tail">
-                                    {focusSubtitle}
-                                </Text>
                             </View>
                         </RNBounceable>
                     )}
@@ -1907,18 +1904,18 @@ const styles = StyleSheet.create({
     },
     header: {
         width: "100%",
-        paddingTop: SIZES.headerPaddingTop + scaleSize(8),
+        paddingTop: SIZES.headerPaddingTop,
         alignItems: "center",
     },
     headerPillsRow: {
         width: "100%",
-        paddingTop: scaleSize(18),
-        paddingBottom: scaleSize(14),
+        paddingTop: scaleSize(6),
+        paddingBottom: scaleSize(4),
         alignItems: "center",
     },
     selectorShadow: {
         width: "100%",
-        borderRadius: scaleSize(26),
+        borderRadius: scaleSize(22),
         shadowColor: "#000",
         shadowOpacity: 0.22,
         shadowRadius: scaleSize(18),
@@ -1929,17 +1926,17 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "stretch",
         width: "100%",
-        minHeight: scaleSize(74),
-        backgroundColor: "rgba(255,255,255,0.06)",
-        borderRadius: scaleSize(26),
-        paddingVertical: scaleSize(12),
+        minHeight: scaleSize(52),
+        backgroundColor: "transparent",
+        borderRadius: scaleSize(22),
+        paddingVertical: scaleSize(6),
         paddingHorizontal: scaleSize(14),
-        borderWidth: Math.max(1, StyleSheet.hairlineWidth),
-        borderColor: "rgba(255,255,255,0.08)",
+        borderWidth: scaleSize(2.5),
+        borderColor: "#FFC83D",
     },
     selectorSegment: {
         flex: 1,
-        paddingHorizontal: scaleSize(6),
+        paddingHorizontal: scaleSize(4),
         justifyContent: "center",
     },
     selectorSegmentLeft: {
@@ -1953,18 +1950,15 @@ const styles = StyleSheet.create({
         width: "100%",
         justifyContent: "center",
     },
-    selectorEyebrow: {
-        color: "rgba(255,255,255,0.72)",
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleFont(11.5),
-        letterSpacing: 0.4,
-        includeFontPadding: false,
-        marginBottom: scaleSize(4),
-    },
     selectorMainRow: {
         flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
+        justifyContent: "flex-start",
+    },
+    selectorMainRowRight: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-end",
     },
     selectorValue: {
         color: "#fff",
@@ -1973,6 +1967,12 @@ const styles = StyleSheet.create({
         letterSpacing: 0.2,
         includeFontPadding: false,
         flexShrink: 1,
+    },
+    selectorValueRight: {
+        textAlign: "right",
+    },
+    selectorIcon: {
+        marginLeft: scaleSize(8),
     },
     selectorSubtext: {
         marginTop: scaleSize(4),

@@ -20,7 +20,7 @@ const BAR_HEIGHT_CENTER = scaleSize(150);
 const BAR_HEIGHT_RIGHT = scaleSize(100);
 const BAR_WIDTH = scaleSize(86);
 
-const FONT_HANDLE = ts(16);
+const FONT_HANDLE = ts(15);
 const FONT_BAR = ts(27);
 
 const BAR_RADIUS = scaleSize(10);
