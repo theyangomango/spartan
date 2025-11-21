@@ -1963,7 +1963,7 @@ const styles = StyleSheet.create({
     selectorValue: {
         color: "#fff",
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleFont(15.5),
+        fontSize: scaleFont(14),
         letterSpacing: 0.2,
         includeFontPadding: false,
         flexShrink: 1,
