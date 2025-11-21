@@ -11,15 +11,15 @@ import VerifiedHandle from '../common/VerifiedHandle';
 const { width } = Dimensions.get("window");
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
-const CARD_HEIGHT = scaleSize(64);
-const SELF_CARD_HEIGHT = scaleSize(86);
+const CARD_HEIGHT = scaleSize(72);
+const SELF_CARD_HEIGHT = scaleSize(96);
 const PFP_SIZE = scaleSize(44);
 
-const FONT_HANDLE = ts(13);
-const FONT_NAME = ts(12.5);
+const FONT_HANDLE = ts(15);
+const FONT_NAME = ts(15);
 const FONT_STAT = ts(13);
 const FONT_HEX_STAT = ts(15);
-const FONT_RANK = ts(12.5);
+const FONT_RANK = ts(13);
 const FONT_BEST = ts(13);
 
 /**
@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.2,
     },
     name_text: {
-        marginTop: scaleSize(1.5),
+        marginTop: scaleSize(2),
         fontFamily: 'Outfit_500Medium',
         paddingHorizontal: scaleSize(12),
         color: require("../../theme/mfpDark").default.textSecondary,

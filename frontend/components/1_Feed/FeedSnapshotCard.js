@@ -796,7 +796,12 @@ export default function FeedSnapshotCard({
                                             <Text style={[styles.bodygraphStatsLabel, styles.bodygraphOverallLabel]}>
                                                 Overall
                                             </Text>
-                                            <Text style={[styles.bodygraphStatsValue, styles.bodygraphOverallValue]}>
+                                            <Text
+                                                style={[styles.bodygraphStatsValue, styles.bodygraphOverallValue]}
+                                                numberOfLines={1}
+                                                adjustsFontSizeToFit
+                                                minimumFontScale={0.7}
+                                            >
                                                 {overallStatDisplay}
                                             </Text>
                                         </View>
