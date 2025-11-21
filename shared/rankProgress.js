@@ -61,11 +61,11 @@ export const parseRequirementTask = (taskLabel) => {
     if (logMatch) {
         return { type: "workouts", target: Number(logMatch[1]), label };
     }
-    const scoreOverallMatch = label.match(/^Achieve\s+([\d.]+)\+\s+Score\s+Overall/i);
+    const scoreOverallMatch = label.match(/^[A-Za-z]+\s+([\d.]+)\+\s+Score\s+Overall/i);
     if (scoreOverallMatch) {
         return { type: "score", key: "overall", target: Number(scoreOverallMatch[1]), label };
     }
-    const scoreBodyMatch = label.match(/^Achieve\s+([\d.]+)\+\s+Score\s+in\s+([A-Za-z]+)/i);
+    const scoreBodyMatch = label.match(/^[A-Za-z]+\s+([\d.]+)\+\s+Score\s+in\s+([A-Za-z]+)/i);
     if (scoreBodyMatch) {
         const key = BODY_KEY_MAP[scoreBodyMatch[2].toLowerCase()] || scoreBodyMatch[2].toLowerCase();
         return { type: "score", key, target: Number(scoreBodyMatch[1]), label };

@@ -77,6 +77,44 @@ const clampRatio = (value) => {
     return Math.min(1, Math.max(0, value));
 };
 
+const capitalizeLabel = (value) => {
+    if (!value || typeof value !== "string") return "";
+    return value.charAt(0).toUpperCase() + value.slice(1);
+};
+
+const renderRequirementLabel = (taskLabel, descriptor, taskComplete, emphasisColor) => {
+    const baseStyle = [styles.requirementCardTitle, taskComplete && styles.requirementTextCompleted];
+    const emphasisStyle = [styles.requirementCardTitleEmphasis, emphasisColor ? { color: emphasisColor } : null];
+
+    if (!descriptor || !descriptor.type) {
+        return <Text style={baseStyle}>{taskLabel}</Text>;
+    }
+
+    if (descriptor.type === "score") {
+        const bodyLabel = descriptor.key === "overall" ? "Overall" : capitalizeLabel(descriptor.key);
+        const targetText = `${formatScoreValue(descriptor.target || 0)}+`;
+        return <Text style={baseStyle}>
+            Reach <Text style={emphasisStyle}>{targetText}</Text> Score <Text style={emphasisStyle}>{bodyLabel}</Text>
+        </Text>;
+    }
+
+    if (descriptor.type === "volume") {
+        const weightText = `${formatWeightValue(descriptor.target || 0)} lbs`;
+        return <Text style={baseStyle}>
+            Lift <Text style={emphasisStyle}>{weightText}</Text> Total
+        </Text>;
+    }
+
+    if (descriptor.type === "workouts") {
+        const workoutsText = `${formatCountValue(descriptor.target || 0)} Workouts`;
+        return <Text style={baseStyle}>
+            Log <Text style={emphasisStyle}>{workoutsText}</Text>
+        </Text>;
+    }
+
+    return <Text style={baseStyle}>{taskLabel}</Text>;
+};
+
 export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
     const [userData, setUserData] = useState(() => {
         try {
@@ -296,14 +334,7 @@ const attemptCenterCurrentCard = useCallback(
                                                         style={styles.requirementBadge}
                                                     />
                                                     <View style={styles.requirementTextContainer}>
-                                                        <Text
-                                                            style={[
-                                                                styles.requirementCardTitle,
-                                                                taskComplete && styles.requirementTextCompleted,
-                                                            ]}
-                                                        >
-                                                            {taskLabel}
-                                                        </Text>
+                                                        {renderRequirementLabel(taskLabel, descriptor, taskComplete, themeColors.accent)}
                                                     </View>
                                                     <View
                                                         style={[
@@ -412,6 +443,10 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(15),
         color: "#ffffff",
         letterSpacing: 0.5,
+    },
+    requirementCardTitleEmphasis: {
+        fontFamily: "Outfit_800ExtraBold",
+        fontSize: scaleSize(15),
     },
     requirementStatusBadge: {
         width: scaleSize(32),

@@ -761,6 +761,24 @@ useEffect(() => {
         requestAnimationFrame(measureAndOpen);
     }, [isBodyFocusMenuVisible]);
 
+    const handleScopePress = useCallback(() => {
+        if (tribeMenuVisible) {
+            setTribeMenuVisible(false);
+            return;
+        }
+        const measureAndOpen = () => {
+            try {
+                scopeToggleAnchorRef.current?.measureInWindow?.((x = 0, y = 0, width = 0, height = 0) => {
+                    setTribeMenuAnchor({ x, y, width, height });
+                    setTribeMenuVisible(true);
+                });
+            } catch {
+                setTribeMenuVisible(true);
+            }
+        };
+        requestAnimationFrame(measureAndOpen);
+    }, [tribeMenuVisible]);
+
     useEffect(() => {
         if (isBodyFocusMenuVisible) return;
         setFocusMenuAnchor((prev) => {
@@ -1383,6 +1401,11 @@ useEffect(() => {
         return "People you follow";
     }, [selectedTribeId, currentTribe]);
 
+    const focusSubtitle = useMemo(() => {
+        if (bodyFocusLabel === "Overall") return "All strengths";
+        return `${bodyFocusLabel} focus`;
+    }, [bodyFocusLabel]);
+
     const hexFocusKey = useMemo(
         () => (typeof bodyFocus === "string" && bodyFocus ? bodyFocus : DEFAULT_BODY_FOCUS),
         [bodyFocus]
@@ -1475,107 +1498,106 @@ useEffect(() => {
         return lightenColor(theme.bg, 0.1);
     }, []);
 
-    const renderHeaderRightContent = () => {
-        if (isCustomTribe && currentTribe) {
-            return (
-                <View style={styles.manageButtonWrap}>
-                    <RNBounceable
-                        onPress={withStrongPress(() => setManageModalVisible(true))}
-                        style={styles.manageButton}
-                        activeScale={0.96}
-                        accessibilityRole="button"
-                        accessibilityLabel="Manage current tribe"
-                    >
-                        <Ionicons
-                            name="settings-outline"
-                            size={15}
-                            color="rgba(255,255,255,0.95)"
-                            style={styles.manageButtonIcon}
-                        />
-                        <Text style={styles.manageButtonLabel}>Manage</Text>
-                    </RNBounceable>
-                </View>
-            );
-        }
-
-        if (isCustomTribe) return null;
-
+    const renderScopeFocusPill = () => {
+        const showManage = isCustomTribe && currentTribe;
         return (
-            <View ref={focusToggleAnchorRef} style={styles.focusToggleWrap} collapsable={false}>
-                <RNBounceable
-                    onPress={withStrongPress(handleToggleFocusMenu)}
-                    style={styles.focusToggle}
-                    activeScale={0.96}
-                    accessibilityRole="button"
-                    accessibilityLabel="Change leaderboard focus"
+            <View style={styles.selectorShadow}>
+                <LinearGradient
+                    colors={["rgba(255,255,255,0.10)", "rgba(255,255,255,0.04)"]}
+                    start={{ x: 0, y: 0.1 }}
+                    end={{ x: 1, y: 0.9 }}
+                    style={styles.selectorPill}
                 >
-                    <Text style={styles.focusToggleLabel} numberOfLines={1} ellipsizeMode="tail">
-                        {bodyFocusLabel}
-                    </Text>
-                    <Ionicons
-                        name={isBodyFocusMenuVisible ? "chevron-up" : "chevron-down"}
-                        size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
-                        color="rgba(255,255,255,0.95)"
-                        style={styles.focusToggleIcon}
-                    />
-                </RNBounceable>
+                    <RNBounceable
+                        onPress={withStrongPress(handleScopePress)}
+                        activeScale={0.97}
+                        hitSlop={{
+                            top: SIZES.tribeHitSlop,
+                            bottom: SIZES.tribeHitSlop,
+                            left: SIZES.tribeHitSlop,
+                            right: SIZES.tribeHitSlop,
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Change leaderboard scope"
+                        style={[styles.selectorSegment, styles.selectorSegmentLeft]}
+                    >
+                        <View ref={scopeToggleAnchorRef} style={styles.selectorContent} collapsable={false}>
+                            <Text style={styles.selectorEyebrow}>Scope</Text>
+                            <View style={styles.selectorMainRow}>
+                                <Text style={styles.selectorValue} numberOfLines={1} ellipsizeMode="tail">
+                                    {scopeLabel}
+                                </Text>
+                                <Ionicons
+                                    name={tribeMenuVisible ? "chevron-up" : "chevron-down"}
+                                    size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
+                                    color="rgba(255,255,255,0.95)"
+                                />
+                            </View>
+                            {scopeSubtitle ? (
+                                <Text style={styles.selectorSubtext} numberOfLines={1} ellipsizeMode="tail">
+                                    {scopeSubtitle}
+                                </Text>
+                            ) : null}
+                        </View>
+                    </RNBounceable>
+
+                    <View style={styles.selectorDivider} />
+
+                    {showManage ? (
+                        <RNBounceable
+                            onPress={withStrongPress(() => setManageModalVisible(true))}
+                            activeScale={0.97}
+                            accessibilityRole="button"
+                            accessibilityLabel="Manage current tribe"
+                            style={[styles.selectorSegment, styles.selectorSegmentRight]}
+                        >
+                            <View style={styles.selectorContent}>
+                                <Text style={styles.selectorEyebrow}>Tribe</Text>
+                                <View style={styles.selectorMainRow}>
+                                    <Text style={styles.selectorValue} numberOfLines={1} ellipsizeMode="tail">
+                                        Manage
+                                    </Text>
+                                    <Ionicons
+                                        name="settings-outline"
+                                        size={16}
+                                        color="rgba(255,255,255,0.96)"
+                                    />
+                                </View>
+                                <Text style={styles.selectorSubtext} numberOfLines={1} ellipsizeMode="tail">
+                                    {scopeSubtitle || "Custom comparison"}
+                                </Text>
+                            </View>
+                        </RNBounceable>
+                    ) : (
+                        <RNBounceable
+                            onPress={withStrongPress(handleToggleFocusMenu)}
+                            activeScale={0.97}
+                            accessibilityRole="button"
+                            accessibilityLabel="Change leaderboard focus"
+                            style={[styles.selectorSegment, styles.selectorSegmentRight]}
+                        >
+                            <View ref={focusToggleAnchorRef} style={styles.selectorContent} collapsable={false}>
+                                <Text style={styles.selectorEyebrow}>Muscle</Text>
+                                <View style={styles.selectorMainRow}>
+                                    <Text style={styles.selectorValue} numberOfLines={1} ellipsizeMode="tail">
+                                        {bodyFocusLabel}
+                                    </Text>
+                                    <Ionicons
+                                        name={isBodyFocusMenuVisible ? "chevron-up" : "chevron-down"}
+                                        size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
+                                        color="rgba(255,255,255,0.95)"
+                                    />
+                                </View>
+                                <Text style={styles.selectorSubtext} numberOfLines={1} ellipsizeMode="tail">
+                                    {focusSubtitle}
+                                </Text>
+                            </View>
+                        </RNBounceable>
+                    )}
+                </LinearGradient>
             </View>
         );
     };
-
-    const renderScopeToggle = () => (
-        <View style={styles.scopeToggleRow}>
-            <RNBounceable
-                onPress={withStrongPress(() => {
-                    if (tribeMenuVisible) {
-                        setTribeMenuVisible(false);
-                        return;
-                    }
-                    const measureAndOpen = () => {
-                        try {
-                            scopeToggleAnchorRef.current?.measureInWindow?.((x = 0, y = 0, width = 0, height = 0) => {
-                                setTribeMenuAnchor({ x, y, width, height });
-                                setTribeMenuVisible(true);
-                            });
-                        } catch {
-                            setTribeMenuVisible(true);
-                        }
-                    };
-                    requestAnimationFrame(measureAndOpen);
-                })}
-                activeScale={0.96}
-                hitSlop={{
-                    top: SIZES.tribeHitSlop,
-                    bottom: SIZES.tribeHitSlop,
-                    left: SIZES.tribeHitSlop,
-                    right: SIZES.tribeHitSlop,
-                }}
-                accessibilityRole="button"
-                accessibilityLabel="Change leaderboard scope"
-            >
-                <View ref={scopeToggleAnchorRef} style={{ alignSelf: "flex-start" }} collapsable={false}>
-                    <View style={styles.scopeToggleButton}>
-                        <View style={styles.scopeToggleContent}>
-                            <Text style={styles.tribeLabel} numberOfLines={1} ellipsizeMode="tail">
-                                {scopeLabel}
-                            </Text>
-                            <Ionicons
-                                name="chevron-down"
-                                size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
-                                color="rgba(255,255,255,0.95)"
-                                style={{ marginLeft: SIZES.chevronML, marginTop: SIZES.chevronMT }}
-                            />
-                        </View>
-                    </View>
-                    {scopeSubtitle ? (
-                        <Text style={styles.tribeSubtitle} numberOfLines={1} ellipsizeMode="tail">
-                            {scopeSubtitle}
-                        </Text>
-                    ) : null}
-                </View>
-            </RNBounceable>
-        </View>
-    );
 
     const handleScrollEvent = useCallback(
         (event) => {
@@ -1658,8 +1680,7 @@ useEffect(() => {
                     ]}
                 >
                     <View style={styles.headerPillsRow}>
-                        {renderScopeToggle()}
-                        {renderHeaderRightContent()}
+                        {renderScopeFocusPill()}
                     </View>
                 </View>
             </View>
@@ -1844,7 +1865,7 @@ useEffect(() => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
     scrollRegion: { flex: 1 },
-    scrollContent: { paddingTop: 0, flexGrow: 1 },
+    scrollContent: { paddingTop: scaleSize(16), flexGrow: 1 },
     podiumSection: {
         width: "100%",
         position: "relative",
@@ -1885,103 +1906,87 @@ const styles = StyleSheet.create({
         marginBottom: -HEADER_GRADIENT_OVERLAP,
     },
     header: {
-        flexDirection: "row",
-        justifyContent: "space-between",
         width: "100%",
-        paddingTop: SIZES.headerPaddingTop,
+        paddingTop: SIZES.headerPaddingTop + scaleSize(8),
         alignItems: "center",
     },
     headerPillsRow: {
+        width: "100%",
+        paddingTop: scaleSize(18),
+        paddingBottom: scaleSize(14),
+        alignItems: "center",
+    },
+    selectorShadow: {
+        width: "100%",
+        borderRadius: scaleSize(26),
+        shadowColor: "#000",
+        shadowOpacity: 0.22,
+        shadowRadius: scaleSize(18),
+        shadowOffset: { width: 0, height: scaleSize(12) },
+        elevation: 8,
+    },
+    selectorPill: {
+        flexDirection: "row",
+        alignItems: "stretch",
+        width: "100%",
+        minHeight: scaleSize(74),
+        backgroundColor: "rgba(255,255,255,0.06)",
+        borderRadius: scaleSize(26),
+        paddingVertical: scaleSize(12),
+        paddingHorizontal: scaleSize(14),
+        borderWidth: Math.max(1, StyleSheet.hairlineWidth),
+        borderColor: "rgba(255,255,255,0.08)",
+    },
+    selectorSegment: {
         flex: 1,
+        paddingHorizontal: scaleSize(6),
+        justifyContent: "center",
+    },
+    selectorSegmentLeft: {
+        paddingRight: scaleSize(10),
+    },
+    selectorSegmentRight: {
+        paddingLeft: scaleSize(10),
+    },
+    selectorContent: {
+        flex: 1,
+        width: "100%",
+        justifyContent: "center",
+    },
+    selectorEyebrow: {
+        color: "rgba(255,255,255,0.72)",
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleFont(11.5),
+        letterSpacing: 0.4,
+        includeFontPadding: false,
+        marginBottom: scaleSize(4),
+    },
+    selectorMainRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        alignSelf: "stretch",
-        width: "100%",
-        paddingTop: scaleSize(16),
-        paddingBottom: scaleSize(8),
-        paddingLeft: scaleSize(9),
-        paddingRight: scaleSize(4)
     },
-    scopeToggleRow: {
-        alignSelf: "flex-start",
-        alignItems: "flex-start",
-        marginTop: scaleSize(6),
-    },
-    scopeToggleButton: {
-        flexDirection: "row", 
-        alignItems: "center",
-        alignSelf: "flex-start",
-    },
-    scopeToggleContent: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    tribeLabel: {
+    selectorValue: {
         color: "#fff",
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleFont(14),
-        includeFontPadding: false,
-        maxWidth: SIZES.tribeLabelMaxWidth,
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleFont(15.5),
         letterSpacing: 0.2,
-        marginRight: scaleSize(4),
-        textAlign: "left",
+        includeFontPadding: false,
+        flexShrink: 1,
     },
-    tribeSubtitle: {
-        color: "rgba(255,255,255,0.72)",
+    selectorSubtext: {
+        marginTop: scaleSize(4),
+        color: "rgba(255,255,255,0.74)",
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleFont(11.5),
-        includeFontPadding: false,
+        fontSize: scaleFont(12),
         letterSpacing: 0.2,
-        marginTop: scaleSize(1),
-        alignSelf: "flex-start",
-    },
-    focusToggleWrap: {
-        position: "relative",
-        marginTop: scaleSize(6),
-    },
-    manageButtonWrap: {
-        position: "relative",
-        marginTop: scaleSize(6),
-    },
-    focusToggle: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: scaleSize(12),
-        paddingVertical: scaleSize(8),
-        borderRadius: scaleSize(18),
-        backgroundColor: "rgba(178, 199, 243, 0.32)",
-    },
-    manageButton: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: scaleSize(16),
-        paddingVertical: scaleSize(8),
-        borderRadius: scaleSize(18),
-        backgroundColor: "rgba(191, 111, 87, 0.44)",
-    },
-    manageButtonIcon: {
-        marginRight: scaleSize(6),
-        marginTop: scaleSize(1),
-    },
-    manageButtonLabel: {
-        color: "#fff",
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleFont(14),
         includeFontPadding: false,
-        letterSpacing: 0.2,
     },
-    focusToggleLabel: {
-        color: "#fff",
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleFont(13),
-        includeFontPadding: false,
-        letterSpacing: 0.2,
-        maxWidth: scaleSize(140, "w"),
-    },
-    focusToggleIcon: {
-        marginLeft: scaleSize(6),
-        marginTop: scaleSize(1),
+    selectorDivider: {
+        width: Math.max(1, scaleSize(1)),
+        backgroundColor: "rgba(255,255,255,0.18)",
+        marginHorizontal: scaleSize(8),
+        borderRadius: scaleSize(999),
     },
     focusDropdown: {
         position: "absolute",
