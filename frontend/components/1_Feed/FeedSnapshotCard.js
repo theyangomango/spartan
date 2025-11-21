@@ -34,14 +34,6 @@ const RANK_TAB_CONFIG = [
 
 const scaled = (value) => scaleSize(value);
 const BODYGRAPH_OUTLINE_COLOR = "#40485c";
-const BODYGRAPH_STATS_CONFIG = [
-    { key: "shoulders", label: "Shoulders" },
-    { key: "chest", label: "Chest" },
-    { key: "arms", label: "Arms" },
-    { key: "back", label: "Back" },
-    { key: "legs", label: "Legs" },
-    { key: "abs", label: "Abs" },
-];
 
 const getInitialStatsHexagon = () => {
     try {
@@ -340,21 +332,6 @@ export default function FeedSnapshotCard({
         return unsubscribe;
     }, [shouldSubscribeToStats]);
 
-    const bodygraphStats = useMemo(
-        () =>
-            BODYGRAPH_STATS_CONFIG.map((entry) => {
-                const rawValue = statsHexagon?.[entry.key];
-                const numericValue = Number(rawValue);
-                const hasValue = Number.isFinite(numericValue);
-                return {
-                    ...entry,
-                    hasValue,
-                    displayValue: hasValue ? formatHexStat(numericValue) : "--",
-                };
-            }),
-        [statsHexagon]
-    );
-    const hasBodygraphStats = bodygraphStats.some((stat) => stat.hasValue);
     const overallStatNumber = Number(statsHexagon?.overall);
     const hasOverallStat = Number.isFinite(overallStatNumber);
     const overallStatDisplay = hasOverallStat ? formatHexStat(overallStatNumber) : "--";
@@ -815,37 +792,14 @@ export default function FeedSnapshotCard({
                             <View style={styles.bodygraphContent}>
                                 <View style={styles.bodygraphStatsColumn}>
                                     {hasOverallStat ? (
-                                        <>
-                                            <View style={[styles.bodygraphStatsRow, styles.bodygraphOverallRow]}>
-                                                <Text style={[styles.bodygraphStatsLabel, styles.bodygraphOverallLabel]}>
-                                                    Overall
-                                                </Text>
-                                                <Text style={[styles.bodygraphStatsValue, styles.bodygraphOverallValue]}>
-                                                    {overallStatDisplay}
-                                                </Text>
-                                            </View>
-                                            <View style={[styles.bodygraphStatsDivider, styles.bodygraphOverallDivider]} />
-                                        </>
-                                    ) : null}
-                                    {hasBodygraphStats ? (
-                                        bodygraphStats.map((stat, index) => (
-                                            <View key={stat.key}>
-                                                <View style={styles.bodygraphStatsRow}>
-                                                    <Text style={styles.bodygraphStatsLabel}>{stat.label}</Text>
-                                                    <Text
-                                                        style={[
-                                                            styles.bodygraphStatsValue,
-                                                            !stat.hasValue && styles.bodygraphStatsValueEmpty,
-                                                        ]}
-                                                    >
-                                                        {stat.displayValue}
-                                                    </Text>
-                                                </View>
-                                                {index < bodygraphStats.length - 1 && (
-                                                    <View style={styles.bodygraphStatsDivider} />
-                                                )}
-                                            </View>
-                                        ))
+                                        <View style={styles.bodygraphOverallHero}>
+                                            <Text style={[styles.bodygraphStatsLabel, styles.bodygraphOverallLabel]}>
+                                                Overall
+                                            </Text>
+                                            <Text style={[styles.bodygraphStatsValue, styles.bodygraphOverallValue]}>
+                                                {overallStatDisplay}
+                                            </Text>
+                                        </View>
                                     ) : (
                                         <Text style={styles.bodygraphStatsEmptyText}>
                                             Log workouts to unlock insights.
@@ -1212,31 +1166,25 @@ const styles = StyleSheet.create({
         paddingTop: scaleSize(6),
     },
     bodygraphStatsColumn: {
-        width: "32%",
-        paddingRight: scaleSize(12),
+        width: "30%",
+        paddingRight: scaleSize(10),
+        justifyContent: "center",
     },
-    bodygraphOverallRow: {
-        paddingBottom: scaleSize(2),
+    bodygraphOverallHero: {
+        gap: scaleSize(4),
     },
     bodygraphOverallLabel: {
         textTransform: "uppercase",
-        fontFamily: "Outfit_600SemiBold",
-        letterSpacing: 0.25,
-        color: "rgba(247,248,255,0.85)",
+        fontFamily: "Outfit_700Bold",
+        letterSpacing: 0.4,
+        color: "rgba(247,248,255,0.9)",
+        fontSize: scaled(14),
     },
     bodygraphOverallValue: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaled(20),
-        color: "#f7f8ff",
-    },
-    bodygraphOverallDivider: {
-        marginBottom: scaleSize(8),
-    },
-    bodygraphStatsRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingVertical: scaleSize(4),
+        fontSize: scaled(40),
+        lineHeight: scaled(44),
+        color: theme.primary,
     },
     bodygraphStatsLabel: {
         fontFamily: "Outfit_500Medium",
@@ -1250,18 +1198,12 @@ const styles = StyleSheet.create({
         color: "#f7f8ff",
         letterSpacing: 0.25,
     },
-    bodygraphStatsValueEmpty: {
-        color: "rgba(247,248,255,0.45)",
-    },
-    bodygraphStatsDivider: {
-        height: Math.max(1, scaleSize(1)),
-        backgroundColor: "rgba(255,255,255,0.08)",
-    },
     bodygraphStatsEmptyText: {
         fontFamily: "Outfit_500Medium",
         fontSize: scaled(12),
         color: "rgba(247,248,255,0.6)",
         letterSpacing: 0.25,
+        maxWidth: "90%",
     },
     bodygraphFigures: {
         flex: 1,
@@ -1292,7 +1234,7 @@ const styles = StyleSheet.create({
         height: "100%",
     },
     bodygraphFigureFront: {
-        transform: [{ scale: 1.18 }, { translateY: scaleSize(12) }],
+        transform: [{ scale: 1.18 }, { translateY: scaleSize(12) }, { translateX: scaleSize(6) }],
     },
     bodygraphFigureBack: {
         transform: [{ scale: 1.18 }, { translateY: scaleSize(12) }],
