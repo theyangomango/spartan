@@ -52,14 +52,13 @@ import ManageTribeModal from "../ManageTribeModal";
 import TribeComparisonModal from "../TribeComparisonModal";
 import PersonalInfoSheet from "../../2_MacroTracking/PersonalInfoSheet";
 import {
-    scaleSize,
     SIZES,
     HEADER_GRADIENT_OVERLAP,
     PODIUM_PULLUP,
     DEVICE_WIDTH,
     DEVICE_HEIGHT,
-    scaleFont,
 } from "../layoutConstants";
+import { scaledSize } from "../UserStats/UserStatsStyles";
 
 const DEFAULT_BODY_FOCUS = "overall";
 const BODY_FOCUS_OPTIONS = [
@@ -78,7 +77,7 @@ const BODY_FOCUS_LABEL_MAP = BODY_FOCUS_OPTIONS.reduce((acc, opt) => {
 const BODYWEIGHT_BLOCK_MESSAGE =
     "This tribe’s comparison is normalized by bodyweight. Please enter your weight to view rankings.";
 
-const STAGE_VERTICAL_OFFSET = scaleSize(0);
+const STAGE_VERTICAL_OFFSET = scaledSize(0);
 
 const KG_TO_LB = 2.2046226218488;
 
@@ -93,6 +92,17 @@ const setPersisted = (patch) => {
     if (typeof global === "undefined") return;
     const current = getPersisted();
     global[GLOBAL_KEY] = { ...current, ...patch };
+};
+
+const ordinalSuffix = (value) => {
+    const v = Math.abs(Number(value));
+    const mod100 = v % 100;
+    if (mod100 >= 11 && mod100 <= 13) return `${v}th`;
+    const mod10 = v % 10;
+    if (mod10 === 1) return `${v}st`;
+    if (mod10 === 2) return `${v}nd`;
+    if (mod10 === 3) return `${v}rd`;
+    return `${v}th`;
 };
 
 let LAST_SCOPE = "Following";
@@ -361,12 +371,12 @@ function applyViewerHexOverride(list, hexKey) {
     return didOverride ? next : list;
 }
 
-export default function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll }) {
+function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll }) {
     const insets = useStableSafeAreaInsets();
     const podiumSectionHeight = useMemo(() => PODIUM_HEIGHT, []);
-    const panelOverlap = useMemo(() => scaleSize(12), []);
+    const panelOverlap = useMemo(() => scaledSize(12), []);
     const surfaceBackdropTop = useMemo(
-        () => Math.max(0, podiumSectionHeight - panelOverlap + scaleSize(8)),
+        () => Math.max(0, podiumSectionHeight - panelOverlap + scaledSize(8)),
         [podiumSectionHeight, panelOverlap]
     );
     const panelCollapsedHeight = useMemo(
@@ -374,7 +384,7 @@ export default function LeaderboardsSection({ navigation, onRequestBodyWeightEnt
         [podiumSectionHeight, panelOverlap]
     );
     const scrollBottomPadding = useMemo(
-        () => Math.max(scaleSize(32), (insets?.bottom || 0) + scaleSize(12)),
+        () => Math.max(scaledSize(32), (insets?.bottom || 0) + scaledSize(12)),
         [insets?.bottom]
     );
 
@@ -1418,7 +1428,7 @@ useEffect(() => {
     const dropdownLeft = useMemo(() => {
         const padding = SIZES.headerPaddingHorizontal;
         const anchorX = Number(focusMenuAnchor?.x ?? padding);
-        const approxWidth = scaleSize(180, "w");
+        const approxWidth = scaledSize(180, "w");
         const anchorWidth = Number(focusMenuAnchor?.width ?? approxWidth);
         const anchorRight = anchorX + anchorWidth;
         const desiredLeft = anchorRight - approxWidth;
@@ -1429,7 +1439,7 @@ useEffect(() => {
     const dropdownTop = useMemo(() => {
         const anchorY = Number(focusMenuAnchor?.y ?? 0);
         const anchorHeight = Number(focusMenuAnchor?.height ?? 0);
-        return Math.max(0, anchorY + anchorHeight + scaleSize(6));
+        return Math.max(0, anchorY + anchorHeight + scaledSize(6));
     }, [focusMenuAnchor?.y, focusMenuAnchor?.height]);
 
     const podiumData = useMemo(() => {
@@ -1500,6 +1510,35 @@ useEffect(() => {
 
     const renderScopeFocusPill = () => {
         const showManage = isCustomTribe && currentTribe;
+        const viewerUid = (() => {
+            try {
+                const uid = global?.userData?.uid;
+                const str = uid === undefined || uid === null ? null : String(uid);
+                return str && str.length ? str : null;
+            } catch {
+                return null;
+            }
+        })();
+        const badgeText = useMemo(() => {
+            if (!Array.isArray(rankedDisplay) || rankedDisplay.length === 0) return null;
+            let selfIndex = -1;
+            for (let i = 0; i < rankedDisplay.length; i++) {
+                const user = rankedDisplay[i];
+                if (!user) continue;
+                if (user.isSelf || user.userIsSelf || user.self) {
+                    selfIndex = i;
+                    break;
+                }
+                const candidates = [user.uid, user?.user?.uid, user.id, user.userId];
+                if (viewerUid && candidates.some((c) => c !== undefined && c !== null && String(c) === viewerUid)) {
+                    selfIndex = i;
+                    break;
+                }
+            }
+            if (selfIndex < 0) return null;
+            const total = rankedDisplay.length;
+            return `${ordinalSuffix(selfIndex + 1)} / ${ordinalSuffix(total)}`;
+        }, [rankedDisplay, viewerUid]);
         return (
             <View style={styles.selectorShadow}>
                 <LinearGradient
@@ -1528,15 +1567,13 @@ useEffect(() => {
                                 </Text>
                                 <Ionicons
                                     name={tribeMenuVisible ? "chevron-up" : "chevron-down"}
-                                    size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
-                                    color="rgba(255,255,255,0.95)"
-                                    style={styles.selectorIcon}
+                                    size={Math.max(16, SIZES.headerIconSize - SIZES.chevronDelta)}
+                                    color="rgba(255,255,255,0.98)"
+                                    style={[styles.selectorIcon, styles.selectorIconHeavy]}
                                 />
                             </View>
                         </View>
                     </RNBounceable>
-
-                    <View style={styles.selectorDivider} />
 
                     {showManage ? (
                         <RNBounceable
@@ -1548,6 +1585,11 @@ useEffect(() => {
                         >
                             <View style={styles.selectorContent}>
                                 <View style={styles.selectorMainRowRight}>
+                                    {badgeText ? (
+                                        <Text style={[styles.selectorBadgeText, styles.selectorBadgeInline]}>
+                                            {badgeText}
+                                        </Text>
+                                    ) : null}
                                     <Text
                                         style={[styles.selectorValue, styles.selectorValueRight]}
                                         numberOfLines={1}
@@ -1557,39 +1599,47 @@ useEffect(() => {
                                     </Text>
                                     <Ionicons
                                         name="settings-outline"
-                                        size={16}
-                                        color="rgba(255,255,255,0.96)"
-                                        style={styles.selectorIcon}
+                                        size={17}
+                                        color="rgba(255,255,255,0.98)"
+                                        style={[styles.selectorIcon, styles.selectorIconHeavy]}
                                     />
                                 </View>
                             </View>
                         </RNBounceable>
                     ) : (
-                        <RNBounceable
-                            onPress={withStrongPress(handleToggleFocusMenu)}
-                            activeScale={0.97}
-                            accessibilityRole="button"
-                            accessibilityLabel="Change leaderboard focus"
-                            style={[styles.selectorSegment, styles.selectorSegmentRight]}
-                        >
+                        <View style={[styles.selectorSegment, styles.selectorSegmentRight]}>
                             <View ref={focusToggleAnchorRef} style={styles.selectorContent} collapsable={false}>
                                 <View style={styles.selectorMainRowRight}>
-                                    <Text
-                                        style={[styles.selectorValue, styles.selectorValueRight]}
-                                        numberOfLines={1}
-                                        ellipsizeMode="tail"
+                                    {badgeText ? (
+                                        <Text style={[styles.selectorBadgeText, styles.selectorBadgeInline]}>
+                                            {badgeText}
+                                        </Text>
+                                    ) : null}
+                                    <RNBounceable
+                                        onPress={withStrongPress(handleToggleFocusMenu)}
+                                        activeScale={0.97}
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Change leaderboard focus"
                                     >
-                                        {bodyFocusLabel}
-                                    </Text>
-                                    <Ionicons
-                                        name={isBodyFocusMenuVisible ? "chevron-up" : "chevron-down"}
-                                        size={Math.max(18, SIZES.headerIconSize - SIZES.chevronDelta)}
-                                        color="rgba(255,255,255,0.95)"
-                                        style={styles.selectorIcon}
-                                    />
+                                        <View style={styles.selectorMainRowRight}>
+                                            <Text
+                                                style={[styles.selectorValue, styles.selectorValueRight]}
+                                                numberOfLines={1}
+                                                ellipsizeMode="tail"
+                                            >
+                                                {bodyFocusLabel}
+                                            </Text>
+                                            <Ionicons
+                                                name={isBodyFocusMenuVisible ? "chevron-up" : "chevron-down"}
+                                                size={Math.max(16, SIZES.headerIconSize - SIZES.chevronDelta)}
+                                                color="rgba(255,255,255,0.98)"
+                                                style={[styles.selectorIcon, styles.selectorIconHeavy]}
+                                            />
+                                        </View>
+                                    </RNBounceable>
                                 </View>
                             </View>
-                        </RNBounceable>
+                        </View>
                     )}
                 </LinearGradient>
             </View>
@@ -1862,7 +1912,7 @@ useEffect(() => {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
     scrollRegion: { flex: 1 },
-    scrollContent: { paddingTop: scaleSize(16), flexGrow: 1 },
+    scrollContent: { paddingTop: scaledSize(18), flexGrow: 1 },
     podiumSection: {
         width: "100%",
         position: "relative",
@@ -1909,61 +1959,66 @@ const styles = StyleSheet.create({
     },
     headerPillsRow: {
         width: "100%",
-        paddingTop: scaleSize(6),
-        paddingBottom: scaleSize(4),
+        paddingTop: scaledSize(10),
+        paddingBottom: scaledSize(6),
         alignItems: "center",
     },
     selectorShadow: {
         width: "100%",
-        borderRadius: scaleSize(22),
+        borderRadius: scaledSize(22),
         shadowColor: "#000",
         shadowOpacity: 0.22,
-        shadowRadius: scaleSize(18),
-        shadowOffset: { width: 0, height: scaleSize(12) },
+        shadowRadius: scaledSize(18),
+        shadowOffset: { width: 0, height: scaledSize(12) },
         elevation: 8,
+        marginTop: scaledSize(2),
     },
     selectorPill: {
         flexDirection: "row",
         alignItems: "stretch",
         width: "100%",
-        minHeight: scaleSize(52),
+        minHeight: scaledSize(58),
         backgroundColor: "transparent",
-        borderRadius: scaleSize(22),
-        paddingVertical: scaleSize(6),
-        paddingHorizontal: scaleSize(14),
-        borderWidth: scaleSize(2.5),
+        borderRadius: scaledSize(22),
+        paddingVertical: scaledSize(8),
+        paddingHorizontal: scaledSize(12),
+        borderWidth: scaledSize(2.5),
         borderColor: "#FFC83D",
     },
     selectorSegment: {
-        flex: 1,
-        paddingHorizontal: scaleSize(4),
+        paddingHorizontal: scaledSize(4),
         justifyContent: "center",
     },
     selectorSegmentLeft: {
-        paddingRight: scaleSize(10),
+        flex: 0.9,
+        paddingRight: scaledSize(10),
     },
     selectorSegmentRight: {
-        paddingLeft: scaleSize(10),
+        flex: 1.1,
+        paddingLeft: scaledSize(10),
     },
     selectorContent: {
         flex: 1,
         width: "100%",
         justifyContent: "center",
+        minWidth: 0,
     },
     selectorMainRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "flex-start",
+        minWidth: 0,
     },
     selectorMainRowRight: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "flex-end",
+        minWidth: 0,
     },
     selectorValue: {
         color: "#fff",
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleFont(14),
+        fontSize: scaledSize(14),
         letterSpacing: 0.2,
         includeFontPadding: false,
         flexShrink: 1,
@@ -1972,40 +2027,49 @@ const styles = StyleSheet.create({
         textAlign: "right",
     },
     selectorIcon: {
-        marginLeft: scaleSize(8),
+        marginTop: scaledSize(2),
+        marginLeft: scaledSize(2),
+    },
+    selectorBadgeText: {
+        color: theme.primary,
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaledSize(16),
+        letterSpacing: 0.2,
+    },
+    selectorBadgeInline: {
+        marginRight: scaledSize(8),
+    },
+    selectorIconHeavy: {
+        textShadowColor: "rgba(255,255,255,0.95)",
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: scaledSize(1.3),
     },
     selectorSubtext: {
-        marginTop: scaleSize(4),
+        marginTop: scaledSize(4),
         color: "rgba(255,255,255,0.74)",
         fontFamily: "Outfit_500Medium",
-        fontSize: scaleFont(12),
+        fontSize: scaledSize(12),
         letterSpacing: 0.2,
         includeFontPadding: false,
     },
-    selectorDivider: {
-        width: Math.max(1, scaleSize(1)),
-        backgroundColor: "rgba(255,255,255,0.18)",
-        marginHorizontal: scaleSize(8),
-        borderRadius: scaleSize(999),
-    },
     focusDropdown: {
         position: "absolute",
-        minWidth: scaleSize(158, "w"),
-        borderRadius: scaleSize(14),
+        minWidth: scaledSize(158, "w"),
+        borderRadius: scaledSize(14),
         backgroundColor: theme.surface,
-        paddingVertical: scaleSize(8),
-        paddingHorizontal: scaleSize(10),
+        paddingVertical: scaledSize(8),
+        paddingHorizontal: scaledSize(10),
         shadowColor: "#000",
         shadowOpacity: 0.15,
-        shadowRadius: scaleSize(10),
-        shadowOffset: { width: 0, height: scaleSize(6) },
+        shadowRadius: scaledSize(10),
+        shadowOffset: { width: 0, height: scaledSize(6) },
         elevation: 6,
     },
     focusOption: {
-        paddingVertical: scaleSize(10),
-        paddingHorizontal: scaleSize(14),
-        borderRadius: scaleSize(10),
-        marginBottom: scaleSize(4),
+        paddingVertical: scaledSize(10),
+        paddingHorizontal: scaledSize(14),
+        borderRadius: scaledSize(10),
+        marginBottom: scaledSize(4),
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: "transparent",
@@ -2015,7 +2079,7 @@ const styles = StyleSheet.create({
     },
     focusOptionLabel: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleFont(12.5),
+        fontSize: scaledSize(12.5),
         color: "#EAEAEA",
         letterSpacing: 0.15,
     },
@@ -2030,3 +2094,5 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(0,0,0,0.35)",
     },
 });
+
+export default React.memo(LeaderboardsSection);

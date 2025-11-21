@@ -11,8 +11,8 @@ import VerifiedHandle from '../common/VerifiedHandle';
 const { width } = Dimensions.get("window");
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
-const CARD_HEIGHT = scaleSize(72);
-const SELF_CARD_HEIGHT = scaleSize(96);
+const CARD_HEIGHT = scaleSize(66);
+const SELF_CARD_HEIGHT = scaleSize(88);
 const PFP_SIZE = scaleSize(44);
 
 const FONT_HANDLE = ts(15);

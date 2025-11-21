@@ -135,47 +135,66 @@ const toDayKeyString = (value) => {
     return null;
 };
 
+const deriveWorkoutDayKey = (workout) => {
+    if (!workout || typeof workout !== "object") return null;
+
+    const explicit = [
+        workout.dayKey,
+        workout.logDay,
+        workout.logDate,
+        workout.date,
+        workout.day,
+        workout.completedDay,
+        workout.finishedDay,
+    ];
+    for (const entry of explicit) {
+        const key = toDayKeyString(entry);
+        if (key) return key;
+    }
+
+    const timestamps = [
+        workout.startedAt,
+        workout.createdAt,
+        workout.created,
+        workout.finishedAt,
+        workout.completedAt,
+        workout.updatedAt,
+    ];
+    for (const entry of timestamps) {
+        const key = toDayKeyString(entry);
+        if (key) return key;
+    }
+    return null;
+};
+
 const buildWorkoutDaySet = (user) => {
     const set = new Set();
     if (!user) return set;
+
+    const workouts = Array.isArray(user?.completedWorkouts) ? user.completedWorkouts : [];
+    workouts.forEach((wk) => {
+        const key = deriveWorkoutDayKey(wk);
+        if (key) set.add(key);
+    });
+
+    if (set.size > 0) return set;
+
     const workoutsByDate = user?.workoutsByDate;
     if (workoutsByDate && typeof workoutsByDate === "object") {
         Object.keys(workoutsByDate).forEach((key) => {
-            if (typeof key === "string" && key) set.add(key);
+            const normalized = toDayKeyString(key);
+            if (normalized) set.add(normalized);
         });
     }
-    const workouts = Array.isArray(user?.completedWorkouts) ? user.completedWorkouts : [];
-    workouts.forEach((wk) => {
-        const candidate = wk?.dayKey || wk?.date || wk?.day;
-        const fallback = wk?.finishedAt || wk?.completedAt || wk?.createdAt;
-        const key = toDayKeyString(candidate || fallback);
-        if (key) set.add(key);
-    });
+
     return set;
 };
 
 const getWorkoutDayKeyFromPost = (post) => {
     if (!post) return null;
     const workout = post?.workout || null;
-    const workoutCandidates = workout ? [
-        workout.dayKey,
-        workout.day,
-        workout.date,
-        workout.logDay,
-        workout.logDate,
-        workout.completedDay,
-        workout.finishedDay,
-        workout.finishedAt,
-        workout.completedAt,
-        workout.startedAt,
-        workout.createdAt,
-        workout.created,
-    ] : [];
-
-    for (const entry of workoutCandidates) {
-        const key = toDayKeyString(entry);
-        if (key) return key;
-    }
+    const workoutKey = deriveWorkoutDayKey(workout);
+    if (workoutKey) return workoutKey;
 
     const postCandidates = [
         post.dayKey,

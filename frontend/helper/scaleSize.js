@@ -19,7 +19,6 @@ const SCALE_MIN = Math.min(SCALE_W, SCALE_H);
 
 // Legacy default: uniform rounded scale based on the smaller axis
 export default function scaleSize(n) {
-  'worklet';
   return Math.round(n * SCALE_MIN);
 }
 

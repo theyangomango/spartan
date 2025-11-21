@@ -121,7 +121,7 @@ const renderRequirementLabel = (taskLabel, descriptor, taskComplete, emphasisCol
     return <Text style={baseStyle}>{taskLabel}</Text>;
 };
 
-export default function ExercisesSection({ onScroll, scrollSignal = 0 }) {
+function ExercisesSection({ onScroll, scrollSignal = 0 }) {
     const [userData, setUserData] = useState(() => {
         try {
             return global?.userData || null;
@@ -506,3 +506,5 @@ const styles = StyleSheet.create({
         color: "#ffffff",
     },
 });
+
+export default React.memo(ExercisesSection);

@@ -77,6 +77,15 @@ const normalizeCalories = (value) => {
     return Number.isFinite(num) ? num : null;
 };
 
+const toDayKeySafe = (value) => {
+    const msRaw = toMillis(value ?? Date.now());
+    const ms = Number.isFinite(msRaw) && msRaw > 0 ? msRaw : Date.now();
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return null;
+    d.setHours(0, 0, 0, 0);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 const sanitizeWorkout = (w) => {
     if (!w) return null;
     const created = toMillis(w.created ?? w.createdAt);
@@ -148,9 +157,7 @@ const cloneHexagon = (hex = {}) => ({
 });
 
 const getTodayKey = () => {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return toDayKeySafe(Date.now());
 };
 
 const buildExerciseStatDeltas = ({ exercises, prevStats, todayKey }) => {
@@ -976,7 +983,12 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     }))
                     .filter((ex) => ex.sets && ex.sets.length > 0);
 
-                const duration = Math.max(0, Date.now() - (currW.created || Date.now()));
+                const finishedAtMs = Date.now();
+                const startedAtMs = toMillis(currW?.created ?? currW?.startedAt ?? currW?.createdAt);
+                const duration = Math.max(0, finishedAtMs - (startedAtMs || finishedAtMs));
+                const finishedAtDate = new Date(finishedAtMs);
+                const finishedDayKey = toDayKeySafe(finishedAtMs);
+                const startDayKey = toDayKeySafe(startedAtMs || finishedAtMs);
 
                 // Derive totals (reps, volume, PBs) for the completed workout
                 let totalReps = 0;
@@ -1032,6 +1044,9 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     PBs: totalPBs,
                     calories,
                     privacyMode: coercePrivacyMode(currW?.privacyMode),
+                    finishedAt: finishedAtDate,
+                    completedAt: finishedAtDate,
+                    ...(startDayKey ? { dayKey: startDayKey } : {}),
                 };
 
                 // Only persist/share if there's meaningful work
@@ -1044,9 +1059,10 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         arr.push(completed);
                         if (global?.userData) {
                             global.userData.completedWorkouts = arr;
-                            const dd = new Date(completed.created || Date.now()); dd.setHours(0, 0, 0, 0);
-                            const dk = `${dd.getFullYear()}-${String(dd.getMonth() + 1).padStart(2, "0")}-${String(dd.getDate()).padStart(2, "0")}`;
-                            global.userData.workoutsByDate = { ...(global.userData.workoutsByDate || {}), [dk]: true };
+                            const dk = startDayKey || finishedDayKey || getTodayKey();
+                            if (dk) {
+                                global.userData.workoutsByDate = { ...(global.userData.workoutsByDate || {}), [dk]: true };
+                            }
                             emitUserDataUpdate();
                         }
                     } catch { }

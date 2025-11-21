@@ -19,7 +19,7 @@ const scaleSize = (value, axis = "min") => {
 const SIZES = {
     headerIconSize: scaleSize(21),
     chevronDelta: scaleSize(6),
-    headerPaddingHorizontal: scaleSize(18, "w"),
+    headerPaddingHorizontal: scaleSize(14, "w"),
     headerPaddingTop: scaleSize(4),
     tribeHitSlop: scaleSize(8),
     tribeLabelFont: scaleSize(15),
@@ -33,7 +33,7 @@ const SIZES = {
 };
 
 const HEADER_GRADIENT_OVERLAP = scaleSize(120);
-const PODIUM_PULLUP = scaleSize(0);
+const PODIUM_PULLUP = scaleSize(20);
 
 export {
     scaleSize,

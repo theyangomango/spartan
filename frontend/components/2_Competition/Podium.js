@@ -7,7 +7,7 @@ const ts = require('../../helper/scaleSize').ts;
 import VerifiedHandle from "../common/VerifiedHandle";
 import theme from "../../theme/mfpDark";
 
-const PODIUM_HEIGHT = scaleSize(280);
+const PODIUM_HEIGHT = scaleSize(260);
 export { PODIUM_HEIGHT };
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)

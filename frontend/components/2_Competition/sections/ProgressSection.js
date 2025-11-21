@@ -1370,7 +1370,7 @@ const ManageMeasurementsModal = ({
     );
 };
 
-export default function ProgressSection({ scrollSignal = 0, onScroll }) {
+function ProgressSection({ scrollSignal = 0, onScroll }) {
     const [userData, setUserData] = useState(() => {
         try {
             return global?.userData || null;
@@ -4200,3 +4200,5 @@ const styles = StyleSheet.create({
         color: "rgba(255,255,255,0.55)",
     },
 });
+
+export default React.memo(ProgressSection);
