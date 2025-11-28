@@ -50,6 +50,8 @@ const POINTER_PANEL_ACCENTS = {
     weight: CHART_ACCENTS.weight,
 };
 const BODYGRAPH_OUTLINE_COLOR = "#40485c";
+const MUSCLE_ICON_HIGHLIGHT = "#ff6f67ff";
+const MUSCLE_ICON_HIGHLIGHT_DIM = "rgba(255, 127, 120, 0.6)";
 const MUSCLE_SEGMENTS = {
     shoulders: ["shoulders"],
     chest: ["chest"],
@@ -2615,12 +2617,31 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                     segments={item.segments}
                                                     dimmed={false}
                                                     strokeWidth={item.iconStrokeWidth}
+                                                    highlightColor={MUSCLE_ICON_HIGHLIGHT}
+                                                    dimHighlightColor={MUSCLE_ICON_HIGHLIGHT_DIM}
                                                 />
                                             </View>
                                         </View>
-                                        <Text style={styles.muscleLabel}>{item.label}</Text>
+                                        <Text
+                                            style={[
+                                                styles.muscleLabel,
+                                                item.key === "overall" ? styles.muscleLabelOverall : null,
+                                            ]}
+                                        >
+                                            {item.label}
+                                        </Text>
                                     </View>
-                                    <Text style={styles.muscleValue}>{item.display}</Text>
+                                    <View style={styles.muscleRight}>
+                                        <Text
+                                            style={[
+                                                styles.muscleValue,
+                                                item.key === "overall" ? styles.muscleValueOverall : null,
+                                            ]}
+                                        >
+                                            {item.display}
+                                        </Text>
+                                        <Ionicons name="chevron-forward" size={scaleSize(18)} color="rgba(255,255,255,0.55)" />
+                                    </View>
                                 </View>
                             ))}
                         </View>
@@ -3857,6 +3878,11 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
+    muscleRight: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: scaleSize(12),
+    },
     muscleBadge: {
         width: scaleSize(56),
         height: scaleSize(56),
@@ -3879,13 +3905,21 @@ const styles = StyleSheet.create({
     },
     muscleLabel: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(14),
+        fontSize: ts(15),
         color: theme.textPrimary ?? "#F6F8FF",
     },
     muscleValue: {
         fontFamily: "Outfit_700Bold",
         fontSize: ts(16),
         color: theme.textPrimary ?? "#F6F8FF",
+    },
+    muscleLabelOverall: {
+        color: "#6DB7FF",
+        fontSize: ts(17),
+    },
+    muscleValueOverall: {
+        color: "#6DB7FF",
+        fontSize: ts(18),
     },
     bodyFigureSlot: {
         flex: 1,
