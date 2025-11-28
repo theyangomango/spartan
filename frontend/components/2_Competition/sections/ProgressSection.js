@@ -3878,7 +3878,7 @@ const styles = StyleSheet.create({
         paddingTop: scaleSize(-6),
         paddingBottom: scaleSize(2),
         paddingHorizontal: scaleSize(18),
-        marginBottom: scaleSize(10),
+        marginBottom: 0,
         backgroundColor: theme.bg,
     },
     bodyFiguresRow: {
