@@ -21,6 +21,8 @@ import {
     SIZES,
     ts,
 } from "../components/2_Competition/layoutConstants";
+import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
+import { useSharedValue } from "react-native-reanimated";
 import LeaderboardsSection from "../components/2_Competition/sections/LeaderboardsSection";
 import ProgressSection from "../components/2_Competition/sections/ProgressSection";
 import ExercisesSection from "../components/2_Competition/sections/ExercisesSection";
@@ -60,6 +62,9 @@ export default function Competition({ navigation, route }) {
     });
     const [progressScrollSignal, setProgressScrollSignal] = useState(0);
     const [exercisesScrollSignal, setExercisesScrollSignal] = useState(0);
+    const [userStatsVisible, setUserStatsVisible] = useState(false);
+    const [userStatsUser, setUserStatsUser] = useState(null);
+    const userStatsSheetProgress = useSharedValue(0);
     const triggerExercisesScroll = useCallback(() => {
         setExercisesScrollSignal(Date.now());
     }, []);
@@ -156,6 +161,11 @@ export default function Competition({ navigation, route }) {
         setProgressScrollSignal(Date.now());
     }, []);
 
+    const handleShowUserStats = useCallback((user) => {
+        setUserStatsUser(user);
+        setUserStatsVisible(true);
+    }, []);
+
     const handleSectionScroll = useCallback(() => {
         // Header remains static; keep callback for compatibility with section props.
     }, []);
@@ -222,6 +232,8 @@ export default function Competition({ navigation, route }) {
                     navigation={navigation}
                     onRequestBodyWeightEntry={handleRequestBodyWeightEntry}
                     onScroll={handleSectionScroll}
+                    onShowUserStats={handleShowUserStats}
+                    userStatsSheetProgressSV={userStatsSheetProgress}
                 />
             ),
             progress: (
@@ -237,7 +249,15 @@ export default function Competition({ navigation, route }) {
                 />
             ),
         }),
-        [navigation, handleRequestBodyWeightEntry, progressScrollSignal, exercisesScrollSignal, handleSectionScroll]
+        [
+            navigation,
+            handleRequestBodyWeightEntry,
+            progressScrollSignal,
+            exercisesScrollSignal,
+            handleSectionScroll,
+            handleShowUserStats,
+            userStatsSheetProgress,
+        ]
     );
 
     return (
@@ -322,6 +342,17 @@ export default function Competition({ navigation, route }) {
                 </Animated.View>
             </View>
 
+            <View pointerEvents="box-none" style={styles.userStatsOverlay}>
+                <UserStatsBottomSheet
+                    user={userStatsUser}
+                    navigation={navigation}
+                    isVisible={userStatsVisible}
+                    setIsVisible={setUserStatsVisible}
+                    sheetProgressSV={userStatsSheetProgress}
+                    heightRatio={0.88}
+                />
+            </View>
+
             <Footer currentScreenName="Competition" navigation={navigation} />
         </SafeAreaView>
     );
@@ -348,6 +379,10 @@ const styles = StyleSheet.create({
     },
     sectionPane: {
         flex: 1,
+    },
+    userStatsOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 50,
     },
     viewTabsContainer: {
         flexDirection: "row",

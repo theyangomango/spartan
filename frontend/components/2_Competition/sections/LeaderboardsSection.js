@@ -10,7 +10,6 @@ import {
     ScrollView,
     Alert,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { useSharedValue } from "react-native-reanimated";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -53,7 +52,6 @@ import TribeComparisonModal from "../TribeComparisonModal";
 import PersonalInfoSheet from "../../2_MacroTracking/PersonalInfoSheet";
 import {
     SIZES,
-    HEADER_GRADIENT_OVERLAP,
     PODIUM_PULLUP,
     DEVICE_WIDTH,
     DEVICE_HEIGHT,
@@ -405,7 +403,13 @@ function applyViewerHexOverride(list, hexKey) {
     return didOverride ? next : list;
 }
 
-function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll }) {
+function LeaderboardsSection({
+    navigation,
+    onRequestBodyWeightEntry,
+    onScroll,
+    onShowUserStats,
+    userStatsSheetProgressSV = null,
+}) {
     const insets = useStableSafeAreaInsets();
     const podiumSectionHeight = useMemo(() => PODIUM_HEIGHT, []);
     const panelOverlap = useMemo(() => scaledSize(12), []);
@@ -495,7 +499,8 @@ function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll })
         width: 0,
         height: 0,
     });
-    const userStatsSheetProgress = useSharedValue(0);
+    const userStatsSheetProgress = userStatsSheetProgressSV || useSharedValue(0);
+    const delegatedUserStats = typeof onShowUserStats === "function";
     const infoPanelOpacityRef = useRef(new RNAnimated.Value(0));
 
     const [tribes, setTribes] = useState([]);
@@ -866,10 +871,11 @@ function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll })
     }, [tribeMenuVisible]);
 
     useEffect(() => {
+        if (delegatedUserStats) return;
         if (isUserStatsBottomSheetVisible) {
             userStatsSheetProgress.value = 1;
         }
-    }, [isUserStatsBottomSheetVisible, userStatsSheetProgress]);
+    }, [delegatedUserStats, isUserStatsBottomSheetVisible, userStatsSheetProgress]);
 
     useEffect(() => {
         const uid = global?.userData?.uid;
@@ -1100,6 +1106,10 @@ function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll })
     const openModal = () => setSelectExerciseModalVisible(true);
     const closeModal = () => setSelectExerciseModalVisible(false);
     const showUserStats = (user) => {
+        if (delegatedUserStats && typeof onShowUserStats === "function") {
+            onShowUserStats(user);
+            return;
+        }
         setSelectedUser(user);
         setIsUserStatsBottomSheetVisible(true);
     };
@@ -1574,12 +1584,7 @@ function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll })
         }, [rankedDisplay, viewerUid]);
         return (
             <View style={styles.selectorShadow}>
-                <LinearGradient
-                    colors={["transparent", "transparent"]}
-                    start={{ x: 0, y: 0.1 }}
-                    end={{ x: 1, y: 0.9 }}
-                    style={styles.selectorPill}
-                >
+                <View style={styles.selectorPill}>
                     <RNBounceable
                         onPress={withStrongPress(handleScopePress)}
                         activeScale={0.97}
@@ -1674,7 +1679,7 @@ function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll })
                             </View>
                         </View>
                     )}
-                </LinearGradient>
+                </View>
             </View>
         );
     };
@@ -1690,24 +1695,6 @@ function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll })
 
     return (
         <View style={styles.container}>
-            <LinearGradient
-                pointerEvents="none"
-                colors={gradientConfig.colors}
-                locations={gradientConfig.locations}
-                start={{ x: 0.5, y: 0 }}
-                end={{ x: 0.5, y: 1 }}
-                style={styles.topGradient}
-            />
-            <View pointerEvents="none" style={[styles.bottomSurfaceBackdrop, { top: surfaceBackdropTop }]}>
-                <LinearGradient
-                    pointerEvents="none"
-                    colors={["rgba(23, 23, 28, 0)", theme.surface]}
-                    locations={[0, 0.5]}
-                    start={{ x: 0.5, y: 0 }}
-                    end={{ x: 0.5, y: 1 }}
-                    style={styles.bottomSurfaceGradient}
-                />
-            </View>
             <Modal
                 visible={isBodyFocusMenuVisible}
                 transparent
@@ -1783,37 +1770,63 @@ function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll })
                     ]}
                 >
                     <View style={styles.headerPillsRow}>
-                        <RNBounceable
-                            onPress={withStrongPress(handleToggleFocusMenu)}
-                            activeScale={0.96}
-                            hitSlop={{
-                                top: SIZES.tribeHitSlop,
-                                bottom: SIZES.tribeHitSlop,
-                                left: SIZES.tribeHitSlop,
-                                right: SIZES.tribeHitSlop,
-                            }}
-                            accessibilityRole="button"
-                            accessibilityLabel="Change muscle focus"
-                            style={styles.focusIconButton}
-                        >
-                            <View ref={focusToggleAnchorRef} style={styles.focusIconButtonInner} collapsable={false}>
-                                <View
-                                    style={[
-                                        styles.focusIconButtonIcon,
-                                        styles.focusMuscleIconZoom,
-                                    ]}
-                                >
-                                    <MuscleGroupIcon
-                                        segments={FOCUS_SEGMENTS[bodyFocus] || []}
-                                        highlightColor={MUSCLE_ICON_HIGHLIGHT}
-                                        dimHighlightColor={MUSCLE_ICON_HIGHLIGHT_DIM}
-                                        strokeWidth={bodyFocus === "back" ? 14 : undefined}
-                                        scale={MUSCLE_ICON_SCALES[bodyFocus] || 1}
-                                        offsetY={MUSCLE_ICON_OFFSETS[bodyFocus] || 0}
+                        <View style={styles.scopePillContainer}>
+                            <RNBounceable
+                                onPress={withStrongPress(handleScopePress)}
+                                activeScale={0.97}
+                                hitSlop={{
+                                    top: SIZES.tribeHitSlop,
+                                    bottom: SIZES.tribeHitSlop,
+                                    left: SIZES.tribeHitSlop,
+                                    right: SIZES.tribeHitSlop,
+                                }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Change tribe scope"
+                            >
+                                <View ref={scopeToggleAnchorRef} style={styles.simpleScopePill} collapsable={false}>
+                                    <Text style={styles.simpleScopeText}>Following</Text>
+                                    <Ionicons
+                                        name={tribeMenuVisible ? "chevron-up" : "chevron-down"}
+                                        size={scaledSize(16)}
+                                        color="#E6E6E6"
+                                        style={styles.simpleScopeChevron}
                                     />
                                 </View>
-                            </View>
-                        </RNBounceable>
+                            </RNBounceable>
+                        </View>
+                        <View style={styles.focusButtonContainer}>
+                            <RNBounceable
+                                onPress={withStrongPress(handleToggleFocusMenu)}
+                                activeScale={0.96}
+                                hitSlop={{
+                                    top: SIZES.tribeHitSlop,
+                                    bottom: SIZES.tribeHitSlop,
+                                    left: SIZES.tribeHitSlop,
+                                    right: SIZES.tribeHitSlop,
+                                }}
+                                accessibilityRole="button"
+                                accessibilityLabel="Change muscle focus"
+                                style={styles.focusIconButton}
+                            >
+                                <View ref={focusToggleAnchorRef} style={styles.focusIconButtonInner} collapsable={false}>
+                                    <View
+                                        style={[
+                                            styles.focusIconButtonIcon,
+                                            styles.focusMuscleIconZoom,
+                                        ]}
+                                    >
+                                        <MuscleGroupIcon
+                                            segments={FOCUS_SEGMENTS[bodyFocus] || []}
+                                            highlightColor={MUSCLE_ICON_HIGHLIGHT}
+                                            dimHighlightColor={MUSCLE_ICON_HIGHLIGHT_DIM}
+                                            strokeWidth={bodyFocus === "back" ? 14 : undefined}
+                                            scale={MUSCLE_ICON_SCALES[bodyFocus] || 1}
+                                            offsetY={MUSCLE_ICON_OFFSETS[bodyFocus] || 0}
+                                        />
+                                    </View>
+                                </View>
+                            </RNBounceable>
+                        </View>
                     </View>
                 </View>
             </View>
@@ -1868,13 +1881,17 @@ function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll })
                 </View>
             </ScrollView>
 
-            <UserStatsBottomSheet
-                user={selectedUser}
-                navigation={navigation}
-                isVisible={isUserStatsBottomSheetVisible}
-                setIsVisible={setIsUserStatsBottomSheetVisible}
-                sheetProgressSV={userStatsSheetProgress}
-            />
+            {!delegatedUserStats && (
+                <View pointerEvents="box-none" style={styles.userStatsSheetWrapper}>
+                    <UserStatsBottomSheet
+                        user={selectedUser}
+                        navigation={navigation}
+                        isVisible={isUserStatsBottomSheetVisible}
+                        setIsVisible={setIsUserStatsBottomSheetVisible}
+                        sheetProgressSV={userStatsSheetProgress}
+                    />
+                </View>
+            )}
 
             <Modal
                 animationType="none"
@@ -1998,13 +2015,16 @@ function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll })
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
     scrollRegion: { flex: 1 },
-    scrollContent: { paddingTop: scaledSize(18), flexGrow: 1 },
+    scrollContent: {
+        paddingTop: scaledSize(65),
+        paddingBottom: scaledSize(10),
+        flexGrow: 1,
+    },
     podiumSection: {
         width: "100%",
         position: "relative",
         justifyContent: "flex-end",
         overflow: "visible",
-        marginTop: -PODIUM_PULLUP,
     },
     leaderboardPanelWrap: {
         flexGrow: 1,
@@ -2019,24 +2039,14 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         backgroundColor: theme.surface,
     },
-    topGradient: {
-        ...StyleSheet.absoluteFillObject,
-    },
-    bottomSurfaceBackdrop: {
+    headerGradientWrapper: {
         position: "absolute",
+        top: 0,
         left: 0,
         right: 0,
-        bottom: 0,
-    },
-    bottomSurfaceGradient: {
-        flex: 1,
-    },
-    headerGradientWrapper: {
+        zIndex: 3,
         width: "100%",
-        position: "relative",
         overflow: "visible",
-        paddingBottom: HEADER_GRADIENT_OVERLAP,
-        marginBottom: -HEADER_GRADIENT_OVERLAP,
     },
     header: {
         width: "100%",
@@ -2048,10 +2058,43 @@ const styles = StyleSheet.create({
         paddingTop: scaledSize(12),
         paddingBottom: scaledSize(6),
         paddingRight: scaledSize(14),
-        alignItems: "flex-end",
+        paddingLeft: scaledSize(14),
+        alignItems: "flex-start",
         flexDirection: "row",
-        justifyContent: "flex-end",
+        justifyContent: "space-between",
         gap: scaledSize(10),
+    },
+    scopePillContainer: {
+        flex: 1,
+        marginRight: scaledSize(10),
+    },
+    simpleScopePill: {
+        alignSelf: "flex-start",
+        backgroundColor: theme.surface,
+        borderRadius: scaledSize(18),
+        paddingHorizontal: scaledSize(14),
+        paddingVertical: scaledSize(8),
+        flexDirection: "row",
+        alignItems: "center",
+        gap: scaledSize(6),
+    },
+    simpleScopeText: {
+        color: "#E6E6E6",
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaledSize(14),
+        letterSpacing: 0.2,
+    },
+    simpleScopeChevron: {
+        marginTop: scaledSize(1),
+    },
+    focusButtonContainer: {
+        justifyContent: "flex-end",
+        alignItems: "center",
+    },
+    userStatsSheetWrapper: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 50,
+        pointerEvents: "box-none",
     },
     selectorShadow: {
         width: "100%",
@@ -2144,11 +2187,11 @@ const styles = StyleSheet.create({
     },
     focusDropdown: {
         position: "absolute",
-        minWidth: scaledSize(158, "w"),
+        minWidth: scaledSize(200, "w"),
         borderRadius: scaledSize(14),
         backgroundColor: theme.surface,
         paddingVertical: scaledSize(8),
-        paddingHorizontal: scaledSize(10),
+        paddingHorizontal: scaledSize(14),
         shadowColor: "#000",
         shadowOpacity: 0.15,
         shadowRadius: scaledSize(10),
@@ -2169,7 +2212,7 @@ const styles = StyleSheet.create({
     },
     focusOptionLabel: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: scaledSize(12.5),
+        fontSize: scaledSize(14),
         color: "#EAEAEA",
         letterSpacing: 0.15,
     },
@@ -2205,10 +2248,10 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     focusIconButton: {
-        width: scaledSize(56),
-        height: scaledSize(56),
-        borderRadius: scaledSize(28),
-        backgroundColor: "rgba(89, 169, 255, 0.12)",
+        width: scaledSize(72),
+        height: scaledSize(72),
+        borderRadius: scaledSize(36),
+        backgroundColor: theme.surface,
         alignItems: "center",
         justifyContent: "center",
         marginTop: scaledSize(4),
@@ -2217,7 +2260,7 @@ const styles = StyleSheet.create({
     focusIconButtonInner: {
         width: "100%",
         height: "100%",
-        borderRadius: scaledSize(28),
+        borderRadius: scaledSize(36),
         overflow: "hidden",
         alignItems: "center",
         justifyContent: "center",
@@ -2227,7 +2270,7 @@ const styles = StyleSheet.create({
         height: "100%",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: scaledSize(28),
+        borderRadius: scaledSize(36),
         overflow: "hidden",
     },
     focusModalOverlay: {
