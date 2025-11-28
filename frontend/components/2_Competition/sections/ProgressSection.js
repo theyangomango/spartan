@@ -31,6 +31,8 @@ import { DEVICE_WIDTH, scaleSize, ts } from "../layoutConstants";
 import { chartPointerStyles, chartTypography, chartCardTypography, chartCardLayout } from "../../charts/chartStyles";
 import Svg, { Circle, Defs, G, LinearGradient, Line, Path, Stop } from "react-native-svg";
 import { navigateOneWay } from "../../../../navigationRef";
+import HumanMuscleOutline from "../../../assets/human_muscle_outline";
+import HumanMuscleBackOutline from "../../../assets/human_muscle_back_outline";
 
 const WORKOUT_TIMESTAMP_FIELDS = ["created"];
 
@@ -45,6 +47,7 @@ const POINTER_PANEL_ACCENTS = {
     prs: { r: 255, g: 183, b: 126 },
     weight: CHART_ACCENTS.weight,
 };
+const BODYGRAPH_OUTLINE_COLOR = "#40485c";
 
 const accentToRgba = (accent, alpha) => {
     const { r, g, b } = accent;
@@ -2535,7 +2538,41 @@ const completedWorkouts = useMemo(
                 scrollEventThrottle={16}
             >
                 <View style={styles.contentSurface}>
-                {activeMetricKey === "volume" ? (
+                    <View
+                        style={[
+                            chartCardLayout.card,
+                            styles.card,
+                            styles.bodyCard,
+                        ]}
+                    >
+                        <View style={[chartCardLayout.header, styles.bodyHeader]}>
+                            <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>
+                                Your Body
+                            </Text>
+                        </View>
+                        <View style={styles.bodyFiguresRow}>
+                            <View style={[styles.bodyFigureSlot, styles.bodyFigureSlotFront]}>
+                                <HumanMuscleOutline
+                                    color={BODYGRAPH_OUTLINE_COLOR}
+                                    width="102%"
+                                    height="100%"
+                                    preserveAspectRatio="xMidYMid meet"
+                                    style={styles.bodyFigure}
+                                />
+                            </View>
+                            <View style={[styles.bodyFigureSlot, styles.bodyFigureSlotBack]}>
+                                <HumanMuscleBackOutline
+                                    color={BODYGRAPH_OUTLINE_COLOR}
+                                    width="102%"
+                                    height="100%"
+                                    preserveAspectRatio="xMidYMid meet"
+                                    style={styles.bodyFigure}
+                                />
+                            </View>
+                        </View>
+                    </View>
+                    <View style={styles.chartDivider} />
+                    {activeMetricKey === "volume" ? (
                     <View
                         style={[
                             chartCardLayout.card,
@@ -3736,6 +3773,41 @@ const styles = StyleSheet.create({
     },
     metricToggleLabelMuted: {
         color: "rgba(216, 226, 255, 0.5)",
+    },
+    bodyCard: {
+        paddingTop: scaleSize(-8),
+        paddingBottom: scaleSize(2),
+        paddingHorizontal: scaleSize(18),
+        marginBottom: scaleSize(10),
+        backgroundColor: theme.bg,
+    },
+    bodyHeader: {
+        marginBottom: scaleSize(-16),
+        paddingHorizontal: scaleSize(18),
+    },
+    bodyFiguresRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: scaleSize(8),
+        marginTop: scaleSize(-16),
+    },
+    bodyFigureSlot: {
+        flex: 1,
+        height: scaleSize(448),
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "visible",
+    },
+    bodyFigureSlotFront: {
+        marginRight: scaleSize(12),
+    },
+    bodyFigureSlotBack: {
+        marginLeft: scaleSize(12),
+    },
+    bodyFigure: {
+        width: "100%",
+        height: "100%",
     },
     contentSurface: {
         backgroundColor: theme.surface,

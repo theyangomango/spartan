@@ -11,6 +11,15 @@ import formatHexStat from "../../utils/formatHexStat";
 const { height: screenHeight } = Dimensions.get('window');
 const scale = screenHeight / 844; // match Profile screen baseline
 const scaleSize = (size) => Math.round(size * scale);
+const PFP_RADIUS_FACTOR = 22.5 / 54;
+const PFP_RING_PADDING_FACTOR = 2.25 / 54;
+const PFP_RING_BORDER_FACTOR = 3 / 54;
+const PFP_RING_RADIUS_FACTOR = 26.5 / (54 + 2 * 2.25);
+const PFP_SIZE = scaleSize(64);
+const PFP_RADIUS = Math.round(PFP_SIZE * PFP_RADIUS_FACTOR);
+const PFP_RING_PADDING = Math.round(PFP_SIZE * PFP_RING_PADDING_FACTOR);
+const PFP_RING_BORDER = Math.round(PFP_SIZE * PFP_RING_BORDER_FACTOR);
+const PFP_RING_RADIUS = Math.round((PFP_SIZE + PFP_RING_PADDING * 2) * PFP_RING_RADIUS_FACTOR);
 
 export default function ViewProfileInfo({ userData, onPressFollowers, onPressFollowing }) {
     const fallbackPfp = resolvePhotoURL(userData, userData?.image || '');
@@ -73,15 +82,15 @@ const styles = StyleSheet.create({
         marginHorizontal: scaleSize(12),
         alignItems: 'center',
         position: 'relative',
-        borderWidth: scaleSize(3),
-        borderRadius: scaleSize(26.5),
-        padding: scaleSize(2.25),
+        borderWidth: PFP_RING_BORDER,
+        borderRadius: PFP_RING_RADIUS,
+        padding: PFP_RING_PADDING,
         borderColor: theme.hairline,
     },
     pfp: {
-        width: scaleSize(54),
+        width: PFP_SIZE,
         aspectRatio: 1,
-        borderRadius: scaleSize(22.5),
+        borderRadius: PFP_RADIUS,
     },
     followers_stat_ctnr: {
         alignItems: 'flex-end',

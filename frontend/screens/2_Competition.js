@@ -9,6 +9,7 @@ import {
     useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect, useIsFocused } from "@react-navigation/native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 import useStableSafeAreaInsets from "../hooks/useStableSafeAreaInsets";
@@ -31,8 +32,8 @@ import {
 
 const VIEW_TABS = [
     { key: "exercises", label: "Ladder" },
-    { key: "leaderboard", label: "Compete" },
     { key: "progress", label: "Progress" },
+    { key: "leaderboard", label: "Compete" },
 ];
 const resolveTabKey = (candidate) => {
     if (typeof candidate !== "string") return null;
@@ -48,6 +49,7 @@ const getTabIndex = (key) => {
 export default function Competition({ navigation, route }) {
     const insets = useStableSafeAreaInsets();
     const { width: windowWidth = 1 } = useWindowDimensions();
+    const isFocused = useIsFocused();
     const [activeTab, setActiveTab] = useState(() => {
         const requestedFromRoute = resolveTabKey(route?.params?.focusTab);
         if (requestedFromRoute) return requestedFromRoute;
@@ -69,26 +71,67 @@ export default function Competition({ navigation, route }) {
     const indicatorReady = useRef(false);
     const [tabLayouts, setTabLayouts] = useState({});
     const skipTabAnimationRef = useRef(true);
+    const syncTabVisuals = useCallback(
+        (tabKey) => {
+            const target = -windowWidth * getTabIndex(tabKey);
+            slideAnim.setValue(target);
+            const layout = tabLayouts[tabKey];
+            if (layout) {
+                const targetWidth = layout.width * 0.55;
+                const targetX = layout.x + (layout.width - targetWidth) / 2;
+                indicatorX.setValue(targetX);
+                indicatorWidth.setValue(targetWidth);
+                indicatorReady.current = true;
+            }
+        },
+        [windowWidth, tabLayouts, slideAnim, indicatorX, indicatorWidth]
+    );
+
+    const applyTabRequest = useCallback(
+        (tabKey, { shouldClearPending = false, clearRouteParam = false } = {}) => {
+            const resolved = resolveTabKey(tabKey);
+            if (!resolved) return false;
+            skipTabAnimationRef.current = true;
+            syncTabVisuals(resolved);
+            setActiveTab((current) => (current === resolved ? current : resolved));
+            if (clearRouteParam) {
+                navigation?.setParams?.({ focusTab: undefined });
+            }
+            if (shouldClearPending) {
+                clearPendingCompetitionTab();
+            }
+            return true;
+        },
+        [navigation, syncTabVisuals]
+    );
 
     useEffect(() => {
         const unsubscribe = subscribeCompetitionTabRequests((tabKey) => {
-            const resolved = resolveTabKey(tabKey);
-            if (!resolved) return;
-            skipTabAnimationRef.current = true;
-            setActiveTab((current) => (current === resolved ? current : resolved));
-            clearPendingCompetitionTab();
+            applyTabRequest(tabKey, { shouldClearPending: isFocused });
         });
         return unsubscribe;
-    }, []);
+    }, [applyTabRequest, isFocused]);
 
     useEffect(() => {
         const requested = resolveTabKey(route?.params?.focusTab);
         if (!requested) return;
-        skipTabAnimationRef.current = true;
-        setActiveTab((current) => (current === requested ? current : requested));
-        navigation?.setParams?.({ focusTab: undefined });
-        clearPendingCompetitionTab();
-    }, [route?.params?.focusTab, navigation]);
+        applyTabRequest(requested, { shouldClearPending: true, clearRouteParam: true });
+    }, [route?.params?.focusTab, applyTabRequest]);
+
+    useFocusEffect(
+        useCallback(() => {
+            const requestedFromRoute = resolveTabKey(route?.params?.focusTab);
+            if (requestedFromRoute) {
+                applyTabRequest(requestedFromRoute, { shouldClearPending: true, clearRouteParam: true });
+                return;
+            }
+            const pending = consumePendingCompetitionTab();
+            const requestedFromPending = resolveTabKey(pending);
+            if (requestedFromPending) {
+                applyTabRequest(requestedFromPending, { shouldClearPending: true });
+            }
+        }, [route?.params?.focusTab, applyTabRequest])
+    );
 
     const handleTabPress = useCallback(
         (key) => {

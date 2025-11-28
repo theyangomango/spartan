@@ -1337,6 +1337,20 @@ const [currentRank, setCurrentRank] = useState(() => {
         try { setIsUserStatsBottomSheetVisible(true); } catch { setIsUserStatsBottomSheetVisible(true); }
     }, []);
 
+    const handleOpenProgress = useCallback(() => {
+        try { hapticStrong(); } catch { }
+        try {
+            requestCompetitionTabFocus("progress");
+        } catch {
+            requestCompetitionTabFocus("progress");
+        }
+        try {
+            navigation?.navigate("Competition", { focusTab: "progress" });
+        } catch {
+            navigation?.navigate?.("Competition");
+        }
+    }, [navigation]);
+
     const handleOpenLadder = useCallback(() => {
         try { hapticStrong(); } catch { }
         try {
@@ -1368,13 +1382,21 @@ const [currentRank, setCurrentRank] = useState(() => {
                 <FeedSnapshotCard
                     onPressOverall={handleOpenUserStats}
                     onPressCard={handleOpenLadder}
+                    onPressBodyCard={handleOpenProgress}
                     rankTier={snapshotRankTier}
                     rankLabel={snapshotRankLabel}
                     rankLevel={snapshotRankLevel}
                 />
             </View>
         ),
-        [snapshotRankLabel, snapshotRankLevel, snapshotRankTier, handleOpenLadder, handleOpenUserStats]
+        [
+            snapshotRankLabel,
+            snapshotRankLevel,
+            snapshotRankTier,
+            handleOpenLadder,
+            handleOpenProgress,
+            handleOpenUserStats,
+        ]
     );
 
     return (

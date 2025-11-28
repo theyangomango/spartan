@@ -11,6 +11,15 @@ import formatHexStat from "../../../utils/formatHexStat";
 
 const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
+const PFP_RADIUS_FACTOR = 22.5 / 54;
+const PFP_RING_PADDING_FACTOR = 2.25 / 54;
+const PFP_RING_BORDER_FACTOR = 3 / 54;
+const PFP_RING_RADIUS_FACTOR = 26.5 / (54 + 2 * 2.25);
+const PFP_SIZE = scaledSize(64);
+const PFP_RADIUS = Math.round(PFP_SIZE * PFP_RADIUS_FACTOR);
+const PFP_RING_PADDING = Math.round(PFP_SIZE * PFP_RING_PADDING_FACTOR);
+const PFP_RING_BORDER = Math.round(PFP_SIZE * PFP_RING_BORDER_FACTOR);
+const PFP_RING_RADIUS = Math.round((PFP_SIZE + PFP_RING_PADDING * 2) * PFP_RING_RADIUS_FACTOR);
 
 export default function ProfileInfo({
     userData,
@@ -130,18 +139,18 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         position: 'relative',
-        paddingBottom: scaledSize(6),
+        paddingBottom: scaledSize(8),
     },
     pfp_ring: {
-        borderWidth: scaledSize(3),
-        borderRadius: scaledSize(26.5),
-        padding: scaledSize(2.25),
+        borderWidth: PFP_RING_BORDER,
+        borderRadius: PFP_RING_RADIUS,
+        padding: PFP_RING_PADDING,
         borderColor: theme.hairline,
     },
     pfp: {
-        width: scaledSize(54),
+        width: PFP_SIZE,
         aspectRatio: 1,
-        borderRadius: scaledSize(22.5),
+        borderRadius: PFP_RADIUS,
     },
     followers_stat_ctnr: {
         alignItems: 'flex-end',

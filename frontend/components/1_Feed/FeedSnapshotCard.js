@@ -251,6 +251,7 @@ export default function FeedSnapshotCard({
     enableRankAnimations = true,
     onPressOverall,
     onPressCard,
+    onPressBodyCard,
     initialTabKey = RANK_TAB_CONFIG[0].key,
     forceTabKey = null,
     statsHexagon: statsHexagonOverride = null,
@@ -640,6 +641,17 @@ export default function FeedSnapshotCard({
               hitSlop: { top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(8), right: scaleSize(8) },
           }
         : {};
+    const isBodyCardPressable = typeof onPressBodyCard === "function";
+    const BodyCardWrapper = isBodyCardPressable ? TouchableOpacity : View;
+    const bodyCardWrapperProps = isBodyCardPressable
+        ? {
+              onPress: onPressBodyCard,
+              activeOpacity: 0.88,
+              accessibilityRole: "button",
+              accessibilityLabel: "Open progress insights",
+              hitSlop: { top: scaleSize(6), bottom: scaleSize(6), left: scaleSize(8), right: scaleSize(8) },
+          }
+        : {};
 
     return (
         <View style={styles.wrapper}>
@@ -788,51 +800,53 @@ export default function FeedSnapshotCard({
                 </CardWrapper>
                 {!isRankTabActive &&
                     (isBodygraphTabActive ? (
-                        <View style={[styles.rankCard, styles.bodygraphCard]}>
-                            <View style={styles.bodygraphContent}>
-                                <View style={styles.bodygraphStatsColumn}>
-                                    {hasOverallStat ? (
-                                        <View style={styles.bodygraphOverallHero}>
-                                            <Text style={[styles.bodygraphStatsLabel, styles.bodygraphOverallLabel]}>
-                                                Overall
+                        <BodyCardWrapper style={styles.rankCardWrapper} {...bodyCardWrapperProps}>
+                            <View style={[styles.rankCard, styles.bodygraphCard]}>
+                                <View style={styles.bodygraphContent}>
+                                    <View style={styles.bodygraphStatsColumn}>
+                                        {hasOverallStat ? (
+                                            <View style={styles.bodygraphOverallHero}>
+                                                <Text style={[styles.bodygraphStatsLabel, styles.bodygraphOverallLabel]}>
+                                                    Overall
+                                                </Text>
+                                                <Text
+                                                    style={[styles.bodygraphStatsValue, styles.bodygraphOverallValue]}
+                                                    numberOfLines={1}
+                                                    adjustsFontSizeToFit
+                                                    minimumFontScale={0.7}
+                                                >
+                                                    {overallStatDisplay}
+                                                </Text>
+                                            </View>
+                                        ) : (
+                                            <Text style={styles.bodygraphStatsEmptyText}>
+                                                Log workouts to unlock insights.
                                             </Text>
-                                            <Text
-                                                style={[styles.bodygraphStatsValue, styles.bodygraphOverallValue]}
-                                                numberOfLines={1}
-                                                adjustsFontSizeToFit
-                                                minimumFontScale={0.7}
-                                            >
-                                                {overallStatDisplay}
-                                            </Text>
-                                        </View>
-                                    ) : (
-                                        <Text style={styles.bodygraphStatsEmptyText}>
-                                            Log workouts to unlock insights.
-                                        </Text>
-                                    )}
-                                </View>
-                                <View style={styles.bodygraphFigures}>
-                                    <View style={[styles.bodygraphFigureSlot, styles.bodygraphFigureSlotFront]}>
-                                        <HumanMuscleOutline
-                                            color={BODYGRAPH_OUTLINE_COLOR}
-                                            width="90%"
-                                            height="100%"
-                                            preserveAspectRatio="xMidYMax slice"
-                                            style={[styles.bodygraphFigure, styles.bodygraphFigureFront]}
-                                        />
+                                        )}
                                     </View>
-                                    <View style={[styles.bodygraphFigureSlot, styles.bodygraphFigureSlotBack]}>
-                                        <HumanMuscleBackOutline
-                                            color={BODYGRAPH_OUTLINE_COLOR}
-                                            width="90%"
-                                            height="100%"
-                                            preserveAspectRatio="xMidYMax slice"
-                                            style={[styles.bodygraphFigure, styles.bodygraphFigureBack]}
-                                        />
+                                    <View style={styles.bodygraphFigures}>
+                                        <View style={[styles.bodygraphFigureSlot, styles.bodygraphFigureSlotFront]}>
+                                            <HumanMuscleOutline
+                                                color={BODYGRAPH_OUTLINE_COLOR}
+                                                width="90%"
+                                                height="100%"
+                                                preserveAspectRatio="xMidYMax slice"
+                                                style={[styles.bodygraphFigure, styles.bodygraphFigureFront]}
+                                            />
+                                        </View>
+                                        <View style={[styles.bodygraphFigureSlot, styles.bodygraphFigureSlotBack]}>
+                                            <HumanMuscleBackOutline
+                                                color={BODYGRAPH_OUTLINE_COLOR}
+                                                width="90%"
+                                                height="100%"
+                                                preserveAspectRatio="xMidYMax slice"
+                                                style={[styles.bodygraphFigure, styles.bodygraphFigureBack]}
+                                            />
+                                        </View>
                                     </View>
                                 </View>
                             </View>
-                        </View>
+                        </BodyCardWrapper>
                     ) : (
                         <View style={[styles.rankCard, styles.rankPlaceholderCard]}>
                             <Text style={styles.rankPlaceholderTitle}>
