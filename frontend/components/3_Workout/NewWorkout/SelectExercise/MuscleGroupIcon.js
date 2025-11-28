@@ -11,7 +11,7 @@ const STROKE_ACTIVE = "#f4f7ff";
 const STROKE_DIMMED = "#c6d0e5";
 const STROKE_WIDTH = 10;
 
-export default function MuscleGroupIcon({ segments = [], dimmed = false }) {
+export default function MuscleGroupIcon({ segments = [], dimmed = false, strokeWidth = STROKE_WIDTH }) {
   const fills = useMemo(() => {
     const highlight = dimmed ? HIGHLIGHT_DIMMED : HIGHLIGHT_ACTIVE;
     return (Array.isArray(segments) ? segments : []).reduce((map, segment) => {
@@ -41,7 +41,7 @@ export default function MuscleGroupIcon({ segments = [], dimmed = false }) {
         width="100%"
         height="100%"
         strokeColor={dimmed ? STROKE_DIMMED : STROKE_ACTIVE}
-        strokeWidth={STROKE_WIDTH}
+        strokeWidth={strokeWidth || STROKE_WIDTH}
       />
     </View>
   );

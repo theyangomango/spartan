@@ -8,6 +8,8 @@ import Animated, {
     Extrapolate,
     useSharedValue,
     useDerivedValue,
+    runOnJS,
+    useWorkletCallback,
 } from "react-native-reanimated";
 import theme from "../../../theme/mfpDark";
 import ActiveWorkoutModal from "./ActiveWorkoutModal";
@@ -121,6 +123,44 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, vis
             dismissStatKeyboard();
         }
     }, []);
+
+    const handleSheetCloseJS = useCallback(() => {
+        collapseKeyboardIfActive();
+        if (allowCloseRef.current) {
+            allowCloseRef.current = false;
+            setSheetState(WORKOUT_SHEET_STATES.HIDDEN);
+            setIsVisible(false);
+            return;
+        }
+        try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
+        setSheetState(WORKOUT_SHEET_STATES.COLLAPSED);
+        setIsVisible(true);
+    }, [collapseKeyboardIfActive, setIsVisible, setSheetState]);
+
+    const handleSheetClose = useWorkletCallback(() => {
+        runOnJS(handleSheetCloseJS)();
+    }, [handleSheetCloseJS]);
+
+    const handleSheetChangeJS = useCallback((index) => {
+        if (index < 0) {
+            collapseKeyboardIfActive();
+            if (allowCloseRef.current) {
+                allowCloseRef.current = false;
+                return;
+            }
+            try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
+            setSheetState(WORKOUT_SHEET_STATES.COLLAPSED);
+        } else if (index === 0) {
+            collapseKeyboardIfActive();
+            setSheetState(WORKOUT_SHEET_STATES.COLLAPSED);
+        } else {
+            setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
+        }
+    }, [collapseKeyboardIfActive, setSheetState]);
+
+    const handleSheetChange = useWorkletCallback((index) => {
+        runOnJS(handleSheetChangeJS)(index);
+    }, [handleSheetChangeJS]);
 
     const renderBackdrop = useCallback((props) => <SheetBackdrop {...props} />, []);
 
@@ -257,35 +297,8 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, vis
                 enableHandlePanningGesture={gesturesEnabled}
                 suppressStickyElements={false}
                 style={[sheetStyle, styles.sheetOffset]}
-                onClose={() => {
-                    collapseKeyboardIfActive();
-                    if (allowCloseRef.current) {
-                        allowCloseRef.current = false;
-                        setSheetState(WORKOUT_SHEET_STATES.HIDDEN);
-                        setIsVisible(false);
-                        return;
-                    }
-                    // Prevent user-driven close; snap back to collapsed
-                    try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
-                    setSheetState(WORKOUT_SHEET_STATES.COLLAPSED);
-                    setIsVisible(true);
-                }}
-                onChange={(index) => {
-                    if (index < 0) {
-                        collapseKeyboardIfActive();
-                        if (allowCloseRef.current) {
-                            allowCloseRef.current = false;
-                            return;
-                        }
-                        try { bottomSheetRef.current?.snapToIndex?.(0); } catch { }
-                        setSheetState(WORKOUT_SHEET_STATES.COLLAPSED);
-                    } else if (index === 0) {
-                        collapseKeyboardIfActive();
-                        setSheetState(WORKOUT_SHEET_STATES.COLLAPSED);
-                    } else {
-                        setSheetState(WORKOUT_SHEET_STATES.EXPANDED);
-                    }
-                }}
+                onClose={handleSheetClose}
+                onChange={handleSheetChange}
                 handleComponent={(props) => (
                     <AnimatedIndexBridge
                         {...props}

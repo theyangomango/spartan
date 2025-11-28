@@ -65,6 +65,8 @@ const HEADER_COLLAPSED_TRANSLATE = scaleSize(0);
 const HEADER_COLLAPSED_PADDING_V = scaleSize(0);
 const HEADER_EXPANDED_PADDING_V = scaleSize(6);
 const HEADER_EXPANDED_PADDING_H = scaleSize(24);
+const HEADER_MARGIN_TOP_COLLAPSED = scaleSize(-8);
+const HEADER_OVERLAY_TRANSLATE_COLLAPSED = scaleSize(12);
 
 const HEADER_COLLAPSED_BG = 'rgba(0, 0, 0, 1)';
 const HEADER_EXPANDED_BG = theme.bg;
@@ -794,7 +796,7 @@ const ActiveWorkoutModal = ({
             : HEADER_EXPANDED_BG;
         return {
             maxWidth: interpolate(progress, [0, 1], [collapsedWidth, screenWidth]),
-            marginTop: interpolate(progress, [0, 1], [scaleSize(-8), 0]),
+            marginTop: interpolate(progress, [0, 1], [HEADER_MARGIN_TOP_COLLAPSED, 0]),
             paddingHorizontal: HEADER_EXPANDED_PADDING_H,
             paddingVertical: interpolate(progress, [0, 1], [HEADER_COLLAPSED_PADDING_V, HEADER_EXPANDED_PADDING_V]),
             borderTopLeftRadius: 0,
@@ -832,7 +834,7 @@ const ActiveWorkoutModal = ({
             : HEADER_EXPANDED_BG;
         return {
             opacity: interpolate(value, [0, 0.35, 0.7], [1, 0.7, 0], Extrapolate.CLAMP),
-            transform: [{ translateY: interpolate(value, [0, 1], [scaleSize(12), 0], Extrapolate.CLAMP) }],
+            transform: [{ translateY: interpolate(value, [0, 1], [HEADER_OVERLAY_TRANSLATE_COLLAPSED, 0], Extrapolate.CLAMP) }],
             backgroundColor,
             borderTopLeftRadius: 0,
             borderTopRightRadius: 0,

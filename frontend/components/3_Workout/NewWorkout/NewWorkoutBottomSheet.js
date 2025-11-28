@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
 import { View, ActivityIndicator } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import { runOnJS, useWorkletCallback } from "react-native-reanimated";
 import theme from "../../../theme/mfpDark";
 import SpectatingWorkoutModal from "./SpectatingWorkoutModal";
 import useWorkoutStore from "../../../state/workoutStore";
@@ -128,6 +129,24 @@ const NewWorkoutBottomSheet = ({
         }
     }, [effectiveWorkout, navigation]);
 
+    const handleSheetCloseJS = useCallback(() => {
+        try { setIsVisible(false); } catch {}
+    }, [setIsVisible]);
+
+    const handleSheetClose = useWorkletCallback(() => {
+        runOnJS(handleSheetCloseJS)();
+    }, [handleSheetCloseJS]);
+
+    const handleSheetChangeJS = useCallback((index) => {
+        if (index < 0) {
+            try { setIsVisible(false); } catch {}
+        }
+    }, [setIsVisible]);
+
+    const handleSheetChange = useWorkletCallback((index) => {
+        runOnJS(handleSheetChangeJS)(index);
+    }, [handleSheetChangeJS]);
+
     return (
         <BottomSheet
             ref={bottomSheetRef}
@@ -140,8 +159,8 @@ const NewWorkoutBottomSheet = ({
             enablePanDownToClose
             // Allow dragging from header/content (e.g., GroupHeader) to close
             enableContentPanningGesture
-            onClose={() => { try { setIsVisible(false); } catch {} }}
-            onChange={(index) => { if (index < 0) { try { setIsVisible(false); } catch {} } }}
+            onClose={handleSheetClose}
+            onChange={handleSheetChange}
             // Handle styled to match Group Header aesthetics
             handleIndicatorStyle={{
                 // lighter neutral irrespective of viewing mode

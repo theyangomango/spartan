@@ -2313,7 +2313,8 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             const raw = Number(hex[group.key]);
             const display = Number.isFinite(raw) ? formatHexStat(raw) : "--";
             const segments = MUSCLE_SEGMENTS[group.key] || [];
-            return { ...group, display, segments, iconStyle: zoomTransforms[group.key] || null };
+            const iconStrokeWidth = group.key === "back" ? 16 : null;
+            return { ...group, display, segments, iconStyle: zoomTransforms[group.key] || null, iconStrokeWidth };
         });
     }, [userData?.statsHexagon]);
 
@@ -2612,7 +2613,11 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                     <View style={styles.muscleLeft}>
                                         <View style={styles.muscleBadge}>
                                             <View style={[styles.muscleIconZoom, item.iconStyle]}>
-                                                <MuscleGroupIcon segments={item.segments} dimmed={false} />
+                                                <MuscleGroupIcon
+                                                    segments={item.segments}
+                                                    dimmed={false}
+                                                    strokeWidth={item.iconStrokeWidth}
+                                                />
                                             </View>
                                         </View>
                                         <Text style={styles.muscleLabel}>{item.label}</Text>
