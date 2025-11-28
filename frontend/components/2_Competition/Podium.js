@@ -28,6 +28,7 @@ const BAR_MARGIN_H = scaleSize(18);
 
 const HANDLE_PT = scaleSize(5);
 const HANDLE_PB = scaleSize(10);
+const HANDLE_MT = scaleSize(-1);
 const BAR_TEXT_PT = scaleSize(6);
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
     pfp_ctnr: {
         aspectRatio: 1,
         borderRadius: scaleSize(54),
-        marginBottom: scaleSize(-8),
+        marginBottom: scaleSize(2),
     },
     pfp: {
         flex: 1,
@@ -305,6 +306,7 @@ const styles = StyleSheet.create({
     },
     handleWrapper: {
         paddingBottom: HANDLE_PB,
+        marginTop: HANDLE_MT,
     },
     handleRow: {
         justifyContent: 'center',
