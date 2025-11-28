@@ -57,6 +57,7 @@ import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStat
 import { logFeedSignal } from "../helper/feedSignals";
 import { isClipPost } from "../utils/postTypes";
 import { primeAllUsers } from "../helper/getAllUsers";
+import { computeRankProgressFromData } from "../../shared/rankProgress.js";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -216,6 +217,28 @@ const toNumber = (value, fallback = 0) => {
     return Number.isFinite(num) ? num : fallback;
 };
 
+const deriveRankFromUserData = (user) => {
+    try {
+        const completedWorkouts = Array.isArray(user?.completedWorkouts)
+            ? user.completedWorkouts.filter(Boolean)
+            : [];
+        const statsHexagon = user?.statsHexagon;
+        const progress = computeRankProgressFromData({ completedWorkouts, statsHexagon });
+        const entry = progress?.currentRankEntry;
+        if (entry) {
+            return {
+                ...entry,
+                tier: entry.rankTier,
+                label: entry.rankLabel,
+                level: entry.rankLevel,
+            };
+        }
+    } catch {
+        // fall back to stored rank if computation fails
+    }
+    return user?.currentRank || null;
+};
+
 const sanitizeWorkoutForRoute = (workout) => {
     if (!workout || typeof workout !== "object") return null;
 
@@ -310,7 +333,7 @@ export default function Feed({ navigation, route }) {
     useEffect(() => {
         const unsubscribe = subscribeUserData((payload) => {
             setCalendarMarkedDays(buildWorkoutDaySet(payload));
-            setCurrentRank(payload?.currentRank || null);
+            setCurrentRank(deriveRankFromUserData(payload));
         });
         return unsubscribe;
     }, []);
@@ -366,7 +389,7 @@ const [calendarSelectedDate, setCalendarSelectedDate] = useState(() => Date.now(
 const [calendarMarkedDays, setCalendarMarkedDays] = useState(() => buildWorkoutDaySet(global?.userData));
 const [currentRank, setCurrentRank] = useState(() => {
     try {
-        return global?.userData?.currentRank || null;
+        return deriveRankFromUserData(global?.userData);
     } catch {
         return null;
     }
