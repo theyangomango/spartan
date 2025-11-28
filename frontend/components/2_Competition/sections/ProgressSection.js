@@ -2307,7 +2307,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             arms: { transform: [{ scale: 1.8 }, { translateY: scaleSize(6) }] },
             back: { transform: [{ scale: 2.2 }, { translateY: scaleSize(11) }] },
             abs: { transform: [{ scale: 2.4 }, { translateY: scaleSize(7) }] },
-            legs: { transform: [{ scale: 1.6 }, { translateY: scaleSize(-12) }] },
+            legs: { transform: [{ scale: 2.4 }, { translateY: scaleSize(-4) }] },
         };
         return groups.map((group) => {
             const raw = Number(hex[group.key]);
