@@ -1695,6 +1695,10 @@ function LeaderboardsSection({
 
     return (
         <View style={styles.container}>
+            <View
+                pointerEvents="none"
+                style={[styles.surfaceBackdrop, { top: surfaceBackdropTop }]}
+            />
             <Modal
                 visible={isBodyFocusMenuVisible}
                 transparent
@@ -1842,6 +1846,10 @@ function LeaderboardsSection({
                 onScroll={handleScrollEvent}
                 scrollEventThrottle={16}
             >
+                <View
+                    pointerEvents="none"
+                    style={[styles.surfaceBackdrop, { top: surfaceBackdropTop }]}
+                />
                 <InfoPanel isVisible={false} opacity={infoPanelOpacityRef.current} />
                 <View style={[styles.podiumSection, { height: podiumSectionHeight }]}>
                     <Podium
@@ -2014,11 +2022,16 @@ function LeaderboardsSection({
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
+    surfaceBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: theme.surface,
+    },
     scrollRegion: { flex: 1 },
     scrollContent: {
         paddingTop: scaledSize(65),
         paddingBottom: scaledSize(10),
         flexGrow: 1,
+        position: "relative",
     },
     podiumSection: {
         width: "100%",
@@ -2259,7 +2272,6 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         marginTop: scaledSize(4),
-        overflow: "hidden",
         shadowColor: "#FFFFFF",
         shadowOpacity: 0.45,
         shadowRadius: scaledSize(16),
