@@ -2305,7 +2305,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             shoulders: { transform: [{ scale: 2.8 }, { translateY: scaleSize(15) }] },
             chest: { transform: [{ scale: 2.8 }, { translateY: scaleSize(15) }] },
             arms: { transform: [{ scale: 1.8 }, { translateY: scaleSize(6) }] },
-            back: { transform: [{ scale: 1.62 }, { translateY: scaleSize(-4) }] },
+            back: { transform: [{ scale: 2.2 }, { translateY: scaleSize(11) }] },
             abs: { transform: [{ scale: 2.4 }, { translateY: scaleSize(7) }] },
             legs: { transform: [{ scale: 1.6 }, { translateY: scaleSize(-12) }] },
         };

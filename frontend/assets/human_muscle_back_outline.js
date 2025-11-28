@@ -9,7 +9,7 @@ import Svg, {
     Line,
 } from "react-native-svg";
 
-const OUTLINE_STROKE_WIDTH = 5;
+const OUTLINE_STROKE_WIDTH = 10;
 const OUTLINE_STROKE_COLOR = "#d8e2ff";
 
 const HumanMuscleBackOutline = ({
