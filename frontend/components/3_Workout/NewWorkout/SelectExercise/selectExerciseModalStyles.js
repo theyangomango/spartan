@@ -145,7 +145,10 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     muscleFilterIconZoom: {
-        transform: [{ scale: 1.1 }],
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
     },
     filterPanel: {
         backgroundColor: PANEL_BG,

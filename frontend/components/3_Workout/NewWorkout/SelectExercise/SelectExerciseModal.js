@@ -34,14 +34,24 @@ const scaledSize = (size) => scaleSize(size);
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const MUSCLE_HIGHLIGHT = "#ff6f67ff";
 const MUSCLE_HIGHLIGHT_DIM = "rgba(255, 127, 120, 0.6)";
-const MUSCLE_ICON_TRANSFORMS = {
-    shoulders: { transform: [{ scale: 2.8 }, { translateY: scaledSize(15) }] },
-    chest: { transform: [{ scale: 2.8 }, { translateY: scaledSize(15) }] },
-    arms: { transform: [{ scale: 1.8 }, { translateY: scaledSize(6) }] },
-    back: { transform: [{ scale: 2.2 }, { translateY: scaledSize(11) }] },
-    abs: { transform: [{ scale: 2.4 }, { translateY: scaledSize(7) }] },
-    legs: { transform: [{ scale: 2.4 }, { translateY: scaledSize(-4) }] },
-    overall: { transform: [{ scale: 1.8 }, { translateY: scaledSize(7) }] },
+// Apply scaling at SVG render-time to keep icons crisp.
+const MUSCLE_ICON_SCALES = {
+    shoulders: 2.6,
+    chest: 2.8,
+    arms: 1.8,
+    back: 2.2,
+    abs: 3,
+    legs: 2.4,
+    overall: 1.6,
+};
+const MUSCLE_ICON_OFFSETS = {
+    shoulders: scaledSize(70),
+    chest: scaledSize(80),
+    arms: scaledSize(25),
+    back: scaledSize(50),
+    abs: scaledSize(40),
+    legs: scaledSize(-20),
+    overall: scaledSize(10),
 };
 const MUSCLE_ICON_STROKES = {
     back: 14,
@@ -573,9 +583,16 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                                                         style={[
                                                             styles.muscleFilterIconInner,
                                                             styles.muscleFilterIconZoom,
-                                                            MUSCLE_ICON_TRANSFORMS[
+                                                            MUSCLE_ICON_OFFSETS[
                                                                 (option.value || "overall").toString().toLowerCase()
-                                                            ] || null,
+                                                            ]
+                                                                ? {
+                                                                    marginTop:
+                                                                        MUSCLE_ICON_OFFSETS[
+                                                                            (option.value || "overall").toString().toLowerCase()
+                                                                        ],
+                                                                }
+                                                                : null,
                                                         ]}
                                                     >
                                                         <MuscleGroupIcon
@@ -583,7 +600,16 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                                                             dimmed={!isActive}
                                                             highlightColor={MUSCLE_HIGHLIGHT}
                                                             dimHighlightColor={MUSCLE_HIGHLIGHT_DIM}
-                                                            strokeWidth={MUSCLE_ICON_STROKES[(option.value || "").toString().toLowerCase()] || undefined}
+                                                            strokeWidth={
+                                                                MUSCLE_ICON_STROKES[
+                                                                    (option.value || "").toString().toLowerCase()
+                                                                ] || undefined
+                                                            }
+                                                            scale={
+                                                                MUSCLE_ICON_SCALES[
+                                                                    (option.value || "overall").toString().toLowerCase()
+                                                                ] || 1
+                                                            }
                                                         />
                                                     </View>
                                                 </View>
