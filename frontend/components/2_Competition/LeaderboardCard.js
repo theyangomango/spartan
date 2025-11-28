@@ -11,16 +11,16 @@ import VerifiedHandle from '../common/VerifiedHandle';
 const { width } = Dimensions.get("window");
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
-const CARD_HEIGHT = scaleSize(66);
-const SELF_CARD_HEIGHT = scaleSize(88);
-const PFP_SIZE = scaleSize(44);
+const CARD_HEIGHT = scaleSize(64);
+const SELF_CARD_HEIGHT = scaleSize(86);
+const PFP_SIZE = scaleSize(40);
 
-const FONT_HANDLE = ts(15);
-const FONT_NAME = ts(15);
-const FONT_STAT = ts(13);
-const FONT_HEX_STAT = ts(15);
-const FONT_RANK = ts(13);
-const FONT_BEST = ts(13);
+const FONT_HANDLE = ts(13.5);
+const FONT_NAME = ts(13.5);
+const FONT_STAT = ts(12);
+const FONT_HEX_STAT = ts(14);
+const FONT_RANK = ts(12);
+const FONT_BEST = ts(12);
 
 /**
  * Props (new ones are optional & tribe-aware):
@@ -91,7 +91,7 @@ export default function LeaderboardCard({
                             isVerified={isVerified}
                             textStyle={[styles.handle_text, { fontSize: scaleSize(FONT_HANDLE) }]}
                             numberOfLines={1}
-                            iconSize={scaleSize(15)}
+                            iconSize={scaleSize(13)}
                             containerStyle={styles.handle_row}
                         />
                     </View>
@@ -175,27 +175,27 @@ function formatStat(value, metric, normalizeByBodyweight) {
 
 const styles = StyleSheet.create({
     card_ctnr: {
-        borderRadius: scaleSize(20),
+        borderRadius: scaleSize(18),
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingLeft: scaleSize(18),
-        paddingRight: scaleSize(24),
-        marginBottom: scaleSize(12.5),
+        paddingLeft: scaleSize(16),
+        paddingRight: scaleSize(20),
+        marginBottom: scaleSize(10),
         backgroundColor: theme.surface,
     },
     handle_row: {
         maxWidth: width * 0.45,
     },
     self_card_ctnr: {
-        borderRadius: scaleSize(20),
+        borderRadius: scaleSize(18),
         flexDirection: 'row',
         justifyContent: 'space-between',
-        paddingLeft: scaleSize(16),
-        paddingRight: scaleSize(20),
-        borderWidth: scaleSize(2.5),
+        paddingLeft: scaleSize(14),
+        paddingRight: scaleSize(18),
+        borderWidth: scaleSize(2),
         borderColor: '#57B2FF',
         backgroundColor: theme.surface,
-        marginBottom: scaleSize(12.5),
+        marginBottom: scaleSize(10),
     },
     card_left: {
         flexDirection: 'row',
@@ -203,13 +203,13 @@ const styles = StyleSheet.create({
         paddingLeft: scaleSize(2),
     },
     rankWrapper: {
-        minWidth: scaleSize(32),
+        minWidth: scaleSize(28),
         alignItems: 'flex-start',
-        marginRight: scaleSize(8),
+        marginRight: scaleSize(6),
     },
     pfp_ctnr: {
         aspectRatio: 1,
-        marginRight: scaleSize(10),
+        marginRight: scaleSize(8),
     },
     pfp: {
         flex: 1,
@@ -217,10 +217,10 @@ const styles = StyleSheet.create({
         backgroundColor: '#2D3441',
     },
     handleRowUnverified: {
-        paddingLeft: scaleSize(12)
+        paddingLeft: scaleSize(10)
     },
     handleRowVerified: {
-        paddingLeft: scaleSize(8)
+        paddingLeft: scaleSize(6)
     },
     handle_text: {
         fontFamily: 'Outfit_700Bold',
@@ -231,7 +231,7 @@ const styles = StyleSheet.create({
     name_text: {
         marginTop: scaleSize(2),
         fontFamily: 'Outfit_500Medium',
-        paddingHorizontal: scaleSize(12),
+        paddingHorizontal: scaleSize(10),
         color: require("../../theme/mfpDark").default.textSecondary,
         maxWidth: scaleSize(width * 0.45),
     },
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         alignItems: 'flex-end',
         justifyContent: 'center',
-        maxWidth: scaleSize(width * 0.35),
+        maxWidth: scaleSize(width * 0.33),
     },
     stat_text: {
         fontFamily: 'Outfit_700Bold',
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     best_set_text: {
         fontFamily: 'Outfit_500Medium',
         color: require("../../theme/mfpDark").default.textSecondary,
-        marginTop: scaleSize(4),
+        marginTop: scaleSize(3),
         textAlign: 'right',
     },
     rank_text: {

@@ -33,7 +33,7 @@ const SIZES = {
 };
 
 const HEADER_GRADIENT_OVERLAP = scaleSize(120);
-const PODIUM_PULLUP = scaleSize(20);
+const PODIUM_PULLUP = scaleSize(44);
 
 export {
     scaleSize,

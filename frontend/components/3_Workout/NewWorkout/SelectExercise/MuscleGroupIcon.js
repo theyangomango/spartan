@@ -17,6 +17,7 @@ export default function MuscleGroupIcon({
   strokeWidth = STROKE_WIDTH,
   highlightColor = null,
   dimHighlightColor = null,
+  scale = 1,
 }) {
   const fills = useMemo(() => {
     const activeHighlight = highlightColor || HIGHLIGHT_ACTIVE;
@@ -40,17 +41,24 @@ export default function MuscleGroupIcon({
   }, [segments]);
 
   const OutlineComponent = useBackView ? HumanMuscleBackOutline : HumanMuscleOutline;
+  const scaledWrapperStyle = useMemo(() => {
+    const pct = `${Math.max(0.1, scale) * 100}%`;
+    return [styles.svgWrapper, { width: pct, height: pct }];
+  }, [scale]);
 
   return (
     <View style={[styles.container, dimmed && styles.dimmedContainer]}>
-      <OutlineComponent
-        color={dimmed ? BASE_COLOR_DIMMED : BASE_COLOR_ACTIVE}
-        fills={fills}
-        width="100%"
-        height="100%"
-        strokeColor={dimmed ? STROKE_DIMMED : STROKE_ACTIVE}
-        strokeWidth={strokeWidth || STROKE_WIDTH}
-      />
+      <View style={scaledWrapperStyle}>
+        <OutlineComponent
+          color={dimmed ? BASE_COLOR_DIMMED : BASE_COLOR_ACTIVE}
+          fills={fills}
+          width="100%"
+          height="100%"
+          preserveAspectRatio="xMidYMid meet"
+          strokeColor={dimmed ? STROKE_DIMMED : STROKE_ACTIVE}
+          strokeWidth={strokeWidth || STROKE_WIDTH}
+        />
+      </View>
     </View>
   );
 }
@@ -64,5 +72,11 @@ const styles = StyleSheet.create({
   },
   dimmedContainer: {
     opacity: 0.85,
+  },
+  svgWrapper: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

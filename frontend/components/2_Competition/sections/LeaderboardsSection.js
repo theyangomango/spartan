@@ -59,6 +59,7 @@ import {
     DEVICE_HEIGHT,
 } from "../layoutConstants";
 import { scaledSize } from "../UserStats/UserStatsStyles";
+import MuscleGroupIcon from "../../3_Workout/NewWorkout/SelectExercise/MuscleGroupIcon";
 
 const DEFAULT_BODY_FOCUS = "overall";
 const BODY_FOCUS_OPTIONS = [
@@ -78,6 +79,29 @@ const BODYWEIGHT_BLOCK_MESSAGE =
     "This tribe’s comparison is normalized by bodyweight. Please enter your weight to view rankings.";
 
 const STAGE_VERTICAL_OFFSET = scaledSize(0);
+
+const FOCUS_SEGMENTS = {
+    overall: ["calves", "quads", "abs", "obliques", "back", "forearms", "arms", "shoulders", "chest", "traps"],
+    chest: ["chest"],
+    shoulders: ["shoulders"],
+    arms: ["arms", "forearms"],
+    back: ["back", "traps"],
+    abs: ["abs", "obliques"],
+    legs: ["quads", "calves"],
+};
+// Keep muscle icon transforms consistent with the exercise filter chips and progress badges.
+const MUSCLE_ICON_TRANSFORMS = {
+    shoulders: { transform: [{ scale: 2.8 }, { translateY: scaledSize(15) }] },
+    chest: { transform: [{ scale: 2.8 }, { translateY: scaledSize(15) }] },
+    arms: { transform: [{ scale: 1.8 }, { translateY: scaledSize(6) }] },
+    back: { transform: [{ scale: 2.2 }, { translateY: scaledSize(11) }] },
+    abs: { transform: [{ scale: 2.4 }, { translateY: scaledSize(7) }] },
+    legs: { transform: [{ scale: 2.4 }, { translateY: scaledSize(-4) }] },
+    overall: { transform: [{ scale: 1.8 }, { translateY: scaledSize(7) }] },
+};
+
+const MUSCLE_ICON_HIGHLIGHT = "#ff6f67ff";
+const MUSCLE_ICON_HIGHLIGHT_DIM = "rgba(255, 127, 120, 0.6)";
 
 const KG_TO_LB = 2.2046226218488;
 
@@ -1691,30 +1715,52 @@ useEffect(() => {
                         style={[styles.focusDropdown, { top: dropdownTop, left: dropdownLeft }]}
                         pointerEvents="box-none"
                     >
-                        {BODY_FOCUS_OPTIONS.map((opt) => (
-                            <TouchableOpacity
-                                key={opt.value}
-                                style={[
-                                    styles.focusOption,
-                                    opt.value === bodyFocus && styles.focusOptionActive,
-                                ]}
-                                onPress={withStrongPress(() => {
-                                    setBodyFocus(opt.value);
-                                    setIsBodyFocusMenuVisible(false);
-                                })}
-                            >
-                                <Text
+                        {BODY_FOCUS_OPTIONS.map((opt) => {
+                            const isActive = opt.value === bodyFocus;
+                            return (
+                                <TouchableOpacity
+                                    key={opt.value}
                                     style={[
-                                        styles.focusOptionLabel,
-                                        opt.value === bodyFocus && styles.focusOptionLabelActive,
+                                        styles.focusOption,
+                                        isActive && styles.focusOptionActive,
                                     ]}
-                                    numberOfLines={1}
-                                    ellipsizeMode="tail"
+                                    onPress={withStrongPress(() => {
+                                        setBodyFocus(opt.value);
+                                        setIsBodyFocusMenuVisible(false);
+                                    })}
                                 >
-                                    {opt.label}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
+                                    <View style={styles.focusOptionIconWrap}>
+                                        <View
+                                            style={[
+                                                styles.focusOptionIconInner,
+                                                styles.focusMuscleIconZoom,
+                                                MUSCLE_ICON_TRANSFORMS[opt.value] || null,
+                                            ]}
+                                        >
+                                            <MuscleGroupIcon
+                                                segments={FOCUS_SEGMENTS[opt.value] || []}
+                                                dimmed={!isActive}
+                                                highlightColor={MUSCLE_ICON_HIGHLIGHT}
+                                                dimHighlightColor={MUSCLE_ICON_HIGHLIGHT_DIM}
+                                                strokeWidth={opt.value === "back" ? 8.5 : 7.5}
+                                            />
+                                        </View>
+                                    </View>
+                                    <View style={styles.focusOptionLabelWrap}>
+                                        <Text
+                                            style={[
+                                                styles.focusOptionLabel,
+                                                isActive && styles.focusOptionLabelActive,
+                                            ]}
+                                            numberOfLines={1}
+                                            ellipsizeMode="tail"
+                                        >
+                                            {opt.label}
+                                        </Text>
+                                    </View>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
                 </View>
             </Modal>
@@ -1727,7 +1773,36 @@ useEffect(() => {
                     ]}
                 >
                     <View style={styles.headerPillsRow}>
-                        {renderScopeFocusPill()}
+                        <RNBounceable
+                            onPress={withStrongPress(handleToggleFocusMenu)}
+                            activeScale={0.96}
+                            hitSlop={{
+                                top: SIZES.tribeHitSlop,
+                                bottom: SIZES.tribeHitSlop,
+                                left: SIZES.tribeHitSlop,
+                                right: SIZES.tribeHitSlop,
+                            }}
+                            accessibilityRole="button"
+                            accessibilityLabel="Change muscle focus"
+                            style={styles.focusIconButton}
+                        >
+                            <View ref={focusToggleAnchorRef} style={styles.focusIconButtonInner} collapsable={false}>
+                                <View
+                                    style={[
+                                        styles.focusIconButtonIcon,
+                                        styles.focusMuscleIconZoom,
+                                        MUSCLE_ICON_TRANSFORMS[bodyFocus] || null,
+                                    ]}
+                                >
+                                    <MuscleGroupIcon
+                                        segments={FOCUS_SEGMENTS[bodyFocus] || []}
+                                        highlightColor={MUSCLE_ICON_HIGHLIGHT}
+                                        dimHighlightColor={MUSCLE_ICON_HIGHLIGHT_DIM}
+                                        strokeWidth={bodyFocus === "back" ? 9 : 8}
+                                    />
+                                </View>
+                            </View>
+                        </RNBounceable>
                     </View>
                 </View>
             </View>
@@ -1917,7 +1992,7 @@ const styles = StyleSheet.create({
         width: "100%",
         position: "relative",
         justifyContent: "flex-end",
-        overflow: "hidden",
+        overflow: "visible",
         marginTop: -PODIUM_PULLUP,
     },
     leaderboardPanelWrap: {
@@ -1955,13 +2030,17 @@ const styles = StyleSheet.create({
     header: {
         width: "100%",
         paddingTop: SIZES.headerPaddingTop,
-        alignItems: "center",
+        alignItems: "flex-end",
     },
     headerPillsRow: {
         width: "100%",
-        paddingTop: scaledSize(10),
+        paddingTop: scaledSize(12),
         paddingBottom: scaledSize(6),
-        alignItems: "center",
+        paddingRight: scaledSize(14),
+        alignItems: "flex-end",
+        flexDirection: "row",
+        justifyContent: "flex-end",
+        gap: scaledSize(10),
     },
     selectorShadow: {
         width: "100%",
@@ -2067,8 +2146,8 @@ const styles = StyleSheet.create({
     },
     focusOption: {
         paddingVertical: scaledSize(10),
-        paddingHorizontal: scaledSize(14),
-        borderRadius: scaledSize(10),
+        paddingHorizontal: scaledSize(12),
+        borderRadius: scaledSize(12),
         marginBottom: scaledSize(4),
         flexDirection: "row",
         alignItems: "center",
@@ -2085,6 +2164,61 @@ const styles = StyleSheet.create({
     },
     focusOptionLabelActive: {
         color: "#fff",
+    },
+    focusOptionIconWrap: {
+        width: scaledSize(56),
+        height: scaledSize(56),
+        marginRight: scaledSize(12),
+        borderRadius: scaledSize(28),
+        backgroundColor: "rgba(89, 169, 255, 0.12)",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+    },
+    focusOptionIconInner: {
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: scaledSize(28),
+        overflow: "hidden",
+    },
+    focusMuscleIconZoom: {
+        width: "90%",
+        height: "90%",
+        alignItems: "center",
+        justifyContent: "center",
+        transform: [{ scale: 1.08 }],
+    },
+    focusOptionLabelWrap: {
+        flex: 1,
+        justifyContent: "center",
+    },
+    focusIconButton: {
+        width: scaledSize(56),
+        height: scaledSize(56),
+        borderRadius: scaledSize(28),
+        backgroundColor: "rgba(89, 169, 255, 0.12)",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: scaledSize(4),
+        overflow: "hidden",
+    },
+    focusIconButtonInner: {
+        width: "100%",
+        height: "100%",
+        borderRadius: scaledSize(28),
+        overflow: "hidden",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    focusIconButtonIcon: {
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: scaledSize(28),
+        overflow: "hidden",
     },
     focusModalOverlay: {
         flex: 1,

@@ -54,12 +54,12 @@ const LeaderboardPanel = ({
 
         if (!Array.isArray(userList) || userList.length === 0) return baseMin;
 
-        const approxHeader = scaleSize(38); // top padding + subtle breathing room
-        const rowHeight = scaleSize(64) + scaleSize(12.5); // card height + spacing
+        const approxHeader = scaleSize(34); // top padding + subtle breathing room
+        const rowHeight = scaleSize(64) + scaleSize(10); // card height + spacing
         const estimatedRows = userList.length * rowHeight;
         const estimatedHeight = approxHeader + estimatedRows + bottomPadding;
         if (userList.length <= 6) {
-            const compactFloor = scaleSize(280);
+            const compactFloor = scaleSize(260);
             return Math.max(compactFloor, Math.round(estimatedHeight));
         }
 

@@ -5,14 +5,14 @@ import scaleSize from "../../helper/scaleSize";
 import TribeComparisonBannerCarousel from "./TribeComparisonBannerCarousel";
 
 // Scaled paddings and derived widths
-const H_PADDING = scaleSize(10);
+const H_PADDING = scaleSize(8);
 
 // Scaled fonts (slightly larger for readability)
 // Scaled layout
-const CONTAINER_PT = scaleSize(12);
+const CONTAINER_PT = scaleSize(10);
 const CARD_HEIGHT = scaleSize(64);
 const SELF_CARD_HEIGHT = scaleSize(86);
-const CARD_SPACING = scaleSize(12.5);
+const CARD_SPACING = scaleSize(10);
 const DEFAULT_ROW_HEIGHT = CARD_HEIGHT + CARD_SPACING;
 const SELF_ROW_HEIGHT = SELF_CARD_HEIGHT + CARD_SPACING;
 

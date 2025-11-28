@@ -11,13 +11,13 @@ const PODIUM_HEIGHT = scaleSize(260);
 export { PODIUM_HEIGHT };
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
-const PFP_SIZE_LEFT = scaleSize(60);
-const PFP_SIZE_CENTER = scaleSize(64);
-const PFP_SIZE_RIGHT = scaleSize(56);
+const PFP_SIZE_LEFT = scaleSize(62);
+const PFP_SIZE_CENTER = scaleSize(68);
+const PFP_SIZE_RIGHT = scaleSize(58);
 
-const BAR_HEIGHT_LEFT = scaleSize(120);
+const BAR_HEIGHT_LEFT = scaleSize(112);
 const BAR_HEIGHT_CENTER = scaleSize(150);
-const BAR_HEIGHT_RIGHT = scaleSize(100);
+const BAR_HEIGHT_RIGHT = scaleSize(92);
 const BAR_WIDTH = scaleSize(86);
 
 const FONT_HANDLE = ts(15);
@@ -266,7 +266,7 @@ const styles = StyleSheet.create({
     // Top header band that holds the podium bars
     podium_band: {
         position: 'absolute',
-        top: 0,
+        top: scaleSize(12),
         width: '100%',
         height: '100%',
         justifyContent: 'space-evenly',
@@ -291,11 +291,12 @@ const styles = StyleSheet.create({
     bronze_ctnr: { backgroundColor: '#FF9555' },
     pfp_ctnr: {
         aspectRatio: 1,
-        borderRadius: scaleSize(50)
+        borderRadius: scaleSize(54),
+        marginBottom: scaleSize(-8),
     },
     pfp: {
         flex: 1,
-        borderRadius: scaleSize(50),
+        borderRadius: scaleSize(54),
     },
     leaderboard_handle_text: {
         fontFamily: 'Outfit_600SemiBold',

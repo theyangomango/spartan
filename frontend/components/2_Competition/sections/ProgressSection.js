@@ -2305,21 +2305,38 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             { key: "abs", label: "Abs" },
             { key: "overall", label: "Overall", segments: overallSegments },
         ];
-        const zoomTransforms = {
-            shoulders: { transform: [{ scale: 2.8 }, { translateY: scaleSize(15) }] },
-            chest: { transform: [{ scale: 2.8 }, { translateY: scaleSize(15) }] },
-            arms: { transform: [{ scale: 1.8 }, { translateY: scaleSize(6) }] },
-            back: { transform: [{ scale: 2.2 }, { translateY: scaleSize(11) }] },
-            abs: { transform: [{ scale: 2.4 }, { translateY: scaleSize(7) }] },
-            legs: { transform: [{ scale: 2.4 }, { translateY: scaleSize(-4) }] },
-            overall: { transform: [{ scale: 1.8 }, { translateY: scaleSize(7) }] },
+        // Apply per-group scaling through the SVG render itself (keeps strokes crisp) instead of view transforms.
+        const iconScales = {
+            shoulders: 2.6,
+            chest: 2.8,
+            arms: 1.8,
+            back: 2.2,
+            abs: 3,
+            legs: 2.4,
+            overall: 1.6,
+        };
+        const iconOffsets = {
+            shoulders: scaleSize(70),
+            chest: scaleSize(80),
+            arms: scaleSize(25),
+            back: scaleSize(50),
+            abs: scaleSize(40),
+            legs: scaleSize(-20),
+            overall: scaleSize(10),
         };
         return groups.map((group) => {
             const raw = Number(hex[group.key]);
             const display = Number.isFinite(raw) ? formatHexStat(raw) : "--";
             const segments = group.segments || MUSCLE_SEGMENTS[group.key] || [];
             const iconStrokeWidth = group.key === "back" ? 14 : null;
-            return { ...group, display, segments, iconStyle: zoomTransforms[group.key] || null, iconStrokeWidth };
+            return {
+                ...group,
+                display,
+                segments,
+                iconScale: iconScales[group.key] || 1,
+                iconOffset: iconOffsets[group.key] || 0,
+                iconStrokeWidth,
+            };
         });
     }, [userData?.statsHexagon]);
 
@@ -2612,14 +2629,22 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                 <View key={item.key} style={styles.muscleRow}>
                                     <View style={styles.muscleLeft}>
                                         <View style={styles.muscleBadge}>
-                                            <View style={[styles.muscleIconZoom, item.iconStyle]}>
-                                                <MuscleGroupIcon
-                                                    segments={item.segments}
-                                                    dimmed={false}
-                                                    strokeWidth={item.iconStrokeWidth}
-                                                    highlightColor={MUSCLE_ICON_HIGHLIGHT}
-                                                    dimHighlightColor={MUSCLE_ICON_HIGHLIGHT_DIM}
-                                                />
+                                            <View style={styles.muscleIconContainer}>
+                                                <View
+                                                    style={[
+                                                        styles.muscleIconZoom,
+                                                        item.iconOffset ? { marginTop: item.iconOffset } : null,
+                                                    ]}
+                                                >
+                                                    <MuscleGroupIcon
+                                                        segments={item.segments}
+                                                        dimmed={false}
+                                                        strokeWidth={item.iconStrokeWidth}
+                                                        highlightColor={MUSCLE_ICON_HIGHLIGHT}
+                                                        dimHighlightColor={MUSCLE_ICON_HIGHLIGHT_DIM}
+                                                        scale={item.iconScale}
+                                                    />
+                                                </View>
                                             </View>
                                         </View>
                                         <Text
@@ -3893,10 +3918,19 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(12),
         overflow: "hidden",
     },
+    muscleIconContainer: {
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: scaleSize(28),
+        overflow: "hidden",
+    },
     muscleIconZoom: {
         width: "100%",
         height: "100%",
-        transform: [{ scale: 1.25 }],
+        alignItems: "center",
+        justifyContent: "center",
     },
     muscleBadgeText: {
         fontFamily: "Outfit_700Bold",
