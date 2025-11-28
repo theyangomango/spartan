@@ -32,6 +32,21 @@ import DismissableTextInput from "../../../common/DismissableTextInput";
 
 const scaledSize = (size) => scaleSize(size);
 const SCREEN_HEIGHT = Dimensions.get("window").height;
+const MUSCLE_HIGHLIGHT = "#ff6f67ff";
+const MUSCLE_HIGHLIGHT_DIM = "rgba(255, 127, 120, 0.6)";
+const MUSCLE_ICON_TRANSFORMS = {
+    shoulders: { transform: [{ scale: 2.8 }, { translateY: scaledSize(15) }] },
+    chest: { transform: [{ scale: 2.8 }, { translateY: scaledSize(15) }] },
+    arms: { transform: [{ scale: 1.8 }, { translateY: scaledSize(6) }] },
+    back: { transform: [{ scale: 2.2 }, { translateY: scaledSize(11) }] },
+    abs: { transform: [{ scale: 2.4 }, { translateY: scaledSize(7) }] },
+    legs: { transform: [{ scale: 2.4 }, { translateY: scaledSize(-4) }] },
+    overall: { transform: [{ scale: 1.8 }, { translateY: scaledSize(7) }] },
+};
+const MUSCLE_ICON_STROKES = {
+    back: 14,
+};
+const MUSCLE_FILTER_ORDER = ["overall", "chest", "shoulders", "arms", "back", "legs", "abs"];
 
 const MUSCLE_FILTERS = [
     {
@@ -521,7 +536,17 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                                 decelerationRate="fast"
                             >
                                 <View style={styles.muscleFilterRow}>
-                                    {MUSCLE_FILTERS.map((option, index) => {
+                                    {MUSCLE_FILTERS.slice()
+                                        .sort((a, b) => {
+                                            const aKey = (a.value || "").toString().toLowerCase();
+                                            const bKey = (b.value || "").toString().toLowerCase();
+                                            const aIdx = MUSCLE_FILTER_ORDER.indexOf(aKey === "" ? "overall" : aKey);
+                                            const bIdx = MUSCLE_FILTER_ORDER.indexOf(bKey === "" ? "overall" : bKey);
+                                            const aPos = aIdx === -1 ? Number.MAX_SAFE_INTEGER : aIdx;
+                                            const bPos = bIdx === -1 ? Number.MAX_SAFE_INTEGER : bIdx;
+                                            return aPos - bPos;
+                                        })
+                                        .map((option, index) => {
                                         const isActive = option.value === bodyPartValue;
                                         return (
                                             <Pressable
@@ -544,10 +569,23 @@ export default function SelectExerciseModal({ closeModal, appendExercises }) {
                                                         isActive && styles.muscleFilterIconWrapActive,
                                                     ]}
                                                 >
-                                                    <MuscleGroupIcon
-                                                        segments={option.segments}
-                                                        dimmed={!isActive}
-                                                    />
+                                                    <View
+                                                        style={[
+                                                            styles.muscleFilterIconInner,
+                                                            styles.muscleFilterIconZoom,
+                                                            MUSCLE_ICON_TRANSFORMS[
+                                                                (option.value || "overall").toString().toLowerCase()
+                                                            ] || null,
+                                                        ]}
+                                                    >
+                                                        <MuscleGroupIcon
+                                                            segments={option.segments}
+                                                            dimmed={!isActive}
+                                                            highlightColor={MUSCLE_HIGHLIGHT}
+                                                            dimHighlightColor={MUSCLE_HIGHLIGHT_DIM}
+                                                            strokeWidth={MUSCLE_ICON_STROKES[(option.value || "").toString().toLowerCase()] || undefined}
+                                                        />
+                                                    </View>
                                                 </View>
                                             </Pressable>
                                         );

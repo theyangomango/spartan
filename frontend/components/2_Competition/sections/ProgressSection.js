@@ -2297,12 +2297,12 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
         const hex = userData?.statsHexagon || {};
         const overallSegments = ["calves", "quads", "abs", "obliques", "back", "forearms", "arms", "shoulders", "chest", "traps"];
         const groups = [
-            { key: "shoulders", label: "Shoulders" },
             { key: "chest", label: "Chest" },
+            { key: "shoulders", label: "Shoulders" },
             { key: "arms", label: "Arms" },
             { key: "back", label: "Back" },
-            { key: "abs", label: "Abs" },
             { key: "legs", label: "Legs" },
+            { key: "abs", label: "Abs" },
             { key: "overall", label: "Overall", segments: overallSegments },
         ];
         const zoomTransforms = {
