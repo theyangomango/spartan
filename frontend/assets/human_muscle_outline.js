@@ -11,7 +11,17 @@ import Svg, {
 const OUTLINE_STROKE_WIDTH = 5;
 const OUTLINE_STROKE_COLOR = "#d8e2ff";
 
-const HumanMuscleOutline = ({ color = "#000", fills = {}, ...props }) => {
+const HumanMuscleOutline = ({
+  color = "#000",
+  fills = {},
+  strokeColor = OUTLINE_STROKE_COLOR,
+  strokeWidth = OUTLINE_STROKE_WIDTH,
+  ...props
+}) => {
+  const outlineStrokeColor = strokeColor || OUTLINE_STROKE_COLOR;
+  const outlineStrokeWidth = Number.isFinite(strokeWidth)
+    ? strokeWidth
+    : OUTLINE_STROKE_WIDTH;
   const fillColor = (region) =>
     fills && fills[region] != null ? fills[region] : color;
 
@@ -82,10 +92,10 @@ const HumanMuscleOutline = ({ color = "#000", fills = {}, ...props }) => {
         <Path d="M287.92 178.7v20.85c0 10-5.2 13.67-16.13 17.47-3.35-1.33-19.62-7.35-37.88-7.02.31-.25.64-.52 1.01-.81 3.15-2.52 7.46-5.96 10.44-7.35 1.96-.92 6.52-2.88 11.35-4.94 7.4-3.17 15.8-6.78 18.88-8.35 3.68-1.87 9.2-6.86 12.32-9.84ZM426.68 210c-18.26-.34-34.53 5.69-37.89 7.02-10.92-3.79-16.12-7.47-16.12-17.47v-20.84c3.12 2.97 8.63 7.96 12.31 9.83 3.08 1.57 11.48 5.18 18.88 8.35 4.83 2.06 9.39 4.02 11.35 4.94 2.98 1.39 7.29 4.83 10.44 7.35q.555.45 1.02.81Z" />
       </G>
       <G
-        stroke={OUTLINE_STROKE_COLOR}
+        stroke={outlineStrokeColor}
         strokeLinecap="round"
         strokeLinejoin="round"
-        strokeWidth={OUTLINE_STROKE_WIDTH}
+        strokeWidth={outlineStrokeWidth}
       >
         <Path d="M330.4 504.57v67.35M330.17 504.57v67.35M330.05 504.57v67.35M29 521.95v.02c1.13 7.67 5.05 13.92 10.29 16.59 4.74 2.41 10.96 2.08 17.03-.58M145.75 308.53c2.76-1.9 6.01-3.82 9.75-5.55 11.35-5.19 20.97-5.55 22.92-5.6 8.44-.25 16.47-.47 22.46 4.53 10.6 8.82 7.57 27.94 6.41 35.27a68 68 0 0 1-2.65 10.74M165.89 397.13c-18.42 22.99-34.28 22.87-41.87 19.05-12.72-6.41-19.87-27.43 3.8-80.98 0-.02 0-.05.02-.07M163.96 299.82h.04" />
         <Path d="M174.18 297.7h.04c7.63-1.9 13.62-4.2 17.35-6.79 13.04-9.03 23.37-21.44 28.14-27.15 14.81-17.79 17.05-25.8 32.65-35.93 8.58-5.57 19.32-8.96 19.32-8.96s-25.8-10.83-50.18-5.82h-.02" />

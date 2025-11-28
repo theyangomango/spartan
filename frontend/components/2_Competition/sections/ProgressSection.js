@@ -33,6 +33,8 @@ import Svg, { Circle, Defs, G, LinearGradient, Line, Path, Stop } from "react-na
 import { navigateOneWay } from "../../../../navigationRef";
 import HumanMuscleOutline from "../../../assets/human_muscle_outline";
 import HumanMuscleBackOutline from "../../../assets/human_muscle_back_outline";
+import formatHexStat from "../../../utils/formatHexStat";
+import MuscleGroupIcon from "../../3_Workout/NewWorkout/SelectExercise/MuscleGroupIcon";
 
 const WORKOUT_TIMESTAMP_FIELDS = ["created"];
 
@@ -48,6 +50,14 @@ const POINTER_PANEL_ACCENTS = {
     weight: CHART_ACCENTS.weight,
 };
 const BODYGRAPH_OUTLINE_COLOR = "#40485c";
+const MUSCLE_SEGMENTS = {
+    shoulders: ["shoulders"],
+    chest: ["chest"],
+    arms: ["arms", "forearms"],
+    back: ["back", "traps"],
+    abs: ["abs", "obliques"],
+    legs: ["quads", "calves"],
+};
 
 const accentToRgba = (accent, alpha) => {
     const { r, g, b } = accent;
@@ -440,7 +450,7 @@ const formatVolumeValue = (value) => {
     if (num >= 1000) {
         try {
             return new Intl.NumberFormat("en-US").format(Math.round(num));
-        } catch {}
+        } catch { }
     }
     return Math.round(num).toString();
 };
@@ -1143,7 +1153,7 @@ const AddMeasurementModal = ({
             <View style={styles.modalRoot}>
                 <Pressable
                     style={styles.modalBackdrop}
-                    onPress={isSaving ? () => {} : onDismiss}
+                    onPress={isSaving ? () => { } : onDismiss}
                 />
                 <KeyboardAvoidingView
                     behavior={Platform.OS === "ios" ? "padding" : undefined}
@@ -1216,22 +1226,22 @@ const AddMeasurementModal = ({
                                 activeScale={0.97}
                                 disabled={isSaving}
                                 accessibilityRole="button"
-                            accessibilityLabel={isEditMode ? "Cancel editing measurement" : "Cancel logging measurement"}
-                        >
-                            <Text style={styles.cancelButtonText}>Cancel</Text>
-                        </RNBounceable>
-                        <RNBounceable
-                            style={[styles.modalButton, styles.saveButton, isSaving && styles.saveButtonDisabled]}
+                                accessibilityLabel={isEditMode ? "Cancel editing measurement" : "Cancel logging measurement"}
+                            >
+                                <Text style={styles.cancelButtonText}>Cancel</Text>
+                            </RNBounceable>
+                            <RNBounceable
+                                style={[styles.modalButton, styles.saveButton, isSaving && styles.saveButtonDisabled]}
                                 onPress={handleSave}
                                 activeScale={0.97}
                                 disabled={isSaving}
                                 accessibilityRole="button"
-                            accessibilityLabel={isEditMode ? "Save measurement changes" : "Save measurement"}
-                        >
-                            <Text style={styles.saveButtonText}>
-                                {isSaving ? "Saving..." : isEditMode ? "Save Changes" : "Save"}
-                            </Text>
-                        </RNBounceable>
+                                accessibilityLabel={isEditMode ? "Save measurement changes" : "Save measurement"}
+                            >
+                                <Text style={styles.saveButtonText}>
+                                    {isSaving ? "Saving..." : isEditMode ? "Save Changes" : "Save"}
+                                </Text>
+                            </RNBounceable>
                         </View>
                     </View>
                 </KeyboardAvoidingView>
@@ -1301,7 +1311,7 @@ const ManageMeasurementsModal = ({
             <View style={styles.modalRoot}>
                 <Pressable
                     style={styles.modalBackdrop}
-                    onPress={isSaving ? () => {} : onDismiss}
+                    onPress={isSaving ? () => { } : onDismiss}
                 />
                 <View style={[styles.modalCardWrapper, styles.manageModalWrapper]}>
                     <View style={styles.manageModalCard}>
@@ -1406,10 +1416,10 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
     const preferredUnit = useMemo(() => resolvePreferredWeightUnit(userData), [userData]);
     const displayPreferredUnit = useMemo(() => toDisplayWeightUnit(preferredUnit), [preferredUnit]);
 
-const completedWorkouts = useMemo(
-    () => sanitizeCompletedWorkouts(userData?.completedWorkouts || []),
-    [userData?.completedWorkouts]
-);
+    const completedWorkouts = useMemo(
+        () => sanitizeCompletedWorkouts(userData?.completedWorkouts || []),
+        [userData?.completedWorkouts]
+    );
 
     const workoutsByWid = useMemo(() => {
         const map = new Map();
@@ -1472,10 +1482,10 @@ const completedWorkouts = useMemo(
     const latestPersonalRecordUnit = latestPersonalRecordEntry ? "PRs" : "";
     const latestPersonalRecordDeltaMeta = latestPersonalRecordEntry
         ? buildMetricDeltaDisplay(
-              latestPersonalRecordEntry.increment,
-              latestPersonalRecordEntry.increment === 1 ? "PR" : "PRs",
-              formatVolumeValue
-          )
+            latestPersonalRecordEntry.increment,
+            latestPersonalRecordEntry.increment === 1 ? "PR" : "PRs",
+            formatVolumeValue
+        )
         : null;
     const resolvedRankTier = useMemo(() => {
         const tierCandidates = [
@@ -2125,10 +2135,10 @@ const completedWorkouts = useMemo(
             const ownerName = String(userData?.name || sanitizedWorkout?.ownerName || "");
             const ownerPfp = String(
                 userData?.image ||
-                    userData?.pfp ||
-                    userData?.photoURL ||
-                    userData?.photo ||
-                    ""
+                userData?.pfp ||
+                userData?.photoURL ||
+                userData?.photo ||
+                ""
             );
             const ownerPfpVersion = Number(userData?.pfpVersion ?? sanitizedWorkout?.pfpVersion ?? 0);
 
@@ -2280,6 +2290,32 @@ const completedWorkouts = useMemo(
     const personalRecordPointerRightAligned = personalRecordActiveIndex != null
         ? personalRecordActiveIndex >= Math.ceil(personalRecordEntries.length / 2)
         : false;
+
+    const muscleGroupScores = useMemo(() => {
+        const hex = userData?.statsHexagon || {};
+        const groups = [
+            { key: "shoulders", label: "Shoulders" },
+            { key: "chest", label: "Chest" },
+            { key: "arms", label: "Arms" },
+            { key: "back", label: "Back" },
+            { key: "abs", label: "Abs" },
+            { key: "legs", label: "Legs" },
+        ];
+        const zoomTransforms = {
+            shoulders: { transform: [{ scale: 2.8 }, { translateY: scaleSize(15) }] },
+            chest: { transform: [{ scale: 2.8 }, { translateY: scaleSize(15) }] },
+            arms: { transform: [{ scale: 1.8 }, { translateY: scaleSize(6) }] },
+            back: { transform: [{ scale: 1.62 }, { translateY: scaleSize(-4) }] },
+            abs: { transform: [{ scale: 2.4 }, { translateY: scaleSize(7) }] },
+            legs: { transform: [{ scale: 1.6 }, { translateY: scaleSize(-12) }] },
+        };
+        return groups.map((group) => {
+            const raw = Number(hex[group.key]);
+            const display = Number.isFinite(raw) ? formatHexStat(raw) : "--";
+            const segments = MUSCLE_SEGMENTS[group.key] || [];
+            return { ...group, display, segments, iconStyle: zoomTransforms[group.key] || null };
+        });
+    }, [userData?.statsHexagon]);
 
     const weightPointerOpacity = useRef(new Animated.Value(0)).current;
     const volumePointerOpacity = useRef(new Animated.Value(0)).current;
@@ -2570,609 +2606,898 @@ const completedWorkouts = useMemo(
                                 />
                             </View>
                         </View>
+                        <View style={styles.muscleList}>
+                            {muscleGroupScores.map((item) => (
+                                <View key={item.key} style={styles.muscleRow}>
+                                    <View style={styles.muscleLeft}>
+                                        <View style={styles.muscleBadge}>
+                                            <View style={[styles.muscleIconZoom, item.iconStyle]}>
+                                                <MuscleGroupIcon segments={item.segments} dimmed={false} />
+                                            </View>
+                                        </View>
+                                        <Text style={styles.muscleLabel}>{item.label}</Text>
+                                    </View>
+                                    <Text style={styles.muscleValue}>{item.display}</Text>
+                                </View>
+                            ))}
+                        </View>
                     </View>
                     <View style={styles.chartDivider} />
                     {activeMetricKey === "volume" ? (
-                    <View
-                        style={[
-                            chartCardLayout.card,
-                            styles.card,
-                            styles.volumeCard,
-                        ]}
-                    >
                         <View
                             style={[
-                                chartCardLayout.header,
-                                styles.header,
+                                chartCardLayout.card,
+                                styles.card,
+                                styles.volumeCard,
                             ]}
                         >
-                        <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Total Volume</Text>
-                        <View style={styles.headerActions}>
-                            <View style={styles.autoUpdateHintWrapper}>
-                            <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>Auto-updates from</Text>
-                            <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>completed workouts.</Text>
-                            </View>
-                        </View>
-                    </View>
-
-                    <View style={[chartCardLayout.metricsRow, styles.metricsRow]}>
-                        <View style={[chartCardLayout.valueGroup, styles.weightGroup]}>
-                            <Text style={chartCardTypography.metricValue}>{latestVolumeText}</Text>
-                            <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>{latestVolumeUnit}</Text>
-                            {latestVolumeDeltaMeta ? (
-                                <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
-                                    <Ionicons
-                                        name={latestVolumeDeltaMeta.icon}
-                                        size={scaleSize(17)}
-                                        color={latestVolumeDeltaMeta.color}
-                                        style={styles.deltaIcon}
-                                    />
-                                    <Text
-                                        style={[
-                                            chartCardTypography.deltaValue,
-                                            { color: latestVolumeDeltaMeta.color },
-                                        ]}
-                                    >
-                                        {latestVolumeDeltaMeta.text}
-                                    </Text>
+                            <View
+                                style={[
+                                    chartCardLayout.header,
+                                    styles.header,
+                                ]}
+                            >
+                                <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Total Volume</Text>
+                                <View style={styles.headerActions}>
+                                    <View style={styles.autoUpdateHintWrapper}>
+                                        <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>Auto-updates from</Text>
+                                        <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>completed workouts.</Text>
+                                    </View>
                                 </View>
-                            ) : null}
-                        </View>
-                        <Text style={[chartCardTypography.summary, styles.summaryText]}>{latestVolumeInfo}</Text>
-                    </View>
+                            </View>
 
-                    <View
-                        style={[
-                            styles.chartWrapper,
-                            {
-                                height: chartHeight,
-                                width: chartWidth,
-                                paddingTop: chartPaddingTop,
-                                paddingBottom: chartPaddingBottom,
-                            },
-                        ]}
-                    >
-                        {hasVolumeChartData ? (
-                            <View style={styles.chartContent}>
-                                <View
-                                    style={[
-                                        styles.yAxisLabelsContainer,
-                                        { width: yAxisLabelWidth, height: chartHeight },
-                                    ]}
-                                    pointerEvents="none"
-                                >
-                                    {volumeYTickValues.map((value, index) => {
-                                        const range = Math.max(
-                                            (volumeAxisMetrics?.maxValue ?? 0) -
-                                                (volumeAxisMetrics?.minValue ?? 0),
-                                            1
-                                        );
-                                        const ratio = (value - (volumeAxisMetrics?.minValue ?? 0)) / range;
-                                        const clampedRatio = Number.isFinite(ratio)
-                                            ? Math.min(Math.max(ratio, 0), 1)
-                                            : 0;
-                                        const yPosition =
-                                            chartTopMargin + chartInnerHeight * (1 - clampedRatio);
-                                        const approxLabelHeight = scaleSize(14);
-                                        const top = Math.min(
-                                            chartHeight - chartBottomMargin - approxLabelHeight,
-                                            Math.max(
-                                                chartTopMargin - approxLabelHeight / 2,
-                                                yPosition - approxLabelHeight / 2
-                                            )
-                                        );
-
-                                        return (
+                            <View style={[chartCardLayout.metricsRow, styles.metricsRow]}>
+                                <View style={[chartCardLayout.valueGroup, styles.weightGroup]}>
+                                    <Text style={chartCardTypography.metricValue}>{latestVolumeText}</Text>
+                                    <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>{latestVolumeUnit}</Text>
+                                    {latestVolumeDeltaMeta ? (
+                                        <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
+                                            <Ionicons
+                                                name={latestVolumeDeltaMeta.icon}
+                                                size={scaleSize(17)}
+                                                color={latestVolumeDeltaMeta.color}
+                                                style={styles.deltaIcon}
+                                            />
                                             <Text
-                                                key={`volume-y-axis-label-${value}-${index}`}
                                                 style={[
-                                                    chartTypography.axisLabel,
-                                                    styles.yAxisLabel,
-                                                    { top },
+                                                    chartCardTypography.deltaValue,
+                                                    { color: latestVolumeDeltaMeta.color },
                                                 ]}
                                             >
-                                                {formatAxisValue(value)}
+                                                {latestVolumeDeltaMeta.text}
                                             </Text>
-                                        );
-                                    })}
+                                        </View>
+                                    ) : null}
                                 </View>
+                                <Text style={[chartCardTypography.summary, styles.summaryText]}>{latestVolumeInfo}</Text>
+                            </View>
 
-                                <View
-                                    style={[
-                                        styles.chartCanvas,
-                                        { width: chartPlotWidth, height: chartHeight },
-                                    ]}
-                                    {...volumePanResponder.panHandlers}
-                                >
-                                    <Svg width={chartPlotWidth} height={chartHeight}>
-                                        <Defs>
-                                            <LinearGradient
-                                                id="volumeChartGradient"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1"
-                                            >
-                                                <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
-                                                <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
-                                            </LinearGradient>
-                                        </Defs>
-
-                                        {volumeYTickValues.map((value, index) => {
-                                            const range = Math.max(
-                                                (volumeAxisMetrics?.maxValue ?? 0) -
+                            <View
+                                style={[
+                                    styles.chartWrapper,
+                                    {
+                                        height: chartHeight,
+                                        width: chartWidth,
+                                        paddingTop: chartPaddingTop,
+                                        paddingBottom: chartPaddingBottom,
+                                    },
+                                ]}
+                            >
+                                {hasVolumeChartData ? (
+                                    <View style={styles.chartContent}>
+                                        <View
+                                            style={[
+                                                styles.yAxisLabelsContainer,
+                                                { width: yAxisLabelWidth, height: chartHeight },
+                                            ]}
+                                            pointerEvents="none"
+                                        >
+                                            {volumeYTickValues.map((value, index) => {
+                                                const range = Math.max(
+                                                    (volumeAxisMetrics?.maxValue ?? 0) -
                                                     (volumeAxisMetrics?.minValue ?? 0),
-                                                1
-                                            );
-                                            const ratio = (value - (volumeAxisMetrics?.minValue ?? 0)) / range;
-                                            const clampedRatio = Number.isFinite(ratio)
-                                                ? Math.min(Math.max(ratio, 0), 1)
-                                                : 0;
-                                            const y =
-                                                chartTopMargin + chartInnerHeight * (1 - clampedRatio);
-                                            return (
-                                                <Line
-                                                    key={`volume-grid-line-${value}-${index}`}
-                                                    x1={chartLeftMargin}
-                                                    y1={y}
-                                                    x2={chartPlotWidth - chartRightMargin}
-                                                    y2={y}
-                                                    stroke="rgba(255,255,255,0.1)"
-                                                    strokeWidth={StyleSheet.hairlineWidth}
-                                                    strokeDasharray={[6, 6]}
-                                                />
-                                            );
-                                        })}
+                                                    1
+                                                );
+                                                const ratio = (value - (volumeAxisMetrics?.minValue ?? 0)) / range;
+                                                const clampedRatio = Number.isFinite(ratio)
+                                                    ? Math.min(Math.max(ratio, 0), 1)
+                                                    : 0;
+                                                const yPosition =
+                                                    chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                                const approxLabelHeight = scaleSize(14);
+                                                const top = Math.min(
+                                                    chartHeight - chartBottomMargin - approxLabelHeight,
+                                                    Math.max(
+                                                        chartTopMargin - approxLabelHeight / 2,
+                                                        yPosition - approxLabelHeight / 2
+                                                    )
+                                                );
 
-                                        {volumeSeries.areaPath ? (
-                                            <Path
-                                                d={volumeSeries.areaPath}
-                                                fill="url(#volumeChartGradient)"
-                                                stroke="none"
-                                            />
-                                        ) : null}
-
-                                        {volumeSeries.linePath ? (
-                                            <Path
-                                                d={volumeSeries.linePath}
-                                                fill="none"
-                                                stroke="#7FB7FF"
-                                                strokeWidth={scaleSize(3)}
-                                                strokeLinejoin="round"
-                                                strokeLinecap="round"
-                                            />
-                                        ) : null}
-
-                                        <Line
-                                            x1={chartLeftMargin}
-                                            y1={chartTopMargin}
-                                            x2={chartLeftMargin}
-                                            y2={chartBaselineY}
-                                            stroke="rgba(148, 157, 172, 0.35)"
-                                            strokeWidth={StyleSheet.hairlineWidth}
-                                        />
-                                        <Line
-                                            x1={chartLeftMargin}
-                                            y1={chartBaselineY}
-                                            x2={chartPlotWidth - chartRightMargin}
-                                            y2={chartBaselineY}
-                                            stroke="rgba(148, 157, 172, 0.35)"
-                                            strokeWidth={StyleSheet.hairlineWidth}
-                                        />
-
-                                        {volumeActivePoint ? (
-                                            <Line
-                                                x1={volumeActivePoint.x}
-                                                y1={chartTopMargin}
-                                                x2={volumeActivePoint.x}
-                                                y2={chartBaselineY}
-                                                stroke="rgba(100, 160, 255, 0.45)"
-                                                strokeWidth={pointerStripWidth}
-                                            />
-                                        ) : null}
-
-                                        {volumeChartPoints.map((point, index) => (
-                                            <ChartBubble
-                                                key={point.entry?.id || `volume-point-${index}`}
-                                                cx={point.x}
-                                                cy={point.y}
-                                                isActive={index === volumeActiveIndex}
-                                            />
-                                        ))}
-                                    </Svg>
-
-                                    {volumeXAxisLabels.length ? (
-                                        <View
-                                            pointerEvents="none"
-                                            style={[
-                                                styles.xAxisLabelsOverlay,
-                                                {
-                                                    left: chartLeftMargin,
-                                                    right: chartRightMargin,
-                                                    justifyContent:
-                                                        volumeXAxisLabels.length > 1
-                                                            ? "space-between"
-                                                            : "center",
-                                                },
-                                            ]}
-                                        >
-                                            {volumeXAxisLabels.map((item, index) => (
-                                                <Text
-                                                    key={`volume-x-axis-label-${item.timestamp ?? index}-${index}`}
-                                                    style={[chartTypography.axisLabel, styles.xAxisLabel]}
-                                                >
-                                                    {item.label}
-                                                </Text>
-                                            ))}
+                                                return (
+                                                    <Text
+                                                        key={`volume-y-axis-label-${value}-${index}`}
+                                                        style={[
+                                                            chartTypography.axisLabel,
+                                                            styles.yAxisLabel,
+                                                            { top },
+                                                        ]}
+                                                    >
+                                                        {formatAxisValue(value)}
+                                                    </Text>
+                                                );
+                                            })}
                                         </View>
-                                    ) : null}
 
-                                    {volumeActiveEntry ? (
-                                        <Animated.View
-                                            pointerEvents="box-none"
+                                        <View
                                             style={[
-                                                chartPointerStyles.container,
-                                                {
-                                                    left: volumePointerLabelLeft,
-                                                    top: Math.max(
-                                                        scaleSize(-8),
-                                                        chartTopMargin - scaleSize(72)
-                                                    ),
-                                                    width: volumePointerLabelWidth,
-                                                    opacity: volumePointerOpacity,
-                                                },
+                                                styles.chartCanvas,
+                                                { width: chartPlotWidth, height: chartHeight },
                                             ]}
+                                            {...volumePanResponder.panHandlers}
                                         >
-                                            <VolumePointerLabel
-                                                entry={volumeActiveEntry}
-                                                unit={displayVolumeUnit}
-                                                isRightAligned={volumePointerRightAligned}
-                                                onWorkoutPress={handleNavigateToPastWorkout}
-                                            />
-                                        </Animated.View>
-                                    ) : null}
-                                </View>
+                                            <Svg width={chartPlotWidth} height={chartHeight}>
+                                                <Defs>
+                                                    <LinearGradient
+                                                        id="volumeChartGradient"
+                                                        x1="0"
+                                                        y1="0"
+                                                        x2="0"
+                                                        y2="1"
+                                                    >
+                                                        <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
+                                                        <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
+                                                    </LinearGradient>
+                                                </Defs>
+
+                                                {volumeYTickValues.map((value, index) => {
+                                                    const range = Math.max(
+                                                        (volumeAxisMetrics?.maxValue ?? 0) -
+                                                        (volumeAxisMetrics?.minValue ?? 0),
+                                                        1
+                                                    );
+                                                    const ratio = (value - (volumeAxisMetrics?.minValue ?? 0)) / range;
+                                                    const clampedRatio = Number.isFinite(ratio)
+                                                        ? Math.min(Math.max(ratio, 0), 1)
+                                                        : 0;
+                                                    const y =
+                                                        chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                                    return (
+                                                        <Line
+                                                            key={`volume-grid-line-${value}-${index}`}
+                                                            x1={chartLeftMargin}
+                                                            y1={y}
+                                                            x2={chartPlotWidth - chartRightMargin}
+                                                            y2={y}
+                                                            stroke="rgba(255,255,255,0.1)"
+                                                            strokeWidth={StyleSheet.hairlineWidth}
+                                                            strokeDasharray={[6, 6]}
+                                                        />
+                                                    );
+                                                })}
+
+                                                {volumeSeries.areaPath ? (
+                                                    <Path
+                                                        d={volumeSeries.areaPath}
+                                                        fill="url(#volumeChartGradient)"
+                                                        stroke="none"
+                                                    />
+                                                ) : null}
+
+                                                {volumeSeries.linePath ? (
+                                                    <Path
+                                                        d={volumeSeries.linePath}
+                                                        fill="none"
+                                                        stroke="#7FB7FF"
+                                                        strokeWidth={scaleSize(3)}
+                                                        strokeLinejoin="round"
+                                                        strokeLinecap="round"
+                                                    />
+                                                ) : null}
+
+                                                <Line
+                                                    x1={chartLeftMargin}
+                                                    y1={chartTopMargin}
+                                                    x2={chartLeftMargin}
+                                                    y2={chartBaselineY}
+                                                    stroke="rgba(148, 157, 172, 0.35)"
+                                                    strokeWidth={StyleSheet.hairlineWidth}
+                                                />
+                                                <Line
+                                                    x1={chartLeftMargin}
+                                                    y1={chartBaselineY}
+                                                    x2={chartPlotWidth - chartRightMargin}
+                                                    y2={chartBaselineY}
+                                                    stroke="rgba(148, 157, 172, 0.35)"
+                                                    strokeWidth={StyleSheet.hairlineWidth}
+                                                />
+
+                                                {volumeActivePoint ? (
+                                                    <Line
+                                                        x1={volumeActivePoint.x}
+                                                        y1={chartTopMargin}
+                                                        x2={volumeActivePoint.x}
+                                                        y2={chartBaselineY}
+                                                        stroke="rgba(100, 160, 255, 0.45)"
+                                                        strokeWidth={pointerStripWidth}
+                                                    />
+                                                ) : null}
+
+                                                {volumeChartPoints.map((point, index) => (
+                                                    <ChartBubble
+                                                        key={point.entry?.id || `volume-point-${index}`}
+                                                        cx={point.x}
+                                                        cy={point.y}
+                                                        isActive={index === volumeActiveIndex}
+                                                    />
+                                                ))}
+                                            </Svg>
+
+                                            {volumeXAxisLabels.length ? (
+                                                <View
+                                                    pointerEvents="none"
+                                                    style={[
+                                                        styles.xAxisLabelsOverlay,
+                                                        {
+                                                            left: chartLeftMargin,
+                                                            right: chartRightMargin,
+                                                            justifyContent:
+                                                                volumeXAxisLabels.length > 1
+                                                                    ? "space-between"
+                                                                    : "center",
+                                                        },
+                                                    ]}
+                                                >
+                                                    {volumeXAxisLabels.map((item, index) => (
+                                                        <Text
+                                                            key={`volume-x-axis-label-${item.timestamp ?? index}-${index}`}
+                                                            style={[chartTypography.axisLabel, styles.xAxisLabel]}
+                                                        >
+                                                            {item.label}
+                                                        </Text>
+                                                    ))}
+                                                </View>
+                                            ) : null}
+
+                                            {volumeActiveEntry ? (
+                                                <Animated.View
+                                                    pointerEvents="box-none"
+                                                    style={[
+                                                        chartPointerStyles.container,
+                                                        {
+                                                            left: volumePointerLabelLeft,
+                                                            top: Math.max(
+                                                                scaleSize(-8),
+                                                                chartTopMargin - scaleSize(72)
+                                                            ),
+                                                            width: volumePointerLabelWidth,
+                                                            opacity: volumePointerOpacity,
+                                                        },
+                                                    ]}
+                                                >
+                                                    <VolumePointerLabel
+                                                        entry={volumeActiveEntry}
+                                                        unit={displayVolumeUnit}
+                                                        isRightAligned={volumePointerRightAligned}
+                                                        onWorkoutPress={handleNavigateToPastWorkout}
+                                                    />
+                                                </Animated.View>
+                                            ) : null}
+                                        </View>
+                                    </View>
+                                ) : (
+                                    <View style={styles.chartEmptyState}>
+                                        <Text style={styles.placeholderText}>Complete workouts to build volume.</Text>
+                                    </View>
+                                )}
                             </View>
-                        ) : (
-                            <View style={styles.chartEmptyState}>
-                                    <Text style={styles.placeholderText}>Complete workouts to build volume.</Text>
+                            <View style={styles.metricToggleRowContainer}>
+                                {renderMetricToggleRow()}
                             </View>
-                        )}
                         </View>
-                        <View style={styles.metricToggleRowContainer}>
-                            {renderMetricToggleRow()}
-                        </View>
-                    </View>
-                ) : null}
-                {activeMetricKey === "reps" ? (
-                    <View
-                        style={[
-                            chartCardLayout.card,
-                            styles.card,
-                        ]}
-                    >
+                    ) : null}
+                    {activeMetricKey === "reps" ? (
                         <View
                             style={[
-                                chartCardLayout.header,
-                                styles.header,
+                                chartCardLayout.card,
+                                styles.card,
                             ]}
                         >
-                        <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Total Reps</Text>
-                        <View style={styles.headerActions}>
-                            <View style={styles.autoUpdateHintWrapper}>
-                            <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>Auto-updates from</Text>
-                            <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>completed workouts.</Text>
-                        </View>
-                        </View>
-                    </View>
-
-                    <View style={[chartCardLayout.metricsRow, styles.metricsRow]}>
-                        <View style={[chartCardLayout.valueGroup, styles.weightGroup]}>
-                            <Text style={chartCardTypography.metricValue}>{latestRepsText}</Text>
-                            <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>{latestRepsUnit}</Text>
-                            {latestRepsDeltaMeta ? (
-                                <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
-                                    <Ionicons
-                                        name={latestRepsDeltaMeta.icon}
-                                        size={scaleSize(17)}
-                                        color={latestRepsDeltaMeta.color}
-                                        style={styles.deltaIcon}
-                                    />
-                                    <Text
-                                        style={[
-                                            chartCardTypography.deltaValue,
-                                            { color: latestRepsDeltaMeta.color },
-                                        ]}
-                                    >
-                                        {latestRepsDeltaMeta.text}
-                                    </Text>
+                            <View
+                                style={[
+                                    chartCardLayout.header,
+                                    styles.header,
+                                ]}
+                            >
+                                <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Total Reps</Text>
+                                <View style={styles.headerActions}>
+                                    <View style={styles.autoUpdateHintWrapper}>
+                                        <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>Auto-updates from</Text>
+                                        <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>completed workouts.</Text>
+                                    </View>
                                 </View>
-                            ) : null}
-                        </View>
-                        <Text style={[chartCardTypography.summary, styles.summaryText]}>{latestRepsInfo}</Text>
-                    </View>
+                            </View>
 
-                    <View
-                        style={[
-                            styles.chartWrapper,
-                            {
-                                height: chartHeight,
-                                width: chartWidth,
-                                paddingTop: chartPaddingTop,
-                                paddingBottom: chartPaddingBottom,
-                            },
-                        ]}
-                    >
-                        {hasRepsChartData ? (
-                            <View style={styles.chartContent}>
-                                <View
-                                    style={[
-                                        styles.yAxisLabelsContainer,
-                                        { width: yAxisLabelWidth, height: chartHeight },
-                                    ]}
-                                    pointerEvents="none"
-                                >
-                                    {repsYTickValues.map((value, index) => {
-                                        const range = Math.max(
-                                            (repsAxisMetrics?.maxValue ?? 0) -
-                                                (repsAxisMetrics?.minValue ?? 0),
-                                            1
-                                        );
-                                        const ratio = (value - (repsAxisMetrics?.minValue ?? 0)) / range;
-                                        const clampedRatio = Number.isFinite(ratio)
-                                            ? Math.min(Math.max(ratio, 0), 1)
-                                            : 0;
-                                        const yPosition =
-                                            chartTopMargin + chartInnerHeight * (1 - clampedRatio);
-                                        const approxLabelHeight = scaleSize(14);
-                                        const top = Math.min(
-                                            chartHeight - chartBottomMargin - approxLabelHeight,
-                                            Math.max(
-                                                chartTopMargin - approxLabelHeight / 2,
-                                                yPosition - approxLabelHeight / 2
-                                            )
-                                        );
-
-                                        return (
+                            <View style={[chartCardLayout.metricsRow, styles.metricsRow]}>
+                                <View style={[chartCardLayout.valueGroup, styles.weightGroup]}>
+                                    <Text style={chartCardTypography.metricValue}>{latestRepsText}</Text>
+                                    <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>{latestRepsUnit}</Text>
+                                    {latestRepsDeltaMeta ? (
+                                        <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
+                                            <Ionicons
+                                                name={latestRepsDeltaMeta.icon}
+                                                size={scaleSize(17)}
+                                                color={latestRepsDeltaMeta.color}
+                                                style={styles.deltaIcon}
+                                            />
                                             <Text
-                                                key={`reps-y-axis-label-${value}-${index}`}
                                                 style={[
-                                                    chartTypography.axisLabel,
-                                                    styles.yAxisLabel,
-                                                    { top },
+                                                    chartCardTypography.deltaValue,
+                                                    { color: latestRepsDeltaMeta.color },
                                                 ]}
                                             >
-                                                {formatAxisValue(value)}
+                                                {latestRepsDeltaMeta.text}
                                             </Text>
-                                        );
-                                    })}
-                                </View>
-
-                                <View
-                                    style={[
-                                        styles.chartCanvas,
-                                        { width: chartPlotWidth, height: chartHeight },
-                                    ]}
-                                    {...repsPanResponder.panHandlers}
-                                >
-                                    <Svg width={chartPlotWidth} height={chartHeight}>
-                                        <Defs>
-                                            <LinearGradient
-                                                id="repsChartGradient"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1"
-                                            >
-                                                <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
-                                                <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
-                                            </LinearGradient>
-                                        </Defs>
-
-                                        {repsYTickValues.map((value, index) => {
-                                            const range = Math.max(
-                                                (repsAxisMetrics?.maxValue ?? 0) -
-                                                    (repsAxisMetrics?.minValue ?? 0),
-                                                1
-                                            );
-                                            const ratio = (value - (repsAxisMetrics?.minValue ?? 0)) / range;
-                                            const clampedRatio = Number.isFinite(ratio)
-                                                ? Math.min(Math.max(ratio, 0), 1)
-                                                : 0;
-                                            const y =
-                                                chartTopMargin + chartInnerHeight * (1 - clampedRatio);
-                                            return (
-                                                <Line
-                                                    key={`reps-grid-line-${value}-${index}`}
-                                                    x1={chartLeftMargin}
-                                                    y1={y}
-                                                    x2={chartPlotWidth - chartRightMargin}
-                                                    y2={y}
-                                                    stroke="rgba(255,255,255,0.1)"
-                                                    strokeWidth={StyleSheet.hairlineWidth}
-                                                    strokeDasharray={[6, 6]}
-                                                />
-                                            );
-                                        })}
-
-                                        {repsSeries.areaPath ? (
-                                            <Path
-                                                d={repsSeries.areaPath}
-                                                fill="url(#repsChartGradient)"
-                                                stroke="none"
-                                            />
-                                        ) : null}
-
-                                        {repsSeries.linePath ? (
-                                            <Path
-                                                d={repsSeries.linePath}
-                                                fill="none"
-                                                stroke="#7FB7FF"
-                                                strokeWidth={scaleSize(3)}
-                                                strokeLinejoin="round"
-                                                strokeLinecap="round"
-                                            />
-                                        ) : null}
-
-                                        <Line
-                                            x1={chartLeftMargin}
-                                            y1={chartTopMargin}
-                                            x2={chartLeftMargin}
-                                            y2={chartBaselineY}
-                                            stroke="rgba(148, 157, 172, 0.35)"
-                                            strokeWidth={StyleSheet.hairlineWidth}
-                                        />
-                                        <Line
-                                            x1={chartLeftMargin}
-                                            y1={chartBaselineY}
-                                            x2={chartPlotWidth - chartRightMargin}
-                                            y2={chartBaselineY}
-                                            stroke="rgba(148, 157, 172, 0.35)"
-                                            strokeWidth={StyleSheet.hairlineWidth}
-                                        />
-
-                                        {repsActivePoint ? (
-                                            <Line
-                                                x1={repsActivePoint.x}
-                                                y1={chartTopMargin}
-                                                x2={repsActivePoint.x}
-                                                y2={chartBaselineY}
-                                                stroke="rgba(100, 160, 255, 0.45)"
-                                                strokeWidth={pointerStripWidth}
-                                            />
-                                        ) : null}
-
-                                        {repsChartPoints.map((point, index) => (
-                                            <ChartBubble
-                                                key={point.entry?.id || `reps-point-${index}`}
-                                                cx={point.x}
-                                                cy={point.y}
-                                                isActive={index === repsActiveIndex}
-                                            />
-                                        ))}
-                                    </Svg>
-
-                                    {repsXAxisLabels.length ? (
-                                        <View
-                                            pointerEvents="none"
-                                            style={[
-                                                styles.xAxisLabelsOverlay,
-                                                {
-                                                    left: chartLeftMargin,
-                                                    right: chartRightMargin,
-                                                    justifyContent:
-                                                        repsXAxisLabels.length > 1
-                                                            ? "space-between"
-                                                            : "center",
-                                                },
-                                            ]}
-                                        >
-                                            {repsXAxisLabels.map((item, index) => (
-                                                <Text
-                                                    key={`reps-x-axis-label-${item.timestamp ?? index}-${index}`}
-                                                    style={[chartTypography.axisLabel, styles.xAxisLabel]}
-                                                >
-                                                    {item.label}
-                                                </Text>
-                                            ))}
                                         </View>
                                     ) : null}
+                                </View>
+                                <Text style={[chartCardTypography.summary, styles.summaryText]}>{latestRepsInfo}</Text>
+                            </View>
 
-                                    {repsActiveEntry ? (
-                                        <Animated.View
-                                            pointerEvents="box-none"
+                            <View
+                                style={[
+                                    styles.chartWrapper,
+                                    {
+                                        height: chartHeight,
+                                        width: chartWidth,
+                                        paddingTop: chartPaddingTop,
+                                        paddingBottom: chartPaddingBottom,
+                                    },
+                                ]}
+                            >
+                                {hasRepsChartData ? (
+                                    <View style={styles.chartContent}>
+                                        <View
                                             style={[
-                                                chartPointerStyles.container,
-                                                {
-                                                    left: repsPointerLabelLeft,
-                                                    top: Math.max(
-                                                        scaleSize(-8),
-                                                        chartTopMargin - scaleSize(72)
-                                                    ),
-                                                    width: repsPointerLabelWidth,
-                                                    opacity: repsPointerOpacity,
-                                                },
+                                                styles.yAxisLabelsContainer,
+                                                { width: yAxisLabelWidth, height: chartHeight },
                                             ]}
+                                            pointerEvents="none"
                                         >
-                                            <RepsPointerLabel
-                                                entry={repsActiveEntry}
-                                                isRightAligned={repsPointerRightAligned}
-                                                onWorkoutPress={handleNavigateToPastWorkout}
-                                            />
-                                        </Animated.View>
-                                    ) : null}
+                                            {repsYTickValues.map((value, index) => {
+                                                const range = Math.max(
+                                                    (repsAxisMetrics?.maxValue ?? 0) -
+                                                    (repsAxisMetrics?.minValue ?? 0),
+                                                    1
+                                                );
+                                                const ratio = (value - (repsAxisMetrics?.minValue ?? 0)) / range;
+                                                const clampedRatio = Number.isFinite(ratio)
+                                                    ? Math.min(Math.max(ratio, 0), 1)
+                                                    : 0;
+                                                const yPosition =
+                                                    chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                                const approxLabelHeight = scaleSize(14);
+                                                const top = Math.min(
+                                                    chartHeight - chartBottomMargin - approxLabelHeight,
+                                                    Math.max(
+                                                        chartTopMargin - approxLabelHeight / 2,
+                                                        yPosition - approxLabelHeight / 2
+                                                    )
+                                                );
+
+                                                return (
+                                                    <Text
+                                                        key={`reps-y-axis-label-${value}-${index}`}
+                                                        style={[
+                                                            chartTypography.axisLabel,
+                                                            styles.yAxisLabel,
+                                                            { top },
+                                                        ]}
+                                                    >
+                                                        {formatAxisValue(value)}
+                                                    </Text>
+                                                );
+                                            })}
+                                        </View>
+
+                                        <View
+                                            style={[
+                                                styles.chartCanvas,
+                                                { width: chartPlotWidth, height: chartHeight },
+                                            ]}
+                                            {...repsPanResponder.panHandlers}
+                                        >
+                                            <Svg width={chartPlotWidth} height={chartHeight}>
+                                                <Defs>
+                                                    <LinearGradient
+                                                        id="repsChartGradient"
+                                                        x1="0"
+                                                        y1="0"
+                                                        x2="0"
+                                                        y2="1"
+                                                    >
+                                                        <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
+                                                        <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
+                                                    </LinearGradient>
+                                                </Defs>
+
+                                                {repsYTickValues.map((value, index) => {
+                                                    const range = Math.max(
+                                                        (repsAxisMetrics?.maxValue ?? 0) -
+                                                        (repsAxisMetrics?.minValue ?? 0),
+                                                        1
+                                                    );
+                                                    const ratio = (value - (repsAxisMetrics?.minValue ?? 0)) / range;
+                                                    const clampedRatio = Number.isFinite(ratio)
+                                                        ? Math.min(Math.max(ratio, 0), 1)
+                                                        : 0;
+                                                    const y =
+                                                        chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                                    return (
+                                                        <Line
+                                                            key={`reps-grid-line-${value}-${index}`}
+                                                            x1={chartLeftMargin}
+                                                            y1={y}
+                                                            x2={chartPlotWidth - chartRightMargin}
+                                                            y2={y}
+                                                            stroke="rgba(255,255,255,0.1)"
+                                                            strokeWidth={StyleSheet.hairlineWidth}
+                                                            strokeDasharray={[6, 6]}
+                                                        />
+                                                    );
+                                                })}
+
+                                                {repsSeries.areaPath ? (
+                                                    <Path
+                                                        d={repsSeries.areaPath}
+                                                        fill="url(#repsChartGradient)"
+                                                        stroke="none"
+                                                    />
+                                                ) : null}
+
+                                                {repsSeries.linePath ? (
+                                                    <Path
+                                                        d={repsSeries.linePath}
+                                                        fill="none"
+                                                        stroke="#7FB7FF"
+                                                        strokeWidth={scaleSize(3)}
+                                                        strokeLinejoin="round"
+                                                        strokeLinecap="round"
+                                                    />
+                                                ) : null}
+
+                                                <Line
+                                                    x1={chartLeftMargin}
+                                                    y1={chartTopMargin}
+                                                    x2={chartLeftMargin}
+                                                    y2={chartBaselineY}
+                                                    stroke="rgba(148, 157, 172, 0.35)"
+                                                    strokeWidth={StyleSheet.hairlineWidth}
+                                                />
+                                                <Line
+                                                    x1={chartLeftMargin}
+                                                    y1={chartBaselineY}
+                                                    x2={chartPlotWidth - chartRightMargin}
+                                                    y2={chartBaselineY}
+                                                    stroke="rgba(148, 157, 172, 0.35)"
+                                                    strokeWidth={StyleSheet.hairlineWidth}
+                                                />
+
+                                                {repsActivePoint ? (
+                                                    <Line
+                                                        x1={repsActivePoint.x}
+                                                        y1={chartTopMargin}
+                                                        x2={repsActivePoint.x}
+                                                        y2={chartBaselineY}
+                                                        stroke="rgba(100, 160, 255, 0.45)"
+                                                        strokeWidth={pointerStripWidth}
+                                                    />
+                                                ) : null}
+
+                                                {repsChartPoints.map((point, index) => (
+                                                    <ChartBubble
+                                                        key={point.entry?.id || `reps-point-${index}`}
+                                                        cx={point.x}
+                                                        cy={point.y}
+                                                        isActive={index === repsActiveIndex}
+                                                    />
+                                                ))}
+                                            </Svg>
+
+                                            {repsXAxisLabels.length ? (
+                                                <View
+                                                    pointerEvents="none"
+                                                    style={[
+                                                        styles.xAxisLabelsOverlay,
+                                                        {
+                                                            left: chartLeftMargin,
+                                                            right: chartRightMargin,
+                                                            justifyContent:
+                                                                repsXAxisLabels.length > 1
+                                                                    ? "space-between"
+                                                                    : "center",
+                                                        },
+                                                    ]}
+                                                >
+                                                    {repsXAxisLabels.map((item, index) => (
+                                                        <Text
+                                                            key={`reps-x-axis-label-${item.timestamp ?? index}-${index}`}
+                                                            style={[chartTypography.axisLabel, styles.xAxisLabel]}
+                                                        >
+                                                            {item.label}
+                                                        </Text>
+                                                    ))}
+                                                </View>
+                                            ) : null}
+
+                                            {repsActiveEntry ? (
+                                                <Animated.View
+                                                    pointerEvents="box-none"
+                                                    style={[
+                                                        chartPointerStyles.container,
+                                                        {
+                                                            left: repsPointerLabelLeft,
+                                                            top: Math.max(
+                                                                scaleSize(-8),
+                                                                chartTopMargin - scaleSize(72)
+                                                            ),
+                                                            width: repsPointerLabelWidth,
+                                                            opacity: repsPointerOpacity,
+                                                        },
+                                                    ]}
+                                                >
+                                                    <RepsPointerLabel
+                                                        entry={repsActiveEntry}
+                                                        isRightAligned={repsPointerRightAligned}
+                                                        onWorkoutPress={handleNavigateToPastWorkout}
+                                                    />
+                                                </Animated.View>
+                                            ) : null}
+                                        </View>
+                                    </View>
+                                ) : (
+                                    <View style={styles.chartEmptyState}>
+                                        <Text style={styles.placeholderText}>Complete workouts to log reps.</Text>
+                                    </View>
+                                )}
+                            </View>
+                            <View style={styles.metricToggleRowContainer}>
+                                {renderMetricToggleRow()}
+                            </View>
+                        </View>
+                    ) : null}
+
+                    {activeMetricKey === "personalRecords" ? (
+                        <View
+                            style={[
+                                chartCardLayout.card,
+                                styles.card,
+                            ]}
+                        >
+                            <View
+                                style={[
+                                    chartCardLayout.header,
+                                    styles.header,
+                                ]}
+                            >
+                                <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>
+                                    Total Personal Records
+                                </Text>
+                                <View style={styles.headerActions}>
+                                    <View style={styles.autoUpdateHintWrapper}>
+                                        <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>
+                                            Auto-updates when you
+                                        </Text>
+                                        <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>
+                                            hit new PRs.
+                                        </Text>
+                                    </View>
                                 </View>
                             </View>
-                        ) : (
-                            <View style={styles.chartEmptyState}>
-                                <Text style={styles.placeholderText}>Complete workouts to log reps.</Text>
-                            </View>
-                        )}
-                        </View>
-                        <View style={styles.metricToggleRowContainer}>
-                            {renderMetricToggleRow()}
-                        </View>
-                    </View>
-                ) : null}
 
-                {activeMetricKey === "personalRecords" ? (
+                            <View style={[chartCardLayout.metricsRow, styles.metricsRow]}>
+                                <View style={[chartCardLayout.valueGroup, styles.weightGroup]}>
+                                    <Text style={chartCardTypography.metricValue}>
+                                        {latestPersonalRecordText}
+                                    </Text>
+                                    <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>
+                                        {latestPersonalRecordUnit}
+                                    </Text>
+                                    {latestPersonalRecordDeltaMeta ? (
+                                        <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
+                                            <Ionicons
+                                                name={latestPersonalRecordDeltaMeta.icon}
+                                                size={scaleSize(17)}
+                                                color={latestPersonalRecordDeltaMeta.color}
+                                                style={styles.deltaIcon}
+                                            />
+                                            <Text
+                                                style={[
+                                                    chartCardTypography.deltaValue,
+                                                    { color: latestPersonalRecordDeltaMeta.color },
+                                                ]}
+                                            >
+                                                {latestPersonalRecordDeltaMeta.text}
+                                            </Text>
+                                        </View>
+                                    ) : null}
+                                </View>
+                                <Text style={[chartCardTypography.summary, styles.summaryText]}>
+                                    {latestPersonalRecordInfo}
+                                </Text>
+                            </View>
+
+                            <View
+                                style={[
+                                    styles.chartWrapper,
+                                    {
+                                        height: chartHeight,
+                                        width: chartWidth,
+                                        paddingTop: chartPaddingTop,
+                                        paddingBottom: chartPaddingBottom,
+                                    },
+                                ]}
+                            >
+                                {personalRecordChartPoints.length ? (
+                                    <View style={styles.chartContent}>
+                                        <View
+                                            style={[
+                                                styles.yAxisLabelsContainer,
+                                                { width: yAxisLabelWidth, height: chartHeight },
+                                            ]}
+                                            pointerEvents="none"
+                                        >
+                                            {personalRecordYTickValues.map((value, index) => {
+                                                const range = Math.max(
+                                                    (personalRecordAxisMetrics?.maxValue ?? 0) -
+                                                    (personalRecordAxisMetrics?.minValue ?? 0),
+                                                    1
+                                                );
+                                                const ratio =
+                                                    (value - (personalRecordAxisMetrics?.minValue ?? 0)) /
+                                                    range;
+                                                const clampedRatio = Number.isFinite(ratio)
+                                                    ? Math.min(Math.max(ratio, 0), 1)
+                                                    : 0;
+                                                const yPosition =
+                                                    chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                                const approxLabelHeight = scaleSize(14);
+                                                const top = Math.min(
+                                                    chartHeight - chartBottomMargin - approxLabelHeight,
+                                                    Math.max(
+                                                        chartTopMargin - approxLabelHeight / 2,
+                                                        yPosition - approxLabelHeight / 2
+                                                    )
+                                                );
+
+                                                return (
+                                                    <Text
+                                                        key={`personal-record-y-axis-label-${value}-${index}`}
+                                                        style={[chartTypography.axisLabel, styles.yAxisLabel, { top }]}
+                                                    >
+                                                        {formatAxisValue(value)}
+                                                    </Text>
+                                                );
+                                            })}
+                                        </View>
+
+                                        <View
+                                            style={[
+                                                styles.chartCanvas,
+                                                { width: chartPlotWidth, height: chartHeight },
+                                            ]}
+                                            {...personalRecordPanResponder.panHandlers}
+                                        >
+                                            <Svg width={chartPlotWidth} height={chartHeight}>
+                                                <Defs>
+                                                    <LinearGradient
+                                                        id="totalPersonalRecordsGradient"
+                                                        x1="0"
+                                                        y1="0"
+                                                        x2="0"
+                                                        y2="1"
+                                                    >
+                                                        <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
+                                                        <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
+                                                    </LinearGradient>
+                                                </Defs>
+
+                                                {personalRecordYTickValues.map((value, index) => {
+                                                    const range = Math.max(
+                                                        (personalRecordAxisMetrics?.maxValue ?? 0) -
+                                                        (personalRecordAxisMetrics?.minValue ?? 0),
+                                                        1
+                                                    );
+                                                    const ratio =
+                                                        (value - (personalRecordAxisMetrics?.minValue ?? 0)) /
+                                                        range;
+                                                    const clampedRatio = Number.isFinite(ratio)
+                                                        ? Math.min(Math.max(ratio, 0), 1)
+                                                        : 0;
+                                                    const y =
+                                                        chartTopMargin + chartInnerHeight * (1 - clampedRatio);
+                                                    return (
+                                                        <Line
+                                                            key={`personal-record-grid-${value}-${index}`}
+                                                            x1={chartLeftMargin}
+                                                            y1={y}
+                                                            x2={chartPlotWidth - chartRightMargin}
+                                                            y2={y}
+                                                            stroke="rgba(255,255,255,0.1)"
+                                                            strokeWidth={StyleSheet.hairlineWidth}
+                                                            strokeDasharray={[6, 6]}
+                                                        />
+                                                    );
+                                                })}
+
+                                                {personalRecordSeries.areaPath ? (
+                                                    <Path
+                                                        d={personalRecordSeries.areaPath}
+                                                        fill="url(#totalPersonalRecordsGradient)"
+                                                        stroke="none"
+                                                    />
+                                                ) : null}
+
+                                                {personalRecordSeries.linePath ? (
+                                                    <Path
+                                                        d={personalRecordSeries.linePath}
+                                                        fill="none"
+                                                        stroke="#7FB7FF"
+                                                        strokeWidth={scaleSize(3)}
+                                                        strokeLinejoin="round"
+                                                        strokeLinecap="round"
+                                                    />
+                                                ) : null}
+
+                                                <Line
+                                                    x1={chartLeftMargin}
+                                                    y1={chartTopMargin}
+                                                    x2={chartLeftMargin}
+                                                    y2={chartBaselineY}
+                                                    stroke="rgba(148, 157, 172, 0.35)"
+                                                    strokeWidth={StyleSheet.hairlineWidth}
+                                                />
+                                                <Line
+                                                    x1={chartLeftMargin}
+                                                    y1={chartBaselineY}
+                                                    x2={chartPlotWidth - chartRightMargin}
+                                                    y2={chartBaselineY}
+                                                    stroke="rgba(148, 157, 172, 0.35)"
+                                                    strokeWidth={StyleSheet.hairlineWidth}
+                                                />
+
+                                                {personalRecordActivePoint ? (
+                                                    <Line
+                                                        x1={personalRecordActivePoint.x}
+                                                        y1={chartTopMargin}
+                                                        x2={personalRecordActivePoint.x}
+                                                        y2={chartBaselineY}
+                                                        stroke="rgba(100, 160, 255, 0.45)"
+                                                        strokeWidth={pointerStripWidth}
+                                                    />
+                                                ) : null}
+
+                                                {personalRecordChartPoints.map((point, index) => (
+                                                    <ChartBubble
+                                                        key={`personal-record-point-${index}`}
+                                                        cx={point.x}
+                                                        cy={point.y}
+                                                        isActive={index === personalRecordActiveIndex}
+                                                    />
+                                                ))}
+                                            </Svg>
+
+                                            {personalRecordXAxisLabels.length ? (
+                                                <View
+                                                    pointerEvents="none"
+                                                    style={[
+                                                        styles.xAxisLabelsOverlay,
+                                                        {
+                                                            left: chartLeftMargin,
+                                                            right: chartRightMargin,
+                                                            justifyContent:
+                                                                personalRecordXAxisLabels.length > 1
+                                                                    ? "space-between"
+                                                                    : "center",
+                                                        },
+                                                    ]}
+                                                >
+                                                    {personalRecordXAxisLabels.map((item, index) => (
+                                                        <Text
+                                                            key={`personal-record-x-axis-label-${item.timestamp ?? index}-${index}`}
+                                                            style={[chartTypography.axisLabel, styles.xAxisLabel]}
+                                                        >
+                                                            {item.label}
+                                                        </Text>
+                                                    ))}
+                                                </View>
+                                            ) : null}
+
+                                            {personalRecordActivePoint ? (
+                                                <Animated.View
+                                                    pointerEvents="box-none"
+                                                    style={[
+                                                        chartPointerStyles.container,
+                                                        {
+                                                            left: personalRecordPointerLabelLeft,
+                                                            top: Math.max(
+                                                                scaleSize(-8),
+                                                                chartTopMargin - scaleSize(72)
+                                                            ),
+                                                            width: personalRecordPointerLabelWidth,
+                                                            opacity: personalRecordPointerOpacity,
+                                                        },
+                                                    ]}
+                                                >
+                                                    <PersonalRecordPointerLabel
+                                                        entry={personalRecordActiveEntry}
+                                                        isRightAligned={personalRecordPointerRightAligned}
+                                                        onWorkoutPress={handleNavigateToPastWorkout}
+                                                    />
+                                                </Animated.View>
+                                            ) : null}
+                                        </View>
+                                    </View>
+                                ) : (
+                                    <View style={styles.chartEmptyState}>
+                                        <Text style={styles.placeholderText}>Log workouts to set new PRs.</Text>
+                                    </View>
+                                )}
+                            </View>
+                            <View style={styles.metricToggleRowContainer}>
+                                {renderMetricToggleRow()}
+                            </View>
+                        </View>
+                    ) : null}
+
+                    <View style={styles.chartDivider} />
+
                     <View
                         style={[
                             chartCardLayout.card,
                             styles.card,
+                            styles.weightCard,
                         ]}
                     >
-                        <View
-                            style={[
-                                chartCardLayout.header,
-                                styles.header,
-                            ]}
-                        >
-                            <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>
-                                Total Personal Records
-                            </Text>
+                        <View style={[chartCardLayout.header, styles.header]}>
+                            <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Body Weight</Text>
                             <View style={styles.headerActions}>
-                                <View style={styles.autoUpdateHintWrapper}>
-                                <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>
-                                    Auto-updates when you
-                                </Text>
-                                <Text style={[chartCardTypography.hint, styles.autoUpdateHint]}>
-                                    hit new PRs.
-                                </Text>
-                            </View>
+                                <RNBounceable
+                                    style={styles.addButton}
+                                    onPress={handleOpenAddModal}
+                                    activeScale={0.97}
+                                    disabled={isSaving}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Add a new weight measurement"
+                                >
+                                    <Text style={styles.addButtonLabel}>+ Add Measurement</Text>
+                                </RNBounceable>
                             </View>
                         </View>
 
                         <View style={[chartCardLayout.metricsRow, styles.metricsRow]}>
                             <View style={[chartCardLayout.valueGroup, styles.weightGroup]}>
-                                <Text style={chartCardTypography.metricValue}>
-                                    {latestPersonalRecordText}
-                                </Text>
-                                <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>
-                                    {latestPersonalRecordUnit}
-                                </Text>
-                                {latestPersonalRecordDeltaMeta ? (
+                                <Text style={chartCardTypography.metricValue}>{latestWeightText}</Text>
+                                <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>{latestUnit}</Text>
+                                {latestWeightDeltaMeta ? (
                                     <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
                                         <Ionicons
-                                            name={latestPersonalRecordDeltaMeta.icon}
+                                            name={latestWeightDeltaMeta.icon}
                                             size={scaleSize(17)}
-                                            color={latestPersonalRecordDeltaMeta.color}
+                                            color={latestWeightDeltaMeta.color}
                                             style={styles.deltaIcon}
                                         />
                                         <Text
                                             style={[
                                                 chartCardTypography.deltaValue,
-                                                { color: latestPersonalRecordDeltaMeta.color },
+                                                { color: latestWeightDeltaMeta.color },
                                             ]}
                                         >
-                                            {latestPersonalRecordDeltaMeta.text}
+                                            {latestWeightDeltaMeta.text}
                                         </Text>
                                     </View>
                                 ) : null}
                             </View>
-                            <Text style={[chartCardTypography.summary, styles.summaryText]}>
-                                {latestPersonalRecordInfo}
-                            </Text>
+                            <Text style={[chartCardTypography.summary, styles.summaryText]}>{latestInfoText}</Text>
                         </View>
 
                         <View
@@ -3186,7 +3511,7 @@ const completedWorkouts = useMemo(
                                 },
                             ]}
                         >
-                            {personalRecordChartPoints.length ? (
+                            {hasChartData ? (
                                 <View style={styles.chartContent}>
                                     <View
                                         style={[
@@ -3195,15 +3520,12 @@ const completedWorkouts = useMemo(
                                         ]}
                                         pointerEvents="none"
                                     >
-                                        {personalRecordYTickValues.map((value, index) => {
+                                        {yTickValues.map((value, index) => {
                                             const range = Math.max(
-                                                (personalRecordAxisMetrics?.maxValue ?? 0) -
-                                                    (personalRecordAxisMetrics?.minValue ?? 0),
+                                                (axisMetrics?.maxValue ?? 0) - (axisMetrics?.minValue ?? 0),
                                                 1
                                             );
-                                            const ratio =
-                                                (value - (personalRecordAxisMetrics?.minValue ?? 0)) /
-                                                range;
+                                            const ratio = (value - (axisMetrics?.minValue ?? 0)) / range;
                                             const clampedRatio = Number.isFinite(ratio)
                                                 ? Math.min(Math.max(ratio, 0), 1)
                                                 : 0;
@@ -3219,10 +3541,14 @@ const completedWorkouts = useMemo(
                                             );
 
                                             return (
-                                            <Text
-                                                key={`personal-record-y-axis-label-${value}-${index}`}
-                                                style={[chartTypography.axisLabel, styles.yAxisLabel, { top }]}
-                                            >
+                                                <Text
+                                                    key={`y-axis-label-${value}-${index}`}
+                                                    style={[
+                                                        chartTypography.axisLabel,
+                                                        styles.yAxisLabel,
+                                                        { top },
+                                                    ]}
+                                                >
                                                     {formatAxisValue(value)}
                                                 </Text>
                                             );
@@ -3234,31 +3560,33 @@ const completedWorkouts = useMemo(
                                             styles.chartCanvas,
                                             { width: chartPlotWidth, height: chartHeight },
                                         ]}
-                                        {...personalRecordPanResponder.panHandlers}
+                                        {...chartPanResponder.panHandlers}
                                     >
                                         <Svg width={chartPlotWidth} height={chartHeight}>
                                             <Defs>
                                                 <LinearGradient
-                                                    id="totalPersonalRecordsGradient"
+                                                    id="progressChartGradient"
                                                     x1="0"
                                                     y1="0"
                                                     x2="0"
                                                     y2="1"
                                                 >
-                                                    <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
-                                                    <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
+                                                    <Stop offset="0%" stopColor="#64A0FF" stopOpacity="0.3" />
+                                                    <Stop
+                                                        offset="100%"
+                                                        stopColor="#2D7BFF"
+                                                        stopOpacity="0.08"
+                                                    />
                                                 </LinearGradient>
                                             </Defs>
 
-                                            {personalRecordYTickValues.map((value, index) => {
+                                            {yTickValues.map((value, index) => {
                                                 const range = Math.max(
-                                                    (personalRecordAxisMetrics?.maxValue ?? 0) -
-                                                        (personalRecordAxisMetrics?.minValue ?? 0),
+                                                    (axisMetrics?.maxValue ?? 0) -
+                                                    (axisMetrics?.minValue ?? 0),
                                                     1
                                                 );
-                                                const ratio =
-                                                    (value - (personalRecordAxisMetrics?.minValue ?? 0)) /
-                                                    range;
+                                                const ratio = (value - (axisMetrics?.minValue ?? 0)) / range;
                                                 const clampedRatio = Number.isFinite(ratio)
                                                     ? Math.min(Math.max(ratio, 0), 1)
                                                     : 0;
@@ -3266,7 +3594,7 @@ const completedWorkouts = useMemo(
                                                     chartTopMargin + chartInnerHeight * (1 - clampedRatio);
                                                 return (
                                                     <Line
-                                                        key={`personal-record-grid-${value}-${index}`}
+                                                        key={`grid-line-${value}-${index}`}
                                                         x1={chartLeftMargin}
                                                         y1={y}
                                                         x2={chartPlotWidth - chartRightMargin}
@@ -3278,17 +3606,17 @@ const completedWorkouts = useMemo(
                                                 );
                                             })}
 
-                                            {personalRecordSeries.areaPath ? (
+                                            {weightSeries.areaPath ? (
                                                 <Path
-                                                    d={personalRecordSeries.areaPath}
-                                                    fill="url(#totalPersonalRecordsGradient)"
+                                                    d={weightSeries.areaPath}
+                                                    fill="url(#progressChartGradient)"
                                                     stroke="none"
                                                 />
                                             ) : null}
 
-                                            {personalRecordSeries.linePath ? (
+                                            {weightSeries.linePath ? (
                                                 <Path
-                                                    d={personalRecordSeries.linePath}
+                                                    d={weightSeries.linePath}
                                                     fill="none"
                                                     stroke="#7FB7FF"
                                                     strokeWidth={scaleSize(3)}
@@ -3314,28 +3642,29 @@ const completedWorkouts = useMemo(
                                                 strokeWidth={StyleSheet.hairlineWidth}
                                             />
 
-                                            {personalRecordActivePoint ? (
+                                            {weightActivePoint ? (
                                                 <Line
-                                                    x1={personalRecordActivePoint.x}
+                                                    x1={weightActivePoint.x}
                                                     y1={chartTopMargin}
-                                                    x2={personalRecordActivePoint.x}
+                                                    x2={weightActivePoint.x}
                                                     y2={chartBaselineY}
-                                                    stroke="rgba(100, 160, 255, 0.45)"
+                                                    stroke="rgba(45, 158, 255, 0.45)"
                                                     strokeWidth={pointerStripWidth}
                                                 />
                                             ) : null}
 
-                                            {personalRecordChartPoints.map((point, index) => (
+                                            {weightChartPoints.map((point, index) => (
                                                 <ChartBubble
-                                                    key={`personal-record-point-${index}`}
+                                                    key={point.entry?.id || `point-${index}`}
                                                     cx={point.x}
                                                     cy={point.y}
-                                                    isActive={index === personalRecordActiveIndex}
+                                                    isActive={index === activeIndex}
+                                                    accent={CHART_ACCENTS.weight}
                                                 />
                                             ))}
                                         </Svg>
 
-                                        {personalRecordXAxisLabels.length ? (
+                                        {weightXAxisLabels.length ? (
                                             <View
                                                 pointerEvents="none"
                                                 style={[
@@ -3344,15 +3673,15 @@ const completedWorkouts = useMemo(
                                                         left: chartLeftMargin,
                                                         right: chartRightMargin,
                                                         justifyContent:
-                                                            personalRecordXAxisLabels.length > 1
+                                                            weightXAxisLabels.length > 1
                                                                 ? "space-between"
                                                                 : "center",
                                                     },
                                                 ]}
                                             >
-                                                {personalRecordXAxisLabels.map((item, index) => (
+                                                {weightXAxisLabels.map((item, index) => (
                                                     <Text
-                                                        key={`personal-record-x-axis-label-${item.timestamp ?? index}-${index}`}
+                                                        key={`weight-x-axis-label-${item.timestamp ?? index}-${index}`}
                                                         style={[chartTypography.axisLabel, styles.xAxisLabel]}
                                                     >
                                                         {item.label}
@@ -3361,359 +3690,81 @@ const completedWorkouts = useMemo(
                                             </View>
                                         ) : null}
 
-                                        {personalRecordActivePoint ? (
+                                        {weightActiveEntry ? (
                                             <Animated.View
-                                                pointerEvents="box-none"
+                                                pointerEvents="none"
                                                 style={[
                                                     chartPointerStyles.container,
                                                     {
-                                                        left: personalRecordPointerLabelLeft,
+                                                        left: pointerLabelLeft,
                                                         top: Math.max(
                                                             scaleSize(-8),
                                                             chartTopMargin - scaleSize(72)
                                                         ),
-                                                        width: personalRecordPointerLabelWidth,
-                                                        opacity: personalRecordPointerOpacity,
+                                                        width: pointerLabelWidth,
+                                                        opacity: weightPointerOpacity,
                                                     },
                                                 ]}
                                             >
-                                            <PersonalRecordPointerLabel
-                                                entry={personalRecordActiveEntry}
-                                                isRightAligned={personalRecordPointerRightAligned}
-                                                onWorkoutPress={handleNavigateToPastWorkout}
-                                            />
+                                                <PointerLabelBubble
+                                                    entry={weightActiveEntry}
+                                                    unit={latestUnit}
+                                                    delta={weightActiveDelta}
+                                                    isRightAligned={isPointerRightAligned}
+                                                />
                                             </Animated.View>
                                         ) : null}
                                     </View>
                                 </View>
                             ) : (
-                            <View style={styles.chartEmptyState}>
-                                <Text style={styles.placeholderText}>Log workouts to set new PRs.</Text>
-                            </View>
-                            )}
-                            </View>
-                            <View style={styles.metricToggleRowContainer}>
-                                {renderMetricToggleRow()}
-                            </View>
-                    </View>
-                ) : null}
-
-                <View style={styles.chartDivider} />
-
-                <View
-                    style={[
-                        chartCardLayout.card,
-                        styles.card,
-                        styles.weightCard,
-                    ]}
-                >
-                        <View style={[chartCardLayout.header, styles.header]}>
-                        <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>Body Weight</Text>
-                        <View style={styles.headerActions}>
-                            <RNBounceable
-                                style={styles.addButton}
-                                onPress={handleOpenAddModal}
-                                activeScale={0.97}
-                                disabled={isSaving}
-                                accessibilityRole="button"
-                                accessibilityLabel="Add a new weight measurement"
-                            >
-                                <Text style={styles.addButtonLabel}>+ Add Measurement</Text>
-                            </RNBounceable>
-                        </View>
-                    </View>
-
-                    <View style={[chartCardLayout.metricsRow, styles.metricsRow]}>
-                        <View style={[chartCardLayout.valueGroup, styles.weightGroup]}>
-                            <Text style={chartCardTypography.metricValue}>{latestWeightText}</Text>
-                            <Text style={[chartCardTypography.metricUnit, styles.weightUnit]}>{latestUnit}</Text>
-                            {latestWeightDeltaMeta ? (
-                                <View style={[chartCardLayout.deltaGroup, styles.deltaGroup]}>
-                                    <Ionicons
-                                        name={latestWeightDeltaMeta.icon}
-                                        size={scaleSize(17)}
-                                        color={latestWeightDeltaMeta.color}
-                                        style={styles.deltaIcon}
-                                    />
-                                    <Text
-                                        style={[
-                                            chartCardTypography.deltaValue,
-                                            { color: latestWeightDeltaMeta.color },
-                                        ]}
-                                    >
-                                        {latestWeightDeltaMeta.text}
+                                <View style={styles.chartEmptyState}>
+                                    <Text style={styles.placeholderText}>
+                                        Log a measurement to begin.
                                     </Text>
                                 </View>
-                            ) : null}
+                            )}
                         </View>
-                        <Text style={[chartCardTypography.summary, styles.summaryText]}>{latestInfoText}</Text>
-                    </View>
-
-                    <View
-                        style={[
-                            styles.chartWrapper,
-                            {
-                                height: chartHeight,
-                                width: chartWidth,
-                                paddingTop: chartPaddingTop,
-                                paddingBottom: chartPaddingBottom,
-                            },
-                        ]}
-                    >
-                        {hasChartData ? (
-                            <View style={styles.chartContent}>
-                                <View
-                                    style={[
-                                        styles.yAxisLabelsContainer,
-                                        { width: yAxisLabelWidth, height: chartHeight },
-                                    ]}
-                                    pointerEvents="none"
-                                >
-                                    {yTickValues.map((value, index) => {
-                                        const range = Math.max(
-                                            (axisMetrics?.maxValue ?? 0) - (axisMetrics?.minValue ?? 0),
-                                            1
-                                        );
-                                        const ratio = (value - (axisMetrics?.minValue ?? 0)) / range;
-                                        const clampedRatio = Number.isFinite(ratio)
-                                            ? Math.min(Math.max(ratio, 0), 1)
-                                            : 0;
-                                        const yPosition =
-                                            chartTopMargin + chartInnerHeight * (1 - clampedRatio);
-                                        const approxLabelHeight = scaleSize(14);
-                                        const top = Math.min(
-                                            chartHeight - chartBottomMargin - approxLabelHeight,
-                                            Math.max(
-                                                chartTopMargin - approxLabelHeight / 2,
-                                                yPosition - approxLabelHeight / 2
-                                            )
-                                        );
-
-                                        return (
-                                            <Text
-                                                key={`y-axis-label-${value}-${index}`}
-                                                style={[
-                                                    chartTypography.axisLabel,
-                                                    styles.yAxisLabel,
-                                                    { top },
-                                                ]}
-                                            >
-                                                {formatAxisValue(value)}
-                                            </Text>
-                                        );
-                                    })}
+                        <View style={styles.measurementsRowContainer}>
+                            <Pressable
+                                onPress={() => navigation.navigate("WeightMeasurements")}
+                                accessibilityRole="button"
+                                accessibilityLabel="See weight measurements"
+                                disabled={isSaving}
+                                style={({ pressed }) => [
+                                    styles.measurementsRow,
+                                    pressed && styles.measurementsRowPressed,
+                                ]}
+                            >
+                                <View style={styles.measurementsTextWrap}>
+                                    <Text style={styles.measurementsTitle}>See Weight Measurements</Text>
+                                    <Text style={styles.measurementsSubtitle} numberOfLines={1}>
+                                        {measurementRowSubtitle}
+                                    </Text>
                                 </View>
-
-                                <View
-                                    style={[
-                                        styles.chartCanvas,
-                                        { width: chartPlotWidth, height: chartHeight },
-                                    ]}
-                                    {...chartPanResponder.panHandlers}
-                                >
-                                    <Svg width={chartPlotWidth} height={chartHeight}>
-                                        <Defs>
-                                            <LinearGradient
-                                                id="progressChartGradient"
-                                                x1="0"
-                                                y1="0"
-                                                x2="0"
-                                                y2="1"
-                                            >
-                                                <Stop offset="0%" stopColor="#64A0FF" stopOpacity="0.3" />
-                                                <Stop
-                                                    offset="100%"
-                                                    stopColor="#2D7BFF"
-                                                    stopOpacity="0.08"
-                                                />
-                                            </LinearGradient>
-                                        </Defs>
-
-                                        {yTickValues.map((value, index) => {
-                                            const range = Math.max(
-                                                (axisMetrics?.maxValue ?? 0) -
-                                                    (axisMetrics?.minValue ?? 0),
-                                                1
-                                            );
-                                            const ratio = (value - (axisMetrics?.minValue ?? 0)) / range;
-                                            const clampedRatio = Number.isFinite(ratio)
-                                                ? Math.min(Math.max(ratio, 0), 1)
-                                                : 0;
-                                            const y =
-                                                chartTopMargin + chartInnerHeight * (1 - clampedRatio);
-                                            return (
-                                                <Line
-                                                    key={`grid-line-${value}-${index}`}
-                                                    x1={chartLeftMargin}
-                                                    y1={y}
-                                                    x2={chartPlotWidth - chartRightMargin}
-                                                    y2={y}
-                                                    stroke="rgba(255,255,255,0.1)"
-                                                    strokeWidth={StyleSheet.hairlineWidth}
-                                                    strokeDasharray={[6, 6]}
-                                                />
-                                            );
-                                        })}
-
-                                        {weightSeries.areaPath ? (
-                                            <Path
-                                                d={weightSeries.areaPath}
-                                                fill="url(#progressChartGradient)"
-                                                stroke="none"
-                                            />
-                                        ) : null}
-
-                                        {weightSeries.linePath ? (
-                                            <Path
-                                                d={weightSeries.linePath}
-                                                fill="none"
-                                                stroke="#7FB7FF"
-                                                strokeWidth={scaleSize(3)}
-                                                strokeLinejoin="round"
-                                                strokeLinecap="round"
-                                            />
-                                        ) : null}
-
-                                        <Line
-                                            x1={chartLeftMargin}
-                                            y1={chartTopMargin}
-                                            x2={chartLeftMargin}
-                                            y2={chartBaselineY}
-                                            stroke="rgba(148, 157, 172, 0.35)"
-                                            strokeWidth={StyleSheet.hairlineWidth}
-                                        />
-                                        <Line
-                                            x1={chartLeftMargin}
-                                            y1={chartBaselineY}
-                                            x2={chartPlotWidth - chartRightMargin}
-                                            y2={chartBaselineY}
-                                            stroke="rgba(148, 157, 172, 0.35)"
-                                            strokeWidth={StyleSheet.hairlineWidth}
-                                        />
-
-                                        {weightActivePoint ? (
-                                            <Line
-                                                x1={weightActivePoint.x}
-                                                y1={chartTopMargin}
-                                                x2={weightActivePoint.x}
-                                                y2={chartBaselineY}
-                                                stroke="rgba(45, 158, 255, 0.45)"
-                                                strokeWidth={pointerStripWidth}
-                                            />
-                                        ) : null}
-
-                                        {weightChartPoints.map((point, index) => (
-                                            <ChartBubble
-                                                key={point.entry?.id || `point-${index}`}
-                                                cx={point.x}
-                                                cy={point.y}
-                                                isActive={index === activeIndex}
-                                                accent={CHART_ACCENTS.weight}
-                                            />
-                                        ))}
-                                    </Svg>
-
-                                    {weightXAxisLabels.length ? (
-                                        <View
-                                            pointerEvents="none"
-                                            style={[
-                                                styles.xAxisLabelsOverlay,
-                                                {
-                                                    left: chartLeftMargin,
-                                                    right: chartRightMargin,
-                                                    justifyContent:
-                                                        weightXAxisLabels.length > 1
-                                                            ? "space-between"
-                                                            : "center",
-                                                },
-                                            ]}
-                                        >
-                                            {weightXAxisLabels.map((item, index) => (
-                                                <Text
-                                                    key={`weight-x-axis-label-${item.timestamp ?? index}-${index}`}
-                                                    style={[chartTypography.axisLabel, styles.xAxisLabel]}
-                                                >
-                                                    {item.label}
-                                                </Text>
-                                            ))}
-                                        </View>
-                                    ) : null}
-
-                                    {weightActiveEntry ? (
-                                        <Animated.View
-                                            pointerEvents="none"
-                                            style={[
-                                                chartPointerStyles.container,
-                                                {
-                                                    left: pointerLabelLeft,
-                                                    top: Math.max(
-                                                        scaleSize(-8),
-                                                        chartTopMargin - scaleSize(72)
-                                                    ),
-                                                    width: pointerLabelWidth,
-                                                    opacity: weightPointerOpacity,
-                                                },
-                                            ]}
-                                        >
-                                            <PointerLabelBubble
-                                                entry={weightActiveEntry}
-                                                unit={latestUnit}
-                                                delta={weightActiveDelta}
-                                                isRightAligned={isPointerRightAligned}
-                                            />
-                                        </Animated.View>
-                                    ) : null}
-                                </View>
-                            </View>
-                        ) : (
-                            <View style={styles.chartEmptyState}>
-                                <Text style={styles.placeholderText}>
-                                    Log a measurement to begin.
-                                </Text>
-                            </View>
-                        )}
+                                <Ionicons
+                                    name="chevron-forward"
+                                    size={scaleSize(18)}
+                                    color="rgba(198, 206, 222, 0.84)"
+                                    style={styles.measurementsChevron}
+                                />
+                            </Pressable>
+                        </View>
                     </View>
-                    <View style={styles.measurementsRowContainer}>
-                        <Pressable
-                            onPress={() => navigation.navigate("WeightMeasurements")}
-                            accessibilityRole="button"
-                            accessibilityLabel="See weight measurements"
-                            disabled={isSaving}
-                            style={({ pressed }) => [
-                                styles.measurementsRow,
-                                pressed && styles.measurementsRowPressed,
-                            ]}
-                        >
-                            <View style={styles.measurementsTextWrap}>
-                                <Text style={styles.measurementsTitle}>See Weight Measurements</Text>
-                                <Text style={styles.measurementsSubtitle} numberOfLines={1}>
-                                    {measurementRowSubtitle}
-                                </Text>
-                            </View>
-                            <Ionicons
-                                name="chevron-forward"
-                                size={scaleSize(18)}
-                                color="rgba(198, 206, 222, 0.84)"
-                                style={styles.measurementsChevron}
-                            />
-                        </Pressable>
-                    </View>
-                </View>
                 </View>
             </ScrollView>
 
-        <ManageMeasurementsModal
-            isVisible={isManageModalVisible}
-            onDismiss={handleCloseManageModal}
-            entries={entries}
-            onEdit={handleEditEntry}
-            onDelete={handleRequestDelete}
-            isSaving={isSaving}
-        />
-        <AddMeasurementModal
-            isVisible={isModalVisible}
-            onDismiss={handleCloseAddModal}
-            onSubmit={handleSubmitMeasurement}
+            <ManageMeasurementsModal
+                isVisible={isManageModalVisible}
+                onDismiss={handleCloseManageModal}
+                entries={entries}
+                onEdit={handleEditEntry}
+                onDelete={handleRequestDelete}
+                isSaving={isSaving}
+            />
+            <AddMeasurementModal
+                isVisible={isModalVisible}
+                onDismiss={handleCloseAddModal}
+                onSubmit={handleSubmitMeasurement}
                 unit={entryToEdit?.unit || latestUnit}
                 isSaving={isSaving}
                 initialEntry={entryToEdit}
@@ -3791,6 +3842,51 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         paddingHorizontal: scaleSize(8),
         marginTop: scaleSize(-16),
+    },
+    muscleList: {
+        marginTop: scaleSize(6),
+    },
+    muscleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingVertical: scaleSize(16),
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.06)",
+    },
+    muscleLeft: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    muscleBadge: {
+        width: scaleSize(56),
+        height: scaleSize(56),
+        borderRadius: scaleSize(28),
+        backgroundColor: "rgba(89, 169, 255, 0.12)",
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: scaleSize(12),
+        overflow: "hidden",
+    },
+    muscleIconZoom: {
+        width: "100%",
+        height: "100%",
+        transform: [{ scale: 1.25 }],
+    },
+    muscleBadgeText: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: ts(13),
+        color: "rgba(255,255,255,0.9)",
+    },
+    muscleLabel: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(14),
+        color: theme.textPrimary ?? "#F6F8FF",
+    },
+    muscleValue: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: ts(16),
+        color: theme.textPrimary ?? "#F6F8FF",
     },
     bodyFigureSlot: {
         flex: 1,

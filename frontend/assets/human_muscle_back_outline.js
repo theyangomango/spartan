@@ -12,7 +12,15 @@ import Svg, {
 const OUTLINE_STROKE_WIDTH = 5;
 const OUTLINE_STROKE_COLOR = "#d8e2ff";
 
-const HumanMuscleBackOutline = ({ color = "#000", fills = {}, ...props }) => {
+const HumanMuscleBackOutline = ({
+    color = "#000",
+    fills = {},
+    strokeColor = OUTLINE_STROKE_COLOR,
+    strokeWidth = OUTLINE_STROKE_WIDTH,
+    ...props
+}) => {
+    const outlineStrokeColor = strokeColor || OUTLINE_STROKE_COLOR;
+    const outlineStrokeWidth = Number.isFinite(strokeWidth) ? strokeWidth : OUTLINE_STROKE_WIDTH;
     const fillColor = (region) =>
         fills && fills[region] != null ? fills[region] : color;
 
@@ -106,8 +114,8 @@ const HumanMuscleBackOutline = ({ color = "#000", fills = {}, ...props }) => {
                 <Path d="M260.61 229.21c-9.23 8.65-18.75 15.95-28.81 23.66-6.54 5.01-13.29 10.19-20.27 15.97-4 3.33-8.34 5.89-12.71 7.89-13.52 6.15-27.58 6.76-34.55 7.07-.71.03-1.35.05-1.92.09-5.18.27-10.19 2.84-13.43 4.9 6.9-35.62 26.23-54.06 41.55-63.33 17.29-10.46 33.37-11.85 33.53-11.85h.02c19.28-.62 30.45 9.14 36.6 15.6Z" />
             </G>
             {/* Body outline */}
-            <G stroke={OUTLINE_STROKE_COLOR} strokeLinecap="round" strokeLinejoin="round" strokeWidth={OUTLINE_STROKE_WIDTH} fill="none">
-                <Path d="M266.34,935.47c-.89-19.84-16.47-25.12-28.26-16.43-14.11,10.4-36.12-39.53-43.56-12.29" fill="none" stroke={OUTLINE_STROKE_COLOR} strokeLinecap="round" strokeLinejoin="round" strokeWidth={OUTLINE_STROKE_WIDTH} />
+            <G stroke={outlineStrokeColor} strokeLinecap="round" strokeLinejoin="round" strokeWidth={outlineStrokeWidth} fill="none">
+                <Path d="M266.34,935.47c-.89-19.84-16.47-25.12-28.26-16.43-14.11,10.4-36.12-39.53-43.56-12.29" fill="none" stroke={outlineStrokeColor} strokeLinecap="round" strokeLinejoin="round" strokeWidth={outlineStrokeWidth} />
                 <Path d="M17.22,535.8c2.09,7.99,6.55,13.88,11.67,15.84,4.99,1.91,12,.65,18.85-3.56" fill="none" stroke={OUTLINE_STROKE_COLOR} strokeLinecap="round" strokeLinejoin="round" strokeWidth={OUTLINE_STROKE_WIDTH} />
                 <Path d="M102.63,368.78c-11.91,35.01,10.78,12.73,19.35,18,8.73,5.36-8.23,50.09,34.96,11.52" fill="none" stroke={OUTLINE_STROKE_COLOR} strokeLinecap="round" strokeLinejoin="round" strokeWidth={OUTLINE_STROKE_WIDTH} />
                 <Path d="M223.86,211.87c23.48-.79,35.4,13.24,40.81,19.16,12.57,13.74,20.72.94,65.59.94" fill="none" stroke={OUTLINE_STROKE_COLOR} strokeLinecap="round" strokeLinejoin="round" strokeWidth={OUTLINE_STROKE_WIDTH} />
