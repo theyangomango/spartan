@@ -2293,6 +2293,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
 
     const muscleGroupScores = useMemo(() => {
         const hex = userData?.statsHexagon || {};
+        const overallSegments = ["calves", "quads", "abs", "obliques", "back", "forearms", "arms", "shoulders", "chest", "traps"];
         const groups = [
             { key: "shoulders", label: "Shoulders" },
             { key: "chest", label: "Chest" },
@@ -2300,6 +2301,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             { key: "back", label: "Back" },
             { key: "abs", label: "Abs" },
             { key: "legs", label: "Legs" },
+            { key: "overall", label: "Overall", segments: overallSegments },
         ];
         const zoomTransforms = {
             shoulders: { transform: [{ scale: 2.8 }, { translateY: scaleSize(15) }] },
@@ -2308,12 +2310,13 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             back: { transform: [{ scale: 2.2 }, { translateY: scaleSize(11) }] },
             abs: { transform: [{ scale: 2.4 }, { translateY: scaleSize(7) }] },
             legs: { transform: [{ scale: 2.4 }, { translateY: scaleSize(-4) }] },
+            overall: { transform: [{ scale: 1.8 }, { translateY: scaleSize(7) }] },
         };
         return groups.map((group) => {
             const raw = Number(hex[group.key]);
             const display = Number.isFinite(raw) ? formatHexStat(raw) : "--";
-            const segments = MUSCLE_SEGMENTS[group.key] || [];
-            const iconStrokeWidth = group.key === "back" ? 11 : null;
+            const segments = group.segments || MUSCLE_SEGMENTS[group.key] || [];
+            const iconStrokeWidth = group.key === "back" ? 14 : null;
             return { ...group, display, segments, iconStyle: zoomTransforms[group.key] || null, iconStrokeWidth };
         });
     }, [userData?.statsHexagon]);
