@@ -3875,7 +3875,6 @@ const styles = StyleSheet.create({
         color: "rgba(216, 226, 255, 0.5)",
     },
     bodyCard: {
-        paddingTop: scaleSize(-6),
         paddingBottom: scaleSize(2),
         paddingHorizontal: scaleSize(18),
         marginBottom: 0,
@@ -3889,7 +3888,7 @@ const styles = StyleSheet.create({
         marginTop: scaleSize(-36),
     },
     muscleList: {
-        marginTop: scaleSize(-30),
+        marginTop: scaleSize(-20),
     },
     muscleRow: {
         flexDirection: "row",

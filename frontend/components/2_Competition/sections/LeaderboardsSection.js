@@ -60,6 +60,7 @@ import {
 } from "../layoutConstants";
 import { scaledSize } from "../UserStats/UserStatsStyles";
 import MuscleGroupIcon from "../../3_Workout/NewWorkout/SelectExercise/MuscleGroupIcon";
+import scaleSize from "../../../helper/scaleSize";
 
 const DEFAULT_BODY_FOCUS = "overall";
 const BODY_FOCUS_OPTIONS = [
@@ -89,15 +90,24 @@ const FOCUS_SEGMENTS = {
     abs: ["abs", "obliques"],
     legs: ["quads", "calves"],
 };
-// Keep muscle icon transforms consistent with the exercise filter chips and progress badges.
-const MUSCLE_ICON_TRANSFORMS = {
-    shoulders: { transform: [{ scale: 2.8 }, { translateY: scaledSize(15) }] },
-    chest: { transform: [{ scale: 2.8 }, { translateY: scaledSize(15) }] },
-    arms: { transform: [{ scale: 1.8 }, { translateY: scaledSize(6) }] },
-    back: { transform: [{ scale: 2.2 }, { translateY: scaledSize(11) }] },
-    abs: { transform: [{ scale: 2.4 }, { translateY: scaledSize(7) }] },
-    legs: { transform: [{ scale: 2.4 }, { translateY: scaledSize(-4) }] },
-    overall: { transform: [{ scale: 1.8 }, { translateY: scaledSize(7) }] },
+// Keep muscle icon scaling/offsets in sync with the Progress badges.
+const MUSCLE_ICON_SCALES = {
+    shoulders: 2.6,
+    chest: 2.8,
+    arms: 1.8,
+    back: 2.2,
+    abs: 3,
+    legs: 2.4,
+    overall: 1.6,
+};
+const MUSCLE_ICON_OFFSETS = {
+    shoulders: scaleSize(40),
+    chest: scaleSize(40),
+    arms: scaleSize(15),
+    back: scaleSize(25),
+    abs: scaleSize(30),
+    legs: scaleSize(-10),
+    overall: scaleSize(10)
 };
 
 const MUSCLE_ICON_HIGHLIGHT = "#ff6f67ff";
@@ -107,11 +117,11 @@ const KG_TO_LB = 2.2046226218488;
 
 const GLOBAL_KEY = "__competition_state__";
 const getPersisted = () =>
-    (typeof global !== "undefined" &&
+(typeof global !== "undefined" &&
     global[GLOBAL_KEY] &&
     typeof global[GLOBAL_KEY] === "object"
-        ? global[GLOBAL_KEY]
-        : {});
+    ? global[GLOBAL_KEY]
+    : {});
 const setPersisted = (patch) => {
     if (typeof global === "undefined") return;
     const current = getPersisted();
@@ -147,10 +157,10 @@ const resolveUserWeightValue = (user) => {
 
     const latest = getLatestWeightFromEntries(
         user?.progress?.weightEntries ||
-            user?.weightEntries ||
-            user?.bodyweightLog ||
-            user?.bodyweightEntries ||
-            []
+        user?.weightEntries ||
+        user?.bodyweightLog ||
+        user?.bodyweightEntries ||
+        []
     );
     if (latest?.weight && Number.isFinite(latest.weight) && latest.weight > 0) {
         return latest.weight;
@@ -169,11 +179,11 @@ const getLatestWeightFromEntries = (entries) => {
         const unitRaw = typeof entry?.unit === "string" ? entry.unit : "";
         const recordedAt = Number(
             entry?.recordedAt ??
-                entry?.timestamp ??
-                entry?.loggedAt ??
-                entry?.createdAt ??
-                entry?.created ??
-                0
+            entry?.timestamp ??
+            entry?.loggedAt ??
+            entry?.createdAt ??
+            entry?.created ??
+            0
         );
         if (!Number.isFinite(recordedAt) || recordedAt <= 0) return;
         const unit = unitRaw.toLowerCase();
@@ -414,7 +424,7 @@ function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll })
 
     const usersRef = useRef([]);
     const usersSubscriptionRef = useRef(null);
-    const recomputeRef = useRef(() => {});
+    const recomputeRef = useRef(() => { });
     const appliedLastViewRef = useRef(false);
 
     const persisted = getPersisted();
@@ -423,18 +433,18 @@ function LeaderboardsSection({ navigation, onRequestBodyWeightEntry, onScroll })
     const [comparedExercise, setComparedExercise] = useState("Overall");
     const fallbackScope = LAST_SCOPE === "Tribe" ? "Tribe" : "Following";
     const sanitizedInitialScope = persisted.scope === "Tribe" ? "Tribe" : "Following";
-const [scope, setScope] = useState(sanitizedInitialScope ?? fallbackScope);
-const persistedScopeRef = useRef(sanitizedInitialScope ?? fallbackScope);
+    const [scope, setScope] = useState(sanitizedInitialScope ?? fallbackScope);
+    const persistedScopeRef = useRef(sanitizedInitialScope ?? fallbackScope);
 
-useEffect(() => {
-    const targetScope = persisted?.scope === "Tribe" ? "Tribe" : "Following";
-    if (targetScope !== persistedScopeRef.current) {
-        persistedScopeRef.current = targetScope;
-        if (scope !== targetScope) {
-            setScope(targetScope);
+    useEffect(() => {
+        const targetScope = persisted?.scope === "Tribe" ? "Tribe" : "Following";
+        if (targetScope !== persistedScopeRef.current) {
+            persistedScopeRef.current = targetScope;
+            if (scope !== targetScope) {
+                setScope(targetScope);
+            }
         }
-    }
-}, [persisted?.scope, scope]);
+    }, [persisted?.scope, scope]);
 
     const [usersLoaded, setUsersLoaded] = useState(false);
     const [tribesHydrated, setTribesHydrated] = useState(false);
@@ -505,11 +515,11 @@ useEffect(() => {
     const [comparisonManagerVisible, setComparisonManagerVisible] = useState(false);
     const [activeCompIndex, setActiveCompIndex] = useState(0);
 
-useEffect(() => {
-    LAST_SCOPE = scope;
-    persistedScopeRef.current = scope;
-    setPersisted({ scope });
-}, [scope]);
+    useEffect(() => {
+        LAST_SCOPE = scope;
+        persistedScopeRef.current = scope;
+        setPersisted({ scope });
+    }, [scope]);
     useEffect(() => {
         LAST_SELECTED_TRIBE_ID = selectedTribeId;
         setPersisted({ selectedTribeId });
@@ -546,12 +556,12 @@ useEffect(() => {
                             if (typeof entry === "object") {
                                 return String(
                                     entry.uid ||
-                                        entry.id ||
-                                        entry.userUid ||
-                                        entry.memberUid ||
-                                        entry.followerUid ||
-                                        entry.followUid ||
-                                        ""
+                                    entry.id ||
+                                    entry.userUid ||
+                                    entry.memberUid ||
+                                    entry.followerUid ||
+                                    entry.followUid ||
+                                    ""
                                 );
                             }
                             return "";
@@ -576,9 +586,8 @@ useEffect(() => {
                                 const best = entry.bestSet
                                     ? `${entry.bestSet.reps || 0}x${entry.bestSet.weight || 0}`
                                     : "";
-                                return `${exercise}:${entry["1RM"] || 0}:${
-                                    entry.Volume || 0
-                                }:${entry.Reps || 0}:${best}`;
+                                return `${exercise}:${entry["1RM"] || 0}:${entry.Volume || 0
+                                    }:${entry.Reps || 0}:${best}`;
                             });
                         return pieces.join("|");
                     } catch {
@@ -632,14 +641,14 @@ useEffect(() => {
                 if (data?.uid) {
                     usersRef.current = Array.isArray(usersRef.current)
                         ? (() => {
-                              const next = [...usersRef.current];
-                              const idx = next.findIndex((u) => u?.uid === data.uid);
-                              if (idx >= 0) {
-                                  next[idx] = { ...next[idx], ...data };
-                                  return next;
-                              }
-                              return next;
-                          })()
+                            const next = [...usersRef.current];
+                            const idx = next.findIndex((u) => u?.uid === data.uid);
+                            if (idx >= 0) {
+                                next[idx] = { ...next[idx], ...data };
+                                return next;
+                            }
+                            return next;
+                        })()
                         : usersRef.current;
 
                     setUserList((prev) => {
@@ -680,7 +689,7 @@ useEffect(() => {
 
     const initUsers = useCallback(() => {
         if (usersSubscriptionRef.current) {
-            try { usersSubscriptionRef.current(); } catch {}
+            try { usersSubscriptionRef.current(); } catch { }
             usersSubscriptionRef.current = null;
         }
 
@@ -696,7 +705,7 @@ useEffect(() => {
             });
             usersRef.current = all;
             setUsersLoaded(true);
-            try { recomputeRef.current?.(); } catch {}
+            try { recomputeRef.current?.(); } catch { }
         });
     }, []);
 
@@ -705,7 +714,7 @@ useEffect(() => {
     }, [initUsers]);
     useEffect(() => () => {
         if (usersSubscriptionRef.current) {
-            try { usersSubscriptionRef.current(); } catch {}
+            try { usersSubscriptionRef.current(); } catch { }
             usersSubscriptionRef.current = null;
         }
     }, []);
@@ -966,15 +975,15 @@ useEffect(() => {
             } else if (hexFocusKey) {
                 let arr = Array.isArray(visible)
                     ? visible.map((user) => {
-                          const { value } = getLeaderboardValue(user, {
-                              mode: "hex",
-                              key: hexFocusKey,
-                          });
-                          return {
-                              ...user,
-                              __hexValue: Number.isFinite(value) ? value : 0,
-                          };
-                      })
+                        const { value } = getLeaderboardValue(user, {
+                            mode: "hex",
+                            key: hexFocusKey,
+                        });
+                        return {
+                            ...user,
+                            __hexValue: Number.isFinite(value) ? value : 0,
+                        };
+                    })
                     : [];
                 arr = applyViewerHexOverride(arr, hexFocusKey);
                 arr.sort(
@@ -1002,15 +1011,15 @@ useEffect(() => {
         if (usingHexFocus) {
             let arr = Array.isArray(visible)
                 ? visible.map((user) => {
-                      const { value } = getLeaderboardValue(user, {
-                          mode: "hex",
-                          key: hexFocusKey,
-                      });
-                      return {
-                          ...user,
-                          __hexValue: Number.isFinite(value) ? value : 0,
-                      };
-                  })
+                    const { value } = getLeaderboardValue(user, {
+                        mode: "hex",
+                        key: hexFocusKey,
+                    });
+                    return {
+                        ...user,
+                        __hexValue: Number.isFinite(value) ? value : 0,
+                    };
+                })
                 : [];
             arr = applyViewerHexOverride(arr, hexFocusKey);
             arr.sort(
@@ -1152,13 +1161,13 @@ useEffect(() => {
         [
             tribeComparisons,
             isCustomTribe,
-        currentTribe,
-        selectedTribeId,
-        snapshotMeta?.snapshotId,
-        viewerWeight,
-        global?.userData?.lastRanks,
-    ]
-);
+            currentTribe,
+            selectedTribeId,
+            snapshotMeta?.snapshotId,
+            viewerWeight,
+            global?.userData?.lastRanks,
+        ]
+    );
 
     const onOpenCreateFromMenu = useCallback(() => {
         setTribeMenuVisible(false);
@@ -1264,7 +1273,7 @@ useEffect(() => {
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
         });
-        await updateDoc(doc(db, "usersPrivate", uid), { tribeIds: arrayUnion(ref.id) }).catch(() => {});
+        await updateDoc(doc(db, "usersPrivate", uid), { tribeIds: arrayUnion(ref.id) }).catch(() => { });
         setCreateModalVisible(false);
         setNewTribeName("");
         setSelectedTribeId(ref.id);
@@ -1335,7 +1344,7 @@ useEffect(() => {
             return;
         }
 
-        await updateDoc(doc(db, "usersPrivate", uid), { tribeIds: arrayUnion(target.id) }).catch(() => {});
+        await updateDoc(doc(db, "usersPrivate", uid), { tribeIds: arrayUnion(target.id) }).catch(() => { });
         setJoinModalVisible(false);
         setJoinCode("");
         setSelectedTribeId(target.id);
@@ -1359,7 +1368,7 @@ useEffect(() => {
         }).catch((err) => {
             console.log("leave tribe failed", err?.message || err);
         });
-        await updateDoc(doc(db, "usersPrivate", uid), { tribeIds: arrayRemove(selectedTribeId) }).catch(() => {});
+        await updateDoc(doc(db, "usersPrivate", uid), { tribeIds: arrayRemove(selectedTribeId) }).catch(() => { });
         setManageModalVisible(false);
         setSelectedTribeId(null);
     };
@@ -1411,7 +1420,7 @@ useEffect(() => {
         if (key === lastViewRef.current) return;
         lastViewRef.current = key;
         try {
-            updateDoc(doc(db, "usersPrivate", uid), { competitionLastView: payload }).catch(() => {});
+            updateDoc(doc(db, "usersPrivate", uid), { competitionLastView: payload }).catch(() => { });
         } catch {
             //
         }
@@ -1734,7 +1743,6 @@ useEffect(() => {
                                             style={[
                                                 styles.focusOptionIconInner,
                                                 styles.focusMuscleIconZoom,
-                                                MUSCLE_ICON_TRANSFORMS[opt.value] || null,
                                             ]}
                                         >
                                             <MuscleGroupIcon
@@ -1742,7 +1750,9 @@ useEffect(() => {
                                                 dimmed={!isActive}
                                                 highlightColor={MUSCLE_ICON_HIGHLIGHT}
                                                 dimHighlightColor={MUSCLE_ICON_HIGHLIGHT_DIM}
-                                                strokeWidth={opt.value === "back" ? 8.5 : 7.5}
+                                                strokeWidth={opt.value === "back" ? 14 : undefined}
+                                                scale={MUSCLE_ICON_SCALES[opt.value] || 1}
+                                                offsetY={MUSCLE_ICON_OFFSETS[opt.value] || 0}
                                             />
                                         </View>
                                     </View>
@@ -1791,14 +1801,15 @@ useEffect(() => {
                                     style={[
                                         styles.focusIconButtonIcon,
                                         styles.focusMuscleIconZoom,
-                                        MUSCLE_ICON_TRANSFORMS[bodyFocus] || null,
                                     ]}
                                 >
                                     <MuscleGroupIcon
                                         segments={FOCUS_SEGMENTS[bodyFocus] || []}
                                         highlightColor={MUSCLE_ICON_HIGHLIGHT}
                                         dimHighlightColor={MUSCLE_ICON_HIGHLIGHT_DIM}
-                                        strokeWidth={bodyFocus === "back" ? 9 : 8}
+                                        strokeWidth={bodyFocus === "back" ? 14 : undefined}
+                                        scale={MUSCLE_ICON_SCALES[bodyFocus] || 1}
+                                        offsetY={MUSCLE_ICON_OFFSETS[bodyFocus] || 0}
                                     />
                                 </View>
                             </View>
@@ -1894,8 +1905,8 @@ useEffect(() => {
                         Array.isArray(tribe?.comparisons) && tribe.comparisons.length
                             ? tribe.comparisons
                             : tribe?.comparison
-                            ? [tribe.comparison]
-                            : [];
+                                ? [tribe.comparison]
+                                : [];
                     const activeIdx = Math.min(activeCompIndex, Math.max(0, comps.length - 1));
                     const cmp = comps[activeIdx] || null;
                     const needsBW = !!(cmp && cmp.normalizeByBodyweight);
@@ -2184,11 +2195,10 @@ const styles = StyleSheet.create({
         overflow: "hidden",
     },
     focusMuscleIconZoom: {
-        width: "90%",
-        height: "90%",
+        width: "100%",
+        height: "100%",
         alignItems: "center",
         justifyContent: "center",
-        transform: [{ scale: 1.08 }],
     },
     focusOptionLabelWrap: {
         flex: 1,

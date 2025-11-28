@@ -18,6 +18,8 @@ export default function MuscleGroupIcon({
   highlightColor = null,
   dimHighlightColor = null,
   scale = 1,
+  offsetX = 0,
+  offsetY = 0,
 }) {
   const fills = useMemo(() => {
     const activeHighlight = highlightColor || HIGHLIGHT_ACTIVE;
@@ -29,7 +31,7 @@ export default function MuscleGroupIcon({
       }
       return map;
     }, {});
-  }, [segments, dimmed]);
+  }, [segments, dimmed, highlightColor, dimHighlightColor]);
 
   const useBackView = useMemo(() => {
     if (!Array.isArray(segments) || segments.length === 0) return false;
@@ -45,10 +47,16 @@ export default function MuscleGroupIcon({
     const pct = `${Math.max(0.1, scale) * 100}%`;
     return [styles.svgWrapper, { width: pct, height: pct }];
   }, [scale]);
+  const wrapperTransformStyle = useMemo(() => {
+    const transforms = [];
+    if (offsetX) transforms.push({ translateX: offsetX });
+    if (offsetY) transforms.push({ translateY: offsetY });
+    return transforms.length ? { transform: transforms } : null;
+  }, [offsetX, offsetY]);
 
   return (
     <View style={[styles.container, dimmed && styles.dimmedContainer]}>
-      <View style={scaledWrapperStyle}>
+      <View style={[scaledWrapperStyle, wrapperTransformStyle]}>
         <OutlineComponent
           color={dimmed ? BASE_COLOR_DIMMED : BASE_COLOR_ACTIVE}
           fills={fills}
