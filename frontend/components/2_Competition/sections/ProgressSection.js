@@ -2313,7 +2313,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             const raw = Number(hex[group.key]);
             const display = Number.isFinite(raw) ? formatHexStat(raw) : "--";
             const segments = MUSCLE_SEGMENTS[group.key] || [];
-            const iconStrokeWidth = group.key === "back" ? 16 : null;
+            const iconStrokeWidth = group.key === "back" ? 11 : null;
             return { ...group, display, segments, iconStyle: zoomTransforms[group.key] || null, iconStrokeWidth };
         });
     }, [userData?.statsHexagon]);
@@ -2582,11 +2582,6 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                             styles.bodyCard,
                         ]}
                     >
-                        <View style={[chartCardLayout.header, styles.bodyHeader]}>
-                            <Text style={[chartCardTypography.sectionTitle, styles.sectionTitle]}>
-                                Your Body
-                            </Text>
-                        </View>
                         <View style={styles.bodyFiguresRow}>
                             <View style={[styles.bodyFigureSlot, styles.bodyFigureSlotFront]}>
                                 <HumanMuscleOutline
@@ -3831,25 +3826,21 @@ const styles = StyleSheet.create({
         color: "rgba(216, 226, 255, 0.5)",
     },
     bodyCard: {
-        paddingTop: scaleSize(-8),
+        paddingTop: scaleSize(-6),
         paddingBottom: scaleSize(2),
         paddingHorizontal: scaleSize(18),
         marginBottom: scaleSize(10),
         backgroundColor: theme.bg,
-    },
-    bodyHeader: {
-        marginBottom: scaleSize(-16),
-        paddingHorizontal: scaleSize(18),
     },
     bodyFiguresRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: scaleSize(8),
-        marginTop: scaleSize(-16),
+        marginTop: scaleSize(-28),
     },
     muscleList: {
-        marginTop: scaleSize(6),
+        marginTop: scaleSize(-32),
     },
     muscleRow: {
         flexDirection: "row",
