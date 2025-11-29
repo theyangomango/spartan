@@ -8,6 +8,7 @@ import {
     PanResponder,
     Platform,
     Pressable,
+    Image,
     ScrollView,
     StyleSheet,
     Text,
@@ -35,6 +36,7 @@ import HumanMuscleOutline from "../../../assets/human_muscle_outline";
 import HumanMuscleBackOutline from "../../../assets/human_muscle_back_outline";
 import formatHexStat from "../../../utils/formatHexStat";
 import MuscleGroupIcon from "../../3_Workout/NewWorkout/SelectExercise/MuscleGroupIcon";
+import HexagonalStats from "../UserStats/HexagonalStats";
 
 const WORKOUT_TIMESTAMP_FIELDS = ["created"];
 
@@ -1402,6 +1404,8 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
     const [isManageModalVisible, setIsManageModalVisible] = useState(false);
     const [entryToEdit, setEntryToEdit] = useState(null);
     const activeIndexRef = useRef(null);
+    const [topPagerIndex, setTopPagerIndex] = useState(0);
+    const topPagerIndexRef = useRef(0);
 
     useEffect(() => {
         userRef.current = userData;
@@ -2358,6 +2362,11 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
         });
     }, [userData?.statsHexagon]);
 
+    const overallHexDisplay = useMemo(() => {
+        const overall = muscleGroupScores.find((item) => item.key === "overall");
+        return overall?.display || "--";
+    }, [muscleGroupScores]);
+
     const weightPointerOpacity = useRef(new Animated.Value(0)).current;
     const volumePointerOpacity = useRef(new Animated.Value(0)).current;
     const repsPointerOpacity = useRef(new Animated.Value(0)).current;
@@ -2604,6 +2613,15 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
         [onScroll]
     );
 
+    const handleTopPagerMomentum = useCallback((event) => {
+        const x = event?.nativeEvent?.contentOffset?.x || 0;
+        const nextIndex = Math.round(x / DEVICE_WIDTH);
+        if (nextIndex !== topPagerIndexRef.current) {
+            topPagerIndexRef.current = nextIndex;
+            setTopPagerIndex(nextIndex);
+        }
+    }, []);
+
     return (
         <>
             <ScrollView
@@ -2615,33 +2633,90 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                 scrollEventThrottle={16}
             >
                 <View style={styles.contentSurface}>
+                    <View style={styles.topPagerContainer}>
+                        {overallHexDisplay ? (
+                            <View style={styles.ovrPill}>
+                                <Text style={styles.ovrPillLabel}>OVR</Text>
+                                <Text style={styles.ovrPillValue}>{overallHexDisplay}</Text>
+                            </View>
+                        ) : null}
+                        <ScrollView
+                            horizontal
+                            pagingEnabled
+                            showsHorizontalScrollIndicator={false}
+                            snapToAlignment="center"
+                            decelerationRate="fast"
+                            onMomentumScrollEnd={handleTopPagerMomentum}
+                        >
+                            <View style={[styles.topPagerPage, { width: DEVICE_WIDTH }]}>
+                                <View
+                                    style={[
+                                        chartCardLayout.card,
+                                        styles.card,
+                                        styles.bodyCard,
+                                    ]}
+                                >
+                                    <View style={styles.bodyFiguresRow}>
+                                        <View style={[styles.bodyFigureSlot, styles.bodyFigureSlotFront]}>
+                                            <HumanMuscleOutline
+                                                color={BODYGRAPH_OUTLINE_COLOR}
+                                                width="102%"
+                                                height="100%"
+                                                preserveAspectRatio="xMidYMid meet"
+                                                style={styles.bodyFigure}
+                                            />
+                                        </View>
+                                        <View style={[styles.bodyFigureSlot, styles.bodyFigureSlotBack]}>
+                                            <HumanMuscleBackOutline
+                                                color={BODYGRAPH_OUTLINE_COLOR}
+                                                width="102%"
+                                                height="100%"
+                                                preserveAspectRatio="xMidYMid meet"
+                                                style={styles.bodyFigure}
+                                            />
+                                        </View>
+                                    </View>
+                                </View>
+                            </View>
+                            <View style={[styles.topPagerPage, { width: DEVICE_WIDTH }]}>
+                                <View
+                                    style={[
+                                        chartCardLayout.card,
+                                        styles.card,
+                                        styles.hexCard,
+                                    ]}
+                                >
+                                    <View style={styles.hexGraphWrap}>
+                                        <HexagonalStats
+                                            statsHexagon={userData?.statsHexagon || {}}
+                                            size={scaleSize(320)}
+                                            labelFontPx={13}
+                                            valueFontPx={15}
+                                            valueFontBigPx={17}
+                                        />
+                                    </View>
+                                </View>
+                            </View>
+                        </ScrollView>
+                        <View style={[styles.topPagerDots, { backgroundColor: theme.bg, paddingBottom: 0 }]}>
+                            {[0, 1].map((index) => (
+                                <View
+                                    key={index}
+                                    style={[
+                                        styles.topPagerDot,
+                                        topPagerIndex === index ? styles.topPagerDotActive : null,
+                                    ]}
+                                />
+                            ))}
+                        </View>
+                    </View>
                     <View
                         style={[
                             chartCardLayout.card,
                             styles.card,
-                            styles.bodyCard,
+                            styles.muscleListCard,
                         ]}
                     >
-                        <View style={styles.bodyFiguresRow}>
-                            <View style={[styles.bodyFigureSlot, styles.bodyFigureSlotFront]}>
-                                <HumanMuscleOutline
-                                    color={BODYGRAPH_OUTLINE_COLOR}
-                                    width="102%"
-                                    height="100%"
-                                    preserveAspectRatio="xMidYMid meet"
-                                    style={styles.bodyFigure}
-                                />
-                            </View>
-                            <View style={[styles.bodyFigureSlot, styles.bodyFigureSlotBack]}>
-                                <HumanMuscleBackOutline
-                                    color={BODYGRAPH_OUTLINE_COLOR}
-                                    width="102%"
-                                    height="100%"
-                                    preserveAspectRatio="xMidYMid meet"
-                                    style={styles.bodyFigure}
-                                />
-                            </View>
-                        </View>
                         <View style={styles.muscleList}>
                             {muscleGroupScores.map((item) => (
                                 <RNBounceable
@@ -3900,10 +3975,12 @@ const styles = StyleSheet.create({
         color: "rgba(216, 226, 255, 0.5)",
     },
     bodyCard: {
-        paddingBottom: scaleSize(2),
+        paddingVertical: scaleSize(20),
         paddingHorizontal: scaleSize(18),
         marginBottom: 0,
         backgroundColor: theme.bg,
+        minHeight: scaleSize(430),
+        justifyContent: "center",
     },
     bodyFiguresRow: {
         flexDirection: "row",
@@ -3913,7 +3990,34 @@ const styles = StyleSheet.create({
         marginTop: scaleSize(-36),
     },
     muscleList: {
-        marginTop: scaleSize(-20),
+        marginTop: scaleSize(4),
+    },
+    topPagerContainer: {
+        marginBottom: scaleSize(8),
+        position: "relative",
+    },
+    topPagerPage: {
+        paddingHorizontal: 0,
+        minHeight: scaleSize(420),
+    },
+    topPagerDots: {
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        marginTop: scaleSize(6),
+        marginBottom: 0,
+        gap: scaleSize(6),
+        paddingBottom: 0,
+        backgroundColor: theme.bg,
+    },
+    topPagerDot: {
+        width: scaleSize(7),
+        height: scaleSize(7),
+        borderRadius: scaleSize(4),
+        backgroundColor: "rgba(255,255,255,0.25)",
+    },
+    topPagerDotActive: {
+        backgroundColor: "#6DB7FF",
     },
     muscleRow: {
         flexDirection: "row",
@@ -3922,6 +4026,10 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(12),
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(255,255,255,0.06)",
+    },
+    muscleListCard: {
+        marginTop: scaleSize(10),
+        paddingHorizontal: scaleSize(18),
     },
     muscleLeft: {
         flexDirection: "row",
@@ -3963,28 +4071,90 @@ const styles = StyleSheet.create({
     },
     muscleLabel: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(16),
+        fontSize: ts(15),
         color: theme.textPrimary ?? "#F6F8FF",
     },
     muscleValue: {
         fontFamily: "Outfit_700Bold",
-        fontSize: ts(16),
+        fontSize: ts(15),
         color: theme.textPrimary ?? "#F6F8FF",
     },
     muscleLabelOverall: {
         color: "#6DB7FF",
-        fontSize: ts(18),
+        fontSize: ts(17),
     },
     muscleValueOverall: {
         color: "#6DB7FF",
+        fontSize: ts(17),
+    },
+    hexCard: {
+        backgroundColor: theme.bg,
+        paddingBottom: scaleSize(16),
+        minHeight: scaleSize(430),
+    },
+    hexGraphWrap: {
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: scaleSize(-14),
+        marginBottom: scaleSize(-18),
+    },
+    ovrPill: {
+        position: "absolute",
+        top: scaleSize(6),
+        right: scaleSize(14),
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(8),
+        backgroundColor: "rgba(109, 183, 255, 0.14)",
+        borderRadius: scaleSize(16),
+        zIndex: 2,
+    },
+    ovrPillLabel: {
+        fontFamily: "Outfit_800ExtraBold",
+        fontSize: ts(11),
+        color: "#6DB7FF",
+        letterSpacing: 0.4,
+        marginRight: scaleSize(6),
+    },
+    ovrPillValue: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: ts(15),
+        color: theme.textPrimary ?? "#F6F8FF",
+    },
+    hexOverallValue: {
+        fontFamily: "Outfit_800ExtraBold",
         fontSize: ts(18),
+        color: "#6DB7FF",
+    },
+    hexGrid: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: scaleSize(12),
+        marginTop: scaleSize(4),
+    },
+    hexStatItem: {
+        width: "30%",
+        paddingVertical: scaleSize(6),
+    },
+    hexStatLabel: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(12),
+        color: "rgba(216,226,255,0.72)",
+    },
+    hexStatValue: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: ts(15),
+        color: theme.textPrimary ?? "#F6F8FF",
+        marginTop: scaleSize(2),
     },
     bodyFigureSlot: {
         flex: 1,
-        height: scaleSize(380),
+        height: scaleSize(440),
         alignItems: "center",
         justifyContent: "center",
         overflow: "visible",
+        transform: [{ translateY: scaleSize(32) }],
     },
     bodyFigureSlotFront: {
         marginRight: scaleSize(12),
@@ -3997,13 +4167,13 @@ const styles = StyleSheet.create({
         height: "100%",
     },
     contentSurface: {
-        backgroundColor: theme.surface,
+        backgroundColor: theme.bg,
         paddingBottom: scaleSize(130),
     },
     chartDivider: {
         height: scaleSize(4),
         width: "100%",
-        backgroundColor: theme.surface,
+        backgroundColor: theme.bg,
         marginVertical: scaleSize(4),
     },
     card: {

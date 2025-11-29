@@ -1446,6 +1446,15 @@ function LeaderboardsSection({
         return "Following";
     }, [selectedTribeId]);
 
+    const scopeValueLabel = useMemo(() => {
+        if (selectedTribeId) {
+            const name = currentTribe?.name;
+            if (typeof name === "string" && name.trim()) return name.trim();
+            return "Tribe";
+        }
+        return "Following";
+    }, [selectedTribeId, currentTribe?.name]);
+
     const scopeSubtitle = useMemo(() => {
         if (selectedTribeId) {
             const name = currentTribe?.name;
@@ -1788,7 +1797,14 @@ function LeaderboardsSection({
                                 accessibilityLabel="Change tribe scope"
                             >
                                 <View ref={scopeToggleAnchorRef} style={styles.simpleScopePill} collapsable={false}>
-                                    <Text style={styles.simpleScopeText}>Following</Text>
+                                    <Text
+                                        style={styles.simpleScopeText}
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                    >
+                                        <Text style={styles.simpleScopePrefix}>Comparing: </Text>
+                                        <Text style={styles.simpleScopeValue}>{scopeValueLabel}</Text>
+                                    </Text>
                                     <Ionicons
                                         name={tribeMenuVisible ? "chevron-up" : "chevron-down"}
                                         size={scaledSize(16)}
@@ -2096,10 +2112,17 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: scaledSize(6) },
     },
     simpleScopeText: {
-        color: "#E6E6E6",
+        color: "#FFFFFF",
         fontFamily: "Outfit_700Bold",
         fontSize: scaledSize(14),
         letterSpacing: 0.2,
+        flexShrink: 1,
+    },
+    simpleScopePrefix: {
+        color: "#FFFFFF",
+    },
+    simpleScopeValue: {
+        color: theme.primary,
     },
     simpleScopeChevron: {
         marginTop: scaledSize(1),
