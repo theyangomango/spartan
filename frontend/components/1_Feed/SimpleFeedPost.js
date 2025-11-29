@@ -17,6 +17,8 @@ import Svg, { Path } from "react-native-svg";
 import { MaterialCommunityIcons, FontAwesome6 } from "@expo/vector-icons";
 import CroppedVideo from "../common/CroppedVideo";
 import Slider from "@react-native-community/slider";
+import HumanMuscleOutline from "../../assets/human_muscle_outline";
+import HumanMuscleBackOutline from "../../assets/human_muscle_back_outline";
 
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
@@ -40,6 +42,7 @@ import { isClipPost } from "../../utils/postTypes";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const BODYGRAPH_OUTLINE_COLOR = "#40485c";
 
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
@@ -1477,45 +1480,68 @@ const SimpleFeedPost = ({
                         onPress={handlePressWorkout}
                         style={styles.metricsRow}
                     >
-                        <View style={styles.metricsLeft}>
-                            <View style={styles.metricColumnLeft}>
-                                <View style={styles.metricLabelRow}>
-                                    {isLivePost ? <View style={styles.metricLiveDot} /> : null}
-                                    <Text style={styles.metricLabel}>Duration</Text>
-                                </View>
-                                <Text style={styles.metricValue}>{durationLabel}</Text>
+                        <View style={styles.metricsFigures}>
+                            <View style={[styles.metricsFigureSlot, styles.metricsFigureFront]}>
+                                <HumanMuscleOutline
+                                    color={BODYGRAPH_OUTLINE_COLOR}
+                                    width="120%"
+                                    height="120%"
+                                    preserveAspectRatio="xMidYMid meet"
+                                    style={styles.metricsFigure}
+                                />
                             </View>
-
-                            <View style={[styles.metricColumnLeft, styles.metricCenter]}>
-                                <View style={styles.metricLabelRow}>
-                                    {isLivePost ? <View style={styles.metricLiveDot} /> : null}
-                                    <Text style={styles.metricLabel}>Volume</Text>
-                                </View>
-                                <Text style={styles.metricValue}>{volumeLabel} {weightUnit}</Text>
-                            </View>
-
-                            <View style={[styles.metricColumnLeft, styles.metricCenter]}>
-                                <View style={styles.metricLabelRow}>
-                                    {isLivePost ? <View style={styles.metricLiveDot} /> : null}
-                                    <Text style={styles.metricLabel}>Calories</Text>
-                                </View>
-                                <Text style={styles.metricValue}>
-                                    {caloriesLabel}
-                                    {caloriesLabel !== "--" ? " kcal" : ""}
-                                </Text>
+                            <View style={[styles.metricsFigureSlot, styles.metricsFigureBack]}>
+                                <HumanMuscleBackOutline
+                                    color={BODYGRAPH_OUTLINE_COLOR}
+                                    width="120%"
+                                    height="120%"
+                                    preserveAspectRatio="xMidYMid meet"
+                                    style={styles.metricsFigure}
+                                />
                             </View>
                         </View>
 
-                        <View style={[styles.metricColumn, styles.metricRight]}>
-                            <View style={styles.metricLabelRow}>
-                                {isLivePost ? <View style={styles.metricLiveDot} /> : null}
-                                <Text style={styles.metricLabel}>Records</Text>
+                            <View style={styles.metricsColumnStack}>
+                                <View style={styles.metricTopStack}>
+                                    <View style={styles.metricStackRow}>
+                                        <View style={styles.metricLabelRow}>
+                                            {isLivePost ? <View style={styles.metricLiveDot} /> : null}
+                                            <Text style={[styles.metricLabel, styles.metricLabelRight]}>Duration</Text>
+                                        </View>
+                                        <Text style={[styles.metricValue, styles.metricValueRight]}>{durationLabel}</Text>
+                                    </View>
+
+                                    <View style={styles.metricStackRow}>
+                                        <View style={styles.metricLabelRow}>
+                                            {isLivePost ? <View style={styles.metricLiveDot} /> : null}
+                                            <Text style={[styles.metricLabel, styles.metricLabelRight]}>Volume</Text>
+                                        </View>
+        <Text style={[styles.metricValue, styles.metricValueRight]}>{volumeLabel} {weightUnit}</Text>
+                                    </View>
+
+                                    <View style={styles.metricStackRow}>
+                                        <View style={styles.metricLabelRow}>
+                                            {isLivePost ? <View style={styles.metricLiveDot} /> : null}
+                                            <Text style={[styles.metricLabel, styles.metricLabelRight]}>Calories</Text>
+                                        </View>
+                                        <Text style={[styles.metricValue, styles.metricValueRight]}>
+                                            {caloriesLabel}
+                                            {caloriesLabel !== "--" ? " kcal" : ""}
+                                        </Text>
+                                    </View>
+                                </View>
+
+                                <View style={[styles.metricStackRow, styles.metricStackRowLast]}>
+                                    <View style={styles.metricLabelRow}>
+                                        {isLivePost ? <View style={styles.metricLiveDot} /> : null}
+                                        <Text style={[styles.metricLabel, styles.metricLabelRight]}>Records</Text>
+                                    </View>
+                                    <View style={styles.recordsValueRow}>
+                                        <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" />
+                                        <Text style={[styles.metricValue, styles.metricValueText, styles.metricValueRight]}>{recordsLabel}</Text>
+                                    </View>
+                                </View>
                             </View>
-                            <View style={styles.recordsValueRow}>
-                                <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" />
-                                <Text style={[styles.metricValue, styles.recordsValueText]}>{recordsLabel}</Text>
-                            </View>
-                        </View>
                     </Pressable>
                 ) : null}
 
@@ -1998,13 +2024,40 @@ const styles = StyleSheet.create({
     },
     metricsLeft: {
         flexDirection: "row",
-        flex: 1
+        flex: 1,
+    },
+    metricsFigures: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        flex: 1.8,
+        paddingLeft: 0,
+        
+    },
+    metricsFigureSlot: {
+        flex: 1,
+        maxWidth: "94%",
+        height: scaleSize(240),
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    metricsFigureFront: {
+        marginRight: scaleSize(20),
+    },
+    metricsFigureBack: {
+        marginLeft: scaleSize(20),
+    },
+    metricsFigure: {
+        width: "125%",
+        height: "125%",
     },
     metricsRow: {
         flexDirection: "row",
         justifyContent: 'space-between',
-        paddingVertical: scaleSize(6),
-        marginHorizontal: scaleSize(20),
+        paddingVertical: scaleSize(10),
+        marginLeft: scaleSize(30),
+        marginRight: scaleSize(20),
+        alignItems: "center",
     },
     metricCenter: {
         paddingHorizontal: scaleSize(1),
@@ -2012,17 +2065,41 @@ const styles = StyleSheet.create({
     metricRight: {
         alignItems: 'flex-end',
     },
+    metricsColumnStack: {
+        flex: 0.6,
+        alignSelf: "stretch",
+        justifyContent: "space-between",
+        paddingBottom: scaleSize(10)
+    },
+    metricTopStack: {
+        width: "100%",
+        gap: scaleSize(10),
+    },
+    metricStackRow: {
+        alignSelf: "stretch",
+        marginBottom: scaleSize(10),
+        alignItems: "flex-end",
+    },
+    metricStackRowLast: {
+        marginBottom: 0,
+    },
     metricLabel: {
         color: 'rgba(255,255,255,0.58)',
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(11),
         letterSpacing: 0.2,
-        paddingBottom: scaleSize(1.5)
+        paddingBottom: scaleSize(1.5),
+        textAlign: "right",
+    },
+    metricLabelRight: {
+        textAlign: "right",
     },
     metricLabelRow: {
         flexDirection: "row",
         alignItems: "center",
         paddingBottom: scaleSize(1.5),
+        alignSelf: "stretch",
+        justifyContent: "flex-end",
     },
     metricLiveDot: {
         width: scaleSize(6.5),
@@ -2039,6 +2116,10 @@ const styles = StyleSheet.create({
         color: theme.textPrimary,
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(14),
+        textAlign: "right",
+    },
+    metricValueRight: {
+        textAlign: "right",
     },
     workoutSummaryBlock: {
         marginTop: scaleSize(6),

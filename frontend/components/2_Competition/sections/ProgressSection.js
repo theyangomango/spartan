@@ -4100,8 +4100,8 @@ const styles = StyleSheet.create({
     },
     ovrPill: {
         position: "absolute",
-        top: scaleSize(6),
-        right: scaleSize(14),
+        top: scaleSize(10),
+        right: scaleSize(24),
         flexDirection: "row",
         alignItems: "center",
         paddingHorizontal: scaleSize(12),
