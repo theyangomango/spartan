@@ -2690,7 +2690,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                     <View style={styles.hexGraphWrap}>
                                         <HexagonalStats
                                             statsHexagon={userData?.statsHexagon || {}}
-                                            size={scaleSize(280)}
+                                            size={scaleSize(300)}
                                             labelFontPx={14}
                                             valueFontPx={16}
                                             valueFontBigPx={18}

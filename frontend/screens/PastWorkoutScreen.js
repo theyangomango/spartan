@@ -12,6 +12,8 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
+import HumanMuscleOutline from "../assets/human_muscle_outline";
+import HumanMuscleBackOutline from "../assets/human_muscle_back_outline";
 import { doc, onSnapshot, collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 import PastWorkoutExerciseLog from "../components/1_Feed/PastWorkoutExerciseLog";
@@ -34,6 +36,16 @@ import { exercises as EXERCISE_LIBRARY } from "../components/3_Workout/NewWorkou
 
 const HEADER_ICON_SIZE = scaleSize(20);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const BODYGRAPH_OUTLINE_COLOR = "#40485c";
+const MUSCLE_HIGHLIGHT = "#ff6f67";
+const MUSCLE_SEGMENTS = {
+    shoulders: ["shoulders"],
+    chest: ["chest"],
+    arms: ["arms", "forearms"],
+    back: ["back", "traps"],
+    abs: ["abs", "obliques"],
+    legs: ["quads", "calves"],
+};
 
 const toMillis = (value) => {
     if (value === null || typeof value === "undefined") return null;
@@ -325,6 +337,34 @@ const PastWorkoutScreen = () => {
                 : [],
         [workout?.exercises]
     );
+
+    const workedSegments = useMemo(() => {
+        if (!Array.isArray(exercises) || exercises.length === 0) return [];
+        const set = new Set();
+        exercises.forEach((ex) => {
+            const groupRaw = ex?.muscleGroup || ex?.muscle;
+            if (typeof groupRaw !== "string") return;
+            const key = groupRaw.trim().toLowerCase();
+            if (!key) return;
+            if (key.includes("shoulder")) MUSCLE_SEGMENTS.shoulders.forEach((s) => set.add(s));
+            else if (key === "chest") MUSCLE_SEGMENTS.chest.forEach((s) => set.add(s));
+            else if (key.includes("arm") || key.includes("bicep") || key.includes("tricep") || key.includes("forearm"))
+                MUSCLE_SEGMENTS.arms.forEach((s) => set.add(s));
+            else if (key.includes("leg") || key.includes("quad") || key.includes("calf") || key.includes("hamstring"))
+                MUSCLE_SEGMENTS.legs.forEach((s) => set.add(s));
+            else if (key.includes("back") || key.includes("trap")) MUSCLE_SEGMENTS.back.forEach((s) => set.add(s));
+            else if (key.includes("ab") || key.includes("core") || key.includes("oblique")) MUSCLE_SEGMENTS.abs.forEach((s) => set.add(s));
+        });
+        return Array.from(set);
+    }, [exercises]);
+
+    const muscleFills = useMemo(() => {
+        const map = {};
+        workedSegments.forEach((seg) => {
+            map[seg] = MUSCLE_HIGHLIGHT;
+        });
+        return map;
+    }, [workedSegments]);
 
     const workoutTimestamp = useMemo(() => {
         if (!workout) return null;
@@ -997,45 +1037,70 @@ const PastWorkoutScreen = () => {
                                     onPress={handlePressWorkoutHeader}
                                     style={styles.metricsRow}
                                 >
-                                    <View style={styles.metricsLeft}>
-                                        <View style={styles.metricColumnLeft}>
-                                            <View style={styles.metricLabelRow}>
-                                                {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
-                                                <Text style={styles.metricLabel}>Duration</Text>
-                                            </View>
-                                            <Text style={styles.metricValue}>{durationLabel}</Text>
+                                    <View style={styles.metricsFigures}>
+                                        <View style={[styles.metricsFigureSlot, styles.metricsFigureFront]}>
+                                            <HumanMuscleOutline
+                                                color={BODYGRAPH_OUTLINE_COLOR}
+                                                width="120%"
+                                                height="120%"
+                                                preserveAspectRatio="xMidYMid meet"
+                                                fills={muscleFills}
+                                                style={styles.metricsFigure}
+                                            />
                                         </View>
-
-                                        <View style={[styles.metricColumnLeft, styles.metricCenter]}>
-                                            <View style={styles.metricLabelRow}>
-                                                {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
-                                                <Text style={styles.metricLabel}>Volume</Text>
-                                            </View>
-                                            <Text style={styles.metricValue}>
-                                                {volumeLabel} {weightUnit}
-                                            </Text>
-                                        </View>
-
-                                        <View style={[styles.metricColumnLeft, styles.metricCenter]}>
-                                            <View style={styles.metricLabelRow}>
-                                                {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
-                                                <Text style={styles.metricLabel}>Calories</Text>
-                                            </View>
-                                            <Text style={styles.metricValue}>
-                                                {caloriesLabel}
-                                                {caloriesLabel !== "--" ? " kcal" : ""}
-                                            </Text>
+                                        <View style={[styles.metricsFigureSlot, styles.metricsFigureBack]}>
+                                            <HumanMuscleBackOutline
+                                                color={BODYGRAPH_OUTLINE_COLOR}
+                                                width="120%"
+                                                height="120%"
+                                                preserveAspectRatio="xMidYMid meet"
+                                                fills={muscleFills}
+                                                style={styles.metricsFigure}
+                                            />
                                         </View>
                                     </View>
 
-                                    <View style={styles.metricRight}>
-                                        <View style={styles.metricLabelRow}>
-                                            {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
-                                            <Text style={styles.metricLabel}>Records</Text>
+                                    <View style={styles.metricsColumnStack}>
+                                        <View style={styles.metricTopStack}>
+                                            <View style={styles.metricStackRow}>
+                                                <View style={styles.metricLabelRow}>
+                                                    {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
+                                                    <Text style={[styles.metricLabel, styles.metricLabelRight]}>Duration</Text>
+                                                </View>
+                                                <Text style={[styles.metricValue, styles.metricValueRight]}>{durationLabel}</Text>
+                                            </View>
+
+                                            <View style={styles.metricStackRow}>
+                                                <View style={styles.metricLabelRow}>
+                                                    {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
+                                                    <Text style={[styles.metricLabel, styles.metricLabelRight]}>Volume</Text>
+                                                </View>
+                                                <Text style={[styles.metricValue, styles.metricValueRight]}>
+                                                    {volumeLabel} {weightUnit}
+                                                </Text>
+                                            </View>
+
+                                            <View style={styles.metricStackRow}>
+                                                <View style={styles.metricLabelRow}>
+                                                    {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
+                                                    <Text style={[styles.metricLabel, styles.metricLabelRight]}>Calories</Text>
+                                                </View>
+                                                <Text style={[styles.metricValue, styles.metricValueRight]}>
+                                                    {caloriesLabel}
+                                                    {caloriesLabel !== "--" ? " kcal" : ""}
+                                                </Text>
+                                            </View>
                                         </View>
-                                        <View style={styles.recordsValueRow}>
-                                            <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" />
-                                            <Text style={[styles.metricValue, styles.recordsValueText]}>{recordsLabel}</Text>
+
+                                        <View style={[styles.metricStackRow, styles.metricStackRowLast]}>
+                                            <View style={styles.metricLabelRow}>
+                                                {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
+                                                <Text style={[styles.metricLabel, styles.metricLabelRight]}>Records</Text>
+                                            </View>
+                                            <View style={styles.recordsValueRow}>
+                                                <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" />
+                                                <Text style={[styles.metricValue, styles.metricValueRight, styles.recordsValueText]}>{recordsLabel}</Text>
+                                            </View>
                                         </View>
                                     </View>
                                 </Pressable>
@@ -1251,32 +1316,70 @@ const styles = StyleSheet.create({
     metricsRow: {
         flexDirection: "row",
         justifyContent: "space-between",
-        paddingTop: scaleSize(6),
-        marginHorizontal: scaleSize(20),
+        paddingVertical: scaleSize(10),
+        marginLeft: scaleSize(30),
+        marginRight: scaleSize(20),
+        alignItems: "center",
     },
-    metricsLeft: {
-        flex: 1,
+    metricsFigures: {
         flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        flex: 1.8,
+        paddingLeft: 0,
     },
-    metricColumnLeft: {
-        width: "31%",
+    metricsFigureSlot: {
+        flex: 1,
+        maxWidth: "94%",
+        height: scaleSize(240),
+        alignItems: "center",
+        justifyContent: "center",
     },
-    metricCenter: {
-        paddingHorizontal: scaleSize(1),
+    metricsFigureFront: {
+        marginRight: scaleSize(20),
     },
-    metricRight: {
+    metricsFigureBack: {
+        marginLeft: scaleSize(20),
+    },
+    metricsFigure: {
+        width: "125%",
+        height: "125%",
+    },
+    metricsColumnStack: {
+        flex: 0.65,
+        alignSelf: "stretch",
+        justifyContent: "space-between",
+        paddingBottom: scaleSize(10),
+    },
+    metricTopStack: {
+        width: "100%",
+        gap: scaleSize(10),
+    },
+    metricStackRow: {
+        alignSelf: "stretch",
+        marginBottom: scaleSize(10),
         alignItems: "flex-end",
+    },
+    metricStackRowLast: {
+        marginBottom: 0,
     },
     metricLabel: {
         color: "rgba(255,255,255,0.58)",
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(11),
         letterSpacing: 0.2,
+        paddingBottom: scaleSize(1.5),
+        textAlign: "right",
+    },
+    metricLabelRight: {
+        textAlign: "right",
     },
     metricLabelRow: {
         flexDirection: "row",
         alignItems: "center",
         paddingBottom: scaleSize(1.5),
+        alignSelf: "stretch",
+        justifyContent: "flex-end",
     },
     metricLiveDot: {
         width: scaleSize(6.5),
@@ -1293,6 +1396,10 @@ const styles = StyleSheet.create({
         color: theme.textPrimary,
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(14),
+        textAlign: "right",
+    },
+    metricValueRight: {
+        textAlign: "right",
     },
     recordsValueRow: {
         flexDirection: "row",
