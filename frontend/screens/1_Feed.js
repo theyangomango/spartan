@@ -51,6 +51,7 @@ import { requestCompetitionTabFocus } from "../utils/competitionTabEvents";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import { strong as hapticStrong } from "../utils/haptics";
 import FeedSnapshotCard from "../components/1_Feed/FeedSnapshotCard";
+import formatHexStat from "../utils/formatHexStat";
 import HistoryCalendarModal from "../components/common/HistoryCalendarModal";
 import FeedLoadingSkeleton from "../components/1_Feed/FeedLoadingSkeleton";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
@@ -68,6 +69,14 @@ const CREATE_POST_MENU_WIDTH = Math.max(
     0,
     Math.min(210, Math.round(SCREEN_WIDTH - scaleSize(48))),
 );
+
+const getInitialStatsHex = () => {
+    try {
+        return global?.userData?.statsHexagon || null;
+    } catch {
+        return null;
+    }
+};
 
 const dateToDayKey = (date) => {
     if (!(date instanceof Date)) return null;
@@ -334,6 +343,24 @@ export default function Feed({ navigation, route }) {
         const unsubscribe = subscribeUserData((payload) => {
             setCalendarMarkedDays(buildWorkoutDaySet(payload));
             setCurrentRank(deriveRankFromUserData(payload));
+            setUserStatsHexagon(payload?.statsHexagon || null);
+            try {
+                const { promotionStatuses } = computeRankProgressFromData({
+                    completedWorkouts: Array.isArray(payload?.completedWorkouts)
+                        ? payload.completedWorkouts.filter(Boolean)
+                        : [],
+                    statsHexagon: payload?.statsHexagon,
+                });
+                const firstIncomplete = Array.from(promotionStatuses.values()).find((status) => !status.allComplete);
+                if (firstIncomplete && Array.isArray(firstIncomplete.tasks)) {
+                    const remaining = firstIncomplete.tasks.filter((t) => !t.complete).length;
+                    setPendingQuestsCount(Number.isFinite(remaining) ? remaining : null);
+                } else {
+                    setPendingQuestsCount(null);
+                }
+            } catch {
+                setPendingQuestsCount(null);
+            }
         });
         return unsubscribe;
     }, []);
@@ -383,7 +410,7 @@ export default function Feed({ navigation, route }) {
 
     const highlightPidRef = useRef(null);
     const [highlightSignal, setHighlightSignal] = useState(0);
-    const [pendingScrollRequest, setPendingScrollRequest] = useState(null);
+const [pendingScrollRequest, setPendingScrollRequest] = useState(null);
 const [calendarVisible, setCalendarVisible] = useState(false);
 const [calendarSelectedDate, setCalendarSelectedDate] = useState(() => Date.now());
 const [calendarMarkedDays, setCalendarMarkedDays] = useState(() => buildWorkoutDaySet(global?.userData));
@@ -393,6 +420,23 @@ const [currentRank, setCurrentRank] = useState(() => {
     } catch {
         return null;
     }
+});
+const [userStatsHexagon, setUserStatsHexagon] = useState(getInitialStatsHex);
+const [pendingQuestsCount, setPendingQuestsCount] = useState(() => {
+    try {
+        const { promotionStatuses } = computeRankProgressFromData({
+            completedWorkouts: Array.isArray(global?.userData?.completedWorkouts)
+                ? global.userData.completedWorkouts.filter(Boolean)
+                : [],
+            statsHexagon: global?.userData?.statsHexagon,
+        });
+        const firstIncomplete = Array.from(promotionStatuses.values()).find((status) => !status.allComplete);
+        if (firstIncomplete && Array.isArray(firstIncomplete.tasks)) {
+            const remaining = firstIncomplete.tasks.filter((t) => !t.complete).length;
+            return Number.isFinite(remaining) ? remaining : null;
+        }
+    } catch { }
+    return null;
 });
 
     const headerVisibility = useRef(new Animated.Value(1)).current;
@@ -1398,6 +1442,10 @@ const [currentRank, setCurrentRank] = useState(() => {
     const snapshotRankTier = currentRank?.tier ?? currentRank?.rankTier ?? undefined;
     const snapshotRankLabel = currentRank?.label ?? currentRank?.rankLabel ?? undefined;
     const snapshotRankLevel = currentRank?.level ?? currentRank?.rankLevel ?? undefined;
+    const userOverallScore = useMemo(() => {
+        const raw = Number(userStatsHexagon?.overall);
+        return Number.isFinite(raw) ? formatHexStat(raw) : null;
+    }, [userStatsHexagon?.overall]);
 
     const renderSnapshotCard = useCallback(
         () => (
@@ -1409,6 +1457,9 @@ const [currentRank, setCurrentRank] = useState(() => {
                     rankTier={snapshotRankTier}
                     rankLabel={snapshotRankLabel}
                     rankLevel={snapshotRankLevel}
+                    overallRating={userOverallScore}
+                    showOverallRating={userOverallScore != null}
+                    pendingRequirementsCount={pendingQuestsCount}
                 />
             </View>
         ),
@@ -1416,6 +1467,8 @@ const [currentRank, setCurrentRank] = useState(() => {
             snapshotRankLabel,
             snapshotRankLevel,
             snapshotRankTier,
+            userOverallScore,
+            pendingQuestsCount,
             handleOpenLadder,
             handleOpenProgress,
             handleOpenUserStats,

@@ -247,6 +247,8 @@ export default function FeedSnapshotCard({
     rankLabel,
     rankLevel = null,
     overallRating = null,
+    showOverallRating = true,
+    pendingRequirementsCount = null,
     showRankTabs = true,
     enableRankAnimations = true,
     onPressOverall,
@@ -262,6 +264,7 @@ export default function FeedSnapshotCard({
     const resolvedRankLevel = rankLevel || extractLevelFromLabel(resolvedRankLabel);
     const resolvedOverallRating =
         (overallRating ?? rankTheme.overallRating ?? RANK_TIER_THEMES.gold.overallRating);
+    const resolvedShowOverall = showOverallRating !== false && resolvedOverallRating != null;
     const rankLevelStage = resolveLevelStage(resolvedRankLevel);
     const badgeDetailColors = deriveBadgeDetailColors(rankTheme, RANK_TIER_THEMES.gold);
     const showSeedGem = rankLevelStage === 1;
@@ -280,6 +283,10 @@ export default function FeedSnapshotCard({
     }, [resolvedOverallRating]);
 
     const pointsToNextRankCopy = useMemo(() => {
+        if (pendingRequirementsCount != null) {
+            if (pendingRequirementsCount <= 0) return "Top of current rank";
+            return `${pendingRequirementsCount} quest${pendingRequirementsCount === 1 ? "" : "s"} to next rank`;
+        }
         if (pointsToNextRank == null) return null;
         if (pointsToNextRank === 0) return "Top of current rank";
         const requiresDecimal = pointsToNextRank < 10;
@@ -288,7 +295,7 @@ export default function FeedSnapshotCard({
             : Math.round(pointsToNextRank);
         const formattedValue = requiresDecimal ? roundedValue.toFixed(1) : String(roundedValue);
         return `${formattedValue} pts to next rank`;
-    }, [pointsToNextRank]);
+    }, [pendingRequirementsCount, pointsToNextRank]);
 
     const [activeRankTab, setActiveRankTab] = useState(() => sanitizeTabKey(initialTabKey) || RANK_TAB_CONFIG[0].key);
     const forcedTabKey = sanitizeTabKey(forceTabKey);
@@ -769,14 +776,16 @@ export default function FeedSnapshotCard({
                             </Animated.View>
                             <Text style={[styles.rankTitle, { color: rankTheme.titleColor || goldTheme.titleColor }]}>
                                 {resolvedRankLabel}
-                                <Text
-                                    style={[
-                                        styles.rankTitleSecondary,
-                                        { color: rankTheme.titleSecondaryColor || goldTheme.titleSecondaryColor },
-                                    ]}
-                                >
-                                    {` · ${resolvedOverallRating} OVR`}
-                                </Text>
+                                {resolvedShowOverall ? (
+                                    <Text
+                                        style={[
+                                            styles.rankTitleSecondary,
+                                            { color: rankTheme.titleSecondaryColor || goldTheme.titleSecondaryColor },
+                                        ]}
+                                    >
+                                        {` · ${resolvedOverallRating} OVR`}
+                                    </Text>
+                                ) : null}
                             </Text>
                             {pointsToNextRankCopy ? (
                                 <Text style={styles.rankProgressText}>{pointsToNextRankCopy}</Text>

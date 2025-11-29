@@ -16,6 +16,7 @@ import {
 import RankTierMiniBadge from "../RankTierMiniBadge";
 import { subscribeUserData } from "../../../utils/userDataEvents";
 import { LADDER_SCROLL_TARGET_KEY } from "../../../utils/competitionTabEvents";
+import formatHexStat from "../../../utils/formatHexStat";
 
 const CARD_THEME_COLORS = {
     bronze: { gradient: ["#6f3600ff", "#e19c73ff"], accent: "#f9cba1ff" },
@@ -145,6 +146,11 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
         if (!Array.isArray(userData?.completedWorkouts)) return [];
         return userData.completedWorkouts.filter(Boolean);
     }, [userData?.completedWorkouts]);
+
+    const userOverallScore = useMemo(() => {
+        const raw = Number(userData?.statsHexagon?.overall);
+        return Number.isFinite(raw) ? formatHexStat(raw) : null;
+    }, [userData?.statsHexagon?.overall]);
 
     const rankProgress = useMemo(
         () =>
@@ -280,6 +286,7 @@ const attemptCenterCurrentCard = useCallback(
                     promotionStatus?.allComplete ??
                     (tasksToRender.length ? tasksToRender.every((task) => task.complete) : false);
                 const hasRequirements = tasksToRender.length > 0;
+                const showOverallRating = entryIsCurrent && userOverallScore != null;
                 return (
                     <View
                         key={entry.key}
@@ -290,15 +297,17 @@ const attemptCenterCurrentCard = useCallback(
                         onLayout={(event) => handleCardLayout(entry.key, event?.nativeEvent?.layout)}
                     >
                         <View style={cardShouldDim ? styles.dimmedCard : null}>
-                            <FeedSnapshotCard
-                                rankTier={entry.rankTier}
-                                rankLabel={entry.rankLabel}
-                                rankLevel={entry.rankLevel}
-                                showRankTabs={false}
-                                forceTabKey="rank"
-                                enableRankAnimations={entryIsCurrent}
-                            />
-                        </View>
+                                <FeedSnapshotCard
+                                    rankTier={entry.rankTier}
+                                    rankLabel={entry.rankLabel}
+                                    rankLevel={entry.rankLevel}
+                                    showRankTabs={false}
+                                    forceTabKey="rank"
+                                    enableRankAnimations={entryIsCurrent}
+                                    overallRating={showOverallRating ? userOverallScore : null}
+                                    showOverallRating={showOverallRating}
+                                />
+                            </View>
                         {hasRequirements && (
                             <View
                                 style={[

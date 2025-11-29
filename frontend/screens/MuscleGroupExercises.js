@@ -213,6 +213,42 @@ const resolveEstimatedOneRm = (item) => {
     return computeBestOneRmFromSets(item?.workoutSets || []);
 };
 
+const SPARK_WIDTH = 160;
+const SPARK_HEIGHT = 60;
+const SPARK_PAD_X = 6;
+const SPARK_PAD_Y = 10;
+
+const buildSparklinePath = (progress = [], fallbackValue = null) => {
+    const values = Array.isArray(progress)
+        ? progress
+            .map((entry) => Number(entry?.["1RM"] ?? entry?.oneRM ?? entry?.oneRm ?? entry?.value ?? entry?.val ?? 0))
+            .filter((v) => Number.isFinite(v) && v > 0)
+        : [];
+    if ((!values || values.length === 0) && Number.isFinite(fallbackValue) && fallbackValue > 0) {
+        values.push(fallbackValue);
+    }
+    if (values.length === 0) {
+        return `M ${SPARK_PAD_X} ${SPARK_HEIGHT / 2} L ${SPARK_WIDTH - SPARK_PAD_X} ${SPARK_HEIGHT / 2}`;
+    }
+    if (values.length === 1) values.push(values[0]);
+
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min || 1;
+    const norm = values.map((v) => (v - min) / range);
+    const innerWidth = SPARK_WIDTH - SPARK_PAD_X * 2;
+    const innerHeight = SPARK_HEIGHT - SPARK_PAD_Y * 2;
+    const step = innerWidth / (norm.length - 1 || 1);
+
+    let path = "";
+    norm.forEach((ratio, idx) => {
+        const x = SPARK_PAD_X + step * idx;
+        const y = SPARK_PAD_Y + innerHeight * (1 - ratio);
+        path += `${idx === 0 ? "M" : " L"} ${x} ${y}`;
+    });
+    return path;
+};
+
 export default function MuscleGroupExercises() {
     const navigation = useNavigation();
     const route = useRoute();
@@ -288,6 +324,7 @@ export default function MuscleGroupExercises() {
             const estOneRm = resolveEstimatedOneRm(item);
             const estTextRaw = formatWeightValue(estOneRm);
             const estLabel = estTextRaw ? `${estTextRaw} ${displayPreferredUnit}` : "--";
+            const sparkPath = buildSparklinePath(item?.statsEntry?.progress1RM, estOneRm);
             return (
                 <Pressable
                     style={styles.exerciseCard}
@@ -312,12 +349,12 @@ export default function MuscleGroupExercises() {
                     </View>
                     <View style={styles.waveWrap}>
                         <Svg
-                            width={scaleSize(160)}
-                            height={scaleSize(60)}
-                            viewBox="0 0 160 60"
+                            width={scaleSize(SPARK_WIDTH)}
+                            height={scaleSize(SPARK_HEIGHT)}
+                            viewBox={`0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}`}
                         >
                             <Path
-                                d="M4 38 C 38 38 62 20 92 26 C 122 32 142 20 156 20"
+                                d={sparkPath}
                                 stroke="#4FAEFF"
                                 strokeWidth={4}
                                 strokeLinecap="round"
@@ -463,9 +500,9 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(12),
     },
     exerciseImageWrap: {
-        width: scaleSize(74),
-        height: scaleSize(74),
-        borderRadius: scaleSize(12),
+        width: scaleSize(66),
+        height: scaleSize(66),
+        borderRadius: scaleSize(10),
         backgroundColor: "transparent",
         alignItems: "center",
         justifyContent: "center",
@@ -480,7 +517,7 @@ const styles = StyleSheet.create({
     },
     exerciseTitle: {
         fontFamily: "Outfit_800ExtraBold",
-        fontSize: ts(14),
+        fontSize: ts(13),
         color: theme.textPrimary ?? "#F6F8FF",
         marginBottom: scaleSize(4),
     },
@@ -501,6 +538,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         paddingHorizontal: scaleSize(32),
+        paddingTop: scaleSize(60),
     },
     emptyTitle: {
         fontFamily: "Outfit_700Bold",
