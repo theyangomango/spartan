@@ -338,7 +338,7 @@ export default function MuscleGroupExercises() {
                             <ExerciseAvatar
                                 name={item.name}
                                 slug={item.slug}
-                                size={scaleSize(68)}
+                                size={scaleSize(56)}
                                 imageStyle={styles.exerciseImage}
                             />
                         </View>
@@ -500,9 +500,9 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(12),
     },
     exerciseImageWrap: {
-        width: scaleSize(66),
-        height: scaleSize(66),
-        borderRadius: scaleSize(10),
+        width: scaleSize(56),
+        height: scaleSize(56),
+        borderRadius: scaleSize(12),
         backgroundColor: "transparent",
         alignItems: "center",
         justifyContent: "center",
