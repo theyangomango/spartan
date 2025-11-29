@@ -25,7 +25,6 @@ const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 const CARD_BG = "#1E2536";
 const CARD_BORDER = "rgba(135, 185, 255, 0.22)";
-const HANDLE_COLOR = "rgba(255,255,255,0.28)";
 const RING_TRACK = "rgba(255,255,255,0.12)";
 const RING_GLOW = "#4C9BFF";
 const CHIP_BG = "rgba(148, 163, 184, 0.16)";
@@ -243,9 +242,6 @@ export default function RestTimerModal({
         <Modal animationType="fade" transparent visible={visible} onRequestClose={onClose}>
             <Pressable style={styles.overlay} onPress={onClose}>
                 <Animated.View style={[styles.card, cardStyle]} onStartShouldSetResponder={() => true}>
-                    {/* Drag handle */}
-                    <View style={styles.handle} />
-
                     {/* Close (optional) */}
                     <Pressable hitSlop={12} onPress={onClose} style={styles.closeBtn}>
                         <Text style={styles.closeTxt}>×</Text>
@@ -333,13 +329,6 @@ const styles = StyleSheet.create({
         shadowRadius: scaleSize(26),
         shadowOffset: { width: 0, height: scaleSize(12) },
         elevation: 6,
-    },
-    handle: {
-        width: scaledSize(38),
-        height: scaledSize(4),
-        borderRadius: scaledSize(2),
-        backgroundColor: HANDLE_COLOR,
-        marginBottom: scaledSize(10),
     },
     closeBtn: {
         position: "absolute",

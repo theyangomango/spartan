@@ -1953,16 +1953,16 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     avatarWrap: {
-        width: scaleSize(34),
+        width: scaleSize(38),
         aspectRatio: 1,
-        borderRadius: scaleSize(23),
+        borderRadius: scaleSize(24),
         overflow: "hidden",
-        marginRight: scaleSize(10),
+        marginRight: scaleSize(11),
     },
     avatar: {
         width: "100%",
         height: "100%",
-        borderRadius: scaleSize(23),
+        borderRadius: scaleSize(24),
         backgroundColor: theme.field,
     },
     avatarFallback: {
@@ -1972,7 +1972,7 @@ const styles = StyleSheet.create({
     avatarInitials: {
         color: theme.textPrimary,
         fontFamily: "Poppins_600SemiBold",
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(15.5),
     },
     headerTextCol: {
         flex: 1,
