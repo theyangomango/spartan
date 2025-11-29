@@ -2675,14 +2675,15 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                         chartCardLayout.card,
                                         styles.card,
                                         styles.bodyCard,
+                                        styles.topPagerCard,
                                     ]}
                                 >
                                     <View style={styles.bodyFiguresRow}>
                                         <View style={[styles.bodyFigureSlot, styles.bodyFigureSlotFront]}>
                                             <HumanMuscleOutline
                                                 color={BODYGRAPH_OUTLINE_COLOR}
-                                                width="115%"
-                                                height="110%"
+                                                width="120%"
+                                                height="118%"
                                                 preserveAspectRatio="xMidYMid meet"
                                                 fills={muscleFills}
                                                 style={styles.bodyFigure}
@@ -2691,8 +2692,8 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                         <View style={[styles.bodyFigureSlot, styles.bodyFigureSlotBack]}>
                                             <HumanMuscleBackOutline
                                                 color={BODYGRAPH_OUTLINE_COLOR}
-                                                width="115%"
-                                                height="110%"
+                                                width="120%"
+                                                height="118%"
                                                 preserveAspectRatio="xMidYMid meet"
                                                 fills={muscleFills}
                                                 style={styles.bodyFigure}
@@ -2707,6 +2708,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                         chartCardLayout.card,
                                         styles.card,
                                         styles.hexCard,
+                                        styles.topPagerCard,
                                     ]}
                                 >
                                     <View style={styles.hexGraphWrap}>
@@ -2734,11 +2736,11 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                         </View>
                     </View>
                     <View
-                        style={[
-                            chartCardLayout.card,
-                            styles.card,
-                            styles.muscleListCard,
-                        ]}
+                    style={[
+                        chartCardLayout.card,
+                        styles.card,
+                        styles.muscleListCard,
+                    ]}
                     >
                         <View style={styles.muscleList}>
                             {muscleGroupScores.map((item) => (
@@ -4018,11 +4020,14 @@ const styles = StyleSheet.create({
         minHeight: scaleSize(430),
         justifyContent: "center",
     },
+    topPagerCard: {
+        borderBottomWidth: 0,
+    },
     bodyFiguresRow: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingHorizontal: scaleSize(8),
+        paddingHorizontal: scaleSize(6),
         marginTop: scaleSize(-24),
     },
     muscleList: {
@@ -4075,6 +4080,7 @@ const styles = StyleSheet.create({
     muscleListCard: {
         marginTop: scaleSize(10),
         paddingHorizontal: scaleSize(18),
+        borderTopWidth: 0,
     },
     muscleLeft: {
         flexDirection: "row",

@@ -11,14 +11,14 @@ import VerifiedHandle from '../common/VerifiedHandle';
 const { width } = Dimensions.get("window");
 
 // Scaled sizes (baseline ~ iPhone 12/13: 390x844)
-const CARD_HEIGHT = scaleSize(64);
-const SELF_CARD_HEIGHT = scaleSize(86);
-const PFP_SIZE = scaleSize(40);
+const CARD_HEIGHT = scaleSize(60);
+const SELF_CARD_HEIGHT = scaleSize(82);
+const PFP_SIZE = scaleSize(44);
 
-const FONT_HANDLE = ts(13.5);
-const FONT_NAME = ts(13.5);
-const FONT_STAT = ts(12);
-const FONT_HEX_STAT = ts(14);
+const FONT_HANDLE = ts(12.5);
+const FONT_NAME = ts(12.5);
+const FONT_STAT = ts(11);
+const FONT_HEX_STAT = ts(13);
 const FONT_RANK = ts(12);
 const FONT_BEST = ts(12);
 
@@ -91,7 +91,7 @@ export default function LeaderboardCard({
                             isVerified={isVerified}
                             textStyle={[styles.handle_text, { fontSize: scaleSize(FONT_HANDLE) }]}
                             numberOfLines={1}
-                            iconSize={scaleSize(13)}
+                            iconSize={scaleSize(12)}
                             containerStyle={styles.handle_row}
                         />
                     </View>

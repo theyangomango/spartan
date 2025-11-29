@@ -213,15 +213,15 @@ const styles = StyleSheet.create({
         flexGrow: 1,
     },
     pfpC: {
-        width: scaleSize(s(36)),
-        height: scaleSize(s(36)),
-        borderRadius: scaleSize(s(18)),
+        width: scaleSize(s(40)),
+        height: scaleSize(s(40)),
+        borderRadius: scaleSize(s(20)),
         overflow: 'hidden',
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: 'rgba(255,255,255,0.08)',
         backgroundColor: theme.surface,
     },
-    pfp: { width: '100%', height: '100%', borderRadius: scaleSize(s(18)) },
+    pfp: { width: '100%', height: '100%', borderRadius: scaleSize(s(20)) },
     textC: { marginLeft: scaleSize(s(12)), flex: 1 },
     handleRow: { flexShrink: 1, maxWidth: '100%' },
     handle: {
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
     sep: {
         height: StyleSheet.hairlineWidth,
         backgroundColor: 'rgba(255,255,255,0.08)',
-        marginLeft: scaleSize(s(60)),
+        marginLeft: scaleSize(s(64)),
         marginRight: scaleSize(s(14)),
     },
     backdrop: {
