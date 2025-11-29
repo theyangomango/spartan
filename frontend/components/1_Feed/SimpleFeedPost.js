@@ -43,6 +43,15 @@ import { isClipPost } from "../../utils/postTypes";
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const BODYGRAPH_OUTLINE_COLOR = "#40485c";
+const MUSCLE_HIGHLIGHT = "#ff6f67";
+const MUSCLE_SEGMENTS = {
+    shoulders: ["shoulders"],
+    chest: ["chest"],
+    arms: ["arms", "forearms"],
+    back: ["back", "traps"],
+    abs: ["abs", "obliques"],
+    legs: ["quads", "calves"],
+};
 
 const toNumber = (value, fallback = 0) => {
     const num = Number(value);
@@ -1138,6 +1147,32 @@ const SimpleFeedPost = ({
         () => Boolean(isViewerOwner && workout && typeof onPressEditWorkout === "function"),
         [isViewerOwner, workout, onPressEditWorkout]
     );
+    const workedSegments = useMemo(() => {
+        if (!workout || !Array.isArray(workout.exercises)) return [];
+        const set = new Set();
+        workout.exercises.forEach((ex) => {
+            const groupRaw = ex?.muscleGroup || ex?.muscle;
+            if (typeof groupRaw !== "string") return;
+            const key = groupRaw.trim().toLowerCase();
+            if (!key) return;
+            if (key.includes("shoulder")) MUSCLE_SEGMENTS.shoulders.forEach((s) => set.add(s));
+            else if (key === "chest") MUSCLE_SEGMENTS.chest.forEach((s) => set.add(s));
+            else if (key.includes("arm") || key.includes("bicep") || key.includes("tricep") || key.includes("forearm"))
+                MUSCLE_SEGMENTS.arms.forEach((s) => set.add(s));
+            else if (key.includes("leg") || key.includes("quad") || key.includes("calf") || key.includes("hamstring"))
+                MUSCLE_SEGMENTS.legs.forEach((s) => set.add(s));
+            else if (key.includes("back") || key.includes("trap")) MUSCLE_SEGMENTS.back.forEach((s) => set.add(s));
+            else if (key.includes("ab") || key.includes("core") || key.includes("oblique")) MUSCLE_SEGMENTS.abs.forEach((s) => set.add(s));
+        });
+        return Array.from(set);
+    }, [workout]);
+    const muscleFills = useMemo(() => {
+        const map = {};
+        workedSegments.forEach((seg) => {
+            map[seg] = MUSCLE_HIGHLIGHT;
+        });
+        return map;
+    }, [workedSegments]);
     const deleteOptionLabel = canAutoDeleteWorkout ? "Delete Post & Workout" : "Delete Post";
     const deleteConfirmTitle = canAutoDeleteWorkout ? "Delete post & workout?" : "Delete post?";
     const deleteConfirmMessage = canAutoDeleteWorkout
@@ -1480,26 +1515,28 @@ const SimpleFeedPost = ({
                         onPress={handlePressWorkout}
                         style={styles.metricsRow}
                     >
-                        <View style={styles.metricsFigures}>
-                            <View style={[styles.metricsFigureSlot, styles.metricsFigureFront]}>
-                                <HumanMuscleOutline
-                                    color={BODYGRAPH_OUTLINE_COLOR}
-                                    width="120%"
-                                    height="120%"
-                                    preserveAspectRatio="xMidYMid meet"
-                                    style={styles.metricsFigure}
-                                />
+                            <View style={styles.metricsFigures}>
+                                <View style={[styles.metricsFigureSlot, styles.metricsFigureFront]}>
+                                    <HumanMuscleOutline
+                                        color={BODYGRAPH_OUTLINE_COLOR}
+                                        width="120%"
+                                        height="120%"
+                                        preserveAspectRatio="xMidYMid meet"
+                                        fills={muscleFills}
+                                        style={styles.metricsFigure}
+                                    />
+                                </View>
+                                <View style={[styles.metricsFigureSlot, styles.metricsFigureBack]}>
+                                    <HumanMuscleBackOutline
+                                        color={BODYGRAPH_OUTLINE_COLOR}
+                                        width="120%"
+                                        height="120%"
+                                        preserveAspectRatio="xMidYMid meet"
+                                        fills={muscleFills}
+                                        style={styles.metricsFigure}
+                                    />
+                                </View>
                             </View>
-                            <View style={[styles.metricsFigureSlot, styles.metricsFigureBack]}>
-                                <HumanMuscleBackOutline
-                                    color={BODYGRAPH_OUTLINE_COLOR}
-                                    width="120%"
-                                    height="120%"
-                                    preserveAspectRatio="xMidYMid meet"
-                                    style={styles.metricsFigure}
-                                />
-                            </View>
-                        </View>
 
                             <View style={styles.metricsColumnStack}>
                                 <View style={styles.metricTopStack}>

@@ -2634,6 +2634,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             >
                 <View style={styles.contentSurface}>
                     <View style={styles.topPagerContainer}>
+                        <Text style={styles.bodyLabelOverlay}>Your Body</Text>
                         {overallHexDisplay ? (
                             <View style={styles.ovrPill}>
                                 <Text style={styles.ovrPillLabel}>OVR</Text>
@@ -3995,6 +3996,15 @@ const styles = StyleSheet.create({
     topPagerContainer: {
         marginBottom: scaleSize(8),
         position: "relative",
+    },
+    bodyLabelOverlay: {
+        position: "absolute",
+        top: scaleSize(12),
+        left: scaleSize(24),
+        fontFamily: "Outfit_700Bold",
+        fontSize: ts(14),
+        color: "rgba(216,226,255,0.9)",
+        zIndex: 2,
     },
     topPagerPage: {
         paddingHorizontal: 0,
