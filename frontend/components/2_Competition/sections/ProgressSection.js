@@ -4003,7 +4003,7 @@ const styles = StyleSheet.create({
         left: scaleSize(24),
         fontFamily: "Outfit_700Bold",
         fontSize: ts(14),
-        color: "rgba(216,226,255,0.9)",
+        color: "#FFFFFF",
         zIndex: 2,
     },
     topPagerPage: {

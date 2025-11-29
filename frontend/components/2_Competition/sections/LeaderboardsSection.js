@@ -1798,7 +1798,7 @@ function LeaderboardsSection({
                                 </View>
                             </RNBounceable>
                         </View>
-                        <View style={styles.focusButtonContainer}>
+                        <View style={styles.focusPillContainer}>
                             <RNBounceable
                                 onPress={withStrongPress(handleToggleFocusMenu)}
                                 activeScale={0.96}
@@ -1810,24 +1810,25 @@ function LeaderboardsSection({
                                 }}
                                 accessibilityRole="button"
                                 accessibilityLabel="Change muscle focus"
-                                style={styles.focusIconButton}
                             >
-                                <View ref={focusToggleAnchorRef} style={styles.focusIconButtonInner} collapsable={false}>
-                                    <View
-                                        style={[
-                                            styles.focusIconButtonIcon,
-                                            styles.focusMuscleIconZoom,
-                                        ]}
+                                <View
+                                    ref={focusToggleAnchorRef}
+                                    style={[styles.simpleScopePill, styles.simpleFocusPill]}
+                                    collapsable={false}
+                                >
+                                    <Text
+                                        style={[styles.simpleScopeText, styles.simpleFocusText]}
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
                                     >
-                                        <MuscleGroupIcon
-                                            segments={FOCUS_SEGMENTS[bodyFocus] || []}
-                                            highlightColor={MUSCLE_ICON_HIGHLIGHT}
-                                            dimHighlightColor={MUSCLE_ICON_HIGHLIGHT_DIM}
-                                            strokeWidth={bodyFocus === "back" ? 14 : undefined}
-                                            scale={MUSCLE_ICON_SCALES[bodyFocus] || 1}
-                                            offsetY={MUSCLE_ICON_OFFSETS[bodyFocus] || 0}
-                                        />
-                                    </View>
+                                        {bodyFocusLabel}
+                                    </Text>
+                                    <Ionicons
+                                        name={isBodyFocusMenuVisible ? "chevron-up" : "chevron-down"}
+                                        size={scaledSize(16)}
+                                        color="#E6E6E6"
+                                        style={styles.simpleScopeChevron}
+                                    />
                                 </View>
                             </RNBounceable>
                         </View>
@@ -2081,9 +2082,15 @@ const styles = StyleSheet.create({
         flex: 1,
         marginRight: scaledSize(10),
     },
+    focusPillContainer: {
+        justifyContent: "flex-end",
+        alignItems: "flex-end",
+        flexShrink: 1,
+        minWidth: 0,
+    },
     simpleScopePill: {
         alignSelf: "flex-start",
-        backgroundColor: "#1f1f24",
+        backgroundColor: "#2e3038",
         borderRadius: scaledSize(18),
         paddingHorizontal: scaledSize(14),
         paddingVertical: scaledSize(8),
@@ -2092,8 +2099,11 @@ const styles = StyleSheet.create({
         gap: scaledSize(6),
         shadowColor: "#FFFFFF",
         shadowOpacity: 0.4,
-        shadowRadius: scaledSize(14),
-        shadowOffset: { width: 0, height: scaledSize(6) },
+        shadowRadius: scaledSize(12),
+        shadowOffset: { width: 2, height: 2 },
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: "rgba(255,255,255,0.18)",
+        elevation: 6,
     },
     simpleScopeText: {
         color: "#E6E6E6",
@@ -2101,12 +2111,16 @@ const styles = StyleSheet.create({
         fontSize: scaledSize(14),
         letterSpacing: 0.2,
     },
+    simpleFocusPill: {
+        alignSelf: "flex-end",
+        minWidth: scaledSize(90),
+    },
+    simpleFocusText: {
+        flexShrink: 1,
+        minWidth: 0,
+    },
     simpleScopeChevron: {
         marginTop: scaledSize(1),
-    },
-    focusButtonContainer: {
-        justifyContent: "flex-end",
-        alignItems: "center",
     },
     userStatsSheetWrapper: {
         ...StyleSheet.absoluteFillObject,
@@ -2263,35 +2277,6 @@ const styles = StyleSheet.create({
     focusOptionLabelWrap: {
         flex: 1,
         justifyContent: "center",
-    },
-    focusIconButton: {
-        width: scaledSize(72),
-        height: scaledSize(72),
-        borderRadius: scaledSize(36),
-        backgroundColor: theme.surface,
-        alignItems: "center",
-        justifyContent: "center",
-        marginTop: scaledSize(4),
-        shadowColor: "#FFFFFF",
-        shadowOpacity: 0.45,
-        shadowRadius: scaledSize(16),
-        shadowOffset: { width: 0, height: scaledSize(7) },
-    },
-    focusIconButtonInner: {
-        width: "100%",
-        height: "100%",
-        borderRadius: scaledSize(36),
-        overflow: "hidden",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    focusIconButtonIcon: {
-        width: "100%",
-        height: "100%",
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: scaledSize(36),
-        overflow: "hidden",
     },
     focusModalOverlay: {
         flex: 1,
