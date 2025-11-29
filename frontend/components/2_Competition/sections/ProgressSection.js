@@ -37,6 +37,11 @@ import HumanMuscleBackOutline from "../../../assets/human_muscle_back_outline";
 import formatHexStat from "../../../utils/formatHexStat";
 import MuscleGroupIcon from "../../3_Workout/NewWorkout/SelectExercise/MuscleGroupIcon";
 import HexagonalStats from "../UserStats/HexagonalStats";
+import {
+    buildMuscleFillMap,
+    DEFAULT_MUSCLE_SEGMENTS as MUSCLE_SEGMENTS,
+    resolveHexTierColor,
+} from "../../../utils/muscleTierColors";
 
 const WORKOUT_TIMESTAMP_FIELDS = ["created"];
 
@@ -54,14 +59,6 @@ const POINTER_PANEL_ACCENTS = {
 const BODYGRAPH_OUTLINE_COLOR = "#40485c";
 const MUSCLE_ICON_HIGHLIGHT = "#ff6f67ff";
 const MUSCLE_ICON_HIGHLIGHT_DIM = "rgba(255, 127, 120, 0.6)";
-const MUSCLE_SEGMENTS = {
-    shoulders: ["shoulders"],
-    chest: ["chest"],
-    arms: ["arms", "forearms"],
-    back: ["back", "traps"],
-    abs: ["abs", "obliques"],
-    legs: ["quads", "calves"],
-};
 
 const accentToRgba = (accent, alpha) => {
     const { r, g, b } = accent;
@@ -2315,6 +2312,11 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
         ? personalRecordActiveIndex >= Math.ceil(personalRecordEntries.length / 2)
         : false;
 
+    const muscleFills = useMemo(
+        () => buildMuscleFillMap(userData?.statsHexagon, MUSCLE_SEGMENTS),
+        [userData?.statsHexagon]
+    );
+
     const muscleGroupScores = useMemo(() => {
         const hex = userData?.statsHexagon || {};
         const overallSegments = ["calves", "quads", "abs", "obliques", "back", "forearms", "arms", "shoulders", "chest", "traps"];
@@ -2346,8 +2348,16 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             legs: scaleSize(-20),
             overall: scaleSize(10),
         };
+        const resolveHexValue = (key) => {
+            const candidates = [hex[key], hex[String(key || "").toLowerCase()]];
+            for (let i = 0; i < candidates.length; i += 1) {
+                const value = Number(candidates[i]);
+                if (Number.isFinite(value)) return value;
+            }
+            return null;
+        };
         return groups.map((group) => {
-            const raw = Number(hex[group.key]);
+            const raw = resolveHexValue(group.key);
             const display = Number.isFinite(raw) ? formatHexStat(raw) : "--";
             const segments = group.segments || MUSCLE_SEGMENTS[group.key] || [];
             const iconStrokeWidth = group.key === "back" ? 14 : null;
@@ -2358,6 +2368,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                 iconScale: iconScales[group.key] || 1,
                 iconOffset: iconOffsets[group.key] || 0,
                 iconStrokeWidth,
+                color: resolveHexTierColor(raw),
             };
         });
     }, [userData?.statsHexagon]);
@@ -2664,6 +2675,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                 width="102%"
                                                 height="100%"
                                                 preserveAspectRatio="xMidYMid meet"
+                                                fills={muscleFills}
                                                 style={styles.bodyFigure}
                                             />
                                         </View>
@@ -2673,6 +2685,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                 width="102%"
                                                 height="100%"
                                                 preserveAspectRatio="xMidYMid meet"
+                                                fills={muscleFills}
                                                 style={styles.bodyFigure}
                                             />
                                         </View>

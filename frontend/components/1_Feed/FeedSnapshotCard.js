@@ -11,6 +11,7 @@ import { strong as triggerStrongHaptic } from "../../utils/haptics";
 import HumanMuscleOutline from "../../assets/human_muscle_outline";
 import HumanMuscleBackOutline from "../../assets/human_muscle_back_outline";
 import { deriveBadgeDetailColors, resolveLevelStage, withAlpha } from "../2_Competition/rankBadgeLevelHelpers";
+import { buildMuscleFillMap, DEFAULT_MUSCLE_SEGMENTS as MUSCLE_SEGMENTS } from "../../utils/muscleTierColors";
 
 const RANK_TAB_CONFIG = [
     {
@@ -343,6 +344,10 @@ export default function FeedSnapshotCard({
     const overallStatNumber = Number(statsHexagon?.overall);
     const hasOverallStat = Number.isFinite(overallStatNumber);
     const overallStatDisplay = hasOverallStat ? formatHexStat(overallStatNumber) : "--";
+    const bodygraphFills = useMemo(
+        () => buildMuscleFillMap(statsHexagon, MUSCLE_SEGMENTS),
+        [statsHexagon]
+    );
 
     const renderBadgeCore = () => (
         <View
@@ -840,6 +845,7 @@ export default function FeedSnapshotCard({
                                                 width="90%"
                                                 height="100%"
                                                 preserveAspectRatio="xMidYMax slice"
+                                                fills={bodygraphFills}
                                                 style={[styles.bodygraphFigure, styles.bodygraphFigureFront]}
                                             />
                                         </View>
@@ -849,6 +855,7 @@ export default function FeedSnapshotCard({
                                                 width="90%"
                                                 height="100%"
                                                 preserveAspectRatio="xMidYMax slice"
+                                                fills={bodygraphFills}
                                                 style={[styles.bodygraphFigure, styles.bodygraphFigureBack]}
                                             />
                                         </View>

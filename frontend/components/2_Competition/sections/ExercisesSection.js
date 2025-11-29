@@ -345,7 +345,7 @@ const attemptCenterCurrentCard = useCallback(
                                                     <RankTierMiniBadge
                                                         tier={promotionThemeKey}
                                                         level="III"
-                                                        size={scaleSize(30)}
+                                                        size={scaleSize(38)}
                                                         style={styles.requirementBadge}
                                                     />
                                                     <View style={styles.requirementTextContainer}>
@@ -451,7 +451,7 @@ const styles = StyleSheet.create({
     },
     requirementTextContainer: {
         flex: 1,
-        paddingHorizontal: scaleSize(10),
+        paddingHorizontal: scaleSize(6),
     },
     requirementCardTitle: {
         fontFamily: "Outfit_700Bold",
@@ -460,7 +460,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     requirementCardTitleEmphasis: {
-        fontFamily: "Outfit_800ExtraBold",
+        fontFamily: "Outfit_900Black",
         fontSize: scaleSize(15),
     },
     requirementStatusBadge: {

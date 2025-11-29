@@ -11,6 +11,7 @@ import { chartCardLayout, chartCardTypography, chartTypography } from "../../cha
 import theme from "../../../theme/mfpDark";
 import { scaleSize, DEVICE_WIDTH, ts } from "../layoutConstants";
 import formatHexStat from "../../../utils/formatHexStat";
+import { buildMuscleFillMap, DEFAULT_MUSCLE_SEGMENTS as MUSCLE_SEGMENTS } from "../../../utils/muscleTierColors";
 
 const MUSCLE_OUTLINE_COLOR = "#40485c";
 const DEFAULT_X_AXIS_LABEL_COUNT = 4;
@@ -882,6 +883,10 @@ export default function UserStatsProgressPreview({ user, hexOverlay = null, hexP
     const [activeMetric, setActiveMetric] = useState(initialMetric);
     const [topPagerIndex, setTopPagerIndex] = useState(0);
     const topPagerIndexRef = useRef(0);
+    const muscleFills = useMemo(
+        () => buildMuscleFillMap(user?.statsHexagon, MUSCLE_SEGMENTS),
+        [user?.statsHexagon]
+    );
 
     const handleTopPagerMomentum = useCallback(
         (event) => {
@@ -915,6 +920,7 @@ export default function UserStatsProgressPreview({ user, hexOverlay = null, hexP
                                     width="102%"
                                     height="100%"
                                     preserveAspectRatio="xMidYMid meet"
+                                    fills={muscleFills}
                                     style={styles.bodyFigure}
                                 />
                             </View>
@@ -924,6 +930,7 @@ export default function UserStatsProgressPreview({ user, hexOverlay = null, hexP
                                     width="102%"
                                     height="100%"
                                     preserveAspectRatio="xMidYMid meet"
+                                    fills={muscleFills}
                                     style={styles.bodyFigure}
                                 />
                             </View>
