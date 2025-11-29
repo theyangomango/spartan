@@ -6,7 +6,6 @@ import { getDoc, doc } from "firebase/firestore";
 import { db } from "../../../../firebase.config";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
-import HexagonalStats from "./HexagonalStats";
 import scaleSize from "../../../helper/scaleSize";
 import { usePfp } from "../../../helper/usePFPs";
 import { withStrongPress } from "../../../utils/haptics";
@@ -25,6 +24,7 @@ import {
     workoutSortTimestamp,
     formatJoinDate,
 } from "./userStatsUtils";
+import UserStatsProgressPreview from "./UserStatsProgressPreview";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -455,16 +455,7 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Hexagon (no card background) */}
-                <View style={styles.hexWrap}>
-                    <View style={{ position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
-                        <HexagonalStats statsHexagon={user.statsHexagon} {...hexProps} />
-                        {hexOverlay ? (typeof hexOverlay === 'function' ? hexOverlay() : hexOverlay) : null}
-                    </View>
-                    <Text style={styles.hexDescription}>
-                        Scores are calculated based on your logged lifts—e.g. a 225 lb back squat impacts your score more than a 225 lb barbell row.
-                    </Text>
-                </View>
+                <UserStatsProgressPreview user={userForViewer} hexOverlay={hexOverlay} hexProps={hexProps} />
 
                 {/* Exercises */}
                 <View style={styles.exerciseList}>

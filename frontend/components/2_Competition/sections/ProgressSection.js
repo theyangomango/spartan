@@ -4181,10 +4181,9 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(130),
     },
     chartDivider: {
-        height: scaleSize(4),
+        height: scaleSize(12),
         width: "100%",
-        backgroundColor: theme.bg,
-        marginVertical: scaleSize(4),
+        backgroundColor: theme.surface,
     },
     card: {
         backgroundColor: theme.bg,
