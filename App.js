@@ -58,6 +58,7 @@ import MacroTracking from './frontend/screens/MacroTracking';
 import Notifications from './frontend/screens/Notifications';
 import FoodDetail from './frontend/screens/FoodDetail';
 import SearchUsers from './frontend/screens/SearchUsers';
+import MuscleGroupExercises from './frontend/screens/MuscleGroupExercises';
 import Settings from './frontend/screens/Settings';
 import PrivacyPolicy from './frontend/screens/PrivacyPolicy';
 import TermsOfService from './frontend/screens/TermsOfService';
@@ -1571,6 +1572,11 @@ return (
                         <RootStack.Screen
                             name="WeightMeasurements"
                             component={WeightMeasurementsScreen}
+                            options={{ headerShown: false }}
+                        />
+                        <RootStack.Screen
+                            name="MuscleGroupExercises"
+                            component={MuscleGroupExercises}
                             options={{ headerShown: false }}
                         />
                         <RootStack.Screen name="Explore" component={Explore} />

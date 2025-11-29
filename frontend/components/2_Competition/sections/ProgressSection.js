@@ -2162,6 +2162,24 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
         [navigation, userData, workoutsByWid]
     );
 
+    const handleMusclePress = useCallback(
+        (muscle) => {
+            if (!muscle) return;
+            const params = {
+                muscleKey: muscle.key,
+                muscleLabel: muscle.label,
+                muscleSegments: muscle.segments,
+                iconScale: muscle.iconScale,
+                iconOffset: muscle.iconOffset,
+                iconStrokeWidth: muscle.iconStrokeWidth,
+            };
+            if (!navigateOneWay("MuscleGroupExercises", { animation: "slide-from-right", params })) {
+                navigation.navigate("MuscleGroupExercises", params);
+            }
+        },
+        [navigation]
+    );
+
     const hasChartData = chartData.length > 0;
     const hasVolumeChartData = volumeChartData.length > 0;
     const hasRepsChartData = repsChartData.length > 0;
@@ -2626,7 +2644,14 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                         </View>
                         <View style={styles.muscleList}>
                             {muscleGroupScores.map((item) => (
-                                <View key={item.key} style={styles.muscleRow}>
+                                <RNBounceable
+                                    key={item.key}
+                                    style={styles.muscleRow}
+                                    onPress={() => handleMusclePress(item)}
+                                    activeScale={0.97}
+                                    accessibilityRole="button"
+                                    accessibilityLabel={`View ${item.label} exercises`}
+                                >
                                     <View style={styles.muscleLeft}>
                                         <View style={styles.muscleBadge}>
                                             <View style={styles.muscleIconContainer}>
@@ -2667,7 +2692,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                         </Text>
                                         <Ionicons name="chevron-forward" size={scaleSize(18)} color="rgba(255,255,255,0.55)" />
                                     </View>
-                                </View>
+                                </RNBounceable>
                             ))}
                         </View>
                     </View>
@@ -3938,7 +3963,7 @@ const styles = StyleSheet.create({
     },
     muscleLabel: {
         fontFamily: "Outfit_600SemiBold",
-        fontSize: ts(15),
+        fontSize: ts(16),
         color: theme.textPrimary ?? "#F6F8FF",
     },
     muscleValue: {
@@ -3948,7 +3973,7 @@ const styles = StyleSheet.create({
     },
     muscleLabelOverall: {
         color: "#6DB7FF",
-        fontSize: ts(17),
+        fontSize: ts(18),
     },
     muscleValueOverall: {
         color: "#6DB7FF",

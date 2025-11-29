@@ -2992,8 +2992,8 @@ export default function ExerciseDetail() {
 
     return (
         <View style={styles.container}>
-            <SafeAreaView style={styles.safeTop} />
-            <SafeAreaView style={styles.safeArea}>
+            <SafeAreaView style={styles.safeTop} edges={["top", "left", "right"]} />
+            <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
                 <View style={[styles.header, { paddingTop: headerTopPadding }]}>
                     <Pressable
                         onPress={withStrongPress(handleBack)}
@@ -3034,7 +3034,7 @@ export default function ExerciseDetail() {
                     style={styles.scroll}
                     contentContainerStyle={[
                         styles.scrollContent,
-                        { paddingBottom: (insets?.bottom || 0) + scaleSize(32) },
+                        { paddingBottom: scaleSize(32) },
                     ]}
                     showsVerticalScrollIndicator={false}
                 >
