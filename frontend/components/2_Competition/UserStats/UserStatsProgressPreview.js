@@ -935,10 +935,10 @@ export default function UserStatsProgressPreview({ user, hexOverlay = null, hexP
                         <View style={styles.hexGraphWrap}>
                             <HexagonalStats
                                 statsHexagon={user?.statsHexagon || {}}
-                                size={scaleSize(320)}
-                                labelFontPx={13}
-                                valueFontPx={15}
-                                valueFontBigPx={17}
+                                size={scaleSize(280)}
+                                labelFontPx={12.5}
+                                valueFontPx={14.5}
+                                valueFontBigPx={16.5}
                                 {...hexProps}
                             />
                             {hexOverlay ? (typeof hexOverlay === "function" ? hexOverlay() : hexOverlay) : null}

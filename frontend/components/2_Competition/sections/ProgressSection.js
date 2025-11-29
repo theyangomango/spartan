@@ -2690,10 +2690,10 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                     <View style={styles.hexGraphWrap}>
                                         <HexagonalStats
                                             statsHexagon={userData?.statsHexagon || {}}
-                                            size={scaleSize(320)}
-                                            labelFontPx={13}
-                                            valueFontPx={15}
-                                            valueFontBigPx={17}
+                                            size={scaleSize(280)}
+                                            labelFontPx={12.5}
+                                            valueFontPx={14.5}
+                                            valueFontBigPx={16.5}
                                         />
                                     </View>
                                 </View>
@@ -4105,8 +4105,8 @@ const styles = StyleSheet.create({
     hexGraphWrap: {
         alignItems: "center",
         justifyContent: "center",
-        marginTop: scaleSize(-14),
-        marginBottom: scaleSize(-18),
+        marginTop: scaleSize(30),
+        marginBottom: scaleSize(-20),
     },
     ovrPill: {
         position: "absolute",
