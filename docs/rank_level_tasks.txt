@@ -137,7 +137,7 @@ Ruby IV ➜ Ruby V
 - Reach 72+ Score in Shoulders
 - Lift 475,000 lbs Total
 
-Ruby V ➜ Platinum I
+Ruby V ➜ Emerald I
 -------------------
 - Log 16 Workouts
 - Reach 84+ Score Overall
@@ -145,36 +145,36 @@ Ruby V ➜ Platinum I
 - Reach 72+ Score in Legs
 - Lift 500,000 lbs Total
 
-Platinum I ➜ Platinum II
-------------------------
+Emerald I ➜ Emerald II
+----------------------
 - Log 17 Workouts
 - Reach 85+ Score Overall
 - Reach 76+ Score in Shoulders
 - Lift 530,000 lbs Total
 
-Platinum II ➜ Platinum III
---------------------------
+Emerald II ➜ Emerald III
+------------------------
 - Log 17 Workouts
 - Reach 86+ Score Overall
 - Reach 78+ Score in Shoulders
 - Lift 555,000 lbs Total
 
-Platinum III ➜ Platinum IV
---------------------------
+Emerald III ➜ Emerald IV
+------------------------
 - Log 18 Workouts
 - Reach 87+ Score Overall
 - Reach 80+ Score in Shoulders
 - Lift 580,000 lbs Total
 
-Platinum IV ➜ Platinum V
-------------------------
+Emerald IV ➜ Emerald V
+----------------------
 - Log 18 Workouts
 - Reach 88+ Score Overall
 - Reach 82+ Score in Shoulders
 - Lift 605,000 lbs Total
 
-Platinum V ➜ Diamond I
-----------------------
+Emerald V ➜ Diamond I
+---------------------
 - Log 19 Workouts
 - Reach 89+ Score Overall
 - Reach 84+ Score in Shoulders

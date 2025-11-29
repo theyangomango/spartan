@@ -3,13 +3,13 @@ const HEX_TIER_COLORS = {
     silver: "#c6cbd3",
     gold: "#f3c54b",
     ruby: "#ff5e81",
-    platinum: "#7fd5e0",
+    emerald: "#6be6b1",
     diamond: "#5ed0ff",
 };
 
 const TIER_THRESHOLDS_DESC = [
     { min: 89, key: "diamond" },
-    { min: 84, key: "platinum" },
+    { min: 84, key: "emerald" },
     { min: 74, key: "ruby" },
     { min: 62, key: "gold" },
     { min: 45, key: "silver" },

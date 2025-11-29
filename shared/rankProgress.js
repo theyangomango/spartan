@@ -5,11 +5,11 @@ const DISPLAY_TITLES = {
     silver: "Silver",
     gold: "Gold",
     ruby: "Ruby",
-    platinum: "Platinum",
+    emerald: "Emerald",
     diamond: "Diamond",
 };
 
-const TIER_ORDER_ASC = ["bronze", "silver", "gold", "ruby", "platinum", "diamond"];
+const TIER_ORDER_ASC = ["bronze", "silver", "gold", "ruby", "emerald", "diamond"];
 const TIER_ORDER_DESC = [...TIER_ORDER_ASC].slice().reverse();
 const LEVEL_ORDER_ASC = ["I", "II", "III", "IV", "V"];
 const LEVEL_ORDER_DESC = [...LEVEL_ORDER_ASC].slice().reverse();

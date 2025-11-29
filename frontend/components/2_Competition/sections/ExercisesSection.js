@@ -23,7 +23,7 @@ const CARD_THEME_COLORS = {
     silver: { gradient: ["#2e3542ff", "#a8c2e6ff"], accent: "#c5e0ffff" },
     gold: { gradient: ["#a1650cff", "#ffd987ff"], accent: "#ffedbbff" },
     ruby: { gradient: ["#511222ff", "#e54b73"], accent: "#ffacc9ff" },
-    platinum: { gradient: ["rgba(141, 180, 225, 1)", "#dbefffff"], accent: "#f7fcffff" },
+    emerald: { gradient: ["#0f5c3fff", "#8ef3c5ff"], accent: "#c8ffe3ff" },
     diamond: { gradient: ["#0d4156ff", "#86e7ffff"], accent: "#bff9ffff" },
 };
 
@@ -335,20 +335,28 @@ const attemptCenterCurrentCard = useCallback(
                                         taskComplete ? "Completed" : "In progress"
                                     );
                                     const statusLabel = taskComplete ? "Completed" : "In Progress";
+                                    const fillColor = themeColors.accent;
                                     const fillPercent = Math.min(
                                         100,
                                         Math.max(0, Math.round(progressRatio * 100))
+                                    );
+                                    const badgeContent = taskComplete ? (
+                                        <RankTierMiniBadge tier={promotionThemeKey} level="III" size={scaleSize(38)} />
+                                    ) : (
+                                        <View
+                                            style={[
+                                                styles.requirementOutlineBadge,
+                                                { borderColor: themeColors.accent },
+                                            ]}
+                                        />
                                     );
                                     return (
                                         <View key={`${entry.key}-requirement-${requirementIndex}`} style={styles.requirementCardWrapper}>
                                             <LinearGradient colors={themeColors.gradient} style={styles.requirementCard}>
                                                 <View style={styles.requirementCardRow}>
-                                                    <RankTierMiniBadge
-                                                        tier={promotionThemeKey}
-                                                        level="III"
-                                                        size={scaleSize(38)}
-                                                        style={styles.requirementBadge}
-                                                    />
+                                                    <View style={styles.requirementBadge}>
+                                                        {badgeContent}
+                                                    </View>
                                                     <View style={styles.requirementTextContainer}>
                                                         {renderRequirementLabel(taskLabel, descriptor, taskComplete, themeColors.accent)}
                                                     </View>
@@ -384,7 +392,7 @@ const attemptCenterCurrentCard = useCallback(
                                                             styles.requirementProgressFill,
                                                             {
                                                                 width: `${fillPercent}%`,
-                                                                backgroundColor: themeColors.accent,
+                                                                backgroundColor: fillColor,
                                                             },
                                                         ]}
                                                     />
@@ -456,7 +464,18 @@ const styles = StyleSheet.create({
         marginBottom: scaleSize(12),
     },
     requirementBadge: {
+        width: scaleSize(38),
+        height: scaleSize(38),
+        alignItems: "center",
+        justifyContent: "center",
         marginRight: scaleSize(4),
+    },
+    requirementOutlineBadge: {
+        width: scaleSize(30),
+        height: scaleSize(30),
+        borderRadius: scaleSize(15),
+        borderWidth: scaleSize(2),
+        backgroundColor: "transparent",
     },
     requirementTextContainer: {
         flex: 1,

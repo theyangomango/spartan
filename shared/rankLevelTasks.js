@@ -172,7 +172,7 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
         ],
     },
     "ruby-v": {
-        title: "Ruby V ➜ Platinum I",
+        title: "Ruby V ➜ Emerald I",
         tasks: [
             "Log 16 Workouts",
             "Reach 84.0+ Score Overall",
@@ -181,8 +181,8 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Lift 410,000 lbs Total",
         ],
     },
-    "platinum-i": {
-        title: "Platinum I ➜ Platinum II",
+    "emerald-i": {
+        title: "Emerald I ➜ Emerald II",
         tasks: [
             "Log 17 Workouts",
             "Reach 85.0+ Score Overall",
@@ -190,8 +190,8 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Lift 440,000 lbs Total",
         ],
     },
-    "platinum-ii": {
-        title: "Platinum II ➜ Platinum III",
+    "emerald-ii": {
+        title: "Emerald II ➜ Emerald III",
         tasks: [
             "Log 17 Workouts",
             "Reach 86.0+ Score Overall",
@@ -199,8 +199,8 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Lift 470,000 lbs Total",
         ],
     },
-    "platinum-iii": {
-        title: "Platinum III ➜ Platinum IV",
+    "emerald-iii": {
+        title: "Emerald III ➜ Emerald IV",
         tasks: [
             "Log 18 Workouts",
             "Reach 87.0+ Score Overall",
@@ -208,8 +208,8 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Lift 500,000 lbs Total",
         ],
     },
-    "platinum-iv": {
-        title: "Platinum IV ➜ Platinum V",
+    "emerald-iv": {
+        title: "Emerald IV ➜ Emerald V",
         tasks: [
             "Log 18 Workouts",
             "Reach 88.0+ Score Overall",
@@ -217,8 +217,8 @@ const RANK_LEVEL_PROMOTION_REQUIREMENTS = {
             "Lift 530,000 lbs Total",
         ],
     },
-    "platinum-v": {
-        title: "Platinum V ➜ Diamond I",
+    "emerald-v": {
+        title: "Emerald V ➜ Diamond I",
         tasks: [
             "Log 19 Workouts",
             "Reach 89.0+ Score Overall",
