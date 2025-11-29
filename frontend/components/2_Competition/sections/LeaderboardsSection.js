@@ -1792,7 +1792,7 @@ function LeaderboardsSection({
                                     <Ionicons
                                         name={tribeMenuVisible ? "chevron-up" : "chevron-down"}
                                         size={scaledSize(16)}
-                                        color="#E6E6E6"
+                                        color="#0a0a0a"
                                         style={styles.simpleScopeChevron}
                                     />
                                 </View>
@@ -1826,7 +1826,7 @@ function LeaderboardsSection({
                                     <Ionicons
                                         name={isBodyFocusMenuVisible ? "chevron-up" : "chevron-down"}
                                         size={scaledSize(16)}
-                                        color="#E6E6E6"
+                                        color="#0a0a0a"
                                         style={styles.simpleScopeChevron}
                                     />
                                 </View>
@@ -2090,23 +2090,18 @@ const styles = StyleSheet.create({
     },
     simpleScopePill: {
         alignSelf: "flex-start",
-        backgroundColor: "#2e3038",
+        backgroundColor: theme.primary,
         borderRadius: scaledSize(18),
         paddingHorizontal: scaledSize(14),
         paddingVertical: scaledSize(8),
         flexDirection: "row",
         alignItems: "center",
         gap: scaledSize(6),
-        shadowColor: "#FFFFFF",
-        shadowOpacity: 0.4,
-        shadowRadius: scaledSize(12),
-        shadowOffset: { width: 2, height: 2 },
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.18)",
-        elevation: 6,
+        borderWidth: 0,
+        elevation: 0,
     },
     simpleScopeText: {
-        color: "#E6E6E6",
+        color: "#0a0a0a",
         fontFamily: "Outfit_700Bold",
         fontSize: scaledSize(14),
         letterSpacing: 0.2,
