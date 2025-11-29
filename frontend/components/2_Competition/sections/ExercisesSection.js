@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 
 import theme from "../../../theme/mfpDark";
@@ -49,7 +50,9 @@ const CARD_THEME_COLORS = {
     emerald: { gradient: ["#0f5c3fff", "#8ef3c5ff"], accent: "#c8ffe3ff" },
     diamond: { gradient: ["#0d4156ff", "#86e7ffff"], accent: "#bff9ffff" },
 };
-const FOOTER_SAFE_OFFSET = scaleSize(120);
+const FOOTER_SAFE_OFFSET = scaleSize(16);
+const TABBAR_HEIGHT = scaleSize(88);
+const TOP_SPACER_EPSILON = scaleSize(12);
 
 const formatScoreValue = (value) => {
     const numeric = Number(value);
@@ -145,6 +148,8 @@ const renderRequirementLabel = (taskLabel, descriptor, taskComplete, emphasisCol
 };
 
 function ExercisesSection({ onScroll, scrollSignal = 0 }) {
+    const insets = useSafeAreaInsets();
+    const [topSpacerHeight, setTopSpacerHeight] = useState(0);
     const [userData, setUserData] = useState(() => {
         try {
             return global?.userData || null;
@@ -155,7 +160,7 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
     const [levelUpQueue, setLevelUpQueue] = useState([]);
     const scrollViewRef = useRef(null);
     const cardLayoutsRef = useRef({});
-    const hasCenteredRef = useRef(false);
+    const rankCardHeightsRef = useRef({});
     const hasHydratedRankRef = useRef(false);
     const lastRankRef = useRef(null);
     const [scrollContainerHeight, setScrollContainerHeight] = useState(0);
@@ -266,25 +271,41 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
             const layout = cardLayoutsRef.current[targetKey];
             if (!layout) return;
             const maxOffset = Math.max(0, contentHeight - scrollContainerHeight);
-            const desiredOffset =
-                layout.y - scrollContainerHeight + (layout.height || 0) + FOOTER_SAFE_OFFSET;
+            const footerGap = (insets?.bottom || 0) + TABBAR_HEIGHT + FOOTER_SAFE_OFFSET;
+
+            // Ensure enough headroom above to place this card's bottom just above the footer.
+            const cardBottom = (layout.y || 0) + (layout.height || 0);
+            const viewportAnchor = scrollContainerHeight - footerGap;
+            // If the card sits above the desired anchor, add enough top spacer to push it down.
+            const requiredHeadroom = Math.max(0, viewportAnchor - cardBottom + TOP_SPACER_EPSILON);
+            if (requiredHeadroom > 0) {
+                if (requiredHeadroom > topSpacerHeight) {
+                    setTopSpacerHeight(requiredHeadroom);
+                }
+                return;
+            }
+
+            const rankCardHeight = rankCardHeightsRef.current[targetKey] || 0;
+            const desiredOffset = cardBottom - viewportAnchor - scrollContainerHeight + rankCardHeight;
             const targetOffset = Math.max(0, Math.min(maxOffset, desiredOffset));
             try {
                 scrollView.scrollTo({ y: targetOffset, animated: options.animated });
-                if (!options.forceKeep) {
-                    hasCenteredRef.current = true;
-                }
             } catch {
                 // ignore scroll failures
             }
         },
-        [scrollContainerHeight, contentHeight, currentRankKey]
+        [scrollContainerHeight, contentHeight, currentRankKey, insets?.bottom, topSpacerHeight]
     );
 
     useEffect(() => {
-        if (hasCenteredRef.current) return;
         attemptCenterCurrentCard({ animated: false, preserveTarget: true });
     }, [attemptCenterCurrentCard]);
+
+    // Re-attempt centering if spacer/measurements change.
+    useEffect(() => {
+        if (scrollContainerHeight <= 0) return;
+        attemptCenterCurrentCard({ animated: false, preserveTarget: true });
+    }, [topSpacerHeight, contentHeight, scrollContainerHeight, attemptCenterCurrentCard]);
 
     useEffect(() => {
         if (!scrollSignal) return;
@@ -339,6 +360,7 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                 <Text style={[styles.topNoticeText, styles.dimmedCard]}>
                     More Ranks Coming Soon!
                 </Text>
+                {topSpacerHeight > 0 && <View style={{ height: topSpacerHeight }} />}
                 {LADDER_LEVELS.map((entry, index) => {
                     const entryIsCurrent = entry.key === currentRankKey;
                     const cardShouldDim =
@@ -391,6 +413,12 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                             onLayout={(event) => handleCardLayout(entry.key, event?.nativeEvent?.layout)}
                         >
                             <View style={cardShouldDim ? styles.dimmedCard : null}>
+                                <View
+                                    onLayout={(event) => {
+                                        const h = event?.nativeEvent?.layout?.height || 0;
+                                        if (h > 0) rankCardHeightsRef.current[entry.key] = h;
+                                    }}
+                                >
                                     <FeedSnapshotCard
                                         rankTier={entry.rankTier}
                                         rankLabel={entry.rankLabel}
@@ -403,6 +431,7 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                                         pendingRequirementsCount={currentPendingQuests}
                                     />
                                 </View>
+                            </View>
                             {hasRequirements && (
                                 <View
                                     style={[
