@@ -218,19 +218,113 @@ const SPARK_HEIGHT = 60;
 const SPARK_PAD_X = 6;
 const SPARK_PAD_Y = 10;
 
-const buildSparklinePath = (progress = [], fallbackValue = null) => {
-    const values = Array.isArray(progress)
+const buildSparklinePath = (progress = [], fallbackValue = null, sets = []) => {
+    const normalizeTs = (input, idx) => {
+        if (typeof input === "number" && Number.isFinite(input)) {
+            if (input > 1e12) return input;
+            if (input > 1e9) return input * 1000;
+            return input;
+        }
+        if (typeof input === "string") {
+            const parsed = Date.parse(input);
+            if (Number.isFinite(parsed)) return parsed;
+            const numeric = Number(input);
+            if (Number.isFinite(numeric)) return numeric;
+        }
+        return idx;
+    };
+
+    const parseNumeric = (raw) => {
+        if (typeof raw === "number") return raw;
+        if (typeof raw === "string") {
+            const cleaned = raw.replace(/[^\d.-]/g, "");
+            const num = Number(cleaned);
+            if (Number.isFinite(num)) return num;
+        }
+        if (raw && typeof raw === "object") {
+            if ("value" in raw) return parseNumeric(raw.value);
+            if ("val" in raw) return parseNumeric(raw.val);
+            if ("weight" in raw && "reps" in raw) {
+                const est = calculate1RM(parseNumeric(raw.weight), parseNumeric(raw.reps));
+                if (Number.isFinite(est)) return est;
+            }
+        }
+        return null;
+    };
+
+    const oneRmPoints = [];
+    const volumePoints = [];
+
+    const rows = Array.isArray(progress)
         ? progress
-            .map((entry) => Number(entry?.["1RM"] ?? entry?.oneRM ?? entry?.oneRm ?? entry?.value ?? entry?.val ?? 0))
-            .filter((v) => Number.isFinite(v) && v > 0)
-        : [];
-    if ((!values || values.length === 0) && Number.isFinite(fallbackValue) && fallbackValue > 0) {
-        values.push(fallbackValue);
+        : progress && typeof progress === "object"
+            ? Object.entries(progress).map(([key, value]) => ({
+                ...(value || {}),
+                // Use key as date fallback when progress is a map keyed by day
+                date: value?.date ?? value?.day ?? value?.dayKey ?? key,
+            }))
+            : [];
+
+    rows.forEach((entry, idx) => {
+        const oneRm = parseNumeric(
+            entry?.["1RM"] ??
+            entry?.oneRM ??
+            entry?.oneRm ??
+            entry?.value ??
+            entry?.val ??
+            entry
+        );
+        const volume = parseNumeric(entry?.volume ?? entry?.vol);
+        const ts = normalizeTs(entry?.date ?? entry?.day ?? entry?.dayKey ?? entry?.ts ?? entry?.timestamp, idx);
+
+        if (Number.isFinite(oneRm) && oneRm > 0) oneRmPoints.push({ ts, val: oneRm });
+        if (Number.isFinite(volume) && volume > 0) volumePoints.push({ ts, val: volume });
+    });
+
+    const setMap = new Map();
+    if (Array.isArray(sets)) {
+        sets.forEach((set, idx) => {
+            const weight = parseNumeric(set?.weight);
+            const reps = parseNumeric(set?.reps);
+            if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(reps) || reps <= 0) return;
+            const ts = normalizeTs(set?.date ?? set?.day ?? set?.dayKey ?? set?.ts ?? set?.timestamp, rows.length + idx);
+            const est = calculate1RM(weight, reps);
+            if (!Number.isFinite(est) || est <= 0) return;
+            if (!setMap.has(ts) || setMap.get(ts) < est) {
+                setMap.set(ts, est);
+            }
+        });
     }
-    if (values.length === 0) {
-        return `M ${SPARK_PAD_X} ${SPARK_HEIGHT / 2} L ${SPARK_WIDTH - SPARK_PAD_X} ${SPARK_HEIGHT / 2}`;
+    setMap.forEach((val, ts) => oneRmPoints.push({ ts, val }));
+
+    const pickSeries = (points) =>
+        points
+            .sort((a, b) => (Number(a?.ts) || 0) - (Number(b?.ts) || 0))
+            .map((p) => p.val)
+            .slice(-12);
+
+    const hasVariance = (vals) => vals.length >= 2 && Math.max(...vals) !== Math.min(...vals);
+
+    let values = pickSeries(oneRmPoints);
+    if ((!values.length || !hasVariance(values)) && volumePoints.length) {
+        const volSeries = pickSeries(volumePoints);
+        if (volSeries.length >= 2 && hasVariance(volSeries)) {
+            values = volSeries;
+        } else if (!values.length) {
+            values = volSeries;
+        }
     }
+
     if (values.length === 1) values.push(values[0]);
+
+    if (values.length === 0) {
+        const fallbackNum = Number(fallbackValue);
+        if (Number.isFinite(fallbackNum) && fallbackNum > 0) {
+            values = [fallbackNum, fallbackNum];
+        } else {
+            return `M ${SPARK_PAD_X} ${SPARK_HEIGHT / 2} L ${SPARK_WIDTH - SPARK_PAD_X} ${SPARK_HEIGHT / 2}`;
+        }
+    }
 
     const min = Math.min(...values);
     const max = Math.max(...values);
@@ -324,7 +418,15 @@ export default function MuscleGroupExercises() {
             const estOneRm = resolveEstimatedOneRm(item);
             const estTextRaw = formatWeightValue(estOneRm);
             const estLabel = estTextRaw ? `${estTextRaw} ${displayPreferredUnit}` : "--";
-            const sparkPath = buildSparklinePath(item?.statsEntry?.progress1RM, estOneRm);
+            const sparkPath = buildSparklinePath(
+                item?.statsEntry?.progress1RM,
+                estOneRm,
+                [
+                    ...(Array.isArray(item?.statsEntry?.sets) ? item.statsEntry.sets : []),
+                    ...(Array.isArray(item?.statsEntry?.recentSets) ? item.statsEntry.recentSets : []),
+                    ...(Array.isArray(item?.workoutSets) ? item.workoutSets : []),
+                ]
+            );
             return (
                 <Pressable
                     style={styles.exerciseCard}
