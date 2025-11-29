@@ -26,8 +26,7 @@ const CARD_THEME_COLORS = {
     emerald: { gradient: ["#0f5c3fff", "#8ef3c5ff"], accent: "#c8ffe3ff" },
     diamond: { gradient: ["#0d4156ff", "#86e7ffff"], accent: "#bff9ffff" },
 };
-
-const CURRENT_CARD_OFFSET = scaleSize(-400);
+const FOOTER_SAFE_OFFSET = scaleSize(120);
 
 const formatScoreValue = (value) => {
     const numeric = Number(value);
@@ -134,6 +133,7 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
     const cardLayoutsRef = useRef({});
     const hasCenteredRef = useRef(false);
     const [scrollContainerHeight, setScrollContainerHeight] = useState(0);
+    const [contentHeight, setContentHeight] = useState(0);
 
     useEffect(() => {
         const unsubscribe = subscribeUserData((payload) => {
@@ -212,10 +212,10 @@ const attemptCenterCurrentCard = useCallback(
 
             const layout = cardLayoutsRef.current[targetKey];
             if (!layout) return;
-            const targetOffset = Math.max(
-                0,
-                layout.y - scrollContainerHeight / 2 + (layout.height || 0) / 2 + CURRENT_CARD_OFFSET
-            );
+            const maxOffset = Math.max(0, contentHeight - scrollContainerHeight);
+            const desiredOffset =
+                layout.y - scrollContainerHeight + (layout.height || 0) + FOOTER_SAFE_OFFSET;
+            const targetOffset = Math.max(0, Math.min(maxOffset, desiredOffset));
             try {
                 scrollView.scrollTo({ y: targetOffset, animated: options.animated });
                 if (!options.forceKeep) {
@@ -225,7 +225,7 @@ const attemptCenterCurrentCard = useCallback(
                 // ignore scroll failures
             }
         },
-        [scrollContainerHeight, currentRankKey]
+        [scrollContainerHeight, contentHeight, currentRankKey]
     );
 
     useEffect(() => {
@@ -254,6 +254,10 @@ const attemptCenterCurrentCard = useCallback(
         [attemptCenterCurrentCard]
     );
 
+    const handleContentSizeChange = useCallback((_, height) => {
+        setContentHeight((prev) => (Math.abs(prev - height) > 1 ? height : prev));
+    }, []);
+
     return (
         <ScrollView
             ref={scrollViewRef}
@@ -262,6 +266,7 @@ const attemptCenterCurrentCard = useCallback(
             showsVerticalScrollIndicator={false}
             onScroll={handleScroll}
             onLayout={handleScrollViewLayout}
+            onContentSizeChange={handleContentSizeChange}
             scrollEventThrottle={16}
         >
             <Text style={[styles.topNoticeText, styles.dimmedCard]}>
