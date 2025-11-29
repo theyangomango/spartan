@@ -3,7 +3,7 @@
     "name": "Spartan",
     "slug": "spartan",
     "scheme": "spartan",
-    "version": "1.0.1",
+    "version": "1.1.0",
     "sdkVersion": "50.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.yangbai.spartan",
-      "buildNumber": "4",
+      "buildNumber": "1",
       "usesAppleSignIn": true,
       "config": {
         "usesNonExemptEncryption": false

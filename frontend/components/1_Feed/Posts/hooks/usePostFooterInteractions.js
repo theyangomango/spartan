@@ -36,7 +36,14 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
     const buttonRefs = useRef({});
     const lastLikeToggleRef = useRef(0);
 
-    const interactionsEnabled = !!data?.pid && !String(data.pid).startsWith('workout:');
+    const interactionsEnabled = useMemo(() => {
+        const pidStr = String(data?.pid || '');
+        if (!pidStr) return false;
+        if (pidStr.startsWith('workout:')) {
+            return pidStr.startsWith('workout:live');
+        }
+        return true;
+    }, [data?.pid]);
 
     useEffect(() => {
         const capture = () => {
@@ -150,7 +157,16 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
                         ];
                         data.likes = updatedLikes;
                         data.likeCount = likeCount + 1;
-                        updateDoc('posts', data.pid, { likeCount: data.likeCount, likes: updatedLikes });
+                        updateDoc('posts', data.pid, { likeCount: data.likeCount, likes: updatedLikes })
+                            .catch((error) => {
+                                console.warn?.('Like update failed', {
+                                    pid: data.pid,
+                                    uid,
+                                    ownerUid: safePostOwnerUid,
+                                    code: error?.code,
+                                    message: error?.message,
+                                });
+                            });
                     }
                 } else {
                     const likesArray = Array.isArray(data.likes) ? data.likes : [];
@@ -160,7 +176,16 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
                         const nextCount = Math.max(0, likeCount - 1);
                         data.likes = updatedLikes;
                         data.likeCount = nextCount;
-                        updateDoc('posts', data.pid, { likeCount: nextCount, likes: updatedLikes });
+                        updateDoc('posts', data.pid, { likeCount: nextCount, likes: updatedLikes })
+                            .catch((error) => {
+                                console.warn?.('Unlike update failed', {
+                                    pid: data.pid,
+                                    uid,
+                                    ownerUid: safePostOwnerUid,
+                                    code: error?.code,
+                                    message: error?.message,
+                                });
+                            });
                     }
                 }
             } catch (error) {

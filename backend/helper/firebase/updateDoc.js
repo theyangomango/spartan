@@ -10,13 +10,19 @@ export default async function updateDoc(col, did, data, options = {}) {
         await nativeUpdateDoc(ref, data);
         return true;
     } catch (err) {
-        if (err?.code === 'not-found') {
+        if (err?.code === 'not-found' || err?.code === 'permission-denied') {
             if (allowCreate) {
-                await setDoc(ref, data, { merge: true });
-                return true;
+                try {
+                    await setDoc(ref, data, { merge: true });
+                    return true;
+                } catch (fallbackError) {
+                    console.warn?.('updateDoc fallback setDoc failed', { col, did, code: fallbackError?.code, message: fallbackError?.message, dataKeys: Object.keys(data || {}) });
+                    throw fallbackError;
+                }
             }
             return false; // skip creating missing docs (notably for users)
         }
+        console.warn?.('updateDoc failed', { col, did, code: err?.code, message: err?.message, dataKeys: Object.keys(data || {}) });
         throw err;
     }
 }

@@ -867,7 +867,7 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         if (!data) return;
         const resolved = resolveFeedItem(data);
         const pid = String(resolved?.pid || '');
-        if (!pid || pid.startsWith('workout:')) {
+        if (!pid || (pid.startsWith('workout:') && !pid.startsWith('workout:live'))) {
             openPastWorkout(resolved || data);
             return;
         }
@@ -884,7 +884,7 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         if (!data) return;
         const resolved = resolveFeedItem(data);
         const pid = String(resolved?.pid || '');
-        if (!pid || pid.startsWith('workout:')) {
+        if (!pid || (pid.startsWith('workout:') && !pid.startsWith('workout:live'))) {
             openPastWorkout(resolved || data);
             return;
         }

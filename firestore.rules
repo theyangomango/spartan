@@ -81,9 +81,9 @@ service cloud.firestore {
         && request.writeFields.hasOnly(['workout', 'updatedAt', 'workoutDeletedAt']);
     }
 
-    function allowPostLikeUpdate() {
+    function allowPostLikeWrite() {
       return signedIn()
-        && resource != null
+        && request.resource != null
         && request.writeFields.hasOnly(['likes', 'likeCount'])
         && request.resource.data.keys().hasAll(['likes', 'likeCount'])
         && request.resource.data.likes is list
@@ -95,21 +95,13 @@ service cloud.firestore {
         && request.resource.data.likeCount == request.resource.data.likes.size();
     }
 
-    function allowPostCommentUpdate() {
+    function allowPostCommentWrite() {
       return signedIn()
-        && resource != null
+        && request.resource != null
         && request.writeFields.hasOnly(['comments', 'commentCount'])
         && (
           !request.writeFields.hasAny(['comments'])
-          || (
-            request.resource.data.comments is list
-            && (
-              !('comments' in resource.data)
-              || (
-                resource.data.comments is list
-              )
-            )
-          )
+          || request.resource.data.comments is list
         )
         && (
           !request.writeFields.hasAny(['commentCount'])
@@ -120,7 +112,7 @@ service cloud.firestore {
             )
             && request.resource.data.commentCount >= 0
             && (
-              !('commentCount' in resource.data)
+              resource == null
               || !(resource.data.commentCount is int || resource.data.commentCount is float)
               || request.resource.data.commentCount == resource.data.commentCount
               || request.resource.data.commentCount == resource.data.commentCount + 1
@@ -128,6 +120,10 @@ service cloud.firestore {
             )
           )
         );
+    }
+
+    function isLivePostPid(pid) {
+      return pid is string && pid.matches('^workout:live:.*');
     }
 
     function sameMembers(listA, listB) {
@@ -226,13 +222,19 @@ service cloud.firestore {
 
     match /posts/{pid} {
       allow read: if signedIn();
-      allow create: if signedIn() && request.resource.data.uid == request.auth.uid;
-      allow update, delete: if ownerMatchesResource()
-        || ownerMatchesRequest()
-        || allowPostLikeUpdate()
-        || allowPostCommentUpdate()
-        || allowWorkoutPatch()
-        || isAdmin();
+      allow create: if isLivePostPid(pid)
+        ? signedIn()
+        : signedIn() && (request.resource.data.uid == request.auth.uid || isAdmin());
+      allow update, delete: if isLivePostPid(pid)
+        ? signedIn()
+        : (
+          ownerMatchesResource()
+          || ownerMatchesRequest()
+          || allowPostLikeWrite()
+          || allowPostCommentWrite()
+          || allowWorkoutPatch()
+          || isAdmin()
+        );
     }
 
     match /workouts/{wid} {

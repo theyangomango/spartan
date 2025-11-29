@@ -1643,78 +1643,76 @@ const SimpleFeedPost = ({
                     </View>
                 )}
 
-                {!isLivePost && (
-                    <View style={[
-                        styles.sectionBottom,
-                        mediaList.length === 0 ? styles.sectionBottomDivider : null,
-                    ]}>
-                        <View style={styles.actionsRow}>
-                            <Pressable
-                                onPress={() => onPressLikes?.(index, data)}
-                                disabled={!onPressLikes}
-                                style={({ pressed }) => [
-                                    styles.likesContainer,
-                                    pressed ? styles.likesContainerPressed : null,
-                                ]}
+                <View style={[
+                    styles.sectionBottom,
+                    mediaList.length === 0 ? styles.sectionBottomDivider : null,
+                ]}>
+                    <View style={styles.actionsRow}>
+                        <Pressable
+                            onPress={() => onPressLikes?.(index, data)}
+                            disabled={!onPressLikes}
+                            style={({ pressed }) => [
+                                styles.likesContainer,
+                                pressed ? styles.likesContainerPressed : null,
+                            ]}
+                        >
+                            {likeCount > 0 && (firstLikerAvatar || firstLikerInitials) ? (
+                                <View style={styles.likesAvatarWrap}>
+                                    {firstLikerAvatar ? (
+                                        <FastImage
+                                            source={{
+                                                uri: firstLikerAvatar,
+                                                priority: FastImage.priority.low,
+                                                cache: FastImage.cacheControl.immutable,
+                                            }}
+                                            style={styles.likesAvatar}
+                                            resizeMode={FastImage.resizeMode.cover}
+                                        />
+                                    ) : (
+                                        <View style={[styles.likesAvatar, styles.likesAvatarFallback]}>
+                                            <Text style={styles.likesAvatarInitials}>{firstLikerInitials}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            ) : null}
+                            <Text style={styles.likesText} numberOfLines={1}>
+                                {likeMessage}
+                            </Text>
+                        </Pressable>
+
+                        <View style={styles.buttonsContainer}>
+                            <AnimatedPressable
+                                ref={(node) => assignButtonRef?.("like", node)}
+                                style={styles.actionButton}
+                                onPress={handlePressLikeButton}
                             >
-                                {likeCount > 0 && (firstLikerAvatar || firstLikerInitials) ? (
-                                    <View style={styles.likesAvatarWrap}>
-                                        {firstLikerAvatar ? (
-                                            <FastImage
-                                                source={{
-                                                    uri: firstLikerAvatar,
-                                                    priority: FastImage.priority.low,
-                                                    cache: FastImage.cacheControl.immutable,
-                                                }}
-                                                style={styles.likesAvatar}
-                                                resizeMode={FastImage.resizeMode.cover}
-                                            />
-                                        ) : (
-                                            <View style={[styles.likesAvatar, styles.likesAvatarFallback]}>
-                                                <Text style={styles.likesAvatarInitials}>{firstLikerInitials}</Text>
-                                            </View>
-                                        )}
-                                    </View>
-                                ) : null}
-                                <Text style={styles.likesText} numberOfLines={1}>
-                                    {likeMessage}
-                                </Text>
-                            </Pressable>
+                                <Heart size={scaleSize(20)} color={likeColor} variant="Bold" />
+                                <Text style={styles.actionText}>{formatNumber(likeCount)}</Text>
+                            </AnimatedPressable>
 
-                            <View style={styles.buttonsContainer}>
-                                <AnimatedPressable
-                                    ref={(node) => assignButtonRef?.("like", node)}
-                                    style={styles.actionButton}
-                                    onPress={handlePressLikeButton}
-                                >
-                                    <Heart size={scaleSize(20)} color={likeColor} variant="Bold" />
-                                    <Text style={styles.actionText}>{formatNumber(likeCount)}</Text>
-                                </AnimatedPressable>
+                            <AnimatedPressable
+                                ref={(node) => assignButtonRef?.("comment", node)}
+                                style={[styles.actionButton, styles.actionButtonMiddle]}
+                                onPress={pressComment}
+                            >
+                                <Messages1 size={scaleSize(20)} color={theme.textPrimary} variant="Bold" />
+                                <Text style={styles.actionText}>{formatNumber(commentCount)}</Text>
+                            </AnimatedPressable>
 
-                                <AnimatedPressable
-                                    ref={(node) => assignButtonRef?.("comment", node)}
-                                    style={[styles.actionButton, styles.actionButtonMiddle]}
-                                    onPress={pressComment}
-                                >
-                                    <Messages1 size={scaleSize(20)} color={theme.textPrimary} variant="Bold" />
-                                    <Text style={styles.actionText}>{formatNumber(commentCount)}</Text>
-                                </AnimatedPressable>
-
-                                {/* <AnimatedPressable
-                                    ref={(node) => assignButtonRef?.("save", node)}
-                                    style={styles.actionButton}
-                                    onPress={handlePressSaveButton}
-                                >
-                                    <MaterialCommunityIcons
-                                        name={isSaved ? "bookmark" : "bookmark-outline"}
-                                        size={scaleSize(20)}
-                                        color={theme.textPrimary}
-                                    />
-                                </AnimatedPressable> */}
-                            </View>
+                            {/* <AnimatedPressable
+                                ref={(node) => assignButtonRef?.("save", node)}
+                                style={styles.actionButton}
+                                onPress={handlePressSaveButton}
+                            >
+                                <MaterialCommunityIcons
+                                    name={isSaved ? "bookmark" : "bookmark-outline"}
+                                    size={scaleSize(20)}
+                                    color={theme.textPrimary}
+                                />
+                            </AnimatedPressable> */}
                         </View>
                     </View>
-                )}
+                </View>
             </View>
             {isLivePost && (confettiVisible || confettiTick > 0) ? (() => {
                 const ConfettiCannon = loadConfettiModule();

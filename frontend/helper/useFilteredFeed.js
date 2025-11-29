@@ -145,6 +145,10 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
     const hasMoreRef = useRef(true);
     const loadingMoreRef = useRef(false);
     const liveUnsubRef = useRef(new Map());
+    const livePostUnsubRef = useRef(new Map());
+    const livePostMetaRef = useRef(new Map());
+    const liveProfileRef = useRef(new Map());
+    const liveWorkoutRef = useRef(new Map());
     const cacheKeyRef = useRef(null);
     const hydrationAttemptedRef = useRef(false);
     const cacheWriteTimeoutRef = useRef(null);
@@ -194,6 +198,64 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
             });
         }, CACHE_WRITE_DELAY);
     }, []);
+
+    const teardownLivePostSubscription = useCallback((uid) => {
+        const key = String(uid || '');
+        if (!key) return;
+        const unsub = livePostUnsubRef.current.get(key);
+        if (unsub) {
+            try { unsub(); } catch { }
+        }
+        livePostUnsubRef.current.delete(key);
+        livePostMetaRef.current.delete(key);
+    }, []);
+
+    const updateLiveEntryForUid = useCallback((uid, { recompute = true } = {}) => {
+        const key = String(uid || '');
+        if (!key) return;
+
+        const workout = liveWorkoutRef.current.get(key);
+        const profile = liveProfileRef.current.get(key);
+        if (!workout || !profile) {
+            liveMapRef.current.delete(`live:${key}`);
+            if (recompute) recomputeFeed(false);
+            return;
+        }
+
+        const postMeta = livePostMetaRef.current.get(key) || null;
+        const existing = liveMapRef.current.get(`live:${key}`) || null;
+        const entry = buildLiveFeedEntry(key, profile, workout, postMeta, existing);
+        const normalized = normalizePost(entry, existing);
+
+        if (normalized) {
+            liveMapRef.current.set(`live:${key}`, normalized);
+        } else {
+            liveMapRef.current.delete(`live:${key}`);
+        }
+
+        if (recompute) recomputeFeed(false);
+    }, [buildLiveFeedEntry, recomputeFeed]);
+
+    const ensureLivePostSubscription = useCallback((uid) => {
+        const key = String(uid || '');
+        if (!key || livePostUnsubRef.current.has(key)) return;
+        const pid = `workout:live:${key}`;
+        try {
+            const unsubscribe = onSnapshot(doc(db, 'posts', pid), (snapshot) => {
+                if (snapshot.exists()) {
+                    livePostMetaRef.current.set(key, snapshot.data() || {});
+                } else {
+                    livePostMetaRef.current.delete(key);
+                }
+                updateLiveEntryForUid(key);
+            });
+            livePostUnsubRef.current.set(key, () => {
+                try { unsubscribe(); } catch { }
+            });
+        } catch {
+            /* ignore subscription errors */
+        }
+    }, [updateLiveEntryForUid]);
 
     const recomputeFeed = useCallback((persistFlag) => {
         const combined = new Map();
@@ -311,6 +373,14 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
             try { unsub(); } catch { }
         });
         liveUnsubRef.current.clear();
+
+        livePostUnsubRef.current.forEach((unsub) => {
+            try { unsub(); } catch { }
+        });
+        livePostUnsubRef.current.clear();
+        livePostMetaRef.current.clear();
+        liveProfileRef.current.clear();
+        liveWorkoutRef.current.clear();
     }, []);
 
     const ensureHandle = useCallback((profile, uid) => {
@@ -332,46 +402,80 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
         return `@${suffix}`;
     }, []);
 
-    const buildLiveFeedEntry = useCallback((uid, profile, workout) => {
-        if (!uid || !workout) return null;
+const buildLiveFeedEntry = useCallback((uid, profile, workout, postMeta = null, prevEntry = null) => {
+    if (!uid || !workout) return null;
 
-        const createdMs = resolveTimestamp(workout) || Date.now();
-        const normalizedWorkout = {
-            ...workout,
-            created: workout?.created ?? workout?.createdAt ?? createdMs,
-            createdAt: workout?.createdAt ?? workout?.created ?? createdMs,
-            isLive: true,
-            live: true,
-            duration: Number(workout?.duration) || Math.max(0, Date.now() - createdMs),
-            volume: Number(workout?.volume) || 0,
-            PBs: Number(workout?.PBs ?? workout?.pbs ?? 0),
-            calories: (() => {
-                const raw = typeof workout?.calories === "number" ? workout.calories : Number(workout?.calories);
-                return Number.isFinite(raw) ? raw : null;
-            })(),
-        };
+    const createdMs = resolveTimestamp(workout) || Date.now();
+    const createdFromMeta = resolveTimestamp(meta);
+    const sortKey = createdFromMeta || createdMs;
 
-        return {
-            pid: `workout:live:${uid}`,
-            id: `workout:live:${uid}`,
-            uid,
-            handle: ensureHandle(profile, uid),
-            pfp: profile?.pfp || profile?.pfpUrl || profile?.photoURL || profile?.image || '',
-            pfpVersion: profile?.pfpVersion || profile?.profileImageVersion || 0,
-            created: createdMs,
-            updatedAt: Date.now(),
-            caption: workout?.caption || workout?.note || '',
-            media: [],
-            likes: [],
-            likeCount: 0,
-            comments: [],
-            commentCount: 0,
-            workout: normalizedWorkout,
-            isLive: true,
-            liveWorkout: true,
-            sortKey: createdMs,
-        };
-    }, [ensureHandle]);
+    const normalizedWorkout = {
+        ...workout,
+        created: workout?.created ?? workout?.createdAt ?? createdMs,
+        createdAt: workout?.createdAt ?? workout?.created ?? createdMs,
+        postPid: `workout:live:${uid}`,
+        isLive: true,
+        live: true,
+        duration: Number(workout?.duration) || Math.max(0, Date.now() - createdMs),
+        volume: Number(workout?.volume) || 0,
+        PBs: Number(workout?.PBs ?? workout?.pbs ?? 0),
+        calories: (() => {
+            const raw = typeof workout?.calories === "number" ? workout.calories : Number(workout?.calories);
+            return Number.isFinite(raw) ? raw : null;
+        })(),
+    };
+
+    const meta = postMeta && typeof postMeta === "object" ? postMeta : {};
+    const existingLikes = Array.isArray(prevEntry?.likes) ? prevEntry.likes : [];
+    const likes = Array.isArray(meta.likes) ? meta.likes : existingLikes;
+    const existingComments = Array.isArray(prevEntry?.comments) ? prevEntry.comments : [];
+    const comments = Array.isArray(meta.comments) ? meta.comments : existingComments;
+    const likeCount = Number.isFinite(meta.likeCount) ? meta.likeCount : likes.length;
+    const commentCount = Number.isFinite(meta.commentCount)
+        ? meta.commentCount
+        : Array.isArray(meta.comments)
+        ? Math.max(0, meta.comments.length - 1)
+        : Number.isFinite(prevEntry?.commentCount)
+        ? prevEntry.commentCount
+        : 0;
+
+    const caption = typeof meta.caption === "string"
+        ? meta.caption
+        : typeof workout?.caption === "string"
+        ? workout.caption
+        : typeof workout?.note === "string"
+        ? workout.note
+        : (typeof prevEntry?.caption === "string" ? prevEntry.caption : "");
+
+    const media = Array.isArray(meta.media) ? meta.media : Array.isArray(prevEntry?.media) ? prevEntry.media : [];
+    const images = Array.isArray(meta.images) ? meta.images : Array.isArray(prevEntry?.images) ? prevEntry.images : [];
+    const tags = Array.isArray(meta.tags) ? meta.tags : Array.isArray(prevEntry?.tags) ? prevEntry.tags : [];
+    const tagged = Array.isArray(meta.tagged) ? meta.tagged : Array.isArray(prevEntry?.tagged) ? prevEntry.tagged : [];
+
+    return {
+        pid: `workout:live:${uid}`,
+        id: `workout:live:${uid}`,
+        uid,
+        handle: ensureHandle(profile, uid),
+        pfp: profile?.pfp || profile?.pfpUrl || profile?.photoURL || profile?.image || '',
+        pfpVersion: profile?.pfpVersion || profile?.profileImageVersion || 0,
+        created: createdFromMeta || (meta?.created ?? createdMs),
+        updatedAt: Date.now(),
+        caption,
+        media,
+        images,
+        likes,
+        likeCount,
+        comments,
+        commentCount,
+        tags,
+        tagged,
+        workout: normalizedWorkout,
+        isLive: true,
+        liveWorkout: true,
+        sortKey,
+    };
+}, [ensureHandle]);
 
     useEffect(() => {
         const followingArray = Array.isArray(followingUsers) ? followingUsers : [];
@@ -468,12 +572,16 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
             });
 
             toRemove.forEach((uid) => {
-                const unsub = liveUnsubRef.current.get(uid);
+                const key = String(uid);
+                const unsub = liveUnsubRef.current.get(key);
                 if (unsub) {
                     try { unsub(); } catch { }
                 }
-                liveUnsubRef.current.delete(uid);
-                liveMapRef.current.delete(`live:${uid}`);
+                liveUnsubRef.current.delete(key);
+                liveMapRef.current.delete(`live:${key}`);
+                liveProfileRef.current.delete(key);
+                liveWorkoutRef.current.delete(key);
+                teardownLivePostSubscription(key);
                 changed = true;
             });
 
@@ -489,22 +597,23 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
                         const { allowed: allowedSet, excluded: excludedSet } = filtersRef.current;
                         if (!allowedSet.has(uid) || excludedSet.has(uid)) {
                             liveMapRef.current.delete(`live:${uid}`);
+                            liveProfileRef.current.delete(uid);
+                            liveWorkoutRef.current.delete(uid);
+                            teardownLivePostSubscription(uid);
                             recomputeFeed(false);
                             return;
                         }
+                        liveProfileRef.current.set(uid, data);
                         if (workout) {
-                            const existing = liveMapRef.current.get(`live:${uid}`) || null;
-                            const entry = buildLiveFeedEntry(uid, data, workout);
-                            const normalized = normalizePost(entry, existing);
-                            if (normalized) {
-                                liveMapRef.current.set(`live:${uid}`, normalized);
-                            } else {
-                                liveMapRef.current.delete(`live:${uid}`);
-                            }
+                            liveWorkoutRef.current.set(uid, workout);
+                            ensureLivePostSubscription(uid);
                         } else {
+                            liveWorkoutRef.current.delete(uid);
+                            teardownLivePostSubscription(uid);
+                            livePostMetaRef.current.delete(uid);
                             liveMapRef.current.delete(`live:${uid}`);
                         }
-                        recomputeFeed();
+                        updateLiveEntryForUid(uid);
                     });
                     localUnsubs.set(uid, () => {
                         try { unsubscribeUser(); } catch { }
@@ -519,7 +628,7 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
             });
 
             if (changed) {
-                recomputeFeed();
+                recomputeFeed(false);
             }
         };
 
@@ -533,6 +642,10 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
             const newFirstPageMap = new Map();
 
             snapshot.docs.forEach((docSnap) => {
+                const docId = docSnap.id;
+                if (typeof docId === "string" && docId.startsWith("workout:live:")) {
+                    return;
+                }
                 const data = docSnap.data();
                 const uid = toStringUid(data?.uid);
                 if (!uid || !allowedSet.has(uid) || excludedSet.has(uid)) {
@@ -589,7 +702,9 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
     }, [
         recomputeFeed,
         cleanupLiveSubscriptions,
-        buildLiveFeedEntry,
+        updateLiveEntryForUid,
+        ensureLivePostSubscription,
+        teardownLivePostSubscription,
         JSON.stringify(
             Array.isArray(followingUsers)
                 ? followingUsers.map((u) => (u?.uid || u))
@@ -624,6 +739,10 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
             let appended = false;
 
             snapshot.docs.forEach((docSnap) => {
+                const docId = docSnap.id;
+                if (typeof docId === "string" && docId.startsWith("workout:live:")) {
+                    return;
+                }
                 const data = docSnap.data();
                 const uid = toStringUid(data?.uid);
                 if (!uid || !allowed.has(uid) || excluded.has(uid)) {
