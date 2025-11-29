@@ -284,19 +284,10 @@ export default function FeedSnapshotCard({
     }, [resolvedOverallRating]);
 
     const pointsToNextRankCopy = useMemo(() => {
-        if (pendingRequirementsCount != null) {
-            if (pendingRequirementsCount <= 0) return "Top of current rank";
-            return `${pendingRequirementsCount} quest${pendingRequirementsCount === 1 ? "" : "s"} to next rank`;
-        }
-        if (pointsToNextRank == null) return null;
-        if (pointsToNextRank === 0) return "Top of current rank";
-        const requiresDecimal = pointsToNextRank < 10;
-        const roundedValue = requiresDecimal
-            ? Math.round(pointsToNextRank * 10) / 10
-            : Math.round(pointsToNextRank);
-        const formattedValue = requiresDecimal ? roundedValue.toFixed(1) : String(roundedValue);
-        return `${formattedValue} pts to next rank`;
-    }, [pendingRequirementsCount, pointsToNextRank]);
+        if (pendingRequirementsCount == null) return null;
+        if (pendingRequirementsCount <= 0) return "Top of current rank";
+        return `${pendingRequirementsCount} quest${pendingRequirementsCount === 1 ? "" : "s"} to next rank`;
+    }, [pendingRequirementsCount]);
 
     const [activeRankTab, setActiveRankTab] = useState(() => sanitizeTabKey(initialTabKey) || RANK_TAB_CONFIG[0].key);
     const forcedTabKey = sanitizeTabKey(forceTabKey);

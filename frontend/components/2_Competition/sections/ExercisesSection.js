@@ -166,6 +166,20 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
         ? rankProgress.currentRankIndexDesc
         : LADDER_LEVELS.length - 1;
     const promotionStatuses = rankProgress.promotionStatuses || new Map();
+    const pendingQuestsCount = useMemo(() => {
+        try {
+            const firstIncomplete = Array.from(promotionStatuses.values()).find(
+                (status) => !status.allComplete
+            );
+            if (firstIncomplete && Array.isArray(firstIncomplete.tasks)) {
+                const remaining = firstIncomplete.tasks.filter((task) => !task.complete).length;
+                return Number.isFinite(remaining) ? remaining : null;
+            }
+        } catch {
+            return null;
+        }
+        return null;
+    }, [promotionStatuses]);
 
     const handleScroll = useCallback(
         (event) => {
@@ -264,6 +278,7 @@ const attemptCenterCurrentCard = useCallback(
                 const promotionRequirements = promotionKey ? rankLevelPromotionRequirements[promotionKey] : null;
                 const promotionThemeKey =
                     promotionRequirements?.theme || nextLevelEntry?.rankTier || entry.rankTier;
+                const promotionStatusForNext = nextLevelEntry ? promotionStatuses.get(nextLevelEntry.key) : null;
                 const nextLevelIndex = nextLevelEntry ? index + 1 : null;
                 const isImmediatePromotionTarget =
                     typeof nextLevelIndex === "number" && nextLevelIndex === currentRankIndex;
@@ -279,14 +294,18 @@ const attemptCenterCurrentCard = useCallback(
                     };
                 });
                 const tasksToRender =
-                    (promotionStatus?.tasks && promotionStatus.tasks.length > 0
+                    (promotionStatusForNext?.tasks && promotionStatusForNext.tasks.length > 0
+                        ? promotionStatusForNext.tasks
+                        : promotionStatus?.tasks && promotionStatus.tasks.length > 0
                         ? promotionStatus.tasks
                         : baseTasks) || [];
                 const requirementsCompleted =
+                    promotionStatusForNext?.allComplete ??
                     promotionStatus?.allComplete ??
                     (tasksToRender.length ? tasksToRender.every((task) => task.complete) : false);
                 const hasRequirements = tasksToRender.length > 0;
                 const showOverallRating = entryIsCurrent && userOverallScore != null;
+                const currentPendingQuests = entryIsCurrent ? pendingQuestsCount : null;
                 return (
                     <View
                         key={entry.key}
@@ -306,6 +325,7 @@ const attemptCenterCurrentCard = useCallback(
                                     enableRankAnimations={entryIsCurrent}
                                     overallRating={showOverallRating ? userOverallScore : null}
                                     showOverallRating={showOverallRating}
+                                    pendingRequirementsCount={currentPendingQuests}
                                 />
                             </View>
                         {hasRequirements && (
