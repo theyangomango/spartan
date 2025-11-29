@@ -471,10 +471,10 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(4),
     },
     requirementOutlineBadge: {
-        width: scaleSize(30),
-        height: scaleSize(30),
-        borderRadius: scaleSize(15),
-        borderWidth: scaleSize(2),
+        width: scaleSize(34),
+        height: scaleSize(34),
+        borderRadius: scaleSize(17),
+        borderWidth: scaleSize(2.4),
         backgroundColor: "transparent",
     },
     requirementTextContainer: {
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
         borderRadius: scaleSize(14),
         alignItems: "center",
         justifyContent: "center",
-        borderWidth: StyleSheet.hairlineWidth,
+        borderWidth: scaleSize(1),
         borderColor: "rgba(255,255,255,0.35)",
         backgroundColor: "rgba(0,0,0,0.25)",
         alignSelf: "center",
