@@ -521,7 +521,7 @@ const ChartCard = ({
                     ) : null}
                 </View>
             </View>
-            <View style={styles.summaryRow}>
+            <View style={[chartCardLayout.metricsRow, styles.summaryRow]}>
                 <View style={styles.summaryValueWrap}>
                     <Text style={chartCardTypography.metricValue}>{latest.text}</Text>
                     <Text style={[chartCardTypography.metricUnit, styles.summaryUnit]}>{latest.unit}</Text>
@@ -970,6 +970,7 @@ export default function UserStatsProgressPreview({ user, hexOverlay = null, hexP
     return (
         <View style={styles.previewContainer}>
             {renderTopPager()}
+            <View style={styles.surfaceGap} />
             <ChartCard
                 title="Total Volume / Reps / PRs"
                 activeMetric={activeMetric}
@@ -978,11 +979,12 @@ export default function UserStatsProgressPreview({ user, hexOverlay = null, hexP
                 labelsByKey={labelsByKey}
                 latestByKey={latestByKey}
                 geometry={chartGeometry}
-                chartHeight={chartHeight + scaleSize(30)}
+                chartHeight={chartHeight}
                 metricMeta={metricMeta}
                 yTicksByKey={yTicksByKey}
                 metricTabs={metricTabs}
             />
+            <View style={styles.surfaceGap} />
         </View>
     );
 }
@@ -995,8 +997,13 @@ const styles = StyleSheet.create({
         marginHorizontal: -PREVIEW_HORIZONTAL_PAD,
     },
     topPagerContainer: {
-        marginBottom: scaleSize(8),
+        marginBottom: 0,
         position: "relative",
+    },
+    surfaceGap: {
+        height: scaleSize(14),
+        width: "100%",
+        backgroundColor: theme.surface,
     },
     pagerContent: {
         paddingHorizontal: 0,
@@ -1009,9 +1016,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "center",
         alignItems: "center",
-        marginTop: scaleSize(6),
+        marginTop: scaleSize(2),
         gap: scaleSize(6),
-        paddingBottom: 0,
+        paddingBottom: scaleSize(12),
         backgroundColor: theme.bg,
     },
     topPagerDot: {
@@ -1045,11 +1052,9 @@ const styles = StyleSheet.create({
         color: theme.textPrimary,
     },
     summaryRow: {
-        flexDirection: "row",
         alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: scaleSize(12),
-        paddingVertical: scaleSize(6),
+        paddingHorizontal: 0,
+        paddingVertical: scaleSize(4),
     },
     summaryValueWrap: {
         flexDirection: "row",
