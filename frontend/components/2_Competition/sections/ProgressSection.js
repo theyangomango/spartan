@@ -41,6 +41,7 @@ import {
     buildMuscleFillMap,
     DEFAULT_MUSCLE_SEGMENTS as MUSCLE_SEGMENTS,
     resolveHexTierColor,
+    HEX_TIER_COLORS,
 } from "../../../utils/muscleTierColors";
 
 const WORKOUT_TIMESTAMP_FIELDS = ["created"];
@@ -2361,6 +2362,13 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             const display = Number.isFinite(raw) ? formatHexStat(raw) : "--";
             const segments = group.segments || MUSCLE_SEGMENTS[group.key] || [];
             const iconStrokeWidth = group.key === "back" ? 14 : null;
+            const color = resolveHexTierColor(raw);
+            const tierKey = color
+                ? Object.keys(HEX_TIER_COLORS).find((key) => HEX_TIER_COLORS[key] === color)
+                : null;
+            const tierLabel = tierKey
+                ? `${tierKey.charAt(0).toUpperCase()}${tierKey.slice(1)} Level`
+                : "Unranked";
             return {
                 ...group,
                 display,
@@ -2368,7 +2376,8 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                 iconScale: iconScales[group.key] || 1,
                 iconOffset: iconOffsets[group.key] || 0,
                 iconStrokeWidth,
-                color: resolveHexTierColor(raw),
+                color,
+                tierLabel,
             };
         });
     }, [userData?.statsHexagon]);
@@ -2672,8 +2681,8 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                         <View style={[styles.bodyFigureSlot, styles.bodyFigureSlotFront]}>
                                             <HumanMuscleOutline
                                                 color={BODYGRAPH_OUTLINE_COLOR}
-                                                width="102%"
-                                                height="100%"
+                                                width="115%"
+                                                height="110%"
                                                 preserveAspectRatio="xMidYMid meet"
                                                 fills={muscleFills}
                                                 style={styles.bodyFigure}
@@ -2682,8 +2691,8 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                         <View style={[styles.bodyFigureSlot, styles.bodyFigureSlotBack]}>
                                             <HumanMuscleBackOutline
                                                 color={BODYGRAPH_OUTLINE_COLOR}
-                                                width="102%"
-                                                height="100%"
+                                                width="115%"
+                                                height="110%"
                                                 preserveAspectRatio="xMidYMid meet"
                                                 fills={muscleFills}
                                                 style={styles.bodyFigure}
@@ -2761,14 +2770,27 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                 </View>
                                             </View>
                                         </View>
-                                        <Text
-                                            style={[
-                                                styles.muscleLabel,
-                                                item.key === "overall" ? styles.muscleLabelOverall : null,
-                                            ]}
-                                        >
-                                            {item.label}
-                                        </Text>
+                                        <View style={styles.muscleLabelColumn}>
+                                            <Text
+                                                style={[
+                                                    styles.muscleLabel,
+                                                    item.key === "overall" ? styles.muscleLabelOverall : null,
+                                                ]}
+                                            >
+                                                {item.label}
+                                            </Text>
+                                            <Text
+                                                style={[
+                                                    styles.muscleTierLabel,
+                                                    item.key === "overall" ? styles.muscleTierLabelOverall : null,
+                                                    item.color
+                                                        ? { color: item.color }
+                                                        : styles.muscleTierLabelUnranked,
+                                                ]}
+                                            >
+                                                {item.tierLabel}
+                                            </Text>
+                                        </View>
                                     </View>
                                     <View style={styles.muscleRight}>
                                         <Text
@@ -4001,7 +4023,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: scaleSize(8),
-        marginTop: scaleSize(-36),
+        marginTop: scaleSize(-24),
     },
     muscleList: {
         marginTop: scaleSize(4),
@@ -4058,6 +4080,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
     },
+    muscleLabelColumn: {
+        justifyContent: "center",
+    },
     muscleRight: {
         flexDirection: "row",
         alignItems: "center",
@@ -4097,6 +4122,15 @@ const styles = StyleSheet.create({
         fontSize: ts(15),
         color: theme.textPrimary ?? "#F6F8FF",
     },
+    muscleTierLabel: {
+        fontFamily: "Outfit_500Medium",
+        fontSize: ts(12),
+        color: "rgba(216,226,255,0.72)",
+        marginTop: scaleSize(2),
+    },
+    muscleTierLabelUnranked: {
+        color: "rgba(216,226,255,0.4)",
+    },
     muscleValue: {
         fontFamily: "Outfit_700Bold",
         fontSize: ts(15),
@@ -4104,11 +4138,14 @@ const styles = StyleSheet.create({
     },
     muscleLabelOverall: {
         color: "#6DB7FF",
-        fontSize: ts(17),
+        fontSize: ts(15),
+    },
+    muscleTierLabelOverall: {
+        color: "#6DB7FF",
     },
     muscleValueOverall: {
         color: "#6DB7FF",
-        fontSize: ts(17),
+        fontSize: ts(15),
     },
     hexCard: {
         backgroundColor: theme.bg,
@@ -4177,13 +4214,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         overflow: "visible",
-        transform: [{ translateY: scaleSize(32) }],
+        transform: [{ translateY: scaleSize(46) }],
     },
     bodyFigureSlotFront: {
-        marginRight: scaleSize(12),
+        marginRight: scaleSize(18),
     },
     bodyFigureSlotBack: {
-        marginLeft: scaleSize(12),
+        marginLeft: scaleSize(18),
     },
     bodyFigure: {
         width: "100%",
