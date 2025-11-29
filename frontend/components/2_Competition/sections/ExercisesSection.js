@@ -14,9 +14,32 @@ import {
     evaluateRequirementProgress,
 } from "../../../../shared/rankProgress.js";
 import RankTierMiniBadge from "../RankTierMiniBadge";
+import LevelUpTransition from "../LevelUpTransition";
 import { subscribeUserData } from "../../../utils/userDataEvents";
 import { LADDER_SCROLL_TARGET_KEY } from "../../../utils/competitionTabEvents";
 import formatHexStat from "../../../utils/formatHexStat";
+import { buildRankPromotionKey, registerRankPromotionKey } from "../../../utils/rankPromotionEvents";
+
+const buildPromotionSteps = (fromEntry, toEntry) => {
+    if (!fromEntry || !toEntry || fromEntry.key === toEntry.key) return [];
+    const fromIndex = LADDER_LEVELS.findIndex((item) => item.key === fromEntry.key);
+    const toIndex = LADDER_LEVELS.findIndex((item) => item.key === toEntry.key);
+    if (fromIndex === -1 || toIndex === -1) {
+        return [{ from: fromEntry, to: toEntry }];
+    }
+    const step = toIndex > fromIndex ? 1 : -1;
+    const steps = [];
+    let currentIndex = fromIndex;
+    while (currentIndex !== toIndex) {
+        const nextIndex = currentIndex + step;
+        const nextEntry = LADDER_LEVELS[nextIndex];
+        const currentEntry = LADDER_LEVELS[currentIndex];
+        if (!nextEntry || !currentEntry) break;
+        steps.push({ from: currentEntry, to: nextEntry });
+        currentIndex = nextIndex;
+    }
+    return Array.isArray(steps) && steps.length ? steps : [{ from: fromEntry, to: toEntry }];
+};
 
 const CARD_THEME_COLORS = {
     bronze: { gradient: ["#6f3600ff", "#e19c73ff"], accent: "#f9cba1ff" },
@@ -129,9 +152,12 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
             return null;
         }
     });
+    const [levelUpQueue, setLevelUpQueue] = useState([]);
     const scrollViewRef = useRef(null);
     const cardLayoutsRef = useRef({});
     const hasCenteredRef = useRef(false);
+    const hasHydratedRankRef = useRef(false);
+    const lastRankRef = useRef(null);
     const [scrollContainerHeight, setScrollContainerHeight] = useState(0);
     const [contentHeight, setContentHeight] = useState(0);
 
@@ -165,6 +191,7 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
     const currentRankIndex = Number.isFinite(rankProgress.currentRankIndexDesc)
         ? rankProgress.currentRankIndexDesc
         : LADDER_LEVELS.length - 1;
+    const currentRankEntry = rankProgress.currentRankEntry;
     const promotionStatuses = rankProgress.promotionStatuses || new Map();
     const pendingQuestsCount = useMemo(() => {
         try {
@@ -190,7 +217,33 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
         [onScroll]
     );
 
-const attemptCenterCurrentCard = useCallback(
+    useEffect(() => {
+        if (!currentRankEntry) return;
+        const previousSnapshot = lastRankRef.current;
+        if (!hasHydratedRankRef.current) {
+            lastRankRef.current = { entry: currentRankEntry, index: currentRankIndex };
+            hasHydratedRankRef.current = true;
+            return;
+        }
+        const prevEntry = previousSnapshot?.entry;
+        if (prevEntry?.key && prevEntry.key !== currentRankEntry.key) {
+            const promoted =
+                typeof previousSnapshot?.index === "number" && typeof currentRankIndex === "number"
+                    ? currentRankIndex < previousSnapshot.index
+                    : true;
+            if (promoted) {
+                const promotionKey = buildRankPromotionKey(prevEntry, currentRankEntry);
+                const isNew = registerRankPromotionKey(promotionKey);
+                if (isNew) {
+                    const steps = buildPromotionSteps(prevEntry, currentRankEntry);
+                    setLevelUpQueue(Array.isArray(steps) ? steps : []);
+                }
+            }
+        }
+        lastRankRef.current = { entry: currentRankEntry, index: currentRankIndex };
+    }, [currentRankEntry?.key, currentRankIndex, currentRankEntry]);
+
+    const attemptCenterCurrentCard = useCallback(
         (options = { animated: false }) => {
             if (scrollContainerHeight <= 0) return;
             const scrollView = scrollViewRef.current;
@@ -258,183 +311,201 @@ const attemptCenterCurrentCard = useCallback(
         setContentHeight((prev) => (Math.abs(prev - height) > 1 ? height : prev));
     }, []);
 
+    const activeLevelUp = Array.isArray(levelUpQueue) && levelUpQueue.length ? levelUpQueue[0] : null;
+
+    const handleDismissLevelUp = useCallback(() => {
+        setLevelUpQueue((prev) => (Array.isArray(prev) && prev.length ? prev.slice(1) : prev));
+    }, []);
+
     return (
-        <ScrollView
-            ref={scrollViewRef}
-            style={styles.screen}
-            contentContainerStyle={styles.content}
-            showsVerticalScrollIndicator={false}
-            onScroll={handleScroll}
-            onLayout={handleScrollViewLayout}
-            onContentSizeChange={handleContentSizeChange}
-            scrollEventThrottle={16}
-        >
-            <Text style={[styles.topNoticeText, styles.dimmedCard]}>
-                More Ranks Coming Soon!
-            </Text>
-            {LADDER_LEVELS.map((entry, index) => {
-                const entryIsCurrent = entry.key === currentRankKey;
-                const cardShouldDim =
-                    currentRankIndex >= 0 ? index < currentRankIndex : !entryIsCurrent;
-                const nextLevelEntry = index < LADDER_LEVELS.length - 1 ? LADDER_LEVELS[index + 1] : null;
-                const promotionKey = nextLevelEntry
-                    ? buildLevelKey(nextLevelEntry.rankTier, nextLevelEntry.rankLabel)
-                    : null;
-                const promotionRequirements = promotionKey ? rankLevelPromotionRequirements[promotionKey] : null;
-                const promotionThemeKey =
-                    promotionRequirements?.theme || nextLevelEntry?.rankTier || entry.rankTier;
-                const promotionStatusForNext = nextLevelEntry ? promotionStatuses.get(nextLevelEntry.key) : null;
-                const nextLevelIndex = nextLevelEntry ? index + 1 : null;
-                const isImmediatePromotionTarget =
-                    typeof nextLevelIndex === "number" && nextLevelIndex === currentRankIndex;
-                const shouldDimRequirementsBlock = cardShouldDim && !isImmediatePromotionTarget;
-                const promotionStatus = promotionStatuses.get(entry.key);
-                const baseTasks = (promotionRequirements?.tasks || []).map((task) => {
-                    const descriptor = parseRequirementTask(task);
-                    const evaluation = evaluateRequirementProgress(descriptor, rankProgress.metrics);
-                    return {
-                        label: task,
-                        descriptor,
-                        ...evaluation,
-                    };
-                });
-                const tasksToRender =
-                    (promotionStatusForNext?.tasks && promotionStatusForNext.tasks.length > 0
-                        ? promotionStatusForNext.tasks
-                        : promotionStatus?.tasks && promotionStatus.tasks.length > 0
-                        ? promotionStatus.tasks
-                        : baseTasks) || [];
-                const requirementsCompleted =
-                    promotionStatusForNext?.allComplete ??
-                    promotionStatus?.allComplete ??
-                    (tasksToRender.length ? tasksToRender.every((task) => task.complete) : false);
-                const hasRequirements = tasksToRender.length > 0;
-                const showOverallRating = entryIsCurrent && userOverallScore != null;
-                const currentPendingQuests = entryIsCurrent ? pendingQuestsCount : null;
-                return (
-                    <View
-                        key={entry.key}
-                        style={[
-                            styles.cardWrapper,
-                            index === 0 && styles.firstCard,
-                        ]}
-                        onLayout={(event) => handleCardLayout(entry.key, event?.nativeEvent?.layout)}
-                    >
-                        <View style={cardShouldDim ? styles.dimmedCard : null}>
-                                <FeedSnapshotCard
-                                    rankTier={entry.rankTier}
-                                    rankLabel={entry.rankLabel}
-                                    rankLevel={entry.rankLevel}
-                                    showRankTabs={false}
-                                    forceTabKey="rank"
-                                    enableRankAnimations={entryIsCurrent}
-                                    overallRating={showOverallRating ? userOverallScore : null}
-                                    showOverallRating={showOverallRating}
-                                    pendingRequirementsCount={currentPendingQuests}
-                                />
-                            </View>
-                        {hasRequirements && (
-                            <View
-                                style={[
-                                    styles.requirementCardsColumn,
-                                    shouldDimRequirementsBlock && styles.dimmedCard,
-                                ]}
-                            >
-                                {tasksToRender.map((taskStatus, requirementIndex) => {
-                                    const themeKey = promotionThemeKey || entry.rankTier;
-                                    const themeColors = CARD_THEME_COLORS[themeKey] || CARD_THEME_COLORS.gold;
-                                    const taskLabel = taskStatus?.label || "";
-                                    const descriptor = taskStatus?.descriptor || null;
-                                    const taskComplete = !!taskStatus?.complete;
-                                    const progressRatio = clampRatio(
-                                        typeof taskStatus?.ratio === "number"
-                                            ? taskStatus.ratio
-                                            : taskComplete
-                                            ? 1
-                                            : 0
-                                    );
-                                    const progressText = formatRequirementProgressText(
-                                        descriptor,
-                                        taskStatus?.currentValue,
-                                        descriptor?.target,
-                                        taskComplete ? "Completed" : "In progress"
-                                    );
-                                    const statusLabel = taskComplete ? "Completed" : "In Progress";
-                                    const fillColor = themeColors.accent;
-                                    const fillPercent = Math.min(
-                                        100,
-                                        Math.max(0, Math.round(progressRatio * 100))
-                                    );
-                                    const badgeContent = taskComplete ? (
-                                        <RankTierMiniBadge tier={promotionThemeKey} level="III" size={scaleSize(38)} />
-                                    ) : (
-                                        <View
-                                            style={[
-                                                styles.requirementOutlineBadge,
-                                                { borderColor: themeColors.accent },
-                                            ]}
-                                        />
-                                    );
-                                    return (
-                                        <View key={`${entry.key}-requirement-${requirementIndex}`} style={styles.requirementCardWrapper}>
-                                            <LinearGradient colors={themeColors.gradient} style={styles.requirementCard}>
-                                                <View style={styles.requirementCardRow}>
-                                                    <View style={styles.requirementBadge}>
-                                                        {badgeContent}
-                                                    </View>
-                                                    <View style={styles.requirementTextContainer}>
-                                                        {renderRequirementLabel(taskLabel, descriptor, taskComplete, themeColors.accent)}
-                                                    </View>
-                                                    <View
-                                                        style={[
-                                                            styles.requirementStatusBadge,
-                                                            taskComplete
-                                                                ? [
-                                                                      styles.requirementStatusBadgeDone,
-                                                                      { backgroundColor: themeColors.accent, borderColor: themeColors.accent },
-                                                                  ]
-                                                                : [
-                                                                      styles.requirementStatusBadgeActive,
-                                                                      { borderColor: themeColors.accent },
-                                                                  ],
-                                                        ]}
-                                                    >
-                                                        <Text
+        <>
+            <LevelUpTransition
+                visible={!!activeLevelUp}
+                fromRank={activeLevelUp?.from}
+                toRank={activeLevelUp?.to}
+                overallRating={userOverallScore}
+                onClose={handleDismissLevelUp}
+            />
+            <ScrollView
+                ref={scrollViewRef}
+                style={styles.screen}
+                contentContainerStyle={styles.content}
+                showsVerticalScrollIndicator={false}
+                onScroll={handleScroll}
+                onLayout={handleScrollViewLayout}
+                onContentSizeChange={handleContentSizeChange}
+                scrollEventThrottle={16}
+            >
+                <Text style={[styles.topNoticeText, styles.dimmedCard]}>
+                    More Ranks Coming Soon!
+                </Text>
+                {LADDER_LEVELS.map((entry, index) => {
+                    const entryIsCurrent = entry.key === currentRankKey;
+                    const cardShouldDim =
+                        currentRankIndex >= 0 ? index < currentRankIndex : !entryIsCurrent;
+                    const nextLevelEntry = index < LADDER_LEVELS.length - 1 ? LADDER_LEVELS[index + 1] : null;
+                    const promotionKey = nextLevelEntry
+                        ? buildLevelKey(nextLevelEntry.rankTier, nextLevelEntry.rankLabel)
+                        : null;
+                    const promotionRequirements = promotionKey ? rankLevelPromotionRequirements[promotionKey] : null;
+                    const promotionThemeKey =
+                        promotionRequirements?.theme || nextLevelEntry?.rankTier || entry.rankTier;
+                    const promotionStatusForNext = nextLevelEntry ? promotionStatuses.get(nextLevelEntry.key) : null;
+                    const nextLevelIndex = nextLevelEntry ? index + 1 : null;
+                    const isImmediatePromotionTarget =
+                        typeof nextLevelIndex === "number" && nextLevelIndex === currentRankIndex;
+                    const shouldDimRequirementsBlock = cardShouldDim && !isImmediatePromotionTarget;
+                    const promotionStatus = promotionStatuses.get(entry.key);
+                    const baseTasks = (promotionRequirements?.tasks || []).map((task) => {
+                        const descriptor = parseRequirementTask(task);
+                        const evaluation = evaluateRequirementProgress(descriptor, rankProgress.metrics);
+                        return {
+                            label: task,
+                            descriptor,
+                            ...evaluation,
+                        };
+                    });
+                    const matchedPromotionStatus =
+                        promotionStatus?.requirementKey === promotionKey
+                            ? promotionStatus
+                            : promotionStatusForNext?.requirementKey === promotionKey
+                            ? promotionStatusForNext
+                            : null;
+                    const tasksToRender =
+                        (matchedPromotionStatus?.tasks && matchedPromotionStatus.tasks.length > 0
+                            ? matchedPromotionStatus.tasks
+                            : baseTasks) || [];
+                    const requirementsCompleted =
+                        matchedPromotionStatus?.allComplete ??
+                        (tasksToRender.length ? tasksToRender.every((task) => task.complete) : false);
+                    const hasRequirements = tasksToRender.length > 0;
+                    const showOverallRating = entryIsCurrent && userOverallScore != null;
+                    const currentPendingQuests = entryIsCurrent ? pendingQuestsCount : null;
+                    return (
+                        <View
+                            key={entry.key}
+                            style={[
+                                styles.cardWrapper,
+                                index === 0 && styles.firstCard,
+                            ]}
+                            onLayout={(event) => handleCardLayout(entry.key, event?.nativeEvent?.layout)}
+                        >
+                            <View style={cardShouldDim ? styles.dimmedCard : null}>
+                                    <FeedSnapshotCard
+                                        rankTier={entry.rankTier}
+                                        rankLabel={entry.rankLabel}
+                                        rankLevel={entry.rankLevel}
+                                        showRankTabs={false}
+                                        forceTabKey="rank"
+                                        enableRankAnimations={entryIsCurrent}
+                                        overallRating={showOverallRating ? userOverallScore : null}
+                                        showOverallRating={showOverallRating}
+                                        pendingRequirementsCount={currentPendingQuests}
+                                    />
+                                </View>
+                            {hasRequirements && (
+                                <View
+                                    style={[
+                                        styles.requirementCardsColumn,
+                                        shouldDimRequirementsBlock && styles.dimmedCard,
+                                    ]}
+                                >
+                                    {tasksToRender.map((taskStatus, requirementIndex) => {
+                                        const themeKey = promotionThemeKey || entry.rankTier;
+                                        const themeColors = CARD_THEME_COLORS[themeKey] || CARD_THEME_COLORS.gold;
+                                        const taskLabel = taskStatus?.label || "";
+                                        const descriptor = taskStatus?.descriptor || null;
+                                        const taskComplete = !!taskStatus?.complete;
+                                        const progressRatio = clampRatio(
+                                            typeof taskStatus?.ratio === "number"
+                                                ? taskStatus.ratio
+                                                : taskComplete
+                                                ? 1
+                                                : 0
+                                        );
+                                        const progressText = formatRequirementProgressText(
+                                            descriptor,
+                                            taskStatus?.currentValue,
+                                            descriptor?.target,
+                                            taskComplete ? "Completed" : "In progress"
+                                        );
+                                        const statusLabel = taskComplete ? "Completed" : "In Progress";
+                                        const fillColor = themeColors.accent;
+                                        const fillPercent = Math.min(
+                                            100,
+                                            Math.max(0, Math.round(progressRatio * 100))
+                                        );
+                                        const badgeContent = taskComplete ? (
+                                            <RankTierMiniBadge tier={promotionThemeKey} level="III" size={scaleSize(38)} />
+                                        ) : (
+                                            <View
+                                                style={[
+                                                    styles.requirementOutlineBadge,
+                                                    { borderColor: themeColors.accent },
+                                                ]}
+                                            />
+                                        );
+                                        return (
+                                            <View key={`${entry.key}-requirement-${requirementIndex}`} style={styles.requirementCardWrapper}>
+                                                <LinearGradient colors={themeColors.gradient} style={styles.requirementCard}>
+                                                    <View style={styles.requirementCardRow}>
+                                                        <View style={styles.requirementBadge}>
+                                                            {badgeContent}
+                                                        </View>
+                                                        <View style={styles.requirementTextContainer}>
+                                                            {renderRequirementLabel(taskLabel, descriptor, taskComplete, themeColors.accent)}
+                                                        </View>
+                                                        <View
                                                             style={[
-                                                                styles.requirementStatusIcon,
+                                                                styles.requirementStatusBadge,
                                                                 taskComplete
-                                                                    ? styles.requirementStatusIconDone
-                                                                    : { color: themeColors.accent },
+                                                                    ? [
+                                                                          styles.requirementStatusBadgeDone,
+                                                                          { backgroundColor: themeColors.accent, borderColor: themeColors.accent },
+                                                                      ]
+                                                                    : [
+                                                                          styles.requirementStatusBadgeActive,
+                                                                          { borderColor: themeColors.accent },
+                                                                      ],
                                                             ]}
                                                         >
-                                                            {statusLabel}
+                                                            <Text
+                                                                style={[
+                                                                    styles.requirementStatusIcon,
+                                                                    taskComplete
+                                                                        ? styles.requirementStatusIconDone
+                                                                        : { color: themeColors.accent },
+                                                                ]}
+                                                            >
+                                                                {statusLabel}
+                                                            </Text>
+                                                    </View>
+                                                    </View>
+                                                    <View style={styles.requirementProgressTrack}>
+                                                        <View
+                                                            style={[
+                                                                styles.requirementProgressFill,
+                                                                {
+                                                                    width: `${fillPercent}%`,
+                                                                    backgroundColor: fillColor,
+                                                                },
+                                                            ]}
+                                                        />
+                                                        <Text style={styles.requirementProgressText}>
+                                                            {progressText}
                                                         </Text>
-                                                </View>
-                                                </View>
-                                                <View style={styles.requirementProgressTrack}>
-                                                    <View
-                                                        style={[
-                                                            styles.requirementProgressFill,
-                                                            {
-                                                                width: `${fillPercent}%`,
-                                                                backgroundColor: fillColor,
-                                                            },
-                                                        ]}
-                                                    />
-                                                    <Text style={styles.requirementProgressText}>
-                                                        {progressText}
-                                                    </Text>
-                                                </View>
-                                            </LinearGradient>
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        )}
-                    </View>
-                );
-            })}
-        </ScrollView>
+                                                    </View>
+                                                </LinearGradient>
+                                            </View>
+                                        );
+                                    })}
+                                </View>
+                            )}
+                        </View>
+                    );
+                })}
+            </ScrollView>
+        </>
     );
 }
 

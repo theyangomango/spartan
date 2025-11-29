@@ -59,6 +59,9 @@ import { logFeedSignal } from "../helper/feedSignals";
 import { isClipPost } from "../utils/postTypes";
 import { primeAllUsers } from "../helper/getAllUsers";
 import { computeRankProgressFromData } from "../../shared/rankProgress.js";
+import LevelUpTransition from "../components/2_Competition/LevelUpTransition";
+import { buildRankPromotionKey, registerRankPromotionKey } from "../utils/rankPromotionEvents";
+import { LADDER_LEVELS } from "../../shared/rankProgress.js";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -248,6 +251,44 @@ const deriveRankFromUserData = (user) => {
     return user?.currentRank || null;
 };
 
+const buildRankSnapshot = (user) => {
+    try {
+        const completedWorkouts = Array.isArray(user?.completedWorkouts)
+            ? user.completedWorkouts.filter(Boolean)
+            : [];
+        const statsHexagon = user?.statsHexagon;
+        const progress = computeRankProgressFromData({ completedWorkouts, statsHexagon });
+        const entry = progress?.currentRankEntry || null;
+        const index = Number.isFinite(progress?.currentRankIndexDesc)
+            ? progress.currentRankIndexDesc
+            : null;
+        return { entry, index, progress };
+    } catch {
+        return { entry: null, index: null, progress: null };
+    }
+};
+
+const buildPromotionSteps = (fromEntry, toEntry) => {
+    if (!fromEntry || !toEntry || fromEntry.key === toEntry.key) return [];
+    const fromIndex = LADDER_LEVELS.findIndex((item) => item.key === fromEntry.key);
+    const toIndex = LADDER_LEVELS.findIndex((item) => item.key === toEntry.key);
+    if (fromIndex === -1 || toIndex === -1) {
+        return [{ from: fromEntry, to: toEntry }];
+    }
+    const step = toIndex > fromIndex ? 1 : -1;
+    const steps = [];
+    let currentIndex = fromIndex;
+    while (currentIndex !== toIndex) {
+        const nextIndex = currentIndex + step;
+        const nextEntry = LADDER_LEVELS[nextIndex];
+        const currentEntry = LADDER_LEVELS[currentIndex];
+        if (!nextEntry || !currentEntry) break;
+        steps.push({ from: currentEntry, to: nextEntry });
+        currentIndex = nextIndex;
+    }
+    return Array.isArray(steps) && steps.length ? steps : [{ from: fromEntry, to: toEntry }];
+};
+
 const sanitizeWorkoutForRoute = (workout) => {
     if (!workout || typeof workout !== "object") return null;
 
@@ -341,16 +382,23 @@ export default function Feed({ navigation, route }) {
 
     useEffect(() => {
         const unsubscribe = subscribeUserData((payload) => {
+            const snapshot = buildRankSnapshot(payload);
             setCalendarMarkedDays(buildWorkoutDaySet(payload));
-            setCurrentRank(deriveRankFromUserData(payload));
+            setCurrentRank(() => {
+                if (snapshot.entry) {
+                    return {
+                        ...snapshot.entry,
+                        tier: snapshot.entry.rankTier,
+                        label: snapshot.entry.rankLabel,
+                        level: snapshot.entry.rankLevel,
+                    };
+                }
+                return deriveRankFromUserData(payload);
+            });
             setUserStatsHexagon(payload?.statsHexagon || null);
-            try {
-                const { promotionStatuses } = computeRankProgressFromData({
-                    completedWorkouts: Array.isArray(payload?.completedWorkouts)
-                        ? payload.completedWorkouts.filter(Boolean)
-                        : [],
-                    statsHexagon: payload?.statsHexagon,
-                });
+
+            const promotionStatuses = snapshot?.progress?.promotionStatuses;
+            if (promotionStatuses instanceof Map) {
                 const firstIncomplete = Array.from(promotionStatuses.values()).find((status) => !status.allComplete);
                 if (firstIncomplete && Array.isArray(firstIncomplete.tasks)) {
                     const remaining = firstIncomplete.tasks.filter((t) => !t.complete).length;
@@ -358,9 +406,26 @@ export default function Feed({ navigation, route }) {
                 } else {
                     setPendingQuestsCount(null);
                 }
-            } catch {
+            } else {
                 setPendingQuestsCount(null);
             }
+
+            const previousSnapshot = lastRankSnapshotRef.current;
+            if (snapshot.entry && previousSnapshot?.entry && snapshot.entry.key !== previousSnapshot.entry.key) {
+            const promoted =
+                typeof snapshot.index === "number" && typeof previousSnapshot.index === "number"
+                    ? snapshot.index < previousSnapshot.index
+                    : true;
+                if (promoted) {
+                    const promotionKey = buildRankPromotionKey(previousSnapshot.entry, snapshot.entry);
+                    const isNew = registerRankPromotionKey(promotionKey);
+                    if (isNew) {
+                        const steps = buildPromotionSteps(previousSnapshot.entry, snapshot.entry);
+                        setRankPromotionQueue(Array.isArray(steps) ? steps : []);
+                    }
+                }
+            }
+            lastRankSnapshotRef.current = snapshot;
         });
         return unsubscribe;
     }, []);
@@ -369,12 +434,18 @@ export default function Feed({ navigation, route }) {
         setFeedVideosMuted((prev) => !prev);
     }, []);
 
+    const activeRankPromotion = Array.isArray(rankPromotionQueue) && rankPromotionQueue.length ? rankPromotionQueue[0] : null;
+
     const openCalendar = useCallback(() => {
         setCalendarVisible(true);
     }, []);
 
     const closeCalendar = useCallback(() => {
         setCalendarVisible(false);
+    }, []);
+
+    const handleDismissRankPromotion = useCallback(() => {
+        setRankPromotionQueue((prev) => (Array.isArray(prev) && prev.length ? prev.slice(1) : prev));
     }, []);
 
     useEffect(() => {
@@ -438,6 +509,8 @@ const [pendingQuestsCount, setPendingQuestsCount] = useState(() => {
     } catch { }
     return null;
 });
+const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
+const lastRankSnapshotRef = useRef(buildRankSnapshot(global?.userData));
 
     const headerVisibility = useRef(new Animated.Value(1)).current;
     const [headerPointerEvents, setHeaderPointerEvents] = useState("auto");
@@ -1476,8 +1549,16 @@ const [pendingQuestsCount, setPendingQuestsCount] = useState(() => {
     );
 
     return (
-        <SafeAreaView style={styles.screen} edges={["top"]}>
-            <StatusBar style="light" />
+        <>
+            <LevelUpTransition
+                visible={!!activeRankPromotion}
+                fromRank={activeRankPromotion?.from}
+                toRank={activeRankPromotion?.to}
+                overallRating={userOverallScore}
+                onClose={handleDismissRankPromotion}
+            />
+            <SafeAreaView style={styles.screen} edges={["top"]}>
+                <StatusBar style="light" />
             <Animated.View
                 style={[styles.headerWrap, headerAnimatedStyle]}
                 pointerEvents={headerPointerEvents}
@@ -1703,7 +1784,8 @@ const [pendingQuestsCount, setPendingQuestsCount] = useState(() => {
             />
 
             <Footer key={footerKey} currentScreenName="Feed" navigation={navigation} />
-        </SafeAreaView>
+            </SafeAreaView>
+        </>
     );
 }
 
