@@ -334,6 +334,7 @@ const attemptCenterCurrentCard = useCallback(
                                         descriptor?.target,
                                         taskComplete ? "Completed" : "In progress"
                                     );
+                                    const statusLabel = taskComplete ? "Completed" : "In Progress";
                                     const fillPercent = Math.min(
                                         100,
                                         Math.max(0, Math.round(progressRatio * 100))
@@ -355,17 +356,25 @@ const attemptCenterCurrentCard = useCallback(
                                                         style={[
                                                             styles.requirementStatusBadge,
                                                             taskComplete
-                                                                ? [styles.requirementStatusBadgeDone, { backgroundColor: themeColors.accent }]
-                                                                : styles.requirementStatusBadgeActive,
+                                                                ? [
+                                                                      styles.requirementStatusBadgeDone,
+                                                                      { backgroundColor: themeColors.accent, borderColor: themeColors.accent },
+                                                                  ]
+                                                                : [
+                                                                      styles.requirementStatusBadgeActive,
+                                                                      { borderColor: themeColors.accent },
+                                                                  ],
                                                         ]}
                                                     >
                                                         <Text
                                                             style={[
                                                                 styles.requirementStatusIcon,
-                                                                taskComplete && styles.requirementStatusIconDone,
+                                                                taskComplete
+                                                                    ? styles.requirementStatusIconDone
+                                                                    : { color: themeColors.accent },
                                                             ]}
                                                         >
-                                                            ✓
+                                                            {statusLabel}
                                                         </Text>
                                                 </View>
                                                 </View>
@@ -452,6 +461,7 @@ const styles = StyleSheet.create({
     requirementTextContainer: {
         flex: 1,
         paddingHorizontal: scaleSize(6),
+        justifyContent: "center",
     },
     requirementCardTitle: {
         fontFamily: "Outfit_700Bold",
@@ -464,14 +474,17 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(15),
     },
     requirementStatusBadge: {
-        width: scaleSize(32),
-        height: scaleSize(32),
-        borderRadius: scaleSize(16),
+        paddingHorizontal: scaleSize(12),
+        minHeight: scaleSize(28),
+        paddingVertical: scaleSize(5),
+        minWidth: scaleSize(96),
+        borderRadius: scaleSize(14),
         alignItems: "center",
         justifyContent: "center",
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(255,255,255,0.35)",
         backgroundColor: "rgba(0,0,0,0.25)",
+        alignSelf: "center",
     },
     requirementStatusBadgeDone: {
         backgroundColor: theme.primary,
@@ -480,12 +493,16 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(255,255,255,0.15)",
     },
     requirementStatusIcon: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(16),
-        color: "#1c1c1c",
+        fontFamily: "Outfit_800ExtraBold",
+        fontSize: scaleSize(12),
+        color: "#ffffff",
+        letterSpacing: 0.2,
+        textTransform: "uppercase",
+        textAlign: "center",
+        lineHeight: scaleSize(14),
     },
     requirementStatusIconDone: {
-        color: "#ffffff",
+        color: "#0a0a0a",
     },
     requirementProgressTrack: {
         height: scaleSize(22),
