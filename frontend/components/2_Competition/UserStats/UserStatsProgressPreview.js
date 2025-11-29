@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback, useRef } from "react";
+import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { ScrollView, View, Text, useWindowDimensions, StyleSheet, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import Svg, { Path, Defs, LinearGradient, Stop, Circle, G, Line } from "react-native-svg";
@@ -7,7 +7,7 @@ import dayjs from "dayjs";
 import HumanMuscleOutline from "../../../assets/human_muscle_outline";
 import HumanMuscleBackOutline from "../../../assets/human_muscle_back_outline";
 import HexagonalStats from "./HexagonalStats";
-import { chartCardLayout, chartCardTypography, chartTypography } from "../../charts/chartStyles";
+import { chartCardLayout, chartCardTypography, chartTypography, chartPointerStyles } from "../../charts/chartStyles";
 import theme from "../../../theme/mfpDark";
 import { scaleSize, DEVICE_WIDTH, ts } from "../layoutConstants";
 import formatHexStat from "../../../utils/formatHexStat";
@@ -134,8 +134,16 @@ const sanitizeVolumeEntries = (completedWorkouts) => {
                 0
             );
             if (!Number.isFinite(recordedAt) || recordedAt <= 0 || !Number.isFinite(volume) || volume <= 0) return null;
+            const wid =
+                workout?.wid ||
+                workout?.workoutId ||
+                workout?.sessionId ||
+                workout?.id ||
+                workout?.workoutID ||
+                workout?.workout_id;
             return {
                 id: workout.id || workout.wid || workout.workoutId || workout.sessionId || `vol-${idx}`,
+                wid: wid ? String(wid) : null,
                 increment: volume,
                 recordedAt,
                 name:
@@ -169,8 +177,16 @@ const sanitizeRepsEntries = (completedWorkouts) => {
                 0
             );
             if (!Number.isFinite(recordedAt) || recordedAt <= 0 || !Number.isFinite(reps) || reps <= 0) return null;
+            const wid =
+                workout?.wid ||
+                workout?.workoutId ||
+                workout?.sessionId ||
+                workout?.id ||
+                workout?.workoutID ||
+                workout?.workout_id;
             return {
                 id: workout.id || workout.wid || workout.workoutId || workout.sessionId || `rep-${idx}`,
+                wid: wid ? String(wid) : null,
                 increment: reps,
                 recordedAt,
                 name:
@@ -197,8 +213,16 @@ const sanitizePersonalRecordEntries = (completedWorkouts) => {
             const rawIncrement = Number(workout?.PBs ?? workout?.pbs ?? 0);
             const increment = Number.isFinite(rawIncrement) && rawIncrement > 0 ? rawIncrement : 0;
             if (!Number.isFinite(recordedAt) || recordedAt <= 0 || increment <= 0) return null;
+            const wid =
+                workout?.wid ||
+                workout?.workoutId ||
+                workout?.sessionId ||
+                workout?.id ||
+                workout?.workoutID ||
+                workout?.workout_id;
             return {
                 id: workout.id || workout.wid || workout.workoutId || `pr-${idx}`,
+                wid: wid ? String(wid) : null,
                 increment,
                 recordedAt,
                 name:
@@ -467,6 +491,282 @@ const accentToRgba = (accent, alpha) => {
     return `rgba(${r}, ${g}, ${b}, ${boundedAlpha})`;
 };
 
+const toDisplayWeightUnit = (unit, fallback = "lbs") => {
+    if (typeof unit !== "string") return fallback;
+    const normalized = unit.trim().toLowerCase();
+    if (normalized.startsWith("k")) return "kg";
+    if (normalized.startsWith("lb")) return "lbs";
+    return fallback;
+};
+
+const PointerBubbleCard = ({ children, accent, label, isRightAligned, accessibilityLabel }) => {
+    const accentSolid = accentToRgba(accent || CHART_ACCENTS.volume, 1);
+    const borderColor = accentToRgba(accent || CHART_ACCENTS.volume, 0.45);
+    const glowColor = accentToRgba(accent || CHART_ACCENTS.volume, 0.18);
+
+    return (
+        <View
+            pointerEvents="box-none"
+            style={[
+                chartPointerStyles.root,
+                isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
+            ]}
+            accessible={Boolean(accessibilityLabel)}
+            accessibilityRole={accessibilityLabel ? "summary" : undefined}
+            accessibilityLabel={accessibilityLabel}
+        >
+            <View
+                style={[
+                    chartPointerStyles.bubbleWrapper,
+                    isRightAligned ? chartPointerStyles.alignRight : chartPointerStyles.alignLeft,
+                ]}
+            >
+                <View
+                    pointerEvents="none"
+                    style={[
+                        styles.pointerBubbleGlow,
+                        {
+                            backgroundColor: glowColor,
+                        },
+                    ]}
+                />
+                <View
+                    style={[
+                        chartPointerStyles.bubble,
+                        {
+                            borderColor,
+                        },
+                    ]}
+                >
+                    {label ? (
+                        <>
+                            <View style={styles.pointerBubbleHeaderRow}>
+                                <View
+                                    style={[
+                                        styles.pointerBubbleAccentDot,
+                                        { backgroundColor: accentSolid },
+                                    ]}
+                                />
+                                <Text style={styles.pointerBubbleHeaderLabel}>{label}</Text>
+                            </View>
+                            <View style={styles.pointerBubbleHeaderDivider} />
+                        </>
+                    ) : null}
+                    <View style={styles.pointerBubbleBody}>{children}</View>
+                </View>
+            </View>
+        </View>
+    );
+};
+
+const VolumePointerLabel = ({ entry, unit, accent, isRightAligned, onWorkoutPress }) => {
+    if (!entry) return null;
+    const unitText = toDisplayWeightUnit(unit);
+    const totalText = `${formatVolumeValue(entry.value)} ${unitText}`;
+    const incrementText = entry.increment ? `+${formatVolumeValue(entry.increment)} ${unitText}` : null;
+    const timestampText = formatTimestamp(entry.recordedAt);
+    const workoutName = (typeof entry.name === "string" && entry.name.trim()) || null;
+    const canNavigate = !!workoutName && typeof onWorkoutPress === "function";
+
+    return (
+        <PointerBubbleCard
+            label="Total Volume"
+            accent={accent}
+            isRightAligned={isRightAligned}
+            accessibilityLabel={`Total volume ${totalText} recorded ${timestampText}`}
+        >
+            <Text style={chartTypography.pointerTitle}>{totalText}</Text>
+            {incrementText ? (
+                <Text
+                    style={[
+                        chartTypography.pointerBody,
+                        styles.pointerBubbleLineSpacing,
+                        chartTypography.pointerAccentGreen,
+                    ]}
+                >
+                    {incrementText} this workout
+                </Text>
+            ) : null}
+            {workoutName ? (
+                canNavigate ? (
+                    <Pressable
+                        onPress={() => onWorkoutPress(entry)}
+                        hitSlop={8}
+                        accessibilityRole="link"
+                        accessibilityLabel={`View workout ${workoutName}`}
+                    >
+                        <Text
+                            style={[
+                                chartTypography.pointerBody,
+                                styles.pointerBubbleLineSpacing,
+                                chartTypography.pointerAccentBlue,
+                            ]}
+                        >
+                            {workoutName}
+                        </Text>
+                    </Pressable>
+                ) : (
+                    <Text
+                        style={[
+                            chartTypography.pointerBody,
+                            styles.pointerBubbleLineSpacing,
+                            chartTypography.pointerAccentBlue,
+                        ]}
+                    >
+                        {workoutName}
+                    </Text>
+                )
+            ) : null}
+            <View style={styles.pointerBubbleDivider} />
+            <Text style={[chartTypography.pointerTimestamp, styles.pointerBubbleTimestampSpacing]}>
+                {timestampText}
+            </Text>
+        </PointerBubbleCard>
+    );
+};
+
+const RepsPointerLabel = ({ entry, accent, isRightAligned, onWorkoutPress }) => {
+    if (!entry) return null;
+    const totalText = `${formatVolumeValue(entry.value)} reps`;
+    const incrementText = entry.increment ? `+${formatVolumeValue(entry.increment)} reps` : null;
+    const timestampText = formatTimestamp(entry.recordedAt);
+    const workoutName = (typeof entry.name === "string" && entry.name.trim()) || null;
+    const canNavigate = !!workoutName && typeof onWorkoutPress === "function";
+
+    return (
+        <PointerBubbleCard
+            label="Total Reps"
+            accent={accent}
+            isRightAligned={isRightAligned}
+            accessibilityLabel={`Total reps ${totalText} recorded ${timestampText}`}
+        >
+            <Text style={chartTypography.pointerTitle}>{totalText}</Text>
+            {incrementText ? (
+                <Text
+                    style={[
+                        chartTypography.pointerBody,
+                        styles.pointerBubbleLineSpacing,
+                        chartTypography.pointerAccentGreen,
+                    ]}
+                >
+                    {incrementText} this workout
+                </Text>
+            ) : null}
+            {workoutName ? (
+                canNavigate ? (
+                    <Pressable
+                        onPress={() => onWorkoutPress(entry)}
+                        hitSlop={8}
+                        accessibilityRole="link"
+                        accessibilityLabel={`View workout ${workoutName}`}
+                    >
+                        <Text
+                            style={[
+                                chartTypography.pointerBody,
+                                styles.pointerBubbleLineSpacing,
+                                chartTypography.pointerAccentBlue,
+                            ]}
+                        >
+                            {workoutName}
+                        </Text>
+                    </Pressable>
+                ) : (
+                    <Text
+                        style={[
+                            chartTypography.pointerBody,
+                            styles.pointerBubbleLineSpacing,
+                            chartTypography.pointerAccentBlue,
+                        ]}
+                    >
+                        {workoutName}
+                    </Text>
+                )
+            ) : null}
+            <View style={styles.pointerBubbleDivider} />
+            <Text style={[chartTypography.pointerTimestamp, styles.pointerBubbleTimestampSpacing]}>
+                {timestampText}
+            </Text>
+        </PointerBubbleCard>
+    );
+};
+
+const PersonalRecordPointerLabel = ({ entry, accent, isRightAligned, onWorkoutPress }) => {
+    if (!entry) return null;
+    const totalText = `${formatVolumeValue(entry.value)} PRs`;
+    const incrementValue = Number(entry.increment) || 0;
+    const incrementText = incrementValue > 0 ? `+${formatVolumeValue(incrementValue)} PR${incrementValue === 1 ? "" : "s"}` : null;
+    const timestampText = formatTimestamp(entry.recordedAt);
+    const workoutName = (typeof entry.name === "string" && entry.name.trim()) || null;
+    const canNavigate = !!workoutName && typeof onWorkoutPress === "function";
+
+    return (
+        <PointerBubbleCard
+            label="Personal Records"
+            accent={accent}
+            isRightAligned={isRightAligned}
+            accessibilityLabel={`Personal records ${totalText} recorded ${timestampText}`}
+        >
+            <Text style={chartTypography.pointerTitle}>{totalText}</Text>
+            {incrementText ? (
+                <Text
+                    style={[
+                        chartTypography.pointerBody,
+                        styles.pointerBubbleLineSpacing,
+                        chartTypography.pointerAccentGreen,
+                    ]}
+                >
+                    {incrementText} this workout
+                </Text>
+            ) : null}
+            {workoutName ? (
+                canNavigate ? (
+                    <Pressable
+                        onPress={() => onWorkoutPress(entry)}
+                        hitSlop={8}
+                        accessibilityRole="link"
+                        accessibilityLabel={`View workout ${workoutName}`}
+                    >
+                        <Text
+                            style={[
+                                chartTypography.pointerBody,
+                                styles.pointerBubbleLineSpacing,
+                                chartTypography.pointerAccentBlue,
+                            ]}
+                        >
+                            {workoutName}
+                        </Text>
+                    </Pressable>
+                ) : (
+                    <Text
+                        style={[
+                            chartTypography.pointerBody,
+                            styles.pointerBubbleLineSpacing,
+                            chartTypography.pointerAccentBlue,
+                        ]}
+                    >
+                        {workoutName}
+                    </Text>
+                )
+            ) : null}
+            {incrementValue === 0 ? (
+                <Text
+                    style={[
+                        chartTypography.pointerBody,
+                        styles.pointerBubbleLineSpacing,
+                        chartTypography.pointerDeltaNeutral,
+                    ]}
+                >
+                    No new PRs
+                </Text>
+            ) : null}
+            <View style={styles.pointerBubbleDivider} />
+            <Text style={[chartTypography.pointerTimestamp, styles.pointerBubbleTimestampSpacing]}>
+                {timestampText}
+            </Text>
+        </PointerBubbleCard>
+    );
+};
+
 const ChartCard = ({
     title,
     activeMetric,
@@ -479,15 +779,16 @@ const ChartCard = ({
     metricMeta,
     yTicksByKey,
     metricTabs,
+    onWorkoutPress,
 }) => {
     const series = seriesByKey[activeMetric] || { points: [], linePath: "", areaPath: "" };
     const labels = labelsByKey[activeMetric] || [];
     const latest = latestByKey[activeMetric] || { text: "--", unit: "", info: "No data yet" };
     const activeMeta = metricMeta[activeMetric] || metricMeta.volume;
     const accent = activeMeta?.accent || metricMeta.volume.accent;
-    const accentSolid = "#7FB7FF";
-    const gradientTop = "#7FB7FF";
-    const gradientBottom = "#2D7BFF";
+    const accentSolid = accentToRgba(accent, 1);
+    const gradientTop = activeMeta?.gradient?.[0] || accentSolid;
+    const gradientBottom = activeMeta?.gradient?.[1] || accentToRgba(accent, 0.65);
     const {
         chartWidth,
         yAxisLabelWidth,
@@ -502,6 +803,77 @@ const ChartCard = ({
         chartPaddingBottom,
     } = geometry;
     const yTicks = yTicksByKey[activeMetric] || [];
+    const [activeIndex, setActiveIndex] = useState(null);
+    const pointerWidth = scaleSize(184);
+
+    useEffect(() => {
+        setActiveIndex(null);
+    }, [activeMetric, series.points.length]);
+
+    const handleChartPress = useCallback(
+        (event) => {
+            if (!series.points.length) return;
+            const x = event?.nativeEvent?.locationX;
+            if (typeof x !== "number") return;
+            const clampedX = Math.max(0, Math.min(plotWidth, x));
+            let nearestIndex = 0;
+            let smallestDistance = Math.abs(series.points[0].x - clampedX);
+            for (let i = 1; i < series.points.length; i += 1) {
+                const candidate = series.points[i];
+                const dist = Math.abs(candidate.x - clampedX);
+                if (dist < smallestDistance) {
+                    smallestDistance = dist;
+                    nearestIndex = i;
+                }
+            }
+            setActiveIndex(nearestIndex);
+        },
+        [series.points, plotWidth]
+    );
+
+    const activePoint = typeof activeIndex === "number" && activeIndex >= 0 ? series.points[activeIndex] : null;
+    const activeEntry = activePoint || null;
+    const pointerLeft = activePoint
+        ? Math.min(Math.max(activePoint.x - pointerWidth / 2, 0), plotWidth - pointerWidth)
+        : 0;
+    const pointerTop = Math.max(scaleSize(-8), topMargin - scaleSize(70));
+    const pointerRightAligned = activePoint ? activePoint.x > plotWidth / 2 : false;
+
+    const renderPointer = () => {
+        if (!activeEntry) return null;
+        if (activeMetric === "volume") {
+            return (
+                <VolumePointerLabel
+                    entry={activeEntry}
+                    unit={activeMeta.unit}
+                    accent={activeMeta.accent}
+                    isRightAligned={pointerRightAligned}
+                    onWorkoutPress={onWorkoutPress}
+                />
+            );
+        }
+        if (activeMetric === "reps") {
+            return (
+                <RepsPointerLabel
+                    entry={activeEntry}
+                    accent={activeMeta.accent}
+                    isRightAligned={pointerRightAligned}
+                    onWorkoutPress={onWorkoutPress}
+                />
+            );
+        }
+        if (activeMetric === "personalRecords") {
+            return (
+                <PersonalRecordPointerLabel
+                    entry={activeEntry}
+                    accent={activeMeta.accent}
+                    isRightAligned={pointerRightAligned}
+                    onWorkoutPress={onWorkoutPress}
+                />
+            );
+        }
+        return null;
+    };
 
     return (
         <View style={[chartCardLayout.card, styles.card]}>
@@ -573,7 +945,10 @@ const ChartCard = ({
                                 );
                             })}
                         </View>
-                        <View style={[styles.chartCanvas, { width: plotWidth, height: chartHeight }]}>
+                        <Pressable
+                            style={[styles.chartCanvas, { width: plotWidth, height: chartHeight }]}
+                            onPressIn={handleChartPress}
+                        >
                             <Svg width={plotWidth} height={chartHeight}>
                                 <Defs>
                                     <LinearGradient id={`area-${activeMetric}`} x1="0" y1="0" x2="0" y2="1">
@@ -646,7 +1021,7 @@ const ChartCard = ({
                                         key={`${activeMetric}-pt-${idx}`}
                                         cx={point.x}
                                         cy={point.y}
-                                        isActive={false}
+                                        isActive={idx === activeIndex}
                                         accent={activeMeta.accent}
                                     />
                                 ))}
@@ -674,7 +1049,20 @@ const ChartCard = ({
                                     ))}
                                 </View>
                             ) : null}
-                        </View>
+                            {activeEntry ? (
+                                <View
+                                    style={[
+                                        chartPointerStyles.container,
+                                        {
+                                            left: pointerLeft,
+                                            top: pointerTop,
+                                        },
+                                    ]}
+                                >
+                                    {renderPointer()}
+                                </View>
+                            ) : null}
+                        </Pressable>
                     </View>
                 ) : (
                     <View style={styles.chartEmptyState}>
@@ -726,7 +1114,7 @@ const ChartCard = ({
     );
 };
 
-export default function UserStatsProgressPreview({ user, hexOverlay = null, hexProps = {} }) {
+export default function UserStatsProgressPreview({ user, hexOverlay = null, hexProps = {}, onWorkoutPress }) {
     const effectiveWidth = DEVICE_WIDTH;
     const chartHeight = scaleSize(220);
     const overallHexDisplay = useMemo(() => {
@@ -983,6 +1371,7 @@ export default function UserStatsProgressPreview({ user, hexOverlay = null, hexP
                 metricMeta={metricMeta}
                 yTicksByKey={yTicksByKey}
                 metricTabs={metricTabs}
+                onWorkoutPress={onWorkoutPress}
             />
             <View style={styles.surfaceGap} />
         </View>
@@ -1092,6 +1481,52 @@ const styles = StyleSheet.create({
     chartCanvas: {
         flex: 1,
         position: "relative",
+    },
+    pointerBubbleGlow: {
+        position: "absolute",
+        top: scaleSize(-6),
+        bottom: scaleSize(-16),
+        left: scaleSize(40),
+        right: scaleSize(40),
+        borderRadius: scaleSize(48),
+        opacity: 0.4,
+    },
+    pointerBubbleHeaderRow: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    pointerBubbleAccentDot: {
+        width: scaleSize(9),
+        height: scaleSize(9),
+        borderRadius: scaleSize(9) / 2,
+        marginRight: scaleSize(6),
+    },
+    pointerBubbleHeaderLabel: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: ts(11),
+        letterSpacing: 0.5,
+        textTransform: "uppercase",
+        color: "rgba(226, 231, 255, 0.85)",
+    },
+    pointerBubbleHeaderDivider: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: "rgba(255,255,255,0.08)",
+        marginTop: scaleSize(8),
+    },
+    pointerBubbleBody: {
+        marginTop: scaleSize(10),
+    },
+    pointerBubbleDivider: {
+        height: StyleSheet.hairlineWidth,
+        backgroundColor: "rgba(255,255,255,0.08)",
+        marginTop: scaleSize(10),
+        marginBottom: scaleSize(6),
+    },
+    pointerBubbleLineSpacing: {
+        marginTop: scaleSize(4),
+    },
+    pointerBubbleTimestampSpacing: {
+        marginTop: scaleSize(2),
     },
     xAxisLabelsOverlay: {
         position: "absolute",

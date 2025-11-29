@@ -186,6 +186,7 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
                     key={tick}
                     user={effectiveUser}
                     toViewProfile={toViewProfile}
+                    navigation={navigation}
                     visible={isVisible}
                     onDetailActiveChange={handleDetailActiveChange}
                 />

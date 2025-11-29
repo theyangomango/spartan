@@ -17,6 +17,7 @@ import UserStatsWorkoutViewerScreen from "./UserStatsWorkoutViewerScreen";
 import { styles, COLORS, scaledSize, screenWidth } from "./UserStatsStyles";
 import formatHexStat from "../../../utils/formatHexStat";
 import VerifiedHandle from "../../common/VerifiedHandle";
+import { navigateOneWay } from "../../../../navigationRef";
 import {
     getExercisesGrouped,
     ensureWorkoutPrivacy,
@@ -31,7 +32,46 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch { }
 }
 
-export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexProps = {}, deferExercises = false, visible = true, onDetailActiveChange = () => {} }) {
+const sanitizeWorkoutForRoute = (workout) => {
+    if (!workout || typeof workout !== "object") return null;
+    const replacer = (_key, value) => (typeof value === "function" ? undefined : value);
+    try {
+        return JSON.parse(JSON.stringify(workout, replacer));
+    } catch {
+        const clone = { ...workout };
+        clone.exercises = Array.isArray(workout.exercises)
+            ? workout.exercises.map((exercise) => {
+                if (!exercise || typeof exercise !== "object") return {};
+                const sets = Array.isArray(exercise.sets)
+                    ? exercise.sets.map((set) => {
+                        if (!set || typeof set !== "object") return {};
+                        const { weight, reps, unit, units, weightUnit, kg, lbs, ...rest } = set;
+                        const normalized = {
+                            ...rest,
+                            weight: Number(weight ?? kg ?? lbs ?? 0) || 0,
+                            reps: Number(reps ?? set?.rep ?? set?.r ?? 0) || 0,
+                        };
+                        const resolvedUnit = unit || units || weightUnit || (kg != null ? "kg" : undefined);
+                        if (resolvedUnit) normalized.unit = resolvedUnit;
+                        normalized.prev = Object.prototype.hasOwnProperty.call(set, "prev")
+                            ? (set?.prev && typeof set.prev === "object"
+                                ? {
+                                    weight: Number(set.prev?.weight) || 0,
+                                    reps: Number(set.prev?.reps) || 0,
+                                }
+                                : null)
+                            : null;
+                        return normalized;
+                    })
+                    : [];
+                return { ...exercise, sets };
+            })
+            : [];
+        return clone;
+    }
+};
+
+export default function UserStatsModal({ user, toViewProfile, navigation, hexOverlay, hexProps = {}, deferExercises = false, visible = true, onDetailActiveChange = () => {} }) {
     // Optionally defer heavy grouping work until after interactions (for smoother open)
     const [showExercises, setShowExercises] = useState(!deferExercises);
     const viewerData = (() => {
@@ -263,18 +303,6 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
     ), [viewerTranslateX, screenWidth]);
     const timerRef = useRef("");
 
-    const openWorkoutViewer = useCallback((workout) => {
-        if (!workout) return;
-        const sanitized = ensureWorkoutPrivacy(workout);
-        if (!sanitized) return;
-        setViewerWorkout(sanitized);
-        setViewerOpen(true);
-        try { viewerTranslateX.setValue(screenWidth); } catch { }
-        try {
-            Animated.timing(viewerTranslateX, { toValue: 0, duration: 260, useNativeDriver: true }).start();
-        } catch { }
-    }, [viewerTranslateX]);
-
     const findWorkoutByWid = useCallback(async (widRaw) => {
         const wid = String(widRaw || "");
         if (!wid) return null;
@@ -321,6 +349,51 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
         setViewerOpen(false);
         try { viewerTranslateX.setValue(screenWidth); } catch { }
     }, [detailTranslateX, viewerTranslateX, screenWidth]);
+
+    const handleWorkoutPress = useCallback(async (entry) => {
+        try {
+            if (!entry) return;
+            const widCandidate =
+                entry?.wid ||
+                entry?.id ||
+                entry?.workoutId ||
+                entry?.sessionId ||
+                entry?.workoutID ||
+                entry?.workout_id;
+            const wid = widCandidate ? String(widCandidate).trim() : "";
+            if (!wid) return;
+
+            const workout = await findWorkoutByWid(wid);
+            if (!workout) return;
+
+            const sanitizedWorkout = sanitizeWorkoutForRoute({ ...workout, wid });
+            if (!sanitizedWorkout) return;
+            if (!sanitizedWorkout.wid) sanitizedWorkout.wid = wid;
+
+            const ownerUid = String(user?.uid || sanitizedWorkout?.creatorUID || sanitizedWorkout?.creatorUid || "");
+            const ownerHandle = String(user?.handle || user?.username || sanitizedWorkout?.handle || "");
+            const ownerName = String(user?.name || sanitizedWorkout?.ownerName || "");
+            const ownerPfp = String(user?.pfp || user?.image || sanitizedWorkout?.pfp || "");
+            const ownerPfpVersion = Number(user?.pfpVersion ?? sanitizedWorkout?.pfpVersion ?? 0);
+
+            const params = {
+                workout: sanitizedWorkout,
+                owner: {
+                    uid: ownerUid,
+                    handle: ownerHandle,
+                    name: ownerName,
+                    pfp: ownerPfp,
+                    pfpVersion: ownerPfpVersion,
+                },
+            };
+
+            if (!navigateOneWay("PastWorkout", { animation: "slide-from-right", params })) {
+                navigation?.navigate?.("PastWorkout", params);
+            }
+        } catch {
+            // ignore navigation failures
+        }
+    }, [findWorkoutByWid, navigation, user]);
 
     const prevVisibleRef = useRef(isVisible);
     const prevUidRef = useRef(String(user?.uid || ""));
@@ -455,7 +528,12 @@ export default function UserStatsModal({ user, toViewProfile, hexOverlay, hexPro
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                <UserStatsProgressPreview user={userForViewer} hexOverlay={hexOverlay} hexProps={hexProps} />
+                <UserStatsProgressPreview
+                    user={userForViewer}
+                    hexOverlay={hexOverlay}
+                    hexProps={hexProps}
+                    onWorkoutPress={handleWorkoutPress}
+                />
 
                 {/* Exercises */}
                 <View style={styles.exerciseList}>
