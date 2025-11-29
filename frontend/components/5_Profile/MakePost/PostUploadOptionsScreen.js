@@ -1139,7 +1139,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                         const path = `posts/${pid}-${id}.${safeExt}`;
                         const { url } = await uploadResumableNative({ fileUri: localUri, path, mime: mimeType, size });
                         const aspectRatio = ((item?.width && item?.height) ? (item.width / item.height) : null);
-                        return { index, uri: url, type: 'image', cropRect, aspectRatio };
+                        return { index, uri: url, type: 'image', cropRect, aspectRatio, duration: 0 };
                     } catch (error) {
                         console.error(`Error processing image ${index + 1}:`, error);
                         return null;
@@ -1152,7 +1152,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     .map(({ uri, type, duration, cropRect, isClip, aspectRatio }) => ({
                         uri,
                         type: type || 'image',
-                        duration,
+                        duration: Number(duration) || 0,
                         cropRect: cropRect || null,
                         isClip: Boolean(isClip),
                         aspectRatio: aspectRatio || null,

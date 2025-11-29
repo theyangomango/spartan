@@ -609,13 +609,13 @@ const styles = StyleSheet.create({
     },
     requirementCardTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(14),
         color: "#ffffff",
         letterSpacing: 0.5,
     },
     requirementCardTitleEmphasis: {
         fontFamily: "Outfit_900Black",
-        fontSize: scaleSize(15),
+        fontSize: scaleSize(14),
     },
     requirementStatusBadge: {
         paddingHorizontal: scaleSize(12),
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
     },
     requirementStatusIcon: {
         fontFamily: "Outfit_800ExtraBold",
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(11),
         color: "#ffffff",
         letterSpacing: 0.2,
         textTransform: "uppercase",
@@ -668,7 +668,7 @@ const styles = StyleSheet.create({
     },
     requirementProgressText: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(12),
+        fontSize: scaleSize(11),
         color: "#0a0a0a",
         textAlign: "center",
     },
