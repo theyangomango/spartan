@@ -217,8 +217,60 @@ const SPARK_WIDTH = 160;
 const SPARK_HEIGHT = 60;
 const SPARK_PAD_X = 6;
 const SPARK_PAD_Y = 10;
+const ONE_RM_EQUAL_EPSILON = 0.75;
 
-const buildSparklinePath = (progress = [], fallbackValue = null, sets = []) => {
+const buildSparklinePath = (progress = [], fallbackValue = null, sets = [], workouts = []) => {
+    const toMillisSafe = (value) => {
+        if (value === null || value === undefined) return 0;
+        if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+        if (value instanceof Date) return Number.isNaN(value.getTime()) ? 0 : value.getTime();
+        if (typeof value?.toMillis === "function") {
+            const result = Number(value.toMillis());
+            return Number.isFinite(result) ? result : 0;
+        }
+        if (typeof value?.toDate === "function") {
+            try {
+                const dateResult = value.toDate();
+                if (dateResult instanceof Date) {
+                    const ms = dateResult.getTime();
+                    if (Number.isFinite(ms)) return ms;
+                }
+            } catch { }
+        }
+        if (typeof value === "object" && typeof value.seconds === "number") {
+            return value.seconds * 1000;
+        }
+        if (typeof value === "object" && typeof value._seconds === "number") {
+            return value._seconds * 1000;
+        }
+        if (typeof value === "string") {
+            const parsed = Date.parse(value);
+            if (Number.isFinite(parsed)) return parsed;
+            const numeric = Number(value);
+            if (Number.isFinite(numeric)) return numeric;
+        }
+        return 0;
+    };
+
+    const resolveWorkoutTimestamp = (workout) => {
+        if (!workout) return 0;
+        const fields = ["created", "createdAt", "completedAt", "finishedAt", "startedAt", "updatedAt"];
+        for (const field of fields) {
+            const ts = toMillisSafe(workout?.[field]);
+            if (ts) return ts;
+        }
+        return 0;
+    };
+
+    const workoutsByWid = new Map();
+    (Array.isArray(workouts) ? workouts : []).forEach((wk) => {
+        const wid = wk?.wid || wk?.workoutId || wk?.id || wk?.pid;
+        if (wid !== null && wid !== undefined) {
+            const str = String(wid).trim();
+            if (str) workoutsByWid.set(str, wk);
+        }
+    });
+
     const normalizeTs = (input, idx) => {
         if (typeof input === "number" && Number.isFinite(input)) {
             if (input > 1e12) return input;
@@ -252,8 +304,26 @@ const buildSparklinePath = (progress = [], fallbackValue = null, sets = []) => {
         return null;
     };
 
-    const oneRmPoints = [];
+    const progressOneRmPoints = [];
+    const setOneRmPoints = [];
     const volumePoints = [];
+
+    const normalizeOneRmValue = (v) => {
+        const num = Number(v);
+        if (!Number.isFinite(num) || num <= 0) return 0;
+        return Math.round(num * 10) / 10;
+    };
+
+    const resolveSetTimestamp = (set, idx) => {
+        const wid = set?.wid ? String(set.wid).trim() : "";
+        if (wid && workoutsByWid.has(wid)) {
+            const ts = resolveWorkoutTimestamp(workoutsByWid.get(wid));
+            if (ts) return ts;
+        }
+        const fallback = toMillisSafe(set?.timestamp ?? set?.ts ?? set?.date ?? set?.day ?? set?.dayKey);
+        if (fallback) return fallback;
+        return normalizeTs(null, idx);
+    };
 
     const rows = Array.isArray(progress)
         ? progress
@@ -277,7 +347,7 @@ const buildSparklinePath = (progress = [], fallbackValue = null, sets = []) => {
         const volume = parseNumeric(entry?.volume ?? entry?.vol);
         const ts = normalizeTs(entry?.date ?? entry?.day ?? entry?.dayKey ?? entry?.ts ?? entry?.timestamp, idx);
 
-        if (Number.isFinite(oneRm) && oneRm > 0) oneRmPoints.push({ ts, val: oneRm });
+        if (Number.isFinite(oneRm) && oneRm > 0) progressOneRmPoints.push({ ts, val: oneRm });
         if (Number.isFinite(volume) && volume > 0) volumePoints.push({ ts, val: volume });
     });
 
@@ -287,15 +357,15 @@ const buildSparklinePath = (progress = [], fallbackValue = null, sets = []) => {
             const weight = parseNumeric(set?.weight);
             const reps = parseNumeric(set?.reps);
             if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(reps) || reps <= 0) return;
-            const ts = normalizeTs(set?.date ?? set?.day ?? set?.dayKey ?? set?.ts ?? set?.timestamp, rows.length + idx);
-            const est = calculate1RM(weight, reps);
+            const ts = resolveSetTimestamp(set, rows.length + idx);
+            const est = normalizeOneRmValue(calculate1RM(weight, reps));
             if (!Number.isFinite(est) || est <= 0) return;
             if (!setMap.has(ts) || setMap.get(ts) < est) {
                 setMap.set(ts, est);
             }
         });
     }
-    setMap.forEach((val, ts) => oneRmPoints.push({ ts, val }));
+    setMap.forEach((val, ts) => setOneRmPoints.push({ ts, val }));
 
     const pickSeries = (points) =>
         points
@@ -303,11 +373,30 @@ const buildSparklinePath = (progress = [], fallbackValue = null, sets = []) => {
             .map((p) => p.val)
             .slice(-12);
 
-    let values = pickSeries(oneRmPoints);
-    if (!values.length && volumePoints.length) {
-        const volSeries = pickSeries(volumePoints);
-        if (volSeries.length) values = volSeries;
-    }
+    const oneRmSeriesFromSets = pickSeries(setOneRmPoints.length ? setOneRmPoints : progressOneRmPoints);
+    const oneRmSeries = (() => {
+        if (!oneRmSeriesFromSets.length) return [];
+        const result = [];
+        let prev = null;
+        oneRmSeriesFromSets.forEach((val) => {
+            const normalized = normalizeOneRmValue(val);
+            if (!normalized) return;
+            if (prev != null) {
+                const delta = normalized - prev;
+                const sameDisplay =
+                    Math.abs(delta) <= ONE_RM_EQUAL_EPSILON ||
+                    formatWeightValue(normalized) === formatWeightValue(prev);
+                if (sameDisplay) return;
+            }
+            result.push(normalized);
+            prev = normalized;
+        });
+        return result;
+    })();
+    const volumeSeries = pickSeries(volumePoints);
+
+    // Prefer 1RM series even if flat; only fall back to volume when there is no 1RM data.
+    let values = oneRmSeries.length ? oneRmSeries : volumeSeries;
 
     if (values.length === 1) values.push(values[0]);
 
@@ -322,9 +411,8 @@ const buildSparklinePath = (progress = [], fallbackValue = null, sets = []) => {
 
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const range = max - min;
-    const hasRange = range > 0;
-    const norm = values.map((v) => (hasRange ? (v - min) / range : 0.5));
+    const range = max - min || 1;
+    const norm = values.map((v) => (v - min) / range);
     const innerWidth = SPARK_WIDTH - SPARK_PAD_X * 2;
     const innerHeight = SPARK_HEIGHT - SPARK_PAD_Y * 2;
     const step = innerWidth / (norm.length - 1 || 1);
@@ -420,7 +508,8 @@ export default function MuscleGroupExercises() {
                     ...(Array.isArray(item?.statsEntry?.sets) ? item.statsEntry.sets : []),
                     ...(Array.isArray(item?.statsEntry?.recentSets) ? item.statsEntry.recentSets : []),
                     ...(Array.isArray(item?.workoutSets) ? item.workoutSets : []),
-                ]
+                ],
+                completedWorkouts
             );
             return (
                 <Pressable
