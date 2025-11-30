@@ -26,6 +26,7 @@ import {
     formatJoinDate,
 } from "./userStatsUtils";
 import UserStatsProgressPreview from "./UserStatsProgressPreview";
+import { RANK_TIER_THEMES } from "../../1_Feed/FeedSnapshotCard";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -114,6 +115,40 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
 
     const statsForViewer = useMemo(() => sanitizeStatsForViewer(user?.statsExercises || {}, user?.uid, viewerUid, viewerData), [user?.statsExercises, user?.uid, viewerUid, viewerData]);
     const userForViewer = useMemo(() => ({ ...user, statsExercises: statsForViewer }), [user, statsForViewer]);
+    const rankTierKey = useMemo(() => {
+        const candidates = [
+            user?.rankTier,
+            user?.currentRank?.tier,
+            user?.currentRank?.rankTier,
+            user?.rank?.tier,
+            user?.rank?.rankTier,
+        ];
+        for (const val of candidates) {
+            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
+        }
+        return null;
+    }, [user?.rankTier, user?.currentRank?.tier, user?.currentRank?.rankTier, user?.rank?.tier, user?.rank?.rankTier]);
+    const rankTheme = useMemo(() => {
+        const key = rankTierKey || "gold";
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+    }, [rankTierKey]);
+    const handleColor = useMemo(() => {
+        const bronzeAccent =
+            rankTierKey === "bronze"
+                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
+                : null;
+        const candidates = [
+            bronzeAccent,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
+            rankTheme?.borderColor,
+            rankTheme?.titleSecondaryColor,
+        ];
+        for (const c of candidates) {
+            if (typeof c === "string" && c.trim()) return c;
+        }
+        return styles.handle.color;
+    }, [rankTierKey, rankTheme]);
 
     const exerciseGroups = useMemo(() => (
         showExercises ? getExercisesGrouped(userForViewer) : []
@@ -496,9 +531,10 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
                         <VerifiedHandle
                             handle={user.handle}
                             isVerified={Boolean(user?.isVerified ?? user?.verified)}
-                            textStyle={styles.handle}
+                            textStyle={[styles.handle, { color: handleColor }]}
                             numberOfLines={1}
                             containerStyle={styles.handleRow}
+                            iconSize={scaleSize(18)}
                         />
                         <Text style={styles.subHandle}>{joinedLabel}</Text>
                     </View>

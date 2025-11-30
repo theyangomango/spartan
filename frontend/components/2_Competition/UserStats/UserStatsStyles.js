@@ -70,8 +70,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     handle: {
-        fontSize: scaleSize(17),
-        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(15),
+        fontFamily: "Poppins_700Bold",
         color: COLORS.text,
         letterSpacing: 0.2,
     },
