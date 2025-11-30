@@ -827,7 +827,7 @@ const VolumePointerLabel = React.memo(({ entry, unit, isRightAligned, onWorkoutP
                         chartTypography.pointerAccentGreen,
                     ]}
                 >
-                    {incrementText} this workout
+                    {incrementText}
                 </Text>
             ) : null}
             {workoutName ? (
@@ -893,7 +893,7 @@ const RepsPointerLabel = React.memo(({ entry, isRightAligned, onWorkoutPress }) 
                         chartTypography.pointerAccentGreen,
                     ]}
                 >
-                    {incrementText} this workout
+                    {incrementText}
                 </Text>
             ) : null}
             {workoutName ? (
@@ -961,7 +961,7 @@ const PersonalRecordPointerLabel = React.memo(({ entry, isRightAligned, onWorkou
                         chartTypography.pointerAccentGreen,
                     ]}
                 >
-                    {incrementText} this workout
+                    {incrementText}
                 </Text>
             ) : null}
             {workoutName ? (

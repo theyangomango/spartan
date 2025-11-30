@@ -584,7 +584,7 @@ const VolumePointerLabel = ({ entry, unit, accent, isRightAligned, onWorkoutPres
                         chartTypography.pointerAccentGreen,
                     ]}
                 >
-                    {incrementText} this workout
+                    {incrementText}
                 </Text>
             ) : null}
             {workoutName ? (
@@ -649,7 +649,7 @@ const RepsPointerLabel = ({ entry, accent, isRightAligned, onWorkoutPress }) => 
                         chartTypography.pointerAccentGreen,
                     ]}
                 >
-                    {incrementText} this workout
+                    {incrementText}
                 </Text>
             ) : null}
             {workoutName ? (
@@ -715,7 +715,7 @@ const PersonalRecordPointerLabel = ({ entry, accent, isRightAligned, onWorkoutPr
                         chartTypography.pointerAccentGreen,
                     ]}
                 >
-                    {incrementText} this workout
+                    {incrementText}
                 </Text>
             ) : null}
             {workoutName ? (

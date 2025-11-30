@@ -494,7 +494,9 @@ const ExerciseVolumePointerLabel = React.memo(({ entry, unit, isRightAligned, on
                                 styles.progressPointerLineSpacing,
                                 chartTypography.pointerAccentGreen,
                             ]}
-                        >{`${incrementText} this workout`}</Text>
+                        >
+                            {incrementText}
+                        </Text>
                     ) : null}
                     {workoutName ? (
                         canNavigate ? (
@@ -674,7 +676,9 @@ const ExerciseRepsPointerLabel = React.memo(({ entry, isRightAligned, onWorkoutP
                                 styles.progressPointerLineSpacing,
                                 chartTypography.pointerAccentGreen,
                             ]}
-                        >{`${incrementText} this workout`}</Text>
+                        >
+                            {incrementText}
+                        </Text>
                     ) : null}
                     {workoutName ? (
                         canNavigate ? (
@@ -755,15 +759,15 @@ const ExercisePersonalRecordPointerLabel = React.memo(
                         <Text style={chartTypography.pointerTitle}>{totalText}</Text>
                         {incrementText ? (
                             <Text
-                                style={[
-                                    chartTypography.pointerSubtitle,
-                                    styles.progressPointerLineSpacing,
-                                    chartTypography.pointerAccentGreen,
-                                ]}
-                            >
-                                {incrementText} this workout
-                            </Text>
-                        ) : null}
+                            style={[
+                                chartTypography.pointerSubtitle,
+                                styles.progressPointerLineSpacing,
+                                chartTypography.pointerAccentGreen,
+                            ]}
+                        >
+                            {incrementText}
+                        </Text>
+                    ) : null}
                         {workoutName ? (
                             canNavigate ? (
                                 <Pressable
