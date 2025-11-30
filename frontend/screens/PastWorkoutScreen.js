@@ -861,6 +861,18 @@ const PastWorkoutScreen = () => {
                     if (Number.isFinite(result.statsTotalHours)) global.userData.statsTotalHours = result.statsTotalHours;
                     if (Number.isFinite(result.statsTotalWorkouts)) global.userData.statsTotalWorkouts = result.statsTotalWorkouts;
                     if (result.workoutsByDate) global.userData.workoutsByDate = result.workoutsByDate;
+                    if (Object.prototype.hasOwnProperty.call(result, "currentRank")) {
+                        global.userData.currentRank = result.currentRank;
+                    }
+                    if (Object.prototype.hasOwnProperty.call(result, "rankTier")) {
+                        global.userData.rankTier = result.rankTier;
+                    }
+                    if (Object.prototype.hasOwnProperty.call(result, "rankLabel")) {
+                        global.userData.rankLabel = result.rankLabel;
+                    }
+                    if (Object.prototype.hasOwnProperty.call(result, "rankLevel")) {
+                        global.userData.rankLevel = result.rankLevel;
+                    }
                     emitHexagonUpdate();
                     emitUserDataUpdate();
                 }

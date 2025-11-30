@@ -7,6 +7,7 @@ import theme from "../../../theme/mfpDark";
 import { withStrongPress } from "../../../utils/haptics";
 import { getUnifiedHeaderMetrics } from "../../../theme/headerMetrics";
 import VerifiedHandle from "../../common/VerifiedHandle";
+import { RANK_TIER_THEMES } from "../../1_Feed/FeedSnapshotCard";
 
 const METRICS = getUnifiedHeaderMetrics();
 const ICON_SIZE = METRICS.iconSize;
@@ -26,6 +27,40 @@ export default function ProfileHeader({ userData, onPressCreateBtn, onPressSetti
         global?.userData?.verified ??
         false
     );
+    const rankTierKey = (() => {
+        const candidates = [
+            userData?.rankTier,
+            userData?.currentRank?.tier,
+            userData?.currentRank?.rankTier,
+            userData?.rank?.tier,
+            userData?.rank?.rankTier,
+        ];
+        for (const val of candidates) {
+            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
+        }
+        return null;
+    })();
+    const rankTheme = (() => {
+        const key = rankTierKey || "gold";
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+    })();
+    const handleColor = (() => {
+        const bronzeAccent =
+            rankTierKey === "bronze"
+                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
+                : null;
+        const candidates = [
+            bronzeAccent,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
+            rankTheme?.borderColor,
+            rankTheme?.titleSecondaryColor,
+        ];
+        for (const c of candidates) {
+            if (typeof c === "string" && c.trim()) return c;
+        }
+        return theme.textPrimary;
+    })();
 
     return (
         <View style={styles.main_ctnr}>
@@ -37,9 +72,11 @@ export default function ProfileHeader({ userData, onPressCreateBtn, onPressSetti
                     <VerifiedHandle
                         handle={handle}
                         isVerified={isVerified}
-                        textStyle={styles.handle_text}
+                        textStyle={[styles.handle_text, { color: handleColor }]}
                         numberOfLines={1}
                         containerStyle={styles.handleRow}
+                        iconSize={scaleSize(18)}
+                        iconStyle={{ marginTop: -Math.round((Number(styles.handle_text.fontSize) || scaleSize(17)) * 0.14) }}
                     />
                     {/* <View style={styles.down_arrow_ctnr}>
                         <Entypo name="chevron-down" size={scaleSize(18)} color="#A3A7B0" />
@@ -75,8 +112,8 @@ const styles = StyleSheet.create({
         flexShrink: 1,
     },
     handle_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(17),
+        fontFamily: 'Poppins_700Bold',
+        fontSize: scaleSize(15),
         color: theme.textPrimary,
         flexShrink: 1,
         includeFontPadding: false,
