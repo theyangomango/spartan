@@ -1428,6 +1428,11 @@ const ActiveWorkoutModal = ({
                             inviteId: inviteRef.id,
                             timestamp: Date.now(),
                             inviteStatus: "pending",
+                            metadata: {
+                                wid,
+                                inviteId: inviteRef.id,
+                                inviteStatus: "pending",
+                            },
                         });
                     } catch (inviteErr) {
                         console.log("handleInviteSelected notify error", inviteErr);

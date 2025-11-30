@@ -565,10 +565,10 @@ const styles = StyleSheet.create({
         opacity: 0.18,
     },
     requirementCardsColumn: {
-        marginTop: scaleSize(18),
+        marginTop: scaleSize(14),
     },
     requirementCardWrapper: {
-        marginBottom: scaleSize(18),
+        marginBottom: scaleSize(14),
         borderRadius: scaleSize(18),
         overflow: "hidden",
         shadowColor: "#000000",

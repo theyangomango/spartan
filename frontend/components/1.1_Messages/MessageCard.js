@@ -11,9 +11,7 @@ import { strong as haptic } from "../../utils/haptics";
 import { TouchableOpacity } from "react-native";
 import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
-import { RANK_TIER_THEMES } from "../1_Feed/FeedSnapshotCard";
 import resolveRankTierKey from "../../utils/resolveRankTierKey";
-import resolveHandleColor from "../../utils/resolveHandleColor";
 
 const CARD_MIN_HEIGHT = scaleSize(72);
 const PROFILE_SIZE = scaleSize(36);
@@ -98,11 +96,7 @@ const ParticipantHandle = ({ participant, textStyle, containerStyle, preserveTex
     const isVerified = useUserVerified(uid, fallbackVerified);
     const preserveSlot = preserveTextAlignment && isVerified;
     const rankTierKey = resolveRankTierKey(user);
-    const rankTheme = (() => {
-        const key = rankTierKey || "gold";
-        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
-    })();
-    const handleColor = resolveHandleColor(user, { rankTierKey, rankTheme });
+    const handleColor = theme.textPrimary;
     const flattened = StyleSheet.flatten(textStyle) || {};
     const fontSize = Number(flattened.fontSize) || HANDLE_FONT;
     const iconOffset = -Math.round(fontSize * 0.14);

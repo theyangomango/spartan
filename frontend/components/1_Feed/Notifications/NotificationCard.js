@@ -263,10 +263,14 @@ export default function NotificationCard({
 
     const unread = item?.read === false;
 
-    const showAcceptAction = item?.type === "workout-invite" && typeof onAcceptWorkoutInvite === "function";
-    const inviteAccepted = showAcceptAction && item?.inviteStatus === "accepted";
+    const inviteMetadata = item?.metadata || {};
+    const inviteWid = String(item?.wid || inviteMetadata?.wid || "");
+    const inviteStatus = item?.inviteStatus || inviteMetadata?.inviteStatus || "";
 
-    const requestStatus = String(item?.requestStatus || '').toLowerCase();
+    const showAcceptAction = item?.type === "workout-invite" && typeof onAcceptWorkoutInvite === "function";
+    const inviteAccepted = showAcceptAction && inviteStatus === "accepted";
+
+    const requestStatus = String(item?.requestStatus || inviteMetadata?.requestStatus || '').toLowerCase();
     const showFollowRequestActions = item?.type === "follow-request" && typeof onAcceptFollowRequest === "function";
     const requestHandled = showFollowRequestActions && (requestStatus === 'accepted' || requestStatus === 'declined');
 
@@ -276,7 +280,7 @@ export default function NotificationCard({
             return undefined;
         }
 
-        const wid = String(item?.wid || "");
+        const wid = inviteWid;
         const inviterUid = String(item?.uid || "");
         if (!wid || !inviterUid) {
             setInviteExpired(true);
@@ -330,7 +334,7 @@ export default function NotificationCard({
             mounted = false;
             if (typeof unsubscribe === "function") unsubscribe();
         };
-    }, [showAcceptAction, inviteAccepted, item?.wid, item?.uid]);
+    }, [showAcceptAction, inviteAccepted, inviteWid, item?.uid]);
 
     const handleAcceptInvite = async () => {
         if (!showAcceptAction || inviteAccepted || acceptingInvite || inviteExpired) return;

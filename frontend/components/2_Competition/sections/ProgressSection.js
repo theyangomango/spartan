@@ -1423,6 +1423,20 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
         [userData?.completedWorkouts]
     );
 
+    const completedWorkoutsCount = useMemo(
+        () => (Array.isArray(completedWorkouts) ? completedWorkouts.length : 0),
+        [completedWorkouts]
+    );
+
+    const completedWorkoutsCountLabel = useMemo(() => {
+        const count = completedWorkoutsCount;
+        try {
+            return new Intl.NumberFormat("en-US").format(count);
+        } catch {
+            return String(count);
+        }
+    }, [completedWorkoutsCount]);
+
     const workoutsByWid = useMemo(() => {
         const map = new Map();
         completedWorkouts.forEach((workout) => {
@@ -2333,13 +2347,13 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
         ];
         // Apply per-group scaling through the SVG render itself (keeps strokes crisp) instead of view transforms.
         const iconScales = {
-            shoulders: 2.6,
-            chest: 2.8,
-            arms: 1.8,
-            back: 2.2,
-            abs: 3,
-            legs: 2.4,
-            overall: 1.6,
+            shoulders: 2.45,
+            chest: 2.65,
+            arms: 1.7,
+            back: 2.15,
+            abs: 2.8,
+            legs: 2.25,
+            overall: 1.5,
         };
         const iconOffsets = {
             shoulders: scaleSize(70),
@@ -2646,7 +2660,14 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             >
                 <View style={styles.contentSurface}>
                     <View style={styles.topPagerContainer}>
-                        <Text style={styles.bodyLabelOverlay}>Your Body</Text>
+                        <View style={styles.bodyLabelOverlayContainer}>
+                            <Text style={styles.bodyLabelOverlay}>Your Body</Text>
+                            <Text style={styles.bodyLabelSubtitle}>
+                                {`${completedWorkoutsCountLabel} lifetime ${
+                                    completedWorkoutsCount === 1 ? "workout" : "workouts"
+                                }`}
+                            </Text>
+                        </View>
                         {overallHexDisplay ? (
                             <View style={styles.ovrPill}>
                                 <Text style={styles.ovrPillLabel}>OVR</Text>
@@ -4021,14 +4042,22 @@ const styles = StyleSheet.create({
         marginBottom: scaleSize(8),
         position: "relative",
     },
-    bodyLabelOverlay: {
+    bodyLabelOverlayContainer: {
         position: "absolute",
         top: scaleSize(12),
         left: scaleSize(24),
-        fontFamily: "Outfit_700Bold",
-        fontSize: ts(14),
-        color: "#FFFFFF",
         zIndex: 2,
+    },
+    bodyLabelOverlay: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: ts(16),
+        color: "#FFFFFF",
+    },
+    bodyLabelSubtitle: {
+        marginTop: scaleSize(2),
+        fontFamily: "Outfit_500Medium",
+        fontSize: ts(12),
+        color: "rgba(255,255,255,0.76)",
     },
     topPagerPage: {
         paddingHorizontal: 0,
@@ -4057,7 +4086,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
-        paddingVertical: scaleSize(12),
+        paddingVertical: scaleSize(10),
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderColor: "rgba(255,255,255,0.06)",
     },
@@ -4079,13 +4108,13 @@ const styles = StyleSheet.create({
         gap: scaleSize(12),
     },
     muscleBadge: {
-        width: scaleSize(52),
-        height: scaleSize(52),
-        borderRadius: scaleSize(26),
+        width: scaleSize(48),
+        height: scaleSize(48),
+        borderRadius: scaleSize(24),
         backgroundColor: "rgba(89, 169, 255, 0.12)",
         alignItems: "center",
         justifyContent: "center",
-        marginRight: scaleSize(12),
+        marginRight: scaleSize(11),
         overflow: "hidden",
     },
     muscleIconContainer: {

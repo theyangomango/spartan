@@ -49,8 +49,8 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
 
     const handleAcceptInvite = useCallback(async (item) => {
         const effUid = uid || global?.userData?.uid;
-        const inviteId = String(item?.inviteId || "");
-        const wid = String(item?.wid || "");
+        const inviteId = String(item?.inviteId || item?.metadata?.inviteId || "");
+        const wid = String(item?.wid || item?.metadata?.wid || "");
         if (!effUid || !inviteId || !wid) return false;
 
         try {
@@ -58,7 +58,7 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
 
             try {
                 await setDoc(
-                    doc(db, "users", effUid, "notifications", String(item.id)),
+                    doc(db, "usersPrivate", effUid, "notifications", String(item.id)),
                     { inviteStatus: "accepted", read: true },
                     { merge: true }
                 );
@@ -102,7 +102,7 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
             await acceptFollowRequest(currentUser, requester);
             try {
                 await setDoc(
-                    doc(db, "users", effUid, "notifications", String(item.id)),
+                    doc(db, "usersPrivate", effUid, "notifications", String(item.id)),
                     { requestStatus: 'accepted', read: true },
                     { merge: true }
                 );
@@ -154,7 +154,7 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
             await declineFollowRequest(currentUser, requester);
             try {
                 await setDoc(
-                    doc(db, "users", effUid, "notifications", String(item.id)),
+                    doc(db, "usersPrivate", effUid, "notifications", String(item.id)),
                     { requestStatus: 'declined', read: true },
                     { merge: true }
                 );

@@ -10,9 +10,7 @@ import theme from "../../theme/mfpDark";
 import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
 import { resolvePhotoURL } from "../../utils/profilePhoto";
-import { RANK_TIER_THEMES } from "../1_Feed/FeedSnapshotCard";
 import resolveRankTierKey from "../../utils/resolveRankTierKey";
-import resolveHandleColor from "../../utils/resolveHandleColor";
 
 const HAIRLINE = theme.hairline;
 const BG = theme.bg;
@@ -41,11 +39,7 @@ const ChatHeaderHandle = ({ participant, textStyle, containerStyle }) => {
     const uid = user?.uid ? String(user.uid) : "";
     const isVerified = useUserVerified(uid, fallbackVerified);
     const rankTierKey = resolveRankTierKey(user);
-    const rankTheme = (() => {
-        const key = rankTierKey || "gold";
-        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
-    })();
-    const handleColor = resolveHandleColor(user, { rankTierKey, rankTheme });
+    const handleColor = theme.textPrimary;
     const flattened = StyleSheet.flatten(textStyle) || {};
     const fontSize = Number(flattened.fontSize) || ts(13);
     const iconOffset = -Math.round(fontSize * 0.14); // tighten alignment with baseline

@@ -284,6 +284,10 @@ const sanitizeNotificationEvent = (raw = {}) => {
     assign("name", raw.name, { allowEmpty: true });
     assign("pfp", raw.pfp, { allowEmpty: true });
     assign("pfpVersion", raw.pfpVersion);
+    assign("wid", raw.wid);
+    assign("inviteId", raw.inviteId || raw.inviteID);
+    assign("inviteStatus", raw.inviteStatus, { allowEmpty: true });
+    assign("requestStatus", raw.requestStatus, { allowEmpty: true });
     assign("pid", raw.pid);
     assign("content", raw.content, { allowEmpty: true });
     assign("commentKey", raw.commentKey, { allowEmpty: true });
