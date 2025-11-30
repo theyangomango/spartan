@@ -30,6 +30,7 @@ import isThisUser from "../helper/isThisUser";
 import { strong as hapticStrong } from "../utils/haptics";
 import VerifiedHandle from "../components/common/VerifiedHandle";
 import useUserVerified from "../hooks/useUserVerified";
+import { RANK_TIER_THEMES } from "../components/1_Feed/FeedSnapshotCard";
 import { db } from "../../firebase.config";
 import { invalidateFeedCacheForUser } from "../helper/feedCache";
 import { exercises as EXERCISE_LIBRARY } from "../components/3_Workout/NewWorkout/SelectExercise/EXERCISES";
@@ -494,6 +495,48 @@ const PastWorkoutScreen = () => {
         if (workoutOwnerUid) return `user-${workoutOwnerUid.slice(-4)}`;
         return "user";
     }, [owner?.handle, owner?.username, owner?.tag, owner?.name, workout?.handle, workout?.ownerHandle, workoutOwnerUid]);
+
+    const rankTierKey = useMemo(() => {
+        const candidates = [
+            owner?.rankTier,
+            owner?.currentRank?.tier,
+            owner?.currentRank?.rankTier,
+            owner?.rank?.tier,
+            owner?.rank?.rankTier,
+            workout?.rankTier,
+            workout?.currentRank?.tier,
+            workout?.currentRank?.rankTier,
+            workout?.rank?.tier,
+            workout?.rank?.rankTier,
+        ];
+        for (const val of candidates) {
+            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
+        }
+        return null;
+    }, [owner?.rankTier, owner?.currentRank?.tier, owner?.currentRank?.rankTier, owner?.rank?.tier, owner?.rank?.rankTier, workout?.rankTier, workout?.currentRank?.tier, workout?.currentRank?.rankTier, workout?.rank?.tier, workout?.rank?.rankTier]);
+
+    const rankTheme = useMemo(() => {
+        const key = rankTierKey || "gold";
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+    }, [rankTierKey]);
+
+    const handleColor = useMemo(() => {
+        const bronzeAccent =
+            rankTierKey === "bronze"
+                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
+                : null;
+        const candidates = [
+            bronzeAccent,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
+            rankTheme?.borderColor,
+            rankTheme?.titleSecondaryColor,
+        ];
+        for (const c of candidates) {
+            if (typeof c === "string" && c.trim()) return c;
+        }
+        return theme.textPrimary;
+    }, [rankTierKey, rankTheme]);
 
     const ownerFallbackPfp = resolvePhotoURL(owner, "");
     const workoutFallbackPfp = resolvePhotoURL(workout, ownerFallbackPfp);
@@ -972,8 +1015,9 @@ const PastWorkoutScreen = () => {
                                             <VerifiedHandle
                                                 handle={sanitizedHandle || "Friend"}
                                                 isVerified={isOwnerVerified}
-                                                textStyle={styles.nameText}
-                                                iconSize={scaleSize(15)}
+                                                textStyle={[styles.nameText, { color: handleColor }]}
+                                                iconSize={scaleSize(18)}
+                                                iconStyle={{ marginTop: -Math.round(scaleSize(15) * 0.14) }}
                                                 numberOfLines={1}
                                                 ellipsizeMode="tail"
                                                 preserveTextAlignment={isOwnerVerified}
@@ -1274,8 +1318,8 @@ const styles = StyleSheet.create({
     },
     nameText: {
         color: theme.textPrimary,
-        fontFamily: "Poppins_600SemiBold",
-        fontSize: scaleSize(13),
+        fontFamily: "Poppins_700Bold",
+        fontSize: scaleSize(14),
     },
     timestampText: {
         color: theme.textSecondary,
