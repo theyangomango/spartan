@@ -1305,8 +1305,8 @@ export default function UserStatsProgressPreview({ user, hexOverlay = null, hexP
                             <View style={[styles.bodyFigureSlot, styles.bodyFigureSlotFront]}>
                                 <HumanMuscleOutline
                                     color={MUSCLE_OUTLINE_COLOR}
-                                    width="102%"
-                                    height="100%"
+                                    width="120%"
+                                    height="118%"
                                     preserveAspectRatio="xMidYMid meet"
                                     fills={muscleFills}
                                     style={styles.bodyFigure}
@@ -1315,8 +1315,8 @@ export default function UserStatsProgressPreview({ user, hexOverlay = null, hexP
                             <View style={[styles.bodyFigureSlot, styles.bodyFigureSlotBack]}>
                                 <HumanMuscleBackOutline
                                     color={MUSCLE_OUTLINE_COLOR}
-                                    width="102%"
-                                    height="100%"
+                                    width="120%"
+                                    height="118%"
                                     preserveAspectRatio="xMidYMid meet"
                                     fills={muscleFills}
                                     style={styles.bodyFigure}
@@ -1565,14 +1565,16 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
         minHeight: scaleSize(430),
         justifyContent: "center",
+        borderTopWidth: 0,
+        borderBottomWidth: 0,
     },
     bodyFiguresRow: {
         flexDirection: "row",
         justifyContent: "space-between",
         width: "100%",
         alignItems: "center",
-        paddingHorizontal: scaleSize(8),
-        marginTop: scaleSize(-36),
+        paddingHorizontal: scaleSize(6),
+        marginTop: scaleSize(-34),
     },
     bodyFigureSlot: {
         flex: 1,
@@ -1580,13 +1582,13 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "center",
         overflow: "visible",
-        transform: [{ translateY: scaleSize(32) }],
+        transform: [{ translateY: scaleSize(18) }],
     },
     bodyFigureSlotFront: {
-        marginRight: scaleSize(12),
+        marginRight: scaleSize(18),
     },
     bodyFigureSlotBack: {
-        marginLeft: scaleSize(12),
+        marginLeft: scaleSize(18),
     },
     bodyFigure: {
         width: "100%",
@@ -1598,6 +1600,8 @@ const styles = StyleSheet.create({
         minHeight: scaleSize(430),
         alignItems: "center",
         justifyContent: "center",
+        borderTopWidth: 0,
+        borderBottomWidth: 0,
     },
     hexGraphWrap: {
         alignItems: "center",
