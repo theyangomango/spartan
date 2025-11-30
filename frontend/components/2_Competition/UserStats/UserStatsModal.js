@@ -17,6 +17,7 @@ import UserStatsWorkoutViewerScreen from "./UserStatsWorkoutViewerScreen";
 import { styles, COLORS, scaledSize, screenWidth } from "./UserStatsStyles";
 import formatHexStat from "../../../utils/formatHexStat";
 import VerifiedHandle from "../../common/VerifiedHandle";
+import resolveRankTierKey from "../../../utils/resolveRankTierKey";
 import { navigateOneWay } from "../../../../navigationRef";
 import {
     getExercisesGrouped,
@@ -115,19 +116,7 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
 
     const statsForViewer = useMemo(() => sanitizeStatsForViewer(user?.statsExercises || {}, user?.uid, viewerUid, viewerData), [user?.statsExercises, user?.uid, viewerUid, viewerData]);
     const userForViewer = useMemo(() => ({ ...user, statsExercises: statsForViewer }), [user, statsForViewer]);
-    const rankTierKey = useMemo(() => {
-        const candidates = [
-            user?.rankTier,
-            user?.currentRank?.tier,
-            user?.currentRank?.rankTier,
-            user?.rank?.tier,
-            user?.rank?.rankTier,
-        ];
-        for (const val of candidates) {
-            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
-        }
-        return null;
-    }, [user?.rankTier, user?.currentRank?.tier, user?.currentRank?.rankTier, user?.rank?.tier, user?.rank?.rankTier]);
+    const rankTierKey = useMemo(() => resolveRankTierKey(user), [user]);
     const rankTheme = useMemo(() => {
         const key = rankTierKey || "gold";
         return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;

@@ -15,6 +15,7 @@ import VerifiedHandle from "../../common/VerifiedHandle";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import theme from "../../../theme/mfpDark";
 import { RANK_TIER_THEMES } from "../FeedSnapshotCard";
+import resolveRankTierKey from "../../../utils/resolveRankTierKey";
 
 const dynamicStyles = getCommentCardStyles();
 
@@ -106,19 +107,7 @@ export default function CommentCard({
         }
     };
 
-    const rankTierKey = useMemo(() => {
-        const candidates = [
-            data?.rankTier,
-            data?.currentRank?.tier,
-            data?.currentRank?.rankTier,
-            data?.rank?.tier,
-            data?.rank?.rankTier,
-        ];
-        for (const val of candidates) {
-            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
-        }
-        return null;
-    }, [data?.currentRank?.rankTier, data?.currentRank?.tier, data?.rank?.rankTier, data?.rank?.tier, data?.rankTier]);
+    const rankTierKey = useMemo(() => resolveRankTierKey(data), [data]);
 
     const rankTheme = useMemo(() => {
         const key = rankTierKey || "gold";

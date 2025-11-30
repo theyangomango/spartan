@@ -11,6 +11,7 @@ import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
 import { resolvePhotoURL } from "../../utils/profilePhoto";
 import { RANK_TIER_THEMES } from "../1_Feed/FeedSnapshotCard";
+import resolveRankTierKey from "../../utils/resolveRankTierKey";
 
 const HAIRLINE = theme.hairline;
 const BG = theme.bg;
@@ -38,19 +39,7 @@ const ChatHeaderHandle = ({ participant, textStyle, containerStyle }) => {
     const fallbackVerified = Boolean(user?.isVerified ?? user?.verified);
     const uid = user?.uid ? String(user.uid) : "";
     const isVerified = useUserVerified(uid, fallbackVerified);
-    const rankTierKey = (() => {
-        const candidates = [
-            user?.rankTier,
-            user?.currentRank?.tier,
-            user?.currentRank?.rankTier,
-            user?.rank?.tier,
-            user?.rank?.rankTier,
-        ];
-        for (const val of candidates) {
-            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
-        }
-        return null;
-    })();
+    const rankTierKey = resolveRankTierKey(user);
     const rankTheme = (() => {
         const key = rankTierKey || "gold";
         return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;

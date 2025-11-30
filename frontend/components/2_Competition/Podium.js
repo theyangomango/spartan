@@ -7,6 +7,7 @@ const ts = require('../../helper/scaleSize').ts;
 import VerifiedHandle from "../common/VerifiedHandle";
 import theme from "../../theme/mfpDark";
 import { RANK_TIER_THEMES } from "../1_Feed/FeedSnapshotCard";
+import resolveRankTierKey from "../../utils/resolveRankTierKey";
 
 const PODIUM_HEIGHT = scaleSize(260);
 export { PODIUM_HEIGHT };
@@ -89,22 +90,10 @@ export default function Podium({ data, topOffset = 0 }) {
     const op3 = drift3.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.55, 0.9, 0.55] });
 
     const podiumEntries = useMemo(() => {
-        if (!data) return null;
-        return ['first', 'second', 'third'].map((key) => {
-            const entry = data[key] || {};
-            const rankTierKey = (() => {
-                const candidates = [
-                    entry?.rankTier,
-                    entry?.currentRank?.tier,
-                    entry?.currentRank?.rankTier,
-                    entry?.rank?.tier,
-                    entry?.rank?.rankTier,
-                ];
-                for (const val of candidates) {
-                    if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
-                }
-                return null;
-            })();
+        if (!Array.isArray(data) || data.length === 0) return null;
+        const ordered = [data[0], data[1], data[2]]; // 1st, 2nd, 3rd
+        return ordered.map((entry) => {
+            const rankTierKey = resolveRankTierKey(entry);
             const rankTheme = (() => {
                 const rk = rankTierKey || "gold";
                 return RANK_TIER_THEMES[rk] || RANK_TIER_THEMES.gold;

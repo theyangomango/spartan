@@ -40,6 +40,7 @@ import { subscribeUserData, emitUserDataUpdate } from "../../utils/userDataEvent
 import { invalidateFeedCacheForUser } from "../../helper/feedCache";
 import { isClipPost } from "../../utils/postTypes";
 import { RANK_TIER_THEMES } from "./FeedSnapshotCard";
+import resolveRankTierKey from "../../utils/resolveRankTierKey";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -1044,19 +1045,7 @@ const SimpleFeedPost = ({
         return String(source || "").replace(/^@+/, "");
     }, [data?.handle, displayName]);
 
-    const rankTierKey = useMemo(() => {
-        const candidates = [
-            data?.rankTier,
-            data?.currentRank?.tier,
-            data?.currentRank?.rankTier,
-            data?.rank?.tier,
-            data?.rank?.rankTier,
-        ];
-        for (const val of candidates) {
-            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
-        }
-        return null;
-    }, [data?.rank?.rankTier, data?.rank?.tier, data?.rankTier, data?.currentRank?.tier, data?.currentRank?.rankTier]);
+    const rankTierKey = useMemo(() => resolveRankTierKey(data), [data]);
 
     const rankTheme = useMemo(() => {
         const key = rankTierKey || "gold";

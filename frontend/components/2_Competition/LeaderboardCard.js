@@ -8,6 +8,7 @@ const ts = require('../../helper/scaleSize').ts;
 import theme from '../../theme/mfpDark';
 import VerifiedHandle from '../common/VerifiedHandle';
 import { RANK_TIER_THEMES } from '../1_Feed/FeedSnapshotCard';
+import resolveRankTierKey from '../../utils/resolveRankTierKey';
 
 const { width } = Dimensions.get("window");
 
@@ -33,6 +34,7 @@ const FONT_BEST = ts(12);
  * - isTribeFocused?: boolean                       // default false (purely cosmetic fallback)
  */
 export default function LeaderboardCard({
+    user = null,
     pfp,
     handle,
     name,
@@ -57,19 +59,10 @@ export default function LeaderboardCard({
     // Custom background color for the card (unused now, kept for backward compatibility)
     bgColor,
 }) {
-    const rankTierKey = useMemo(() => {
-        const candidates = [
-            rankTier,
-            rankObj?.tier,
-            rankObj?.rankTier,
-            currentRank?.tier,
-            currentRank?.rankTier,
-        ];
-        for (const val of candidates) {
-            if (typeof val === 'string' && val.trim()) return val.trim().toLowerCase();
-        }
-        return null;
-    }, [rankTier, rankObj?.tier, rankObj?.rankTier, currentRank?.tier, currentRank?.rankTier]);
+    const rankTierKey = useMemo(
+        () => resolveRankTierKey(user || rankObj || currentRank || { rankTier }),
+        [user, rankObj, currentRank, rankTier],
+    );
 
     const rankTheme = useMemo(() => {
         const key = rankTierKey || 'gold';

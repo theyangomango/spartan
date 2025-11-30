@@ -248,6 +248,7 @@ export default function LeaderboardModal({
                 rank={displayRanks[index] ?? (index + 1)}
                 lastRank={item?.lastRank}
                 isVerified={Boolean(item?.isVerified ?? item?.verified)}
+                user={item}
                 handlePress={() => {
                     if (typeof onUserPress === 'function') {
                         onUserPress(item);

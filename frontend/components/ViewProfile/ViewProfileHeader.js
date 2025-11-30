@@ -8,6 +8,7 @@ import { withStrongPress } from "../../utils/haptics";
 import { getUnifiedHeaderMetrics } from "../../theme/headerMetrics";
 import VerifiedHandle from "../common/VerifiedHandle";
 import { RANK_TIER_THEMES } from "../1_Feed/FeedSnapshotCard";
+import resolveRankTierKey from "../../utils/resolveRankTierKey";
 
 const METRICS = getUnifiedHeaderMetrics();
 const ICON_SIZE = METRICS.iconSize;
@@ -17,19 +18,7 @@ const ICON_COLOR = "#CBD5E1";
 const ICON_STROKE_WIDTH = 2.4;
 
 export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOptions, isVerified = false, user = null }) {
-    const rankTierKey = (() => {
-        const candidates = [
-            user?.rankTier,
-            user?.currentRank?.tier,
-            user?.currentRank?.rankTier,
-            user?.rank?.tier,
-            user?.rank?.rankTier,
-        ];
-        for (const val of candidates) {
-            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
-        }
-        return null;
-    })();
+    const rankTierKey = resolveRankTierKey(user);
     const rankTheme = (() => {
         const key = rankTierKey || "gold";
         return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;

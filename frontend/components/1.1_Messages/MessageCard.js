@@ -12,6 +12,7 @@ import { TouchableOpacity } from "react-native";
 import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
 import { RANK_TIER_THEMES } from "../1_Feed/FeedSnapshotCard";
+import resolveRankTierKey from "../../utils/resolveRankTierKey";
 
 const CARD_MIN_HEIGHT = scaleSize(72);
 const PROFILE_SIZE = scaleSize(36);
@@ -95,19 +96,7 @@ const ParticipantHandle = ({ participant, textStyle, containerStyle, preserveTex
     const uid = user?.uid ? String(user.uid) : "";
     const isVerified = useUserVerified(uid, fallbackVerified);
     const preserveSlot = preserveTextAlignment && isVerified;
-    const rankTierKey = (() => {
-        const candidates = [
-            user?.rankTier,
-            user?.currentRank?.tier,
-            user?.currentRank?.rankTier,
-            user?.rank?.tier,
-            user?.rank?.rankTier,
-        ];
-        for (const val of candidates) {
-            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
-        }
-        return null;
-    })();
+    const rankTierKey = resolveRankTierKey(user);
     const rankTheme = (() => {
         const key = rankTierKey || "gold";
         return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;

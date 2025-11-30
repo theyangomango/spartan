@@ -13,6 +13,7 @@ import scaleSize from "../helper/scaleSize";
 import VerifiedHandle from "./common/VerifiedHandle";
 import useUserVerified from "../hooks/useUserVerified";
 import { RANK_TIER_THEMES } from "./1_Feed/FeedSnapshotCard";
+import resolveRankTierKey from "../utils/resolveRankTierKey";
 
 const { height: SCREEN_H } = Dimensions.get('window');
 const scale = SCREEN_H / 844;
@@ -102,19 +103,7 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
         const fallbackPfp = resolvePhotoURL(item, item?.pfp || '');
         const pfpUri = usePfp(String(item?.uid || ''), item?.pfpVersion || 0, fallbackPfp) || fallbackPfp;
         const isVerified = useUserVerified(item?.uid, Boolean(item?.isVerified));
-        const rankTierKey = useMemo(() => {
-            const candidates = [
-                item?.rankTier,
-                item?.currentRank?.tier,
-                item?.currentRank?.rankTier,
-                item?.rank?.tier,
-                item?.rank?.rankTier,
-            ];
-            for (const val of candidates) {
-                if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
-            }
-            return null;
-        }, [item?.currentRank?.rankTier, item?.currentRank?.tier, item?.rank?.rankTier, item?.rank?.tier, item?.rankTier]);
+        const rankTierKey = useMemo(() => resolveRankTierKey(item), [item]);
 
         const rankTheme = useMemo(() => {
             const key = rankTierKey || "gold";

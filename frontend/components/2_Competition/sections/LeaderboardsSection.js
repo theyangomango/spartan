@@ -1499,10 +1499,15 @@ function LeaderboardsSection({
                 stat = exStats?.[exerciseStatKey] ?? 0;
             }
             return {
+                uid: u?.uid || u?.id || u?.userUid || null,
                 handle: u?.handle,
                 pfp: resolveProfileImage(u),
                 stat,
                 isVerified: Boolean(u?.isVerified ?? u?.verified ?? false),
+                rankTier: u?.rankTier,
+                rank: u?.rank,
+                currentRank: u?.currentRank,
+                rankObj: u?.rank,
             };
         });
         return top3.filter(Boolean);
