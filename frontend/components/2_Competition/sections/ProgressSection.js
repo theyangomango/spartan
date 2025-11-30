@@ -4036,9 +4036,10 @@ const styles = StyleSheet.create({
         marginTop: scaleSize(-10),
     },
     muscleList: {
-        marginTop: scaleSize(4),
+        marginTop: 0,
     },
     topPagerContainer: {
+        marginBottom: 0,
         position: "relative",
     },
     bodyLabelOverlayContainer: {
@@ -4090,6 +4091,8 @@ const styles = StyleSheet.create({
         borderColor: "rgba(255,255,255,0.06)",
     },
     muscleListCard: {
+        marginTop: 0,
+        paddingTop: scaleSize(6),
         paddingHorizontal: scaleSize(18),
         borderTopWidth: 0,
     },
