@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 import { ArrowDown2, Send2 } from "iconsax-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -8,7 +8,7 @@ import { withStrongPress } from "../../utils/haptics";
 import { getUnifiedHeaderMetrics } from "../../theme/headerMetrics";
 import VerifiedHandle from "../common/VerifiedHandle";
 import { RANK_TIER_THEMES } from "../1_Feed/FeedSnapshotCard";
-import resolveRankTierKey from "../../utils/resolveRankTierKey";
+import resolveRankTierKey, { resolveRankLabel } from "../../utils/resolveRankTierKey";
 
 const METRICS = getUnifiedHeaderMetrics();
 const ICON_SIZE = METRICS.iconSize;
@@ -16,6 +16,7 @@ const HEADER_HORIZONTAL_PADDING = Math.max(0, METRICS.paddingH - scaleSize(6));
 const ICON_WRAPPER_SIZE = scaleSize(ICON_SIZE + 2);
 const ICON_COLOR = "#CBD5E1";
 const ICON_STROKE_WIDTH = 2.4;
+const CENTER_MAX_WIDTH = 0.72;
 
 export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOptions, isVerified = false, user = null }) {
     const rankTierKey = resolveRankTierKey(user);
@@ -40,6 +41,8 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
         }
         return theme.textPrimary;
     })();
+    const rankLabel = resolveRankLabel(user, rankTierKey, rankTheme) || rankTheme?.displayName || null;
+    const rankTextColor = handleColor;
 
     return (
         <View style={styles.main_ctnr}>
@@ -47,7 +50,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
                 <Ionicons name="chevron-back" size={ICON_SIZE} color={theme.textSecondary} />
             </RNBounceable>
 
-            <RNBounceable onPress={withStrongPress(onOpenOptions)} hitSlop={10} style={styles.center}>
+            <RNBounceable style={styles.center} onPress={withStrongPress(onOpenOptions)}>
                 <View style={styles.handleRow}>
                     <VerifiedHandle
                         handle={handle}
@@ -56,7 +59,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
                         numberOfLines={1}
                         containerStyle={styles.handleInner}
                         iconSize={scaleSize(18)}
-                        iconStyle={{ marginTop: -Math.round(scaleSize(17) * 0.14) }}
+                        iconStyle={{ marginTop: -Math.round((Number(styles.handle_text.fontSize) || scaleSize(17)) * 0.14) }}
                     />
                     {/* <ArrowDown2
                         size={scaleSize(18)}
@@ -65,6 +68,15 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
                         style={styles.centerChevron}
                     /> */}
                 </View>
+                {rankLabel ? (
+                    <Text
+                        style={[styles.rank_text, { color: rankTextColor }]}
+                        numberOfLines={1}
+                        ellipsizeMode="tail"
+                    >
+                        {rankLabel}
+                    </Text>
+                ) : null}
             </RNBounceable>
 
             <RNBounceable onPress={withStrongPress(toMessages)} hitSlop={10} style={styles.iconBtn}>
@@ -84,22 +96,23 @@ const styles = StyleSheet.create({
         paddingTop: METRICS.paddingTop,
         marginTop: METRICS.marginTop,
         minHeight: METRICS.paddingTop + METRICS.paddingBottom + METRICS.centerH,
+        marginBottom: scaleSize(8),
+        overflow: "visible",
     },
     center: {
         alignItems: "center",
+        paddingBottom: scaleSize(3.5),
         justifyContent: "center",
         paddingHorizontal: scaleSize(6),
-        height: METRICS.centerH,
-        paddingBottom: scaleSize(3.5),
+        maxWidth: `${CENTER_MAX_WIDTH * 100}%`,
         flexShrink: 1,
-        flexGrow: 0,
-        maxWidth: "65%",
-        alignSelf: "center",
+        height: METRICS.centerH,
     },
     handleRow: {
         flexDirection: "row",
         alignItems: "center",
         maxWidth: "100%",
+        flexShrink: 1,
     },
     handleInner: {
         maxWidth: "100%",
@@ -109,6 +122,14 @@ const styles = StyleSheet.create({
         fontFamily: "Poppins_700Bold",
         fontSize: scaleSize(15),
         color: theme.textPrimary,
+        maxWidth: "100%",
+        flexShrink: 1,
+        includeFontPadding: false,
+    },
+    rank_text: {
+        fontFamily: "Poppins_600SemiBold",
+        fontSize: scaleSize(11),
+        marginTop: scaleSize(2),
         maxWidth: "100%",
         flexShrink: 1,
         includeFontPadding: false,

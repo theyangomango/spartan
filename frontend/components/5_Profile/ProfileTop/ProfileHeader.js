@@ -8,7 +8,7 @@ import { withStrongPress } from "../../../utils/haptics";
 import { getUnifiedHeaderMetrics } from "../../../theme/headerMetrics";
 import VerifiedHandle from "../../common/VerifiedHandle";
 import { RANK_TIER_THEMES } from "../../1_Feed/FeedSnapshotCard";
-import resolveRankTierKey from "../../../utils/resolveRankTierKey";
+import resolveRankTierKey, { resolveRankLabel } from "../../../utils/resolveRankTierKey";
 
 const METRICS = getUnifiedHeaderMetrics();
 const ICON_SIZE = METRICS.iconSize;
@@ -50,6 +50,8 @@ export default function ProfileHeader({ userData, onPressCreateBtn, onPressSetti
         }
         return theme.textPrimary;
     })();
+    const rankLabel = resolveRankLabel(userData, rankTierKey, rankTheme) || rankTheme?.displayName || null;
+    const rankTextColor = handleColor;
 
     return (
         <View style={styles.main_ctnr}>
@@ -67,6 +69,15 @@ export default function ProfileHeader({ userData, onPressCreateBtn, onPressSetti
                         iconSize={scaleSize(18)}
                         iconStyle={{ marginTop: -Math.round((Number(styles.handle_text.fontSize) || scaleSize(17)) * 0.14) }}
                     />
+                    {rankLabel ? (
+                        <Text
+                            style={[styles.rank_text, { color: rankTextColor }]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                        >
+                            {rankLabel}
+                        </Text>
+                    ) : null}
                     {/* <View style={styles.down_arrow_ctnr}>
                         <Entypo name="chevron-down" size={scaleSize(18)} color="#A3A7B0" />
                     </View> */}
@@ -91,20 +102,43 @@ const styles = StyleSheet.create({
         paddingTop: METRICS.paddingTop,
         marginTop: METRICS.marginTop,
         minHeight: METRICS.paddingTop + METRICS.paddingBottom + METRICS.centerH,
+        marginBottom: scaleSize(8),
+        overflow: 'visible',
     },
     center: {
-        flexDirection: 'row',
         alignItems: 'center',
         paddingBottom: scaleSize(3.5),
+        justifyContent: 'center',
+        paddingHorizontal: scaleSize(6),
+        maxWidth: '100%',
+        flexShrink: 1,
+        flexGrow: 1,
+        minWidth: 0,
+        height: METRICS.centerH,
     },
     handleRow: {
         flexShrink: 1,
+        flexGrow: 1,
+        maxWidth: '100%',
+        alignItems: 'center',
+        minWidth: 0,
     },
     handle_text: {
         fontFamily: 'Poppins_700Bold',
         fontSize: scaleSize(15),
         color: theme.textPrimary,
         flexShrink: 1,
+        flexGrow: 1,
+        minWidth: 0,
+        includeFontPadding: false,
+    },
+    rank_text: {
+        fontFamily: 'Poppins_600SemiBold',
+        fontSize: scaleSize(11),
+        marginTop: scaleSize(2),
+        maxWidth: '100%',
+        flexShrink: 1,
+        textAlign: 'center',
         includeFontPadding: false,
     },
     down_arrow_ctnr: {
