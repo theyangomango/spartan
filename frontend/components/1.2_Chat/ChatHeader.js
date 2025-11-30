@@ -10,6 +10,7 @@ import theme from "../../theme/mfpDark";
 import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
 import { resolvePhotoURL } from "../../utils/profilePhoto";
+import { RANK_TIER_THEMES } from "../1_Feed/FeedSnapshotCard";
 
 const HAIRLINE = theme.hairline;
 const BG = theme.bg;
@@ -37,12 +38,46 @@ const ChatHeaderHandle = ({ participant, textStyle, containerStyle, iconSize }) 
     const fallbackVerified = Boolean(user?.isVerified ?? user?.verified);
     const uid = user?.uid ? String(user.uid) : "";
     const isVerified = useUserVerified(uid, fallbackVerified);
+    const rankTierKey = (() => {
+        const candidates = [
+            user?.rankTier,
+            user?.currentRank?.tier,
+            user?.currentRank?.rankTier,
+            user?.rank?.tier,
+            user?.rank?.rankTier,
+        ];
+        for (const val of candidates) {
+            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
+        }
+        return null;
+    })();
+    const rankTheme = (() => {
+        const key = rankTierKey || "gold";
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+    })();
+    const handleColor = (() => {
+        const bronzeAccent =
+            rankTierKey === "bronze"
+                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
+                : null;
+        const candidates = [
+            bronzeAccent,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
+            rankTheme?.borderColor,
+            rankTheme?.titleSecondaryColor,
+        ];
+        for (const c of candidates) {
+            if (typeof c === "string" && c.trim()) return c;
+        }
+        return theme.textPrimary;
+    })();
 
     return (
         <VerifiedHandle
             handle={handle}
             isVerified={isVerified}
-            textStyle={textStyle}
+            textStyle={[textStyle, { color: handleColor }]}
             numberOfLines={1}
             ellipsizeMode="tail"
             containerStyle={containerStyle}
@@ -269,8 +304,8 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
     },
     nameText: {
-        fontFamily: "Nunito_700Bold",
-        fontSize: ts(16),
+        fontFamily: "Poppins_700Bold",
+        fontSize: ts(13),
         color: theme.textPrimary,
         includeFontPadding: false,
         flexShrink: 1,

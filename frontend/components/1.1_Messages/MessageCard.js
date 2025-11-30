@@ -11,11 +11,12 @@ import { strong as haptic } from "../../utils/haptics";
 import { TouchableOpacity } from "react-native";
 import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
+import { RANK_TIER_THEMES } from "../1_Feed/FeedSnapshotCard";
 
 const CARD_MIN_HEIGHT = scaleSize(72);
 const PROFILE_SIZE = scaleSize(36);
 const SMALL_PROFILE_SIZE = scaleSize(30);
-const HANDLE_FONT = ts(14);
+const HANDLE_FONT = ts(12);
 const CONTENT_FONT = ts(12.5);
 const DATE_FONT = ts(12);
 
@@ -94,12 +95,46 @@ const ParticipantHandle = ({ participant, textStyle, containerStyle, preserveTex
     const uid = user?.uid ? String(user.uid) : "";
     const isVerified = useUserVerified(uid, fallbackVerified);
     const preserveSlot = preserveTextAlignment && isVerified;
+    const rankTierKey = (() => {
+        const candidates = [
+            user?.rankTier,
+            user?.currentRank?.tier,
+            user?.currentRank?.rankTier,
+            user?.rank?.tier,
+            user?.rank?.rankTier,
+        ];
+        for (const val of candidates) {
+            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
+        }
+        return null;
+    })();
+    const rankTheme = (() => {
+        const key = rankTierKey || "gold";
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+    })();
+    const handleColor = (() => {
+        const bronzeAccent =
+            rankTierKey === "bronze"
+                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
+                : null;
+        const candidates = [
+            bronzeAccent,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
+            rankTheme?.borderColor,
+            rankTheme?.titleSecondaryColor,
+        ];
+        for (const c of candidates) {
+            if (typeof c === "string" && c.trim()) return c;
+        }
+        return theme.textPrimary;
+    })();
 
     return (
         <VerifiedHandle
             handle={handle}
             isVerified={isVerified}
-            textStyle={textStyle}
+            textStyle={[textStyle, { color: handleColor }]}
             numberOfLines={1}
             ellipsizeMode="tail"
             preserveTextAlignment={preserveSlot}
@@ -282,7 +317,7 @@ const styles = StyleSheet.create({
 
     textCol: { flex: 1, minWidth: 0 },
     handle: {
-        fontFamily: "Outfit_600SemiBold",
+        fontFamily: "Poppins_700Bold",
         color: theme.textPrimary,
         letterSpacing: 0.2,
         fontSize: HANDLE_FONT,
@@ -309,7 +344,7 @@ const styles = StyleSheet.create({
         minWidth: 0,
     },
     handleComma: {
-        fontFamily: "Outfit_600SemiBold",
+        fontFamily: "Poppins_700Bold",
         color: theme.textPrimary,
         letterSpacing: 0.2,
     },
