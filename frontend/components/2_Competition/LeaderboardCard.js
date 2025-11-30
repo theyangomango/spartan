@@ -109,7 +109,7 @@ export default function LeaderboardCard({
                             isVerified={isVerified}
                             textStyle={[styles.handle_text, { fontSize: scaleSize(FONT_HANDLE), color: handleColor }]}
                             numberOfLines={1}
-                            iconSize={scaleSize(12)}
+                            iconSize={scaleSize(14)}
                             containerStyle={styles.handle_row}
                         />
                     </View>
