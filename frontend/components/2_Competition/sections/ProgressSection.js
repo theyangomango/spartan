@@ -3972,7 +3972,6 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
     },
     container: {
-        paddingTop: scaleSize(10),
         paddingBottom: 0,
         backgroundColor: theme.bg,
     },
@@ -4033,7 +4032,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: scaleSize(6),
-        marginTop: scaleSize(-24),
+        marginTop: scaleSize(-20),
     },
     muscleList: {
         marginTop: scaleSize(4),
@@ -4162,8 +4161,8 @@ const styles = StyleSheet.create({
     hexGraphWrap: {
         alignItems: "center",
         justifyContent: "center",
-        marginTop: scaleSize(30),
-        marginBottom: scaleSize(-20),
+        marginTop: scaleSize(35),
+        marginBottom: scaleSize(-25),
     },
     ovrPill: {
         position: "absolute",

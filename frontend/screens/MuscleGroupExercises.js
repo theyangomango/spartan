@@ -437,12 +437,12 @@ export default function MuscleGroupExercises() {
                 >
                     <View style={styles.exerciseLeft}>
                         <View style={styles.exerciseImageWrap}>
-                            <ExerciseAvatar
-                                name={item.name}
-                                slug={item.slug}
-                                size={scaleSize(56)}
-                                imageStyle={styles.exerciseImage}
-                            />
+                        <ExerciseAvatar
+                            name={item.name}
+                            slug={item.slug}
+                            size={scaleSize(50)}
+                            imageStyle={styles.exerciseImage}
+                        />
                         </View>
                         <View style={styles.exerciseText}>
                             <Text style={styles.exerciseTitle}>{item.name}</Text>
@@ -553,13 +553,13 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     headerBadge: {
-        width: scaleSize(52),
-        height: scaleSize(52),
-        borderRadius: scaleSize(26),
+        width: scaleSize(44),
+        height: scaleSize(44),
+        borderRadius: scaleSize(22),
         backgroundColor: "rgba(89, 169, 255, 0.12)",
         alignItems: "center",
         justifyContent: "center",
-        marginRight: scaleSize(12),
+        marginRight: scaleSize(10),
         overflow: "hidden",
     },
     headerBadgeInner: {
@@ -587,7 +587,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         backgroundColor: theme.bg,
         borderRadius: scaleSize(14),
-        paddingHorizontal: scaleSize(18),
+        paddingHorizontal: scaleSize(14),
         paddingVertical: scaleSize(12),
         shadowColor: "rgba(0,0,0,0.35)",
         shadowOpacity: 0.5,
@@ -602,13 +602,13 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(12),
     },
     exerciseImageWrap: {
-        width: scaleSize(56),
-        height: scaleSize(56),
+        width: scaleSize(50),
+        height: scaleSize(50),
         borderRadius: scaleSize(12),
         backgroundColor: "transparent",
         alignItems: "center",
         justifyContent: "center",
-        marginRight: scaleSize(12),
+        marginRight: scaleSize(10),
         overflow: "hidden",
     },
     exerciseImage: {
@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
     },
     exerciseTitle: {
         fontFamily: "Outfit_800ExtraBold",
-        fontSize: ts(13),
+        fontSize: ts(12),
         color: theme.textPrimary ?? "#F6F8FF",
         marginBottom: scaleSize(4),
     },
@@ -633,7 +633,7 @@ const styles = StyleSheet.create({
         alignItems: "flex-end",
     },
     separator: {
-        height: scaleSize(12),
+        height: scaleSize(6),
     },
     emptyState: {
         flex: 1,
