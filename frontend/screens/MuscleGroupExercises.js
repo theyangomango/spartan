@@ -303,16 +303,10 @@ const buildSparklinePath = (progress = [], fallbackValue = null, sets = []) => {
             .map((p) => p.val)
             .slice(-12);
 
-    const hasVariance = (vals) => vals.length >= 2 && Math.max(...vals) !== Math.min(...vals);
-
     let values = pickSeries(oneRmPoints);
-    if ((!values.length || !hasVariance(values)) && volumePoints.length) {
+    if (!values.length && volumePoints.length) {
         const volSeries = pickSeries(volumePoints);
-        if (volSeries.length >= 2 && hasVariance(volSeries)) {
-            values = volSeries;
-        } else if (!values.length) {
-            values = volSeries;
-        }
+        if (volSeries.length) values = volSeries;
     }
 
     if (values.length === 1) values.push(values[0]);
@@ -328,8 +322,9 @@ const buildSparklinePath = (progress = [], fallbackValue = null, sets = []) => {
 
     const min = Math.min(...values);
     const max = Math.max(...values);
-    const range = max - min || 1;
-    const norm = values.map((v) => (v - min) / range);
+    const range = max - min;
+    const hasRange = range > 0;
+    const norm = values.map((v) => (hasRange ? (v - min) / range : 0.5));
     const innerWidth = SPARK_WIDTH - SPARK_PAD_X * 2;
     const innerHeight = SPARK_HEIGHT - SPARK_PAD_Y * 2;
     const step = innerWidth / (norm.length - 1 || 1);
@@ -458,7 +453,7 @@ export default function MuscleGroupExercises() {
                             <Path
                                 d={sparkPath}
                                 stroke="#4FAEFF"
-                                strokeWidth={4}
+                                strokeWidth={3}
                                 strokeLinecap="round"
                                 fill="none"
                             />
