@@ -129,6 +129,10 @@ const ParticipantHandle = ({ participant, textStyle, containerStyle, preserveTex
         }
         return theme.textPrimary;
     })();
+    const flattened = StyleSheet.flatten(textStyle) || {};
+    const fontSize = Number(flattened.fontSize) || HANDLE_FONT;
+    const iconOffset = -Math.round(fontSize * 0.14);
+    const iconSize = Math.max(14, Math.round(fontSize * 1.2));
 
     return (
         <VerifiedHandle
@@ -139,6 +143,8 @@ const ParticipantHandle = ({ participant, textStyle, containerStyle, preserveTex
             ellipsizeMode="tail"
             preserveTextAlignment={preserveSlot}
             containerStyle={containerStyle}
+            iconSize={iconSize}
+            iconStyle={{ marginTop: iconOffset }}
         />
     );
 };

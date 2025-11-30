@@ -32,7 +32,7 @@ const sanitizeHandle = (user) => {
     return name || "Friend";
 };
 
-const ChatHeaderHandle = ({ participant, textStyle, containerStyle, iconSize }) => {
+const ChatHeaderHandle = ({ participant, textStyle, containerStyle }) => {
     const handle = participant?.handle ?? "Friend";
     const user = participant?.user ?? null;
     const fallbackVerified = Boolean(user?.isVerified ?? user?.verified);
@@ -72,6 +72,10 @@ const ChatHeaderHandle = ({ participant, textStyle, containerStyle, iconSize }) 
         }
         return theme.textPrimary;
     })();
+    const flattened = StyleSheet.flatten(textStyle) || {};
+    const fontSize = Number(flattened.fontSize) || ts(13);
+    const iconOffset = -Math.round(fontSize * 0.14); // tighten alignment with baseline
+    const iconSize = Math.max(14, Math.round(fontSize * 1.2));
 
     return (
         <VerifiedHandle
@@ -82,6 +86,7 @@ const ChatHeaderHandle = ({ participant, textStyle, containerStyle, iconSize }) 
             ellipsizeMode="tail"
             containerStyle={containerStyle}
             iconSize={iconSize}
+            iconStyle={{ marginTop: iconOffset }}
         />
     );
 };
@@ -310,7 +315,7 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
         flexShrink: 1,
         minWidth: 0,
-    }
+    },
 });
 
 export default ChatHeader;
