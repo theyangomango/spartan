@@ -1,7 +1,8 @@
+// Muted metallics keep the muscle outlines legible on dark backgrounds.
 const HEX_TIER_COLORS = {
     bronze: "#c77a43",
-    silver: "#c6cbd3",
-    gold: "#f3c54b",
+    silver: "#83a5cbff",
+    gold: "#d6b25f",
     ruby: "#ff5e81",
     emerald: "#6be6b1",
     diamond: "#5ed0ff",
