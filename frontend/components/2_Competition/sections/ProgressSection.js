@@ -50,10 +50,10 @@ const CHART_ACCENTS = {
 };
 
 const POINTER_PANEL_ACCENTS = {
-    volume: CHART_ACCENTS.standard,
+    volume: { r: 214, g: 220, b: 230 },
     reps: { r: 156, g: 136, b: 255 },
     prs: { r: 255, g: 183, b: 126 },
-    weight: CHART_ACCENTS.weight,
+    weight: { r: 214, g: 220, b: 230 },
 };
 const BODYGRAPH_OUTLINE_COLOR = "#40485c";
 const MUSCLE_ICON_HIGHLIGHT = "#ff6f67ff";
