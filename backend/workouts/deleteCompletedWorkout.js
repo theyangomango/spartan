@@ -334,6 +334,19 @@ export default async function deleteCompletedWorkout(uid, identifier) {
                   index: rankProgress.currentRankIndexDesc,
               }
             : null;
+        const rankFields = currentRankData
+            ? {
+                  currentRank: currentRankData,
+                  rankTier: currentRankData.tier,
+                  rankLabel: currentRankData.label,
+                  rankLevel: currentRankData.level,
+              }
+            : {
+                  currentRank: null,
+                  rankTier: null,
+                  rankLabel: null,
+                  rankLevel: null,
+              };
 
         const userUpdatePayload = {
             completedWorkouts: remaining,
@@ -347,7 +360,7 @@ export default async function deleteCompletedWorkout(uid, identifier) {
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
-            currentRank: currentRankData,
+            ...rankFields,
         };
 
         const publicUpdatePayload = {
@@ -362,7 +375,7 @@ export default async function deleteCompletedWorkout(uid, identifier) {
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
-            currentRank: currentRankData,
+            ...rankFields,
         };
 
         const privateUpdatePayload = {
@@ -377,7 +390,7 @@ export default async function deleteCompletedWorkout(uid, identifier) {
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
-            currentRank: currentRankData,
+            ...rankFields,
         };
 
         tx.update(userRef, userUpdatePayload);

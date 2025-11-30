@@ -39,6 +39,7 @@ import { getViewerUid } from "../../utils/userRefs";
 import { subscribeUserData, emitUserDataUpdate } from "../../utils/userDataEvents";
 import { invalidateFeedCacheForUser } from "../../helper/feedCache";
 import { isClipPost } from "../../utils/postTypes";
+import { RANK_TIER_THEMES } from "./FeedSnapshotCard";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -1043,6 +1044,43 @@ const SimpleFeedPost = ({
         return String(source || "").replace(/^@+/, "");
     }, [data?.handle, displayName]);
 
+    const rankTierKey = useMemo(() => {
+        const candidates = [
+            data?.rankTier,
+            data?.currentRank?.tier,
+            data?.currentRank?.rankTier,
+            data?.rank?.tier,
+            data?.rank?.rankTier,
+        ];
+        for (const val of candidates) {
+            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
+        }
+        return null;
+    }, [data?.rank?.rankTier, data?.rank?.tier, data?.rankTier, data?.currentRank?.tier, data?.currentRank?.rankTier]);
+
+    const rankTheme = useMemo(() => {
+        const key = rankTierKey || "gold";
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+    }, [rankTierKey]);
+
+    const handleColor = useMemo(() => {
+        const bronzeAccent =
+            rankTierKey === "bronze"
+                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
+                : null;
+        const candidates = [
+            bronzeAccent,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
+            rankTheme?.borderColor,
+            rankTheme?.titleSecondaryColor,
+        ];
+        for (const c of candidates) {
+            if (typeof c === "string" && c.trim()) return c;
+        }
+        return theme.textPrimary;
+    }, [rankTierKey, rankTheme]);
+
     const likeColor = isLiked ? "#FE5555" : theme.textPrimary;
     const keyExtractor = useCallback((item, idx) => `${item?.uri || 'media'}-${idx}`, []);
 
@@ -1435,7 +1473,7 @@ const SimpleFeedPost = ({
                                     <VerifiedHandle
                                         handle={displayName}
                                         isVerified={isPostVerified}
-                                        textStyle={styles.nameText}
+                                        textStyle={[styles.nameText, { color: handleColor }]}
                                         iconSize={scaleSize(15)}
                                         numberOfLines={1}
                                         ellipsizeMode="tail"
@@ -1993,8 +2031,8 @@ const styles = StyleSheet.create({
     },
     nameText: {
         color: theme.textPrimary,
-        fontFamily: "Poppins_600SemiBold",
-        fontSize: scaleSize(13),
+        fontFamily: "Poppins_700Bold",
+        fontSize: scaleSize(13.5),
     },
     timestampText: {
         color: theme.textSecondary,

@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Svg, { Path } from "react-native-svg";
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -14,6 +14,7 @@ import { strong as hapticStrong } from "../../../utils/haptics";
 import VerifiedHandle from "../../common/VerifiedHandle";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import theme from "../../../theme/mfpDark";
+import { RANK_TIER_THEMES } from "../FeedSnapshotCard";
 
 const dynamicStyles = getCommentCardStyles();
 
@@ -105,6 +106,43 @@ export default function CommentCard({
         }
     };
 
+    const rankTierKey = useMemo(() => {
+        const candidates = [
+            data?.rankTier,
+            data?.currentRank?.tier,
+            data?.currentRank?.rankTier,
+            data?.rank?.tier,
+            data?.rank?.rankTier,
+        ];
+        for (const val of candidates) {
+            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
+        }
+        return null;
+    }, [data?.currentRank?.rankTier, data?.currentRank?.tier, data?.rank?.rankTier, data?.rank?.tier, data?.rankTier]);
+
+    const rankTheme = useMemo(() => {
+        const key = rankTierKey || "gold";
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+    }, [rankTierKey]);
+
+    const handleColor = useMemo(() => {
+        const bronzeAccent =
+            rankTierKey === "bronze"
+                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
+                : null;
+        const candidates = [
+            bronzeAccent,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
+            rankTheme?.borderColor,
+            rankTheme?.titleSecondaryColor,
+        ];
+        for (const c of candidates) {
+            if (typeof c === "string" && c.trim()) return c;
+        }
+        return '#B8BFCA';
+    }, [rankTierKey, rankTheme]);
+
     return (
         <View style={[styles.card, isReply && styles.replyCard, isFirst && styles.firstCard]}>
             <Pressable onPress={handleNavigateToProfile}>
@@ -124,7 +162,7 @@ export default function CommentCard({
                         <VerifiedHandle
                             handle={data.handle}
                             isVerified={Boolean(data?.isVerified ?? data?.verified)}
-                            textStyle={styles.handle_text}
+                            textStyle={[styles.handle_text, { color: handleColor }]}
                             numberOfLines={1}
                             containerStyle={styles.handle_row}
                         />
@@ -247,8 +285,8 @@ const styles = StyleSheet.create({
         marginRight: scaleSize(6),
     },
     handle_text: {
-        fontSize: dynamicStyles.fontSize,
-        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(13),
+        fontFamily: 'Poppins_700Bold',
         color: '#B8BFCA',
     },
     time_text: {

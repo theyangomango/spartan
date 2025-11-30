@@ -12,6 +12,7 @@ import { resolvePhotoURL } from '../utils/profilePhoto';
 import scaleSize from "../helper/scaleSize";
 import VerifiedHandle from "./common/VerifiedHandle";
 import useUserVerified from "../hooks/useUserVerified";
+import { RANK_TIER_THEMES } from "./1_Feed/FeedSnapshotCard";
 
 const { height: SCREEN_H } = Dimensions.get('window');
 const scale = SCREEN_H / 844;
@@ -101,6 +102,43 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
         const fallbackPfp = resolvePhotoURL(item, item?.pfp || '');
         const pfpUri = usePfp(String(item?.uid || ''), item?.pfpVersion || 0, fallbackPfp) || fallbackPfp;
         const isVerified = useUserVerified(item?.uid, Boolean(item?.isVerified));
+        const rankTierKey = useMemo(() => {
+            const candidates = [
+                item?.rankTier,
+                item?.currentRank?.tier,
+                item?.currentRank?.rankTier,
+                item?.rank?.tier,
+                item?.rank?.rankTier,
+            ];
+            for (const val of candidates) {
+                if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
+            }
+            return null;
+        }, [item?.currentRank?.rankTier, item?.currentRank?.tier, item?.rank?.rankTier, item?.rank?.tier, item?.rankTier]);
+
+        const rankTheme = useMemo(() => {
+            const key = rankTierKey || "gold";
+            return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+        }, [rankTierKey]);
+
+        const handleColor = useMemo(() => {
+            const bronzeAccent =
+                rankTierKey === "bronze"
+                    ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
+                    : null;
+            const candidates = [
+                bronzeAccent,
+                Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
+                Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
+                rankTheme?.borderColor,
+                rankTheme?.titleSecondaryColor,
+            ];
+            for (const c of candidates) {
+                if (typeof c === "string" && c.trim()) return c;
+            }
+            return theme.textPrimary;
+        }, [rankTierKey, rankTheme]);
+
         return (
             <Pressable style={styles.item} onPress={() => onPressUser(item)}>
                 <View style={styles.pfpC}>
@@ -114,7 +152,8 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
                     <VerifiedHandle
                         handle={item?.handle || item?.uid}
                         isVerified={isVerified}
-                        textStyle={styles.handle}
+                        textStyle={[styles.handle, { color: handleColor }]}
+                        iconSize={scaleSize(13.5)}
                         numberOfLines={1}
                         containerStyle={styles.handleRow}
                     />
@@ -170,78 +209,78 @@ const styles = StyleSheet.create({
         elevation: 50,
     },
     sheet: {
-        marginTop: scaleSize(s(12)),
-        borderTopLeftRadius: scaleSize(s(26)),
-        borderTopRightRadius: scaleSize(s(26)),
+        marginTop: scaleSize(12),
+        borderTopLeftRadius: scaleSize(26),
+        borderTopRightRadius: scaleSize(26),
         overflow: 'hidden',
     },
     sheetBackground: {
         backgroundColor: theme.bg,
-        borderTopLeftRadius: scaleSize(s(26)),
-        borderTopRightRadius: scaleSize(s(26)),
+        borderTopLeftRadius: scaleSize(26),
+        borderTopRightRadius: scaleSize(26),
     },
     handle: {
-        paddingVertical: scaleSize(s(12)),
+        paddingVertical: scaleSize(12),
     },
     handleIndicator: {
-        width: scaleSize(s(36)),
-        height: scaleSize(s(4)),
+        width: scaleSize(36),
+        height: scaleSize(4),
         backgroundColor: 'rgba(255, 255, 255, 0.78)',
-        borderRadius: scaleSize(s(2)),
+        borderRadius: scaleSize(2),
     },
     header: {
-        paddingTop: scaleSize(s(18)),
-        paddingHorizontal: scaleSize(s(20)),
-        paddingBottom: scaleSize(s(6)),
+        paddingTop: scaleSize(18),
+        paddingHorizontal: scaleSize(20),
+        paddingBottom: scaleSize(6),
     },
     title: {
         fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(s(14)),
-        lineHeight: scaleSize(s(18)),
+        fontSize: scaleSize(14),
+        lineHeight: scaleSize(18),
         color: theme.textPrimary,
         letterSpacing: 0.3,
     },
     item: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: scaleSize(s(12)),
-        paddingVertical: scaleSize(s(8)),
+        paddingHorizontal: scaleSize(12),
+        paddingVertical: scaleSize(8),
     },
     listContent: {
-        paddingBottom: scaleSize(s(18)),
-        paddingTop: scaleSize(s(6)),
+        paddingBottom: scaleSize(18),
+        paddingTop: scaleSize(6),
         flexGrow: 1,
     },
     pfpC: {
-        width: scaleSize(s(40)),
-        height: scaleSize(s(40)),
-        borderRadius: scaleSize(s(20)),
+        width: scaleSize(40),
+        height: scaleSize(40),
+        borderRadius: scaleSize(20),
         overflow: 'hidden',
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: 'rgba(255,255,255,0.08)',
         backgroundColor: theme.surface,
     },
-    pfp: { width: '100%', height: '100%', borderRadius: scaleSize(s(20)) },
-    textC: { marginLeft: scaleSize(s(12)), flex: 1 },
+    pfp: { width: '100%', height: '100%', borderRadius: scaleSize(20) },
+    textC: { marginLeft: scaleSize(12), flex: 1 },
     handleRow: { flexShrink: 1, maxWidth: '100%' },
     handle: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(s(13.5)),
+        fontFamily: 'Poppins_700Bold',
+        fontSize: scaleSize(12),
         color: theme.textPrimary,
         letterSpacing: 0.2,
     },
     name: {
         fontFamily: 'Outfit_400Regular',
-        fontSize: scaleSize(s(13)),
+        fontSize: scaleSize(13),
         color: theme.textSecondary,
-        marginTop: scaleSize(s(2)),
+        marginTop: scaleSize(2),
     },
     // start divider aligned with item horizontal padding so it begins left of the pfp
     sep: {
         height: StyleSheet.hairlineWidth,
         backgroundColor: 'rgba(255,255,255,0.08)',
-        marginLeft: scaleSize(s(64)),
-        marginRight: scaleSize(s(14)),
+        marginLeft: scaleSize(64),
+        marginRight: scaleSize(14),
     },
     backdrop: {
         left: 0,
@@ -251,12 +290,12 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: scaleSize(s(24)),
-        paddingTop: scaleSize(s(40)),
+        paddingHorizontal: scaleSize(24),
+        paddingTop: scaleSize(40),
     },
     emptyStateText: {
         fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(s(14)),
+        fontSize: scaleSize(14),
         color: 'rgba(255,255,255,0.6)',
         textAlign: 'center',
         letterSpacing: 0.2,
