@@ -117,6 +117,9 @@ export default function buildInitialUser({
     statsTotalHours: 0,
     statsTotalVolume: 0,
     statsTotalWorkouts: 0,
+    rankTier: DEFAULT_CURRENT_RANK.rankTier,
+    rankLabel: DEFAULT_CURRENT_RANK.rankLabel,
+    rankLevel: DEFAULT_CURRENT_RANK.rankLevel,
     templates,
     currentRank: { ...DEFAULT_CURRENT_RANK },
     settings: {

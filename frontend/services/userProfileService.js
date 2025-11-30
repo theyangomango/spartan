@@ -87,6 +87,18 @@ async function ensureUserProfileFallback(options = {}) {
   const basePublic = publicSnap.exists() ? publicSnap.data() || {} : {};
   const resolvedName = displayName || basePublic.displayName || basePublic.name || '';
   const resolvedPhoto = photoURL || basePublic.photoURL || DEFAULT_PFP_REMOTE_URL;
+  const defaultRank = {
+    currentRank: {
+      key: 'bronze-i',
+      tier: 'bronze',
+      level: 'I',
+      label: 'Bronze I',
+      index: 0,
+    },
+    rankTier: 'bronze',
+    rankLabel: 'Bronze I',
+    rankLevel: 'I',
+  };
   const nextPublic = {
     ...basePublic,
     uid,
@@ -98,6 +110,7 @@ async function ensureUserProfileFallback(options = {}) {
     followersCount: Number.isFinite(basePublic.followersCount) ? basePublic.followersCount : 0,
     followingCount: Number.isFinite(basePublic.followingCount) ? basePublic.followingCount : 0,
     updatedAt: now,
+    ...defaultRank,
   };
   if (!basePublic.createdAt) nextPublic.createdAt = now;
 
@@ -122,6 +135,7 @@ async function ensureUserProfileFallback(options = {}) {
     blockedByUidList: Array.isArray(basePrivate.blockedByUidList) ? basePrivate.blockedByUidList : [],
     deviceTokens: Array.isArray(basePrivate.deviceTokens) ? basePrivate.deviceTokens : [],
     lastLoginAt: now,
+    ...defaultRank,
   };
   if (!basePrivate.createdAt) nextPrivate.createdAt = now;
 
@@ -138,6 +152,7 @@ async function ensureUserProfileFallback(options = {}) {
       followersCount: nextPublic.followersCount,
       followingCount: nextPublic.followingCount,
       updatedAt: now,
+      ...defaultRank,
     }, { merge: true }),
   ]);
 

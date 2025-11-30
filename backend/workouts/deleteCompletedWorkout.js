@@ -407,7 +407,7 @@ export default async function deleteCompletedWorkout(uid, identifier) {
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
-            currentRank: currentRankData,
+            ...rankFields,
             postPid: postPidInsideTx,
         };
     });

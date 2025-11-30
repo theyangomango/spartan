@@ -156,6 +156,33 @@ const cloneHexagon = (hex = {}) => ({
     overall: Number(hex.overall || 0),
 });
 
+const buildRankPayload = (completedWorkouts, statsHexagon) => {
+    try {
+        const progress = computeRankProgressFromData({
+            completedWorkouts,
+            statsHexagon,
+        });
+        const entry = progress?.currentRankEntry;
+        if (!entry) return null;
+        const currentRank = {
+            key: entry.key,
+            tier: entry.rankTier,
+            level: entry.rankLevel,
+            label: entry.rankLabel,
+            index: progress?.currentRankIndexDesc,
+        };
+        return {
+            currentRank,
+            rankTier: entry.rankTier,
+            rankLabel: entry.rankLabel,
+            rankLevel: entry.rankLevel,
+        };
+    } catch (error) {
+        console.warn("buildRankPayload failed", error?.message || error);
+        return null;
+    }
+};
+
 const getTodayKey = () => {
     return toDayKeySafe(Date.now());
 };
@@ -1148,14 +1175,30 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                                 });
                                 if (result) {
                                     const { statsHexagon: nextHex, lastTrained } = result;
-                                    const payload = {
+                                    const rankPayload = buildRankPayload(
+                                        global?.userData?.completedWorkouts || [],
+                                        nextHex || global?.userData?.statsHexagon || {}
+                                    );
+                                    const basePayload = {
                                         statsHexagon: nextHex,
                                         statsHexagonMeta: { lastTrainedByGroup: lastTrained, updatedAt: serverTimestamp() },
                                     };
+                                    const payload = stripUndefined(
+                                        rankPayload ? { ...basePayload, ...rankPayload } : basePayload
+                                    );
                                     await persistHexagonStats(payload);
                                     captureHexSnapshot(prevHex, nextHex);
-                                    if (global?.userData) { global.userData.statsHexagon = cloneHexagon(nextHex); }
+                                    if (global?.userData) {
+                                        global.userData.statsHexagon = cloneHexagon(nextHex);
+                                        if (rankPayload) {
+                                            global.userData.currentRank = rankPayload.currentRank;
+                                            global.userData.rankTier = rankPayload.rankTier;
+                                            global.userData.rankLabel = rankPayload.rankLabel;
+                                            global.userData.rankLevel = rankPayload.rankLevel;
+                                        }
+                                    }
                                     emitHexagonUpdate();
+                                    emitUserDataUpdate();
                                 }
                             } catch (err) {
                                 console.warn("finishWorkout: hexagon compute failed", err?.message || err);

@@ -575,7 +575,7 @@ export default async function updateCompletedWorkout(uid, identifierInput, updat
             statsTotalHours: rebuilt.statsTotalHours,
             statsTotalWorkouts: rebuilt.statsTotalWorkouts,
             workoutsByDate: rebuilt.workoutsByDate,
-            currentRank: currentRankData,
+            ...rankFields,
             postPid: postPidInsideTx,
         };
     });
