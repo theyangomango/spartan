@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, Text, View, Dimensions } from 'react-native';
 import FastImage from 'react-native-fast-image';
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -7,6 +7,7 @@ import { withStrongPress } from '../../utils/haptics';
 const ts = require('../../helper/scaleSize').ts;
 import theme from '../../theme/mfpDark';
 import VerifiedHandle from '../common/VerifiedHandle';
+import { RANK_TIER_THEMES } from '../1_Feed/FeedSnapshotCard';
 
 const { width } = Dimensions.get("window");
 
@@ -15,8 +16,8 @@ const CARD_HEIGHT = scaleSize(60);
 const SELF_CARD_HEIGHT = scaleSize(82);
 const PFP_SIZE = scaleSize(44);
 
-const FONT_HANDLE = ts(12.5);
-const FONT_NAME = ts(12.5);
+const FONT_HANDLE = ts(13);
+const FONT_NAME = ts(13);
 const FONT_STAT = ts(11);
 const FONT_HEX_STAT = ts(13);
 const FONT_RANK = ts(12);
@@ -37,6 +38,9 @@ export default function LeaderboardCard({
     name,
     value,
     rank,
+    rankTier = null,
+    rank: rankObj = null,
+    currentRank = null,
     lastRank,
     handlePress,
     userIsSelf = false,
@@ -53,6 +57,43 @@ export default function LeaderboardCard({
     // Custom background color for the card (unused now, kept for backward compatibility)
     bgColor,
 }) {
+    const rankTierKey = useMemo(() => {
+        const candidates = [
+            rankTier,
+            rankObj?.tier,
+            rankObj?.rankTier,
+            currentRank?.tier,
+            currentRank?.rankTier,
+        ];
+        for (const val of candidates) {
+            if (typeof val === 'string' && val.trim()) return val.trim().toLowerCase();
+        }
+        return null;
+    }, [rankTier, rankObj?.tier, rankObj?.rankTier, currentRank?.tier, currentRank?.rankTier]);
+
+    const rankTheme = useMemo(() => {
+        const key = rankTierKey || 'gold';
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+    }, [rankTierKey]);
+
+    const handleColor = useMemo(() => {
+        const bronzeAccent =
+            rankTierKey === 'bronze'
+                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : '#b94f1f')
+                : null;
+        const candidates = [
+            bronzeAccent,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
+            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
+            rankTheme?.borderColor,
+            rankTheme?.titleSecondaryColor,
+        ];
+        for (const c of candidates) {
+            if (typeof c === 'string' && c.trim()) return c;
+        }
+        return theme.textPrimary;
+    }, [rankTierKey, rankTheme]);
+
     // Format the large stat and unit depending on metric & normalization
     const { statText, unitText } = formatStat(value, metric, normalizeByBodyweight);
     const isHexMetric = String(metric) === 'Hex';
@@ -89,7 +130,7 @@ export default function LeaderboardCard({
                         <VerifiedHandle
                             handle={handle}
                             isVerified={isVerified}
-                            textStyle={[styles.handle_text, { fontSize: scaleSize(FONT_HANDLE) }]}
+                            textStyle={[styles.handle_text, { fontSize: scaleSize(FONT_HANDLE), color: handleColor }]}
                             numberOfLines={1}
                             iconSize={scaleSize(12)}
                             containerStyle={styles.handle_row}

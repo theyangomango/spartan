@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View, Text, Animated, Easing } from "react-native";
 import { LinearGradient } from 'expo-linear-gradient';
 import FastImage from "react-native-fast-image";
@@ -6,6 +6,7 @@ import scaleSize from "../../helper/scaleSize";
 const ts = require('../../helper/scaleSize').ts;
 import VerifiedHandle from "../common/VerifiedHandle";
 import theme from "../../theme/mfpDark";
+import { RANK_TIER_THEMES } from "../1_Feed/FeedSnapshotCard";
 
 const PODIUM_HEIGHT = scaleSize(260);
 export { PODIUM_HEIGHT };
@@ -87,7 +88,49 @@ export default function Podium({ data, topOffset = 0 }) {
     const op2 = drift2.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.6, 0.95, 0.6] });
     const op3 = drift3.interpolate({ inputRange: [0, 0.5, 1], outputRange: [0.55, 0.9, 0.55] });
 
-    if (!data) return <></>;
+    const podiumEntries = useMemo(() => {
+        if (!data) return null;
+        return ['first', 'second', 'third'].map((key) => {
+            const entry = data[key] || {};
+            const rankTierKey = (() => {
+                const candidates = [
+                    entry?.rankTier,
+                    entry?.currentRank?.tier,
+                    entry?.currentRank?.rankTier,
+                    entry?.rank?.tier,
+                    entry?.rank?.rankTier,
+                ];
+                for (const val of candidates) {
+                    if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
+                }
+                return null;
+            })();
+            const rankTheme = (() => {
+                const rk = rankTierKey || "gold";
+                return RANK_TIER_THEMES[rk] || RANK_TIER_THEMES.gold;
+            })();
+            const handleColor = (() => {
+                const bronzeAccent =
+                    rankTierKey === "bronze"
+                        ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
+                        : null;
+                const candidates = [
+                    bronzeAccent,
+                    Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
+                    Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
+                    rankTheme?.borderColor,
+                    rankTheme?.titleSecondaryColor,
+                ];
+                for (const c of candidates) {
+                    if (typeof c === "string" && c.trim()) return c;
+                }
+                return theme.textPrimary;
+            })();
+            return { entry, rankTheme, handleColor };
+        });
+    }, [data]);
+
+    if (!data || !podiumEntries) return <></>;
     return (
         <View style={[styles.container, { height: PODIUM_HEIGHT }]}>
             {/* Strips disabled per design request; keep block for easy re-enable */}
@@ -155,13 +198,15 @@ export default function Podium({ data, topOffset = 0 }) {
                     </View>
                     {data.length >= 2 && (
                         <View style={styles.handleWrapper}>
-                            <VerifiedHandle
-                                handle={data[1].handle}
-                                isVerified={Boolean(data[1]?.isVerified ?? data[1]?.verified)}
-                                textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
-                                numberOfLines={1}
-                                containerStyle={styles.handleRow}
-                            />
+                            {podiumEntries?.[1] && (
+                                <VerifiedHandle
+                                    handle={data[1].handle}
+                                    isVerified={Boolean(data[1]?.isVerified ?? data[1]?.verified)}
+                                    textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE, color: podiumEntries[1].handleColor }]}
+                                    numberOfLines={1}
+                                    containerStyle={styles.handleRow}
+                                />
+                            )}
                         </View>
                     )}
                     <View style={[styles.bar_ctnr, styles.silver_ctnr, { height: BAR_HEIGHT_LEFT, width: BAR_WIDTH }]}>
@@ -183,13 +228,15 @@ export default function Podium({ data, topOffset = 0 }) {
                     </View>
                     {data.length >= 1 && (
                         <View style={styles.handleWrapper}>
-                            <VerifiedHandle
-                                handle={data[0].handle}
-                                isVerified={Boolean(data[0]?.isVerified ?? data[0]?.verified)}
-                                textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
-                                numberOfLines={1}
-                                containerStyle={styles.handleRow}
-                            />
+                            {podiumEntries?.[0] && (
+                                <VerifiedHandle
+                                    handle={data[0].handle}
+                                    isVerified={Boolean(data[0]?.isVerified ?? data[0]?.verified)}
+                                    textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE, color: podiumEntries[0].handleColor }]}
+                                    numberOfLines={1}
+                                    containerStyle={styles.handleRow}
+                                />
+                            )}
                         </View>
                     )}
                     <View style={[styles.bar_ctnr, styles.gold_ctnr, { height: BAR_HEIGHT_CENTER, width: BAR_WIDTH }]}>
@@ -210,13 +257,15 @@ export default function Podium({ data, topOffset = 0 }) {
                     </View>
                     {data.length >= 3 && (
                         <View style={styles.handleWrapper}>
-                            <VerifiedHandle
-                                handle={data[2].handle}
-                                isVerified={Boolean(data[2]?.isVerified ?? data[2]?.verified)}
-                                textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE }]}
-                                numberOfLines={1}
-                                containerStyle={styles.handleRow}
-                            />
+                            {podiumEntries?.[2] && (
+                                <VerifiedHandle
+                                    handle={data[2].handle}
+                                    isVerified={Boolean(data[2]?.isVerified ?? data[2]?.verified)}
+                                    textStyle={[styles.leaderboard_handle_text, { fontSize: FONT_HANDLE, color: podiumEntries[2].handleColor }]}
+                                    numberOfLines={1}
+                                    containerStyle={styles.handleRow}
+                                />
+                            )}
                         </View>
                     )}
                     <View style={[styles.bar_ctnr, styles.bronze_ctnr, { height: BAR_HEIGHT_RIGHT, width: BAR_WIDTH }]}>
