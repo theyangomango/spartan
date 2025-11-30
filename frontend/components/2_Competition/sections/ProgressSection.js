@@ -4025,6 +4025,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     topPagerCard: {
+        borderTopWidth: 0,
         borderBottomWidth: 0,
     },
     bodyFiguresRow: {
@@ -4032,7 +4033,7 @@ const styles = StyleSheet.create({
         alignItems: "center",
         justifyContent: "space-between",
         paddingHorizontal: scaleSize(6),
-        marginTop: scaleSize(-20),
+        marginTop: scaleSize(-10),
     },
     muscleList: {
         marginTop: scaleSize(4),
@@ -4161,7 +4162,7 @@ const styles = StyleSheet.create({
     hexGraphWrap: {
         alignItems: "center",
         justifyContent: "center",
-        marginTop: scaleSize(35),
+        marginTop: scaleSize(40),
         marginBottom: scaleSize(-25),
     },
     ovrPill: {
