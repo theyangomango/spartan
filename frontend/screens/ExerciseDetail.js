@@ -1958,6 +1958,9 @@ export default function ExerciseDetail() {
                     pfp: ownerPfp,
                     photoURL: ownerPfp,
                     pfpVersion: ownerPfpVersion,
+                    rankTier: global?.userData?.rankTier ?? global?.userData?.currentRank?.tier ?? global?.userData?.currentRank?.rankTier ?? global?.userData?.rank?.tier ?? global?.userData?.rank?.rankTier ?? sanitizedWorkout?.rankTier ?? sanitizedWorkout?.currentRank?.tier ?? sanitizedWorkout?.currentRank?.rankTier ?? sanitizedWorkout?.rank?.tier ?? sanitizedWorkout?.rank?.rankTier ?? null,
+                    currentRank: global?.userData?.currentRank || sanitizedWorkout?.currentRank || null,
+                    rank: global?.userData?.rank || sanitizedWorkout?.rank || null,
                 },
             };
 

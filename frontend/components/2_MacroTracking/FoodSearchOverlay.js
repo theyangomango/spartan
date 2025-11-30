@@ -69,6 +69,44 @@ const mergeUniqueFoods = (prev = [], next = []) => {
     return merged;
 };
 
+const PER_100_REGEX = /\bper\s*100\s*(?:g|gram|grams|ml|milliliter|milliliters|millilitre|millilitres)\b/i;
+const PRODUCE_KEYWORDS = [
+    'apple', 'banana', 'orange', 'pear', 'peach', 'plum', 'apricot', 'grape', 'melon', 'watermelon', 'cantaloupe',
+    'honeydew', 'pineapple', 'mango', 'papaya', 'kiwi', 'berry', 'strawberry', 'blueberry', 'raspberry', 'blackberry',
+    'cranberry', 'cherry', 'tomato', 'potato', 'onion', 'garlic', 'ginger', 'carrot', 'broccoli', 'cauliflower',
+    'lettuce', 'spinach', 'kale', 'cabbage', 'pepper', 'cucumber', 'zucchini', 'eggplant', 'avocado', 'corn',
+];
+
+const normalize = (value) => String(value || '').trim().toLowerCase();
+const isGenericBrand = (brand) => {
+    const normalized = normalize(brand);
+    return !normalized || normalized === 'generic' || normalized === 'fatsecret' || normalized === 'fat secret' || normalized === 'n/a';
+};
+
+const looksLikeProduce = (name, query) => {
+    const blob = `${normalize(name)} ${normalize(query)}`;
+    return PRODUCE_KEYWORDS.some((kw) => blob.includes(kw));
+};
+
+const shouldHidePer100Result = (item, query) => {
+    const desc = normalize(item?.food_description ?? item?.description ?? '');
+    if (!PER_100_REGEX.test(desc)) return false;
+
+    const name = normalize(item?.food_name ?? item?.name ?? '');
+    const brand = item?.brand_name ?? item?.brand ?? '';
+
+    if (!looksLikeProduce(name, query)) return false;
+    if (!isGenericBrand(brand)) return false; // keep branded foods even if per 100g
+
+    // Hide unbranded produce-style items that only list per-100g servings
+    return true;
+};
+
+const filterSearchResults = (items, query) => {
+    if (!Array.isArray(items)) return [];
+    return items.filter((item) => !shouldHidePer100Result(item, query));
+};
+
 const SCAN_RETRY_DELAY_MS = 500;
 
 export default function FoodSearchOverlay({
@@ -372,6 +410,7 @@ export default function FoodSearchOverlay({
             if (searchTokenRef.current !== token) return;
             const rawFoods = res?.foods?.food;
             const list = Array.isArray(rawFoods) ? rawFoods : (rawFoods ? [rawFoods] : []);
+            const filteredList = filterSearchResults(list, term);
             const declaredMax = Number(res?.foods?.max_results) || 0;
             const remoteHasMore = res?.foods?.has_more;
             const computedHasMore =
@@ -380,7 +419,7 @@ export default function FoodSearchOverlay({
                     : (declaredMax > 0 ? list.length >= declaredMax : list.length > 0);
             setHasMore(computedHasMore);
             setPage(nextPage);
-            setResults((prev) => (append ? mergeUniqueFoods(prev, list) : list));
+            setResults((prev) => (append ? mergeUniqueFoods(prev, filteredList) : filteredList));
         } catch {
             if (searchTokenRef.current !== token) return;
             if (!append) {

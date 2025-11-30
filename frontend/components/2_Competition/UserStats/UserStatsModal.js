@@ -28,6 +28,7 @@ import {
 } from "./userStatsUtils";
 import UserStatsProgressPreview from "./UserStatsProgressPreview";
 import { RANK_TIER_THEMES } from "../../1_Feed/FeedSnapshotCard";
+import resolveHandleColor from "../../../utils/resolveHandleColor";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -121,23 +122,10 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
         const key = rankTierKey || "gold";
         return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
     }, [rankTierKey]);
-    const handleColor = useMemo(() => {
-        const bronzeAccent =
-            rankTierKey === "bronze"
-                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
-                : null;
-        const candidates = [
-            bronzeAccent,
-            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
-            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
-            rankTheme?.borderColor,
-            rankTheme?.titleSecondaryColor,
-        ];
-        for (const c of candidates) {
-            if (typeof c === "string" && c.trim()) return c;
-        }
-        return styles.handle.color;
-    }, [rankTierKey, rankTheme]);
+    const handleColor = useMemo(
+        () => resolveHandleColor(user, { rankTierKey, rankTheme, fallback: styles.handle.color }),
+        [user, rankTierKey, rankTheme]
+    );
 
     const exerciseGroups = useMemo(() => (
         showExercises ? getExercisesGrouped(userForViewer) : []
@@ -408,6 +396,9 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
                     name: ownerName,
                     pfp: ownerPfp,
                     pfpVersion: ownerPfpVersion,
+                    rankTier: user?.rankTier ?? user?.currentRank?.tier ?? user?.currentRank?.rankTier ?? user?.rank?.tier ?? user?.rank?.rankTier ?? sanitizedWorkout?.rankTier ?? sanitizedWorkout?.currentRank?.tier ?? sanitizedWorkout?.currentRank?.rankTier ?? sanitizedWorkout?.rank?.tier ?? sanitizedWorkout?.rank?.rankTier ?? null,
+                    currentRank: user?.currentRank || sanitizedWorkout?.currentRank || null,
+                    rank: user?.rank || sanitizedWorkout?.rank || null,
                 },
             };
 

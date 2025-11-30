@@ -98,24 +98,7 @@ export default function Podium({ data, topOffset = 0 }) {
                 const rk = rankTierKey || "gold";
                 return RANK_TIER_THEMES[rk] || RANK_TIER_THEMES.gold;
             })();
-            const handleColor = (() => {
-                const bronzeAccent =
-                    rankTierKey === "bronze"
-                        ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
-                        : null;
-                const candidates = [
-                    bronzeAccent,
-                    Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
-                    Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
-                    rankTheme?.borderColor,
-                    rankTheme?.titleSecondaryColor,
-                ];
-                for (const c of candidates) {
-                    if (typeof c === "string" && c.trim()) return c;
-                }
-                return theme.textPrimary;
-            })();
-            return { entry, rankTheme, handleColor };
+            return { entry, rankTheme, handleColor: theme.textPrimary };
         });
     }, [data]);
 

@@ -2,7 +2,7 @@
 const HEX_TIER_COLORS = {
     bronze: "#c77a43",
     silver: "#83a5cbff",
-    gold: "#d6b25f",
+    gold: "#e6c24f",
     ruby: "#ff5e81",
     emerald: "#6be6b1",
     diamond: "#5ed0ff",

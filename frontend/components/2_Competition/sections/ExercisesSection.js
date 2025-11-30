@@ -45,7 +45,7 @@ const buildPromotionSteps = (fromEntry, toEntry) => {
 const CARD_THEME_COLORS = {
     bronze: { gradient: ["#6f3600ff", "#e19c73ff"], accent: "#f9cba1ff" },
     silver: { gradient: ["#2e3542ff", "#a8c2e6ff"], accent: "#c5e0ffff" },
-    gold: { gradient: ["#a1650cff", "#ffd987ff"], accent: "#ffedbbff" },
+    gold: { gradient: ["#d8a700ff", "#ffd95cff"], accent: "#ffeab0ff" },
     ruby: { gradient: ["#511222ff", "#e54b73"], accent: "#ffacc9ff" },
     emerald: { gradient: ["#0f5c3fff", "#8ef3c5ff"], accent: "#c8ffe3ff" },
     diamond: { gradient: ["#0d4156ff", "#86e7ffff"], accent: "#bff9ffff" },
@@ -121,7 +121,7 @@ const renderRequirementLabel = (taskLabel, descriptor, taskComplete, emphasisCol
         const targetNumber = formatScoreValue(descriptor.target || 0);
         return (
             <Text style={baseStyle}>
-                Reach <Text style={emphasisStyle}>{targetNumber}+</Text> Score <Text style={emphasisStyle}>{bodyLabel}</Text>
+                Reach <Text style={emphasisStyle}>{targetNumber}+</Text> <Text style={emphasisStyle}>{bodyLabel}</Text>
             </Text>
         );
     }
@@ -465,7 +465,7 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                                             Math.max(0, Math.round(progressRatio * 100))
                                         );
                                         const badgeContent = taskComplete ? (
-                                            <RankTierMiniBadge tier={promotionThemeKey} level="III" size={scaleSize(38)} />
+                                            <RankTierMiniBadge tier={promotionThemeKey} level="III" size={scaleSize(34)} />
                                         ) : (
                                             <View
                                                 style={[
@@ -589,17 +589,17 @@ const styles = StyleSheet.create({
         marginBottom: scaleSize(12),
     },
     requirementBadge: {
-        width: scaleSize(38),
-        height: scaleSize(38),
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: scaleSize(4),
-    },
-    requirementOutlineBadge: {
         width: scaleSize(34),
         height: scaleSize(34),
-        borderRadius: scaleSize(17),
-        borderWidth: scaleSize(2.4),
+        alignItems: "center",
+        justifyContent: "center",
+        marginRight: scaleSize(2),
+    },
+    requirementOutlineBadge: {
+        width: scaleSize(32),
+        height: scaleSize(32),
+        borderRadius: scaleSize(16),
+        borderWidth: scaleSize(2.2),
         backgroundColor: "transparent",
     },
     requirementTextContainer: {
@@ -609,13 +609,13 @@ const styles = StyleSheet.create({
     },
     requirementCardTitle: {
         fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(13.5),
         color: "#ffffff",
         letterSpacing: 0.5,
     },
     requirementCardTitleEmphasis: {
         fontFamily: "Outfit_900Black",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(13),
     },
     requirementStatusBadge: {
         paddingHorizontal: scaleSize(12),
@@ -638,12 +638,12 @@ const styles = StyleSheet.create({
     },
     requirementStatusIcon: {
         fontFamily: "Outfit_800ExtraBold",
-        fontSize: scaleSize(11),
+        fontSize: scaleSize(10),
         color: "#ffffff",
         letterSpacing: 0.2,
         textTransform: "uppercase",
         textAlign: "center",
-        lineHeight: scaleSize(14),
+        lineHeight: scaleSize(12),
     },
     requirementStatusIconDone: {
         color: "#0a0a0a",

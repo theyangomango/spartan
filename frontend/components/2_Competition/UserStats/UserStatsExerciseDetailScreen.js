@@ -480,6 +480,9 @@ export default function UserStatsExerciseDetailScreen({
                 name: ownerName,
                 pfp: ownerPfp,
                 pfpVersion: ownerPfpVersion,
+                rankTier: item?.rankTier ?? item?.currentRank?.tier ?? item?.currentRank?.rankTier ?? item?.rank?.tier ?? item?.rank?.rankTier ?? mergedWorkout.rankTier ?? mergedWorkout.currentRank?.tier ?? mergedWorkout.currentRank?.rankTier ?? mergedWorkout.rank?.tier ?? mergedWorkout.rank?.rankTier ?? null,
+                currentRank: item?.currentRank || mergedWorkout.currentRank || null,
+                rank: item?.rank || mergedWorkout.rank || null,
             },
             postMeta: {
                 pid: item?.pid ?? item?.id ?? `${ownerUid}:${sanitizedWorkout?.wid ?? sanitizedWorkout?.id ?? ''}`,

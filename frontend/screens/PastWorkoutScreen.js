@@ -14,7 +14,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import HumanMuscleOutline from "../assets/human_muscle_outline";
 import HumanMuscleBackOutline from "../assets/human_muscle_back_outline";
-import { doc, onSnapshot, collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { doc, onSnapshot, collection, addDoc, serverTimestamp, getDoc } from "firebase/firestore";
 
 import PastWorkoutExerciseLog from "../components/1_Feed/PastWorkoutExerciseLog";
 import EditingWorkoutModal from "../components/3_Workout/NewWorkout/EditingWorkoutModal";
@@ -31,6 +31,8 @@ import { strong as hapticStrong } from "../utils/haptics";
 import VerifiedHandle from "../components/common/VerifiedHandle";
 import useUserVerified from "../hooks/useUserVerified";
 import { RANK_TIER_THEMES } from "../components/1_Feed/FeedSnapshotCard";
+import resolveRankTierKey from "../utils/resolveRankTierKey";
+import resolveHandleColor from "../utils/resolveHandleColor";
 import { db } from "../../firebase.config";
 import { invalidateFeedCacheForUser } from "../helper/feedCache";
 import { exercises as EXERCISE_LIBRARY } from "../components/3_Workout/NewWorkout/SelectExercise/EXERCISES";
@@ -47,6 +49,9 @@ const MUSCLE_SEGMENTS = {
     abs: ["abs", "obliques"],
     legs: ["quads", "calves"],
 };
+
+const RANK_CACHE = new Map();
+const RANK_INFLIGHT = new Map();
 
 const toMillis = (value) => {
     if (value === null || typeof value === "undefined") return null;
@@ -496,8 +501,21 @@ const PastWorkoutScreen = () => {
         return "user";
     }, [owner?.handle, owner?.username, owner?.tag, owner?.name, workout?.handle, workout?.ownerHandle, workoutOwnerUid]);
 
+    const [rankFallback, setRankFallback] = useState(null);
+
+    const rankSource = useMemo(
+        () => ({
+            ...(owner || {}),
+            ...(workout || {}),
+            ...(rankFallback || {}),
+            uid: workoutOwnerUid || owner?.uid || workout?.uid || rankFallback?.uid,
+            id: workoutOwnerUid || owner?.id || workout?.id || rankFallback?.id || workoutOwnerUid,
+        }),
+        [owner, workout, workoutOwnerUid, rankFallback]
+    );
+
     const rankTierKey = useMemo(() => {
-        const candidates = [
+        const extraCandidates = [
             owner?.rankTier,
             owner?.currentRank?.tier,
             owner?.currentRank?.rankTier,
@@ -508,35 +526,86 @@ const PastWorkoutScreen = () => {
             workout?.currentRank?.rankTier,
             workout?.rank?.tier,
             workout?.rank?.rankTier,
+            rankFallback?.rankTier,
+            rankFallback?.currentRank?.tier,
+            rankFallback?.currentRank?.rankTier,
+            rankFallback?.rank?.tier,
+            rankFallback?.rank?.rankTier,
         ];
-        for (const val of candidates) {
-            if (typeof val === "string" && val.trim()) return val.trim().toLowerCase();
-        }
-        return null;
-    }, [owner?.rankTier, owner?.currentRank?.tier, owner?.currentRank?.rankTier, owner?.rank?.tier, owner?.rank?.rankTier, workout?.rankTier, workout?.currentRank?.tier, workout?.currentRank?.rankTier, workout?.rank?.tier, workout?.rank?.rankTier]);
+        return resolveRankTierKey(rankSource, extraCandidates);
+    }, [owner?.rankTier, owner?.currentRank?.tier, owner?.currentRank?.rankTier, owner?.rank?.tier, owner?.rank?.rankTier, workout?.rankTier, workout?.currentRank?.tier, workout?.currentRank?.rankTier, workout?.rank?.tier, workout?.rank?.rankTier, rankFallback?.rankTier, rankFallback?.currentRank?.tier, rankFallback?.currentRank?.rankTier, rankFallback?.rank?.tier, rankFallback?.rank?.rankTier, rankSource]);
 
     const rankTheme = useMemo(() => {
         const key = rankTierKey || "gold";
         return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
     }, [rankTierKey]);
 
-    const handleColor = useMemo(() => {
-        const bronzeAccent =
-            rankTierKey === "bronze"
-                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
-                : null;
-        const candidates = [
-            bronzeAccent,
-            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
-            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
-            rankTheme?.borderColor,
-            rankTheme?.titleSecondaryColor,
-        ];
-        for (const c of candidates) {
-            if (typeof c === "string" && c.trim()) return c;
+    const handleColor = useMemo(
+        () => resolveHandleColor(rankSource, { rankTierKey, rankTheme }),
+        [rankSource, rankTierKey, rankTheme]
+    );
+
+    useEffect(() => {
+        if (rankTierKey) return;
+        const uidCandidate = (() => {
+            const candidates = [
+                rankSource?.uid,
+                owner?.uid,
+                workout?.uid,
+                workout?.creatorUid,
+                workout?.creatorUID,
+                workoutOwnerUid,
+            ];
+            for (const val of candidates) {
+                if (val === undefined || val === null) continue;
+                const str = String(val).trim();
+                if (str) return str;
+            }
+            return "";
+        })();
+        if (!uidCandidate) return;
+
+        const cached = RANK_CACHE.get(uidCandidate);
+        if (cached) {
+            setRankFallback((prev) => (prev?.uid === uidCandidate ? prev : { ...cached, uid: uidCandidate }));
+            return;
         }
-        return theme.textPrimary;
-    }, [rankTierKey, rankTheme]);
+
+        const inflight = RANK_INFLIGHT.get(uidCandidate);
+        if (inflight) {
+            inflight.then((payload) => {
+                if (!payload) return;
+                setRankFallback((prev) => (prev?.uid === uidCandidate ? prev : { ...payload, uid: uidCandidate }));
+            }).catch(() => {});
+            return;
+        }
+
+        const promise = getDoc(doc(db, "users", uidCandidate))
+            .then((snap) => {
+                const user = snap?.data?.() ?? snap?.data();
+                if (!user) return null;
+                const payload = {
+                    rankTier: user.rankTier || user.currentRank?.tier || user.currentRank?.rankTier || user.rank?.tier || user.rank?.rankTier || null,
+                    currentRank: user.currentRank || null,
+                    rank: user.rank || null,
+                };
+                if (payload.rankTier || payload.currentRank || payload.rank) {
+                    RANK_CACHE.set(uidCandidate, payload);
+                    return payload;
+                }
+                return null;
+            })
+            .catch(() => null)
+            .finally(() => {
+                RANK_INFLIGHT.delete(uidCandidate);
+            });
+
+        RANK_INFLIGHT.set(uidCandidate, promise);
+        promise.then((payload) => {
+            if (!payload) return;
+            setRankFallback((prev) => (prev?.uid === uidCandidate ? prev : { ...payload, uid: uidCandidate }));
+        }).catch(() => {});
+    }, [rankTierKey, rankSource?.uid, owner?.uid, workout?.uid, workout?.creatorUid, workout?.creatorUID, workoutOwnerUid]);
 
     const ownerFallbackPfp = resolvePhotoURL(owner, "");
     const workoutFallbackPfp = resolvePhotoURL(workout, ownerFallbackPfp);
@@ -1011,16 +1080,15 @@ const PastWorkoutScreen = () => {
                                     </Pressable>
 
                                     <View style={styles.headerTextCol}>
-                                        <Pressable onPress={handlePressOwnerProfile}>
+                                        <Pressable onPress={handlePressOwnerProfile} style={styles.namePressable}>
                                             <VerifiedHandle
                                                 handle={sanitizedHandle || "Friend"}
                                                 isVerified={isOwnerVerified}
                                                 textStyle={[styles.nameText, { color: handleColor }]}
-                                                iconSize={scaleSize(18)}
-                                                iconStyle={{ marginTop: -Math.round(scaleSize(15) * 0.14) }}
+                                                iconSize={scaleSize(15)}
                                                 numberOfLines={1}
                                                 ellipsizeMode="tail"
-                                                preserveTextAlignment={isOwnerVerified}
+                                                containerStyle={styles.nameHandle}
                                             />
                                         </Pressable>
                                         {!!timestampDisplay && (
@@ -1316,10 +1384,18 @@ const styles = StyleSheet.create({
         flex: 1,
         minWidth: 0,
     },
+    namePressable: {
+        flexShrink: 1,
+    },
+    nameHandle: {
+        flexDirection: "row",
+        alignItems: "center",
+        flexShrink: 1,
+    },
     nameText: {
         color: theme.textPrimary,
         fontFamily: "Poppins_700Bold",
-        fontSize: scaleSize(14),
+        fontSize: scaleSize(13),
     },
     timestampText: {
         color: theme.textSecondary,

@@ -116,25 +116,25 @@ const goldTheme = {
     key: "gold",
     displayName: "Gold III",
     overallRating: 87,
-    gradientColors: ["#ffea9cdf", "#d29b2eff", "#955e23ff"],
+    gradientColors: ["#fff7cb", "#f8d548", "#e1a72b"],
     gradientLocations: [0, 0.55, 1],
     particleColors: [
-        "rgba(230, 220, 147, 0.65)",
-        "rgba(255, 209, 93, 0.6)",
-        "rgba(255, 157, 43, 0.55)",
+        "rgba(246, 228, 154, 0.7)",
+        "rgba(248, 213, 72, 0.62)",
+        "rgba(225, 167, 43, 0.58)",
     ],
-    borderColor: "#f9d564",
+    borderColor: "#f4d85c",
     wingGradient: ["rgba(255,255,255,0.5)", "rgba(255,255,255,0.08)"],
-    badgeOuterGradient: ["#fff4bf", "#f8c34a"],
-    badgeInnerGradient: ["#fdf6d7", "#f9d667"],
-    badgeCoreColor: "#f9d564",
-    badgeCoreShadowColor: "#a45900",
-    badgeGemColor: "#fff5c1",
-    badgeGemBorderColor: "rgba(166,106,13,0.4)",
-    badgeGemInnerColor: "#f1b739",
+    badgeOuterGradient: ["#fff5cc", "#f3cf57"],
+    badgeInnerGradient: ["#fff8dd", "#f5d96a"],
+    badgeCoreColor: "#f4d85c",
+    badgeCoreShadowColor: "#c7850a",
+    badgeGemColor: "#fff7d6",
+    badgeGemBorderColor: "rgba(207,151,33,0.4)",
+    badgeGemInnerColor: "#f1c752",
     badgeGemInnerBorderColor: "rgba(255,255,255,0.5)",
     titleColor: "#fffef4",
-    titleSecondaryColor: "#f9da73ff",
+    titleSecondaryColor: "#f5d14d",
 };
 
 const emeraldTheme = {
@@ -784,7 +784,15 @@ export default function FeedSnapshotCard({
                                 ) : null}
                             </Text>
                             {pointsToNextRankCopy ? (
-                                <Text style={styles.rankProgressText}>{pointsToNextRankCopy}</Text>
+                                <View style={styles.rankProgressRow}>
+                                    <Text style={styles.rankProgressText}>{pointsToNextRankCopy}</Text>
+                                    <Ionicons
+                                        name="chevron-forward"
+                                        size={scaled(13)}
+                                        color="rgba(255,255,255,0.88)"
+                                        style={styles.rankProgressIcon}
+                                    />
+                                </View>
                             ) : null}
                         </View>
                         <View
@@ -991,7 +999,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         height: scaled(5),
-        backgroundColor: "#f9d564",
+        backgroundColor: "#f4d85c",
         zIndex: 5,
     },
     rankCardBorderBottom: {
@@ -1000,7 +1008,7 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         height: scaled(5),
-        backgroundColor: "#f9d564",
+        backgroundColor: "#f4d85c",
         zIndex: 5,
     },
     rankCardContent: {
@@ -1089,11 +1097,11 @@ const styles = StyleSheet.create({
     rankBadgeCore: {
         width: "78%",
         height: "74%",
-        backgroundColor: "#f9d564",
+        backgroundColor: "#f4d85c",
         borderRadius: scaleSize(20),
         justifyContent: "center",
         alignItems: "center",
-        shadowColor: "#a45900",
+        shadowColor: "#c7850a",
         shadowOpacity: 0.35,
         shadowOffset: { width: 0, height: 8 },
         shadowRadius: scaleSize(10),
@@ -1106,11 +1114,11 @@ const styles = StyleSheet.create({
     rankBadgeGem: {
         width: scaled(28),
         height: scaled(28),
-        backgroundColor: "#fff5c1",
+        backgroundColor: "#fff7d6",
         transform: [{ rotate: "45deg" }],
         borderRadius: scaleSize(6),
         borderWidth: scaleSize(1),
-        borderColor: "rgba(166,106,13,0.4)",
+        borderColor: "rgba(207,151,33,0.4)",
     },
     rankBadgeGemStandalone: {
         width: scaled(32),
@@ -1142,12 +1150,19 @@ const styles = StyleSheet.create({
         transform: [{ rotate: "45deg" }],
         opacity: 0.85,
     },
+    rankProgressRow: {
+        marginTop: scaleSize(4),
+        flexDirection: "row",
+        alignItems: "center",
+    },
     rankProgressText: {
         fontFamily: "Outfit_500Medium",
         fontSize: scaled(13),
         color: "rgba(255,255,255,0.8)",
-        marginTop: scaleSize(4),
         letterSpacing: 0.2,
+    },
+    rankProgressIcon: {
+        marginLeft: scaleSize(6),
     },
     rankWing: {
         position: "absolute",

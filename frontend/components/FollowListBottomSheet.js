@@ -12,8 +12,6 @@ import { resolvePhotoURL } from '../utils/profilePhoto';
 import scaleSize from "../helper/scaleSize";
 import VerifiedHandle from "./common/VerifiedHandle";
 import useUserVerified from "../hooks/useUserVerified";
-import { RANK_TIER_THEMES } from "./1_Feed/FeedSnapshotCard";
-import resolveRankTierKey from "../utils/resolveRankTierKey";
 
 const { height: SCREEN_H } = Dimensions.get('window');
 const scale = SCREEN_H / 844;
@@ -103,30 +101,7 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
         const fallbackPfp = resolvePhotoURL(item, item?.pfp || '');
         const pfpUri = usePfp(String(item?.uid || ''), item?.pfpVersion || 0, fallbackPfp) || fallbackPfp;
         const isVerified = useUserVerified(item?.uid, Boolean(item?.isVerified));
-        const rankTierKey = useMemo(() => resolveRankTierKey(item), [item]);
-
-        const rankTheme = useMemo(() => {
-            const key = rankTierKey || "gold";
-            return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
-        }, [rankTierKey]);
-
-        const handleColor = useMemo(() => {
-            const bronzeAccent =
-                rankTierKey === "bronze"
-                    ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
-                    : null;
-            const candidates = [
-                bronzeAccent,
-                Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
-                Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
-                rankTheme?.borderColor,
-                rankTheme?.titleSecondaryColor,
-            ];
-            for (const c of candidates) {
-                if (typeof c === "string" && c.trim()) return c;
-            }
-            return theme.textPrimary;
-        }, [rankTierKey, rankTheme]);
+        const handleColor = theme.textPrimary;
 
         return (
             <Pressable style={styles.item} onPress={() => onPressUser(item)}>

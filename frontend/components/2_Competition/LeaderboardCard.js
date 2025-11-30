@@ -69,23 +69,7 @@ export default function LeaderboardCard({
         return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
     }, [rankTierKey]);
 
-    const handleColor = useMemo(() => {
-        const bronzeAccent =
-            rankTierKey === 'bronze'
-                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : '#b94f1f')
-                : null;
-        const candidates = [
-            bronzeAccent,
-            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
-            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
-            rankTheme?.borderColor,
-            rankTheme?.titleSecondaryColor,
-        ];
-        for (const c of candidates) {
-            if (typeof c === 'string' && c.trim()) return c;
-        }
-        return theme.textPrimary;
-    }, [rankTierKey, rankTheme]);
+    const handleColor = theme.textPrimary;
 
     // Format the large stat and unit depending on metric & normalization
     const { statText, unitText } = formatStat(value, metric, normalizeByBodyweight);

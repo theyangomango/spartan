@@ -32,7 +32,7 @@ import { resolvePhotoURL } from "../../utils/profilePhoto";
 import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
 import { strong as hapticStrong } from "../../utils/haptics";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, doc, getDoc } from "firebase/firestore";
 import { db } from "../../../firebase.config";
 import useReportContentSheet from "../../hooks/useReportContentSheet";
 import { getViewerUid } from "../../utils/userRefs";
@@ -41,6 +41,7 @@ import { invalidateFeedCacheForUser } from "../../helper/feedCache";
 import { isClipPost } from "../../utils/postTypes";
 import { RANK_TIER_THEMES } from "./FeedSnapshotCard";
 import resolveRankTierKey from "../../utils/resolveRankTierKey";
+import resolveHandleColor from "../../utils/resolveHandleColor";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -135,6 +136,9 @@ const formatClockTime = (seconds) => {
     const secs = total % 60;
     return `${mins}:${String(secs).padStart(2, '0')}`;
 };
+
+const RANK_CACHE = new Map(); // uid -> { rankTier, currentRank, rank }
+const RANK_INFLIGHT = new Map();
 
 const resolveWorkoutTitle = (workout, caption) => (
     workout?.templateName ||
@@ -1045,30 +1049,133 @@ const SimpleFeedPost = ({
         return String(source || "").replace(/^@+/, "");
     }, [data?.handle, displayName]);
 
-    const rankTierKey = useMemo(() => resolveRankTierKey(data), [data]);
+    const [rankFallback, setRankFallback] = useState(null);
+
+    const rankSource = useMemo(() => {
+        const merged = {
+            ...(data?.user || {}),
+            ...(data?.owner || {}),
+            ...(workout || {}),
+            ...(rankFallback || {}),
+            ...(data || {}),
+        };
+        const uidCandidate =
+            merged.uid ||
+            data?.uid ||
+            data?.creatorUid ||
+            data?.creatorUID ||
+            data?.ownerUid ||
+            data?.userUid ||
+            workout?.uid ||
+            workout?.creatorUid ||
+            workout?.creatorUID;
+        const idCandidate =
+            merged.id ||
+            merged.uid ||
+            data?.id ||
+            data?.pid ||
+            workout?.id ||
+            workout?.wid;
+        if (uidCandidate) merged.uid = String(uidCandidate);
+        if (idCandidate) merged.id = String(idCandidate);
+        return merged;
+    }, [data, workout, rankFallback]);
+
+    const extraRankCandidates = useMemo(() => {
+        const buckets = [data, data?.user, data?.owner, workout, data?.liveWorkout, rankFallback];
+        const values = [];
+        buckets.forEach((entry) => {
+            if (!entry) return;
+            values.push(
+                entry.rankTier,
+                entry.currentRank?.tier,
+                entry.currentRank?.rankTier,
+                entry.rank?.tier,
+                entry.rank?.rankTier
+            );
+        });
+        return values;
+    }, [data, data?.user, data?.owner, data?.liveWorkout, workout, rankFallback]);
+
+    const rankTierKey = useMemo(
+        () => resolveRankTierKey(rankSource, extraRankCandidates),
+        [rankSource, extraRankCandidates]
+    );
 
     const rankTheme = useMemo(() => {
         const key = rankTierKey || "gold";
         return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
     }, [rankTierKey]);
 
-    const handleColor = useMemo(() => {
-        const bronzeAccent =
-            rankTierKey === "bronze"
-                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
-                : null;
-        const candidates = [
-            bronzeAccent,
-            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
-            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
-            rankTheme?.borderColor,
-            rankTheme?.titleSecondaryColor,
-        ];
-        for (const c of candidates) {
-            if (typeof c === "string" && c.trim()) return c;
+    const handleColor = useMemo(
+        () => resolveHandleColor(rankSource, { rankTierKey, rankTheme }),
+        [rankSource, rankTierKey, rankTheme]
+    );
+
+    useEffect(() => {
+        if (rankTierKey) return;
+        const uidCandidate = (() => {
+            const candidates = [
+                rankSource?.uid,
+                data?.uid,
+                data?.creatorUid,
+                data?.creatorUID,
+                data?.ownerUid,
+                data?.userUid,
+                workout?.uid,
+                workout?.creatorUid,
+                workout?.creatorUID,
+            ];
+            for (const val of candidates) {
+                if (val === undefined || val === null) continue;
+                const str = String(val).trim();
+                if (str) return str;
+            }
+            return "";
+        })();
+        if (!uidCandidate) return;
+
+        const cached = RANK_CACHE.get(uidCandidate);
+        if (cached) {
+            setRankFallback((prev) => (prev?.uid === uidCandidate ? prev : { ...cached, uid: uidCandidate }));
+            return;
         }
-        return theme.textPrimary;
-    }, [rankTierKey, rankTheme]);
+
+        const inflight = RANK_INFLIGHT.get(uidCandidate);
+        if (inflight) {
+            inflight.then((data) => {
+                if (!data) return;
+                setRankFallback((prev) => (prev?.uid === uidCandidate ? prev : { ...data, uid: uidCandidate }));
+            }).catch(() => {});
+            return;
+        }
+
+        const promise = getDoc(doc(db, "users", uidCandidate))
+            .then((snap) => {
+                const user = snap?.data?.() ?? snap?.data();
+                if (!user) return null;
+                const payload = {
+                    rankTier: user.rankTier || user.currentRank?.tier || user.currentRank?.rankTier || user.rank?.tier || user.rank?.rankTier || null,
+                    currentRank: user.currentRank || null,
+                    rank: user.rank || null,
+                };
+                if (payload.rankTier || payload.currentRank || payload.rank) {
+                    RANK_CACHE.set(uidCandidate, payload);
+                    return payload;
+                }
+                return null;
+            })
+            .catch(() => null)
+            .finally(() => {
+                RANK_INFLIGHT.delete(uidCandidate);
+            });
+
+        RANK_INFLIGHT.set(uidCandidate, promise);
+        promise.then((payload) => {
+            if (!payload) return;
+            setRankFallback((prev) => (prev?.uid === uidCandidate ? prev : { ...payload, uid: uidCandidate }));
+        }).catch(() => {});
+    }, [rankTierKey, rankSource?.uid, data?.uid, data?.creatorUid, data?.creatorUID, data?.ownerUid, data?.userUid, workout?.uid, workout?.creatorUid, workout?.creatorUID]);
 
     const likeColor = isLiked ? "#FE5555" : theme.textPrimary;
     const keyExtractor = useCallback((item, idx) => `${item?.uri || 'media'}-${idx}`, []);
@@ -2021,7 +2128,7 @@ const styles = StyleSheet.create({
     nameText: {
         color: theme.textPrimary,
         fontFamily: "Poppins_700Bold",
-        fontSize: scaleSize(13.5),
+        fontSize: scaleSize(13),
     },
     timestampText: {
         color: theme.textSecondary,

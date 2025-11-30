@@ -13,6 +13,7 @@ import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
 import { RANK_TIER_THEMES } from "../1_Feed/FeedSnapshotCard";
 import resolveRankTierKey from "../../utils/resolveRankTierKey";
+import resolveHandleColor from "../../utils/resolveHandleColor";
 
 const CARD_MIN_HEIGHT = scaleSize(72);
 const PROFILE_SIZE = scaleSize(36);
@@ -101,23 +102,7 @@ const ParticipantHandle = ({ participant, textStyle, containerStyle, preserveTex
         const key = rankTierKey || "gold";
         return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
     })();
-    const handleColor = (() => {
-        const bronzeAccent =
-            rankTierKey === "bronze"
-                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
-                : null;
-        const candidates = [
-            bronzeAccent,
-            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
-            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
-            rankTheme?.borderColor,
-            rankTheme?.titleSecondaryColor,
-        ];
-        for (const c of candidates) {
-            if (typeof c === "string" && c.trim()) return c;
-        }
-        return theme.textPrimary;
-    })();
+    const handleColor = resolveHandleColor(user, { rankTierKey, rankTheme });
     const flattened = StyleSheet.flatten(textStyle) || {};
     const fontSize = Number(flattened.fontSize) || HANDLE_FONT;
     const iconOffset = -Math.round(fontSize * 0.14);

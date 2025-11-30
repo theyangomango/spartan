@@ -1184,6 +1184,9 @@ const lastRankSnapshotRef = useRef(buildRankSnapshot(global?.userData));
                 name: ownerName,
                 pfp: ownerPfp,
                 pfpVersion: ownerPfpVersion,
+                rankTier: post?.rankTier ?? post?.currentRank?.tier ?? post?.currentRank?.rankTier ?? post?.rank?.tier ?? post?.rank?.rankTier ?? null,
+                currentRank: post?.currentRank || null,
+                rank: post?.rank || null,
             },
             postMeta: {
                 pid: post?.pid ?? post?.id ?? `${ownerUid}:${sanitizedWorkout?.wid ?? sanitizedWorkout?.id ?? index}`,

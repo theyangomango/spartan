@@ -672,6 +672,9 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
             name: feedItem.name || workout.ownerName || workout.name || '',
             pfp: feedItem.image || workout.pfp || workout.pfpUrl || workout.photoURL || workout.photo || '',
             pfpVersion: Number(feedItem.pfpVersion ?? workout.pfpVersion ?? 0),
+            rankTier: feedItem.rankTier ?? feedItem.currentRank?.tier ?? feedItem.currentRank?.rankTier ?? feedItem.rank?.tier ?? feedItem.rank?.rankTier ?? workout.rankTier ?? workout.currentRank?.tier ?? workout.currentRank?.rankTier ?? workout.rank?.tier ?? workout.rank?.rankTier ?? null,
+            currentRank: feedItem.currentRank || workout.currentRank || null,
+            rank: feedItem.rank || workout.rank || null,
         };
 
         const likes = Array.isArray(feedItem.likes) ? feedItem.likes : [];

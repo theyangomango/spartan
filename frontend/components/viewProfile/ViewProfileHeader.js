@@ -9,6 +9,7 @@ import { getUnifiedHeaderMetrics } from "../../theme/headerMetrics";
 import VerifiedHandle from "../common/VerifiedHandle";
 import { RANK_TIER_THEMES } from "../1_Feed/FeedSnapshotCard";
 import resolveRankTierKey, { resolveRankLabel } from "../../utils/resolveRankTierKey";
+import resolveHandleColor from "../../utils/resolveHandleColor";
 
 const METRICS = getUnifiedHeaderMetrics();
 const ICON_SIZE = METRICS.iconSize;
@@ -24,23 +25,7 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
         const key = rankTierKey || "gold";
         return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
     })();
-    const handleColor = (() => {
-        const bronzeAccent =
-            rankTierKey === "bronze"
-                ? (Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : "#b94f1f")
-                : null;
-        const candidates = [
-            bronzeAccent,
-            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[1] : null,
-            Array.isArray(rankTheme?.gradientColors) ? rankTheme.gradientColors[2] : null,
-            rankTheme?.borderColor,
-            rankTheme?.titleSecondaryColor,
-        ];
-        for (const c of candidates) {
-            if (typeof c === "string" && c.trim()) return c;
-        }
-        return theme.textPrimary;
-    })();
+    const handleColor = resolveHandleColor(user, { rankTierKey, rankTheme });
     const rankLabel = resolveRankLabel(user, rankTierKey, rankTheme) || rankTheme?.displayName || null;
     const rankTextColor = handleColor;
 
