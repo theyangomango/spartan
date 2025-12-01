@@ -2,7 +2,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import { Modal, View, Text, TextInput, StyleSheet, Pressable, ActivityIndicator } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Camera, CameraView } from "expo-camera";
+import { Camera } from "expo-camera";
 import { Ionicons } from "@expo/vector-icons";
 
 import scaleSize from "../../helper/scaleSize";
@@ -77,13 +77,16 @@ const JoinTribeModal = ({ visible, value, onChangeText, onCancel, onJoin }) => {
                     </View>
                 ) : (
                     <View style={styles.scannerCameraWrap}>
-                        <CameraView
+                        <Camera
                             style={styles.scannerCamera}
-                            barcodeScannerSettings={{ barCodeTypes: ["qr"] }}
-                            onBarcodeScanned={handleBarcodeScanned}
+                            barCodeScannerSettings={{
+                                barCodeTypes: ["qr"],
+                            }}
+                            onBarCodeScanned={handleBarcodeScanned}
                             onCameraReady={() => {
                                 setCameraReady(true);
                             }}
+                            ratio="16:9"
                         />
                         {!cameraReady ? (
                             <View style={styles.scannerLoading}>

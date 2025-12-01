@@ -157,8 +157,37 @@ const buildFallbackHowToSteps = ({ title, muscleGroup, equipment }) => {
 const HISTORY_SESSION_LIMIT = 15;
 const WEEKDAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const WORKOUT_TIMESTAMP_FIELDS = ['created'];
+const METRIC_COLORS = {
+    volume: {
+        line: '#80A6FF', // blue
+        strip: 'rgba(128, 166, 255, 0.45)',
+        accent: { r: 128, g: 166, b: 255 },
+        toggleActiveBg: 'rgba(22, 121, 243, 0.3)',
+        toggleBorder: 'rgba(128, 166, 255, 0.95)',
+        toggleLabel: '#80A6FF',
+    },
+    reps: {
+        line: '#FF7CB5', // pink
+        strip: 'rgba(255, 124, 181, 0.45)',
+        accent: { r: 255, g: 124, b: 181 },
+        toggleActiveBg: 'rgba(221, 72, 137, 0.32)',
+        toggleBorder: 'rgba(255, 124, 181, 0.95)',
+        toggleLabel: '#FF7CB5',
+    },
+    prs: {
+        line: '#FFC874', // yellow
+        strip: 'rgba(255, 200, 116, 0.45)',
+        accent: { r: 255, g: 200, b: 116 },
+        toggleActiveBg: 'hsla(36, 85%, 54%, 0.26)',
+        toggleBorder: 'rgba(255, 200, 116, 0.9)',
+        toggleLabel: '#FFC874',
+    },
+};
 const CHART_ACCENTS = {
     standard: { r: 100, g: 160, b: 255 },
+    volume: METRIC_COLORS.volume.accent,
+    reps: METRIC_COLORS.reps.accent,
+    prs: METRIC_COLORS.prs.accent,
 };
 
 const accentToRgba = (accent, alpha) => {
@@ -2552,13 +2581,13 @@ export default function ExerciseDetail() {
             );
         }
 
-        const basePointColors = {
-            lineColor: '#7FB7FF',
-            gradientFrom: '#7FB7FF',
-            gradientTo: '#2D7BFF',
-            stripColor: 'rgba(100, 160, 255, 0.45)',
-            accent: CHART_ACCENTS.standard,
-        };
+        const buildMetricColors = (palette) => ({
+            lineColor: palette.line,
+            gradientFrom: palette.line,
+            gradientTo: palette.line,
+            stripColor: palette.strip,
+            accent: palette.accent,
+        });
 
         const progressMetricConfigs = {
             volume: {
@@ -2587,7 +2616,7 @@ export default function ExerciseDetail() {
                 entries: exerciseVolumeEntries,
                 pointerComponent: ExerciseVolumePointerLabel,
                 gradientId: 'exerciseVolumeGradient',
-                ...basePointColors,
+                ...buildMetricColors(METRIC_COLORS.volume),
             },
             reps: {
                 key: 'reps',
@@ -2615,7 +2644,7 @@ export default function ExerciseDetail() {
                 entries: exerciseRepsEntries,
                 pointerComponent: ExerciseRepsPointerLabel,
                 gradientId: 'exerciseRepsGradient',
-                ...basePointColors,
+                ...buildMetricColors(METRIC_COLORS.reps),
             },
             prs: {
                 key: 'prs',
@@ -2643,7 +2672,7 @@ export default function ExerciseDetail() {
                 entries: exercisePersonalRecordEntries,
                 pointerComponent: ExercisePersonalRecordPointerLabel,
                 gradientId: 'exercisePersonalRecordGradient',
-                ...basePointColors,
+                ...buildMetricColors(METRIC_COLORS.prs),
             },
         };
 
@@ -3224,8 +3253,12 @@ export default function ExerciseDetail() {
                                 {progressMetricTabs.map((tab) => {
                                     const isActive = tab.key === activeProgressMetric;
                                     const disabled = !tab.hasData;
+                                    const palette = METRIC_COLORS[tab.key] || {};
+                                    const activeLabelColor = palette.toggleLabel || theme.textPrimary || '#F6F8FF';
+                                    const activeBackground = palette.toggleActiveBg || 'rgba(45, 158, 255, 0.22)';
+                                    const activeBorderColor = palette.toggleBorder || theme.primary || '#2D9EFF';
                                     const iconColor = isActive
-                                        ? theme.textPrimary ?? '#F6F8FF'
+                                        ? activeLabelColor
                                         : 'rgba(216,226,255,0.75)';
                                     return (
                                         <Pressable
@@ -3236,6 +3269,12 @@ export default function ExerciseDetail() {
                                             style={[
                                                 styles.metricToggleButton,
                                                 isActive && styles.metricToggleButtonActive,
+                                                isActive
+                                                    ? {
+                                                        backgroundColor: activeBackground,
+                                                        borderColor: activeBorderColor,
+                                                    }
+                                                    : null,
                                                 !tab.hasData && !isActive && styles.metricToggleButtonMuted,
                                             ]}
                                             disabled={disabled}
@@ -3252,6 +3291,7 @@ export default function ExerciseDetail() {
                                                 style={[
                                                     styles.metricToggleLabel,
                                                     isActive && styles.metricToggleLabelActive,
+                                                    isActive ? { color: activeLabelColor } : null,
                                                     !tab.hasData && !isActive && styles.metricToggleLabelMuted,
                                                 ]}
                                             >

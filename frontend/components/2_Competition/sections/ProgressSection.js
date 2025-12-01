@@ -44,15 +44,51 @@ import {
 
 const WORKOUT_TIMESTAMP_FIELDS = ["created"];
 
+const METRIC_COLORS = {
+    volume: {
+        line: "#80A6FF", // blue
+        areaFrom: "rgba(22, 121, 243, 0.28)",
+        areaTo: "rgba(22, 121, 243, 0.1)",
+        strip: "rgba(128, 166, 255, 0.45)",
+        accent: { r: 128, g: 166, b: 255 },
+        toggleActiveBg: "rgba(22, 121, 243, 0.3)",
+        toggleBorder: "rgba(128, 166, 255, 0.95)",
+        toggleLabel: "#80A6FF",
+    },
+    reps: {
+        line: "#FF7CB5", // pink
+        areaFrom: "rgba(221, 72, 137, 0.32)",
+        areaTo: "rgba(221, 72, 137, 0.1)",
+        strip: "rgba(255, 124, 181, 0.45)",
+        accent: { r: 255, g: 124, b: 181 },
+        toggleActiveBg: "rgba(221, 72, 137, 0.32)",
+        toggleBorder: "rgba(255, 124, 181, 0.95)",
+        toggleLabel: "#FF7CB5",
+    },
+    personalRecords: {
+        line: "#FFC874", // yellow
+        areaFrom: "rgba(255, 200, 116, 0.32)",
+        areaTo: "rgba(255, 200, 116, 0.08)",
+        strip: "rgba(255, 200, 116, 0.45)",
+        accent: { r: 255, g: 200, b: 116 },
+        toggleActiveBg: "hsla(36, 85%, 54%, 0.26)",
+        toggleBorder: "rgba(255, 200, 116, 0.9)",
+        toggleLabel: "#FFC874",
+    },
+};
+
 const CHART_ACCENTS = {
     standard: { r: 100, g: 160, b: 255 },
     weight: { r: 45, g: 158, b: 255 },
+    volume: METRIC_COLORS.volume.accent,
+    reps: METRIC_COLORS.reps.accent,
+    prs: METRIC_COLORS.personalRecords.accent,
 };
 
 const POINTER_PANEL_ACCENTS = {
-    volume: { r: 214, g: 220, b: 230 },
-    reps: { r: 156, g: 136, b: 255 },
-    prs: { r: 255, g: 183, b: 126 },
+    volume: METRIC_COLORS.volume.accent,
+    reps: METRIC_COLORS.reps.accent,
+    prs: METRIC_COLORS.personalRecords.accent,
     weight: { r: 214, g: 220, b: 230 },
 };
 const BODYGRAPH_OUTLINE_COLOR = "#40485c";
@@ -2220,8 +2256,12 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             <View style={styles.metricToggleRow}>
                 {metricTabs.map((tab) => {
                     const isActive = tab.key === activeMetricKey;
+                    const palette = METRIC_COLORS[tab.key] || {};
+                    const activeLabelColor = palette.toggleLabel || theme.textPrimary || "#F6F8FF";
+                    const activeBackground = palette.toggleActiveBg || "rgba(45, 158, 255, 0.22)";
+                    const activeBorderColor = palette.toggleBorder || theme.primary || "#2D9EFF";
                     const iconColor = isActive
-                        ? theme.textPrimary ?? "#F6F8FF"
+                        ? activeLabelColor
                         : "rgba(216,226,255,0.75)";
                     return (
                         <Pressable
@@ -2232,6 +2272,12 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                             style={[
                                 styles.metricToggleButton,
                                 isActive && styles.metricToggleButtonActive,
+                                isActive
+                                    ? {
+                                        backgroundColor: activeBackground,
+                                        borderColor: activeBorderColor,
+                                    }
+                                    : null,
                                 !tab.hasData && !isActive && styles.metricToggleButtonMuted,
                             ]}
                         >
@@ -2243,15 +2289,16 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                     style={styles.metricToggleIcon}
                                 />
                             ) : null}
-                            <Text
-                                style={[
-                                    styles.metricToggleLabel,
-                                    isActive && styles.metricToggleLabelActive,
-                                    !tab.hasData && !isActive && styles.metricToggleLabelMuted,
-                                ]}
-                            >
-                                {tab.label}
-                            </Text>
+                                <Text
+                                    style={[
+                                        styles.metricToggleLabel,
+                                        isActive && styles.metricToggleLabelActive,
+                                        isActive ? { color: activeLabelColor } : null,
+                                        !tab.hasData && !isActive && styles.metricToggleLabelMuted,
+                                    ]}
+                                >
+                                    {tab.label}
+                                </Text>
                         </Pressable>
                     );
                 })}
@@ -2936,8 +2983,16 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                         x2="0"
                                                         y2="1"
                                                     >
-                                                        <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
-                                                        <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
+                                                        <Stop
+                                                            offset="0%"
+                                                            stopColor={METRIC_COLORS.volume.line}
+                                                            stopOpacity={0.3}
+                                                        />
+                                                        <Stop
+                                                            offset="100%"
+                                                            stopColor={METRIC_COLORS.volume.line}
+                                                            stopOpacity={0.08}
+                                                        />
                                                     </LinearGradient>
                                                 </Defs>
 
@@ -2979,7 +3034,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                     <Path
                                                         d={volumeSeries.linePath}
                                                         fill="none"
-                                                        stroke="#7FB7FF"
+                                                        stroke={METRIC_COLORS.volume.line}
                                                         strokeWidth={scaleSize(3)}
                                                         strokeLinejoin="round"
                                                         strokeLinecap="round"
@@ -3009,7 +3064,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                         y1={chartTopMargin}
                                                         x2={volumeActivePoint.x}
                                                         y2={chartBaselineY}
-                                                        stroke="rgba(100, 160, 255, 0.45)"
+                                                        stroke={METRIC_COLORS.volume.strip}
                                                         strokeWidth={pointerStripWidth}
                                                     />
                                                 ) : null}
@@ -3020,6 +3075,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                         cx={point.x}
                                                         cy={point.y}
                                                         isActive={index === volumeActiveIndex}
+                                                        accent={CHART_ACCENTS.volume}
                                                     />
                                                 ))}
                                             </Svg>
@@ -3207,8 +3263,16 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                         x2="0"
                                                         y2="1"
                                                     >
-                                                        <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
-                                                        <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
+                                                        <Stop
+                                                            offset="0%"
+                                                            stopColor={METRIC_COLORS.reps.line}
+                                                            stopOpacity={0.3}
+                                                        />
+                                                        <Stop
+                                                            offset="100%"
+                                                            stopColor={METRIC_COLORS.reps.line}
+                                                            stopOpacity={0.08}
+                                                        />
                                                     </LinearGradient>
                                                 </Defs>
 
@@ -3250,7 +3314,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                     <Path
                                                         d={repsSeries.linePath}
                                                         fill="none"
-                                                        stroke="#7FB7FF"
+                                                        stroke={METRIC_COLORS.reps.line}
                                                         strokeWidth={scaleSize(3)}
                                                         strokeLinejoin="round"
                                                         strokeLinecap="round"
@@ -3280,7 +3344,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                         y1={chartTopMargin}
                                                         x2={repsActivePoint.x}
                                                         y2={chartBaselineY}
-                                                        stroke="rgba(100, 160, 255, 0.45)"
+                                                        stroke={METRIC_COLORS.reps.strip}
                                                         strokeWidth={pointerStripWidth}
                                                     />
                                                 ) : null}
@@ -3291,6 +3355,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                         cx={point.x}
                                                         cy={point.y}
                                                         isActive={index === repsActiveIndex}
+                                                        accent={CHART_ACCENTS.reps}
                                                     />
                                                 ))}
                                             </Svg>
@@ -3488,8 +3553,16 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                         x2="0"
                                                         y2="1"
                                                     >
-                                                        <Stop offset="0%" stopColor="#7FB7FF" stopOpacity="0.3" />
-                                                        <Stop offset="100%" stopColor="#2D7BFF" stopOpacity="0.08" />
+                                                        <Stop
+                                                            offset="0%"
+                                                            stopColor={METRIC_COLORS.personalRecords.line}
+                                                            stopOpacity={0.3}
+                                                        />
+                                                        <Stop
+                                                            offset="100%"
+                                                            stopColor={METRIC_COLORS.personalRecords.line}
+                                                            stopOpacity={0.08}
+                                                        />
                                                     </LinearGradient>
                                                 </Defs>
 
@@ -3533,7 +3606,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                     <Path
                                                         d={personalRecordSeries.linePath}
                                                         fill="none"
-                                                        stroke="#7FB7FF"
+                                                        stroke={METRIC_COLORS.personalRecords.line}
                                                         strokeWidth={scaleSize(3)}
                                                         strokeLinejoin="round"
                                                         strokeLinecap="round"
@@ -3563,7 +3636,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                         y1={chartTopMargin}
                                                         x2={personalRecordActivePoint.x}
                                                         y2={chartBaselineY}
-                                                        stroke="rgba(100, 160, 255, 0.45)"
+                                                        stroke={METRIC_COLORS.personalRecords.strip}
                                                         strokeWidth={pointerStripWidth}
                                                     />
                                                 ) : null}
@@ -3574,6 +3647,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                                                         cx={point.x}
                                                         cy={point.y}
                                                         isActive={index === personalRecordActiveIndex}
+                                                        accent={CHART_ACCENTS.prs}
                                                     />
                                                 ))}
                                             </Svg>
