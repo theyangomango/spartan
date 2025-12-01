@@ -4234,6 +4234,7 @@ const styles = StyleSheet.create({
     bodyFigure: {
         width: "100%",
         height: "100%",
+        transform: [{ translateY: scaleSize(-12) }],
     },
     contentSurface: {
         backgroundColor: theme.bg,

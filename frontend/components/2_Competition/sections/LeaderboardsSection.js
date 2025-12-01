@@ -193,6 +193,16 @@ const getLatestWeightFromEntries = (entries) => {
     return latest;
 };
 
+const genCode = (length = 6) => {
+    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789";
+    let out = "";
+    for (let i = 0; i < length; i += 1) {
+        const idx = Math.floor(Math.random() * alphabet.length);
+        out += alphabet[idx];
+    }
+    return out;
+};
+
 function computeTribeRanking(users, comparison, weightOverrides = null) {
     const { exercise, metric, normalizeByBodyweight } = comparison || {};
     const exerciseKey = typeof exercise === "string" ? exercise.trim() : "";
