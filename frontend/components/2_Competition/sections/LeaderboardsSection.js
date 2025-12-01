@@ -1629,6 +1629,14 @@ function LeaderboardsSection({
                     >
                         <View ref={scopeToggleAnchorRef} style={styles.selectorContent} collapsable={false}>
                             <View style={styles.selectorMainRow}>
+                                {isCustomTribe ? (
+                                    <Ionicons
+                                        name="people-circle"
+                                        size={Math.max(22, SIZES.headerIconSize)}
+                                        color="rgba(255,255,255,0.98)"
+                                        style={styles.selectorIconLeft}
+                                    />
+                                ) : null}
                                 <Text style={styles.selectorValue} numberOfLines={1} ellipsizeMode="tail">
                                     {scopePillLabel}
                                 </Text>
@@ -1817,6 +1825,14 @@ function LeaderboardsSection({
                                 accessibilityLabel="Change tribe scope"
                             >
                                 <View ref={scopeToggleAnchorRef} style={styles.simpleScopePill} collapsable={false}>
+                                    {isCustomTribe ? (
+                                        <Ionicons
+                                            name="people-circle"
+                                            size={scaledSize(20)}
+                                            color="#0a0a0a"
+                                            style={styles.simpleScopeIcon}
+                                        />
+                                    ) : null}
                                     <Text
                                         style={styles.simpleScopeText}
                                         numberOfLines={1}
@@ -2152,6 +2168,8 @@ const styles = StyleSheet.create({
     simpleScopeChevron: {
         marginTop: scaledSize(1),
     },
+    simpleScopeIcon: {
+    },
     userStatsSheetWrapper: {
         ...StyleSheet.absoluteFillObject,
         zIndex: 50,
@@ -2223,6 +2241,9 @@ const styles = StyleSheet.create({
     selectorIcon: {
         marginTop: scaledSize(2),
         marginLeft: scaledSize(2),
+    },
+    selectorIconLeft: {
+        marginRight: scaledSize(1),
     },
     selectorBadgeText: {
         color: theme.primary,
