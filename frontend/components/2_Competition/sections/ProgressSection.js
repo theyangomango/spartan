@@ -3972,6 +3972,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
     },
     container: {
+        paddingTop: scaleSize(10),
         paddingBottom: 0,
         backgroundColor: theme.bg,
     },
