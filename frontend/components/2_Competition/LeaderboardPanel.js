@@ -108,7 +108,7 @@ const LeaderboardPanel = ({
                         onOpenTribeComparison={onOpenTribeComparison}
                         // Pass canvas color to inner cards
                         canvasColor={effectiveCanvasColor}
-                        renderTribeBanners={!!isTribeFocused}
+                        renderTribeBanners={false}
                     />
                 ) : null}
             </View>

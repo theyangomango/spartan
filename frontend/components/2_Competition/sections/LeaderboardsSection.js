@@ -1487,10 +1487,7 @@ function LeaderboardsSection({
         () => (typeof bodyFocus === "string" && bodyFocus ? bodyFocus : DEFAULT_BODY_FOCUS),
         [bodyFocus]
     );
-    const usingHexFocus = useMemo(
-        () => !isCustomTribe && !!hexFocusKey,
-        [isCustomTribe, hexFocusKey]
-    );
+    const usingHexFocus = useMemo(() => !!hexFocusKey, [hexFocusKey]);
 
     const dropdownLeft = useMemo(() => {
         const padding = SIZES.headerPaddingHorizontal;
@@ -1545,18 +1542,13 @@ function LeaderboardsSection({
         exerciseStatKey,
     ]);
 
-    const gradientConfig = useMemo(() => {
-        if (isCustomTribe) {
-            return {
-                colors: [theme.bg, "#34190C", "#4A230E", "#713314", "#D5816A", theme.surface],
-                locations: [0, 0.2, 0.48, 0.7, 0.9, 1],
-            };
-        }
-        return {
+    const gradientConfig = useMemo(
+        () => ({
             colors: [theme.bg, theme.bg, theme.bg, theme.bg, theme.bg, theme.surface],
             locations: [0, 0.22, 0.52, 0.74, 0.92, 1],
-        };
-    }, [isCustomTribe]);
+        }),
+        []
+    );
     const leaderboardCanvas = useMemo(() => {
         const lightenColor = (hex, amount = 0.1) => {
             if (typeof hex !== "string") return hex;
@@ -1717,6 +1709,9 @@ function LeaderboardsSection({
                         </View>
                     )}
                 </View>
+                {isCustomTribe ? (
+                    <Text style={styles.selectorHelperText}>Manage Tribe</Text>
+                ) : null}
             </View>
         );
     };
@@ -1848,11 +1843,21 @@ function LeaderboardsSection({
                                     />
                                 </View>
                             </RNBounceable>
+                            {isCustomTribe ? (
+                                <RNBounceable
+                                    onPress={withStrongPress(() => setManageModalVisible(true))}
+                                    activeScale={0.97}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Manage current tribe"
+                                >
+                                    <Text style={styles.scopeHelperText}>Manage Tribe</Text>
+                                </RNBounceable>
+                            ) : null}
                         </View>
-                        <View style={styles.focusPillContainer}>
-                            <RNBounceable
-                                onPress={withStrongPress(handleToggleFocusMenu)}
-                                activeScale={0.96}
+                <View style={styles.focusPillContainer}>
+                    <RNBounceable
+                        onPress={withStrongPress(handleToggleFocusMenu)}
+                        activeScale={0.96}
                                 hitSlop={{
                                     top: SIZES.tribeHitSlop,
                                     bottom: SIZES.tribeHitSlop,
@@ -2133,6 +2138,16 @@ const styles = StyleSheet.create({
         flex: 1,
         marginRight: scaledSize(10),
     },
+    scopeHelperText: {
+        marginTop: scaledSize(6),
+        color: theme.textSecondary,
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaledSize(12),
+        letterSpacing: 0.15,
+        includeFontPadding: false,
+        paddingHorizontal: scaledSize(4),
+        paddingVertical: scaledSize(2),
+    },
     focusPillContainer: {
         justifyContent: "flex-end",
         alignItems: "flex-end",
@@ -2258,6 +2273,14 @@ const styles = StyleSheet.create({
         textShadowColor: "rgba(255,255,255,0.95)",
         textShadowOffset: { width: 0, height: 0 },
         textShadowRadius: scaledSize(1.3),
+    },
+    selectorHelperText: {
+        marginTop: scaledSize(6),
+        marginLeft: scaledSize(6),
+        color: "rgba(255,255,255,0.78)",
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaledSize(12),
+        letterSpacing: 0.2,
     },
     selectorSubtext: {
         marginTop: scaledSize(4),

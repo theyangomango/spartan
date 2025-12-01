@@ -63,6 +63,9 @@ export const TribeComparisonBannerCarousel = React.memo(({
     horizontalPadding = 0,
     style,
 }) => {
+    // Deprecated: hide tribe comparison banners for now.
+    return null;
+
     const hasComparisons = isTribeFocused && Array.isArray(tribeComparisons) && tribeComparisons.length > 0;
 
     const { width: windowWidth } = useWindowDimensions();

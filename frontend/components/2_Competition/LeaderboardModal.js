@@ -36,8 +36,11 @@ export default function LeaderboardModal({
     onOpenTribeComparison,
     // Custom canvas color for Leaderboard cards
     canvasColor,
-    renderTribeBanners = true,
+    renderTribeBanners = false,
 }) {
+    // Tribe comparison banners are deprecated; keep layout consistent with Following.
+    const showTribeBanners = false;
+
     const hasComparisons = isTribeFocused && tribeComparisons.length > 0;
     const safeActiveIndex = useMemo(() => {
         if (!hasComparisons) return 0;
@@ -47,21 +50,27 @@ export default function LeaderboardModal({
 
     const activeComp = hasComparisons ? tribeComparisons[safeActiveIndex] : null;
 
-    const usingHexFocus = !isTribeFocused && isHexFocus && !!hexFocusKey;
+    const usingHexFocus = useMemo(() => {
+        if (!isHexFocus || !hexFocusKey) return false;
+        if (isTribeFocused && activeComp) return false;
+        return true;
+    }, [isHexFocus, hexFocusKey, isTribeFocused, activeComp]);
     const listRef = useRef(null);
 
     const exercise = isTribeFocused
-        ? (activeComp?.exercise || "Overall")
+        ? (activeComp?.exercise || categoryCompared || "Overall")
         : (categoryCompared || "Overall");
 
     const metric = isTribeFocused
-        ? (activeComp?.metric || "1RM")
+        ? (activeComp
+            ? (activeComp?.metric || "1RM")
+            : (usingHexFocus ? "Hex" : (comparedMetric || "1RM")))
         : (usingHexFocus ? "Hex" : (comparedMetric || "1RM"));
 
     const normalizeByBodyweight = !!(isTribeFocused && activeComp?.normalizeByBodyweight);
 
     const header = useMemo(() => {
-        if (!renderTribeBanners || !isTribeFocused) return null;
+        if (!showTribeBanners) return null;
         return (
             <TribeComparisonBannerCarousel
                 isTribeFocused={isTribeFocused}
@@ -73,8 +82,7 @@ export default function LeaderboardModal({
             />
         );
     }, [
-        renderTribeBanners,
-        isTribeFocused,
+        showTribeBanners,
         tribeComparisons,
         activeCompIndex,
         onActiveCompChange,
@@ -308,10 +316,16 @@ export default function LeaderboardModal({
 
     const comparisonSignature = useMemo(() => {
         if (isTribeFocused) {
-            const compExercise = activeComp?.exercise || "Overall";
-            const compMetric = activeComp?.metric || "1RM";
-            const normalizationKey = normalizeByBodyweight ? "norm" : "raw";
-            return `tribe:${scopeSignature}:${safeActiveIndex}:${compExercise}:${compMetric}:${normalizationKey}`;
+            if (activeComp) {
+                const compExercise = activeComp?.exercise || "Overall";
+                const compMetric = activeComp?.metric || "1RM";
+                const normalizationKey = normalizeByBodyweight ? "norm" : "raw";
+                return `tribe:${scopeSignature}:${safeActiveIndex}:${compExercise}:${compMetric}:${normalizationKey}`;
+            }
+            if (usingHexFocus) {
+                return `hex:${scopeSignature}:${hexFocusKey || ""}:${hexFocusLabel || ""}`;
+            }
+            return `tribe:${scopeSignature}:solo:${categoryCompared || "Overall"}:${metric}`;
         }
         if (usingHexFocus) {
             return `hex:${scopeSignature}:${hexFocusKey || ""}:${hexFocusLabel || ""}`;
@@ -368,7 +382,7 @@ export default function LeaderboardModal({
         <View
             style={[
                 styles.container,
-                renderTribeBanners && isTribeFocused && styles.containerWithTribeBanners,
+                showTribeBanners && styles.containerWithTribeBanners,
             ]}
         >
             {header}
@@ -393,7 +407,4 @@ export default function LeaderboardModal({
 
 const styles = StyleSheet.create({
     container: { flex: 1, paddingHorizontal: H_PADDING, paddingTop: CONTAINER_PT },
-    containerWithTribeBanners: {
-        paddingTop: 0,
-    },
 });
