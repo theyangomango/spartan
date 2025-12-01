@@ -536,6 +536,12 @@ function LeaderboardsSection({
         setPersisted({ scope });
     }, [scope]);
     useEffect(() => {
+        const targetScope = selectedTribeId ? "Tribe" : "Following";
+        if (scope !== targetScope) {
+            setScope(targetScope);
+        }
+    }, [selectedTribeId, scope]);
+    useEffect(() => {
         LAST_SELECTED_TRIBE_ID = selectedTribeId;
         setPersisted({ selectedTribeId });
     }, [selectedTribeId]);
@@ -1456,6 +1462,14 @@ function LeaderboardsSection({
         return "Following";
     }, [selectedTribeId]);
 
+    const scopePillLabel = useMemo(() => {
+        if (selectedTribeId) {
+            const name = typeof currentTribe?.name === "string" ? currentTribe.name.trim() : "";
+            return name || scopeLabel;
+        }
+        return scopeLabel;
+    }, [selectedTribeId, currentTribe?.name, scopeLabel]);
+
     const scopeSubtitle = useMemo(() => {
         if (selectedTribeId) {
             const name = currentTribe?.name;
@@ -1616,7 +1630,7 @@ function LeaderboardsSection({
                         <View ref={scopeToggleAnchorRef} style={styles.selectorContent} collapsable={false}>
                             <View style={styles.selectorMainRow}>
                                 <Text style={styles.selectorValue} numberOfLines={1} ellipsizeMode="tail">
-                                    {scopeLabel}
+                                    {scopePillLabel}
                                 </Text>
                                 <Ionicons
                                     name={tribeMenuVisible ? "chevron-up" : "chevron-down"}
@@ -1803,7 +1817,13 @@ function LeaderboardsSection({
                                 accessibilityLabel="Change tribe scope"
                             >
                                 <View ref={scopeToggleAnchorRef} style={styles.simpleScopePill} collapsable={false}>
-                                    <Text style={styles.simpleScopeText}>Following</Text>
+                                    <Text
+                                        style={styles.simpleScopeText}
+                                        numberOfLines={1}
+                                        ellipsizeMode="tail"
+                                    >
+                                        {scopePillLabel}
+                                    </Text>
                                     <Ionicons
                                         name={tribeMenuVisible ? "chevron-up" : "chevron-down"}
                                         size={scaledSize(16)}
