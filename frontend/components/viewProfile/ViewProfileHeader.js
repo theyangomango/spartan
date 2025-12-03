@@ -22,8 +22,8 @@ const CENTER_MAX_WIDTH = 0.72;
 export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOptions, isVerified = false, user = null }) {
     const rankTierKey = resolveRankTierKey(user);
     const rankTheme = (() => {
-        const key = rankTierKey || "gold";
-        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+        const key = rankTierKey || "bronze";
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.bronze;
     })();
     const handleColor = resolveHandleColor(user, { rankTierKey, rankTheme });
     const rankLabel = resolveRankLabel(user, rankTierKey, rankTheme) || rankTheme?.displayName || null;

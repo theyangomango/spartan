@@ -7,7 +7,7 @@ import { scaleSize } from "./layoutConstants";
 import { deriveBadgeDetailColors, resolveLevelStage, withAlpha } from "./rankBadgeLevelHelpers";
 
 const DEFAULT_BADGE_SIZE = scaleSize(30);
-const DEFAULT_THEME = RANK_TIER_THEMES.gold;
+const DEFAULT_THEME = RANK_TIER_THEMES.bronze;
 
 const resolveTheme = (tier) => {
     const normalized = typeof tier === "string" ? tier.trim().toLowerCase() : "";

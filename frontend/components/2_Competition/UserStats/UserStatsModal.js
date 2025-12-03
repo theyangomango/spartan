@@ -119,8 +119,8 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
     const userForViewer = useMemo(() => ({ ...user, statsExercises: statsForViewer }), [user, statsForViewer]);
     const rankTierKey = useMemo(() => resolveRankTierKey(user), [user]);
     const rankTheme = useMemo(() => {
-        const key = rankTierKey || "gold";
-        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+        const key = rankTierKey || "bronze";
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.bronze;
     }, [rankTierKey]);
     const handleColor = useMemo(
         () => resolveHandleColor(user, { rankTierKey, rankTheme, fallback: styles.handle.color }),

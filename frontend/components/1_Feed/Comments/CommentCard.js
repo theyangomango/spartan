@@ -111,8 +111,8 @@ export default function CommentCard({
     const rankTierKey = useMemo(() => resolveRankTierKey(data), [data]);
 
     const rankTheme = useMemo(() => {
-        const key = rankTierKey || "gold";
-        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+        const key = rankTierKey || "bronze";
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.bronze;
     }, [rankTierKey]);
 
     const handleColor = useMemo(

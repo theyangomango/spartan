@@ -31,8 +31,8 @@ export default function ProfileHeader({ userData, onPressCreateBtn, onPressSetti
     );
     const rankTierKey = resolveRankTierKey(userData);
     const rankTheme = (() => {
-        const key = rankTierKey || "gold";
-        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+        const key = rankTierKey || "bronze";
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.bronze;
     })();
     const handleColor = resolveHandleColor(userData, { rankTierKey, rankTheme });
     const rankLabel = resolveRankLabel(userData, rankTierKey, rankTheme) || rankTheme?.displayName || null;

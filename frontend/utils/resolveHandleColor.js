@@ -16,8 +16,8 @@ export default function resolveHandleColor(entry, options = {}) {
 
     const rankTierKey = forcedRankTierKey || resolveRankTierKey(entry, extraRankTierCandidates);
     const rankTheme = forcedRankTheme || (() => {
-        const key = rankTierKey || "gold";
-        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+        const key = rankTierKey || "bronze";
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.bronze;
     })();
 
     const bronzeAccent =

@@ -64,7 +64,7 @@ const shallowEqualHex = (a, b) => {
 
 const bronzeTheme = {
     key: "bronze",
-    displayName: "Bronze III",
+    displayName: "Bronze I",
     overallRating: 68,
     gradientColors: ["#fde6d6", "#d28b52", "#6d3413"],
     gradientLocations: [0, 0.55, 1],
@@ -244,7 +244,7 @@ const extractLevelFromLabel = (label) => {
 };
 
 export default function FeedSnapshotCard({
-    rankTier = "gold",
+    rankTier = "bronze",
     rankLabel,
     rankLevel = null,
     overallRating = null,
@@ -259,15 +259,15 @@ export default function FeedSnapshotCard({
     forceTabKey = null,
     statsHexagon: statsHexagonOverride = null,
 }) {
-    const normalizedRankTier = String(rankTier || "gold").toLowerCase();
-    const rankTheme = RANK_TIER_THEMES[normalizedRankTier] || RANK_TIER_THEMES.gold;
+    const normalizedRankTier = String(rankTier || "bronze").toLowerCase();
+    const rankTheme = RANK_TIER_THEMES[normalizedRankTier] || RANK_TIER_THEMES.bronze;
     const resolvedRankLabel = rankLabel || rankTheme.displayName || normalizedRankTier;
     const resolvedRankLevel = rankLevel || extractLevelFromLabel(resolvedRankLabel);
     const resolvedOverallRating =
-        (overallRating ?? rankTheme.overallRating ?? RANK_TIER_THEMES.gold.overallRating);
+        (overallRating ?? rankTheme.overallRating ?? RANK_TIER_THEMES.bronze.overallRating);
     const resolvedShowOverall = showOverallRating !== false && resolvedOverallRating != null;
     const rankLevelStage = resolveLevelStage(resolvedRankLevel);
-    const badgeDetailColors = deriveBadgeDetailColors(rankTheme, RANK_TIER_THEMES.gold);
+    const badgeDetailColors = deriveBadgeDetailColors(rankTheme, RANK_TIER_THEMES.bronze);
     const showSeedGem = rankLevelStage === 1;
     const showGem = rankLevelStage >= 2;
     const showInnerShell = rankLevelStage >= 3;

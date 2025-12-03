@@ -10,8 +10,8 @@ import { DISPLAY_TITLES } from "../../../shared/rankProgress.js";
 import { withAlpha } from "./rankBadgeLevelHelpers";
 import { DEVICE_HEIGHT, DEVICE_WIDTH, scaleSize, ts } from "./layoutConstants";
 
-const DEFAULT_RANK = { tier: "gold", level: "III", label: "Gold III" };
-const DEFAULT_THEME = RANK_TIER_THEMES.gold;
+const DEFAULT_RANK = { tier: "bronze", level: "I", label: "Bronze I" };
+const DEFAULT_THEME = RANK_TIER_THEMES.bronze;
 
 const capitalizeWord = (value) => {
     if (!value || typeof value !== "string") return "";

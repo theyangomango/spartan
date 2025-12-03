@@ -95,8 +95,8 @@ export default function Podium({ data, topOffset = 0 }) {
         return ordered.map((entry) => {
             const rankTierKey = resolveRankTierKey(entry);
             const rankTheme = (() => {
-                const rk = rankTierKey || "gold";
-                return RANK_TIER_THEMES[rk] || RANK_TIER_THEMES.gold;
+                const rk = rankTierKey || "bronze";
+                return RANK_TIER_THEMES[rk] || RANK_TIER_THEMES.bronze;
             })();
             return { entry, rankTheme, handleColor: theme.textPrimary };
         });

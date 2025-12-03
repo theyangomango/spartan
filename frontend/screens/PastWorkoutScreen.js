@@ -536,8 +536,8 @@ const PastWorkoutScreen = () => {
     }, [owner?.rankTier, owner?.currentRank?.tier, owner?.currentRank?.rankTier, owner?.rank?.tier, owner?.rank?.rankTier, workout?.rankTier, workout?.currentRank?.tier, workout?.currentRank?.rankTier, workout?.rank?.tier, workout?.rank?.rankTier, rankFallback?.rankTier, rankFallback?.currentRank?.tier, rankFallback?.currentRank?.rankTier, rankFallback?.rank?.tier, rankFallback?.rank?.rankTier, rankSource]);
 
     const rankTheme = useMemo(() => {
-        const key = rankTierKey || "gold";
-        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.gold;
+        const key = rankTierKey || "bronze";
+        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.bronze;
     }, [rankTierKey]);
 
     const handleColor = useMemo(
