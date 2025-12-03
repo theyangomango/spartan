@@ -86,7 +86,8 @@ const styles = StyleSheet.create({
     },
     center: {
         alignItems: "center",
-        paddingBottom: scaleSize(3.5),
+        paddingTop: scaleSize(4),
+        paddingBottom: scaleSize(2),
         justifyContent: "center",
         paddingHorizontal: scaleSize(6),
         maxWidth: `${CENTER_MAX_WIDTH * 100}%`,
