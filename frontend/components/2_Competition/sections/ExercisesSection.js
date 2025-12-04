@@ -16,32 +16,9 @@ import {
 } from "../../../../shared/rankProgress.js";
 import RankTierMiniBadge from "../RankTierMiniBadge";
 import LevelUpTransition from "../LevelUpTransition";
-import { subscribeUserData } from "../../../utils/userDataEvents";
+import { dequeueRankPromotion, subscribeRankPromotions, subscribeUserData } from "../../../utils/userDataEvents";
 import { LADDER_SCROLL_TARGET_KEY } from "../../../utils/competitionTabEvents";
 import formatHexStat from "../../../utils/formatHexStat";
-import { buildRankPromotionKey, registerRankPromotionKey } from "../../../utils/rankPromotionEvents";
-
-const buildPromotionSteps = (fromEntry, toEntry) => {
-    if (!fromEntry || !toEntry || fromEntry.key === toEntry.key) return [];
-    const fromIndex = LADDER_LEVELS.findIndex((item) => item.key === fromEntry.key);
-    const toIndex = LADDER_LEVELS.findIndex((item) => item.key === toEntry.key);
-    if (fromIndex === -1 || toIndex === -1) {
-        return [{ from: fromEntry, to: toEntry }];
-    }
-    const step = toIndex > fromIndex ? 1 : -1;
-    const steps = [];
-    let currentIndex = fromIndex;
-    while (currentIndex !== toIndex) {
-        const nextIndex = currentIndex + step;
-        const nextEntry = LADDER_LEVELS[nextIndex];
-        const currentEntry = LADDER_LEVELS[currentIndex];
-        if (!nextEntry || !currentEntry) break;
-        steps.push({ from: currentEntry, to: nextEntry });
-        currentIndex = nextIndex;
-    }
-    return Array.isArray(steps) && steps.length ? steps : [{ from: fromEntry, to: toEntry }];
-};
-
 const CARD_THEME_COLORS = {
     bronze: { gradient: ["#6f3600ff", "#e19c73ff"], accent: "#f9cba1ff" },
     silver: { gradient: ["#2e3542ff", "#a8c2e6ff"], accent: "#c5e0ffff" },
@@ -161,8 +138,6 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
     const scrollViewRef = useRef(null);
     const cardLayoutsRef = useRef({});
     const rankCardHeightsRef = useRef({});
-    const hasHydratedRankRef = useRef(false);
-    const lastRankRef = useRef(null);
     const [scrollContainerHeight, setScrollContainerHeight] = useState(0);
     const [contentHeight, setContentHeight] = useState(0);
 
@@ -223,30 +198,11 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
     );
 
     useEffect(() => {
-        if (!currentRankEntry) return;
-        const previousSnapshot = lastRankRef.current;
-        if (!hasHydratedRankRef.current) {
-            lastRankRef.current = { entry: currentRankEntry, index: currentRankIndex };
-            hasHydratedRankRef.current = true;
-            return;
-        }
-        const prevEntry = previousSnapshot?.entry;
-        if (prevEntry?.key && prevEntry.key !== currentRankEntry.key) {
-            const promoted =
-                typeof previousSnapshot?.index === "number" && typeof currentRankIndex === "number"
-                    ? currentRankIndex < previousSnapshot.index
-                    : true;
-            if (promoted) {
-                const promotionKey = buildRankPromotionKey(prevEntry, currentRankEntry);
-                const isNew = registerRankPromotionKey(promotionKey);
-                if (isNew) {
-                    const steps = buildPromotionSteps(prevEntry, currentRankEntry);
-                    setLevelUpQueue(Array.isArray(steps) ? steps : []);
-                }
-            }
-        }
-        lastRankRef.current = { entry: currentRankEntry, index: currentRankIndex };
-    }, [currentRankEntry?.key, currentRankIndex, currentRankEntry]);
+        const unsubPromotions = subscribeRankPromotions((queue) => {
+            setLevelUpQueue(Array.isArray(queue) ? queue : []);
+        });
+        return unsubPromotions;
+    }, []);
 
     const attemptCenterCurrentCard = useCallback(
         (options = { animated: false }) => {
@@ -335,6 +291,7 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
     const activeLevelUp = Array.isArray(levelUpQueue) && levelUpQueue.length ? levelUpQueue[0] : null;
 
     const handleDismissLevelUp = useCallback(() => {
+        dequeueRankPromotion();
         setLevelUpQueue((prev) => (Array.isArray(prev) && prev.length ? prev.slice(1) : prev));
     }, []);
 

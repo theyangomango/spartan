@@ -45,7 +45,12 @@ import { toMillis as toMillisSafe } from "../utils/friends";
 import deletePost from "../../backend/posts/deletePost";
 import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
-import { emitUserDataUpdate, subscribeUserData } from "../utils/userDataEvents";
+import {
+    dequeueRankPromotion,
+    emitUserDataUpdate,
+    subscribeRankPromotions,
+    subscribeUserData,
+} from "../utils/userDataEvents";
 import { LADDER_SCROLL_TARGET_KEY } from "../utils/competitionTabEvents";
 import { requestCompetitionTabFocus } from "../utils/competitionTabEvents";
 import readDoc from "../../backend/helper/firebase/readDoc";
@@ -60,8 +65,6 @@ import { isClipPost } from "../utils/postTypes";
 import { primeAllUsers } from "../helper/getAllUsers";
 import { computeRankProgressFromData } from "../../shared/rankProgress.js";
 import LevelUpTransition from "../components/2_Competition/LevelUpTransition";
-import { buildRankPromotionKey, registerRankPromotionKey } from "../utils/rankPromotionEvents";
-import { LADDER_LEVELS } from "../../shared/rankProgress.js";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
@@ -268,27 +271,6 @@ const buildRankSnapshot = (user) => {
     }
 };
 
-const buildPromotionSteps = (fromEntry, toEntry) => {
-    if (!fromEntry || !toEntry || fromEntry.key === toEntry.key) return [];
-    const fromIndex = LADDER_LEVELS.findIndex((item) => item.key === fromEntry.key);
-    const toIndex = LADDER_LEVELS.findIndex((item) => item.key === toEntry.key);
-    if (fromIndex === -1 || toIndex === -1) {
-        return [{ from: fromEntry, to: toEntry }];
-    }
-    const step = toIndex > fromIndex ? 1 : -1;
-    const steps = [];
-    let currentIndex = fromIndex;
-    while (currentIndex !== toIndex) {
-        const nextIndex = currentIndex + step;
-        const nextEntry = LADDER_LEVELS[nextIndex];
-        const currentEntry = LADDER_LEVELS[currentIndex];
-        if (!nextEntry || !currentEntry) break;
-        steps.push({ from: currentEntry, to: nextEntry });
-        currentIndex = nextIndex;
-    }
-    return Array.isArray(steps) && steps.length ? steps : [{ from: fromEntry, to: toEntry }];
-};
-
 const sanitizeWorkoutForRoute = (workout) => {
     if (!workout || typeof workout !== "object") return null;
 
@@ -409,25 +391,15 @@ export default function Feed({ navigation, route }) {
             } else {
                 setPendingQuestsCount(null);
             }
-
-            const previousSnapshot = lastRankSnapshotRef.current;
-            if (snapshot.entry && previousSnapshot?.entry && snapshot.entry.key !== previousSnapshot.entry.key) {
-            const promoted =
-                typeof snapshot.index === "number" && typeof previousSnapshot.index === "number"
-                    ? snapshot.index < previousSnapshot.index
-                    : true;
-                if (promoted) {
-                    const promotionKey = buildRankPromotionKey(previousSnapshot.entry, snapshot.entry);
-                    const isNew = registerRankPromotionKey(promotionKey);
-                    if (isNew) {
-                        const steps = buildPromotionSteps(previousSnapshot.entry, snapshot.entry);
-                        setRankPromotionQueue(Array.isArray(steps) ? steps : []);
-                    }
-                }
-            }
-            lastRankSnapshotRef.current = snapshot;
         });
         return unsubscribe;
+    }, []);
+
+    useEffect(() => {
+        const unsubPromotions = subscribeRankPromotions((queue) => {
+            setRankPromotionQueue(Array.isArray(queue) ? queue : []);
+        });
+        return unsubPromotions;
     }, []);
 
     const toggleFeedVideosMuted = useCallback(() => {
@@ -445,6 +417,7 @@ export default function Feed({ navigation, route }) {
     }, []);
 
     const handleDismissRankPromotion = useCallback(() => {
+        dequeueRankPromotion();
         setRankPromotionQueue((prev) => (Array.isArray(prev) && prev.length ? prev.slice(1) : prev));
     }, []);
 
@@ -510,7 +483,6 @@ const [pendingQuestsCount, setPendingQuestsCount] = useState(() => {
     return null;
 });
 const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
-const lastRankSnapshotRef = useRef(buildRankSnapshot(global?.userData));
 
     const headerVisibility = useRef(new Animated.Value(1)).current;
     const [headerPointerEvents, setHeaderPointerEvents] = useState("auto");
