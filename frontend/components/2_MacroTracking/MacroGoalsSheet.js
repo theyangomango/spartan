@@ -189,18 +189,11 @@ export default function MacroGoalsSheet({
         const rawAge = Number(ageInput);
         const age = Number.isFinite(rawAge) && rawAge > 0 ? rawAge : 25;
 
-        const baseBmr = 10 * weightKg + 6.25 * heightCm - 5 * age;
-        const bmr = baseBmr + (gender === 'male' ? 5 : -161);
+        const bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + (gender === 'male' ? 5 : -161); // Mifflin-St Jeor
 
         const activityMultiplierMap = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, athlete: 1.9 };
         const activityMultiplier = activityMultiplierMap[activity] ?? 1.55;
-
-        const goalPresets = {
-            gain: { calorieMultiplier: 1.12, proteinPerKg: 1.8 },
-            maintain: { calorieMultiplier: 1.01, proteinPerKg: 2.0 },
-            lose: { calorieMultiplier: 0.85, proteinPerKg: 2.2 },
-        };
-        const preset = goalPresets[goal] ?? goalPresets.maintain;
+        const tdee = bmr * activityMultiplier;
 
         const roundTo5 = (value) => {
             if (!Number.isFinite(value)) return 0;
@@ -211,21 +204,29 @@ export default function MacroGoalsSheet({
             return Math.max(0, Math.round(value / 10) * 10);
         };
 
-        const estimatedCalories = bmr * activityMultiplier * preset.calorieMultiplier;
-        const weightFloor = (gender === 'male' ? 22 : 20) * weightKg;
+        // Evidence-based guardrails (ISSN / ACSM ranges): higher protein for deficit, moderate for gain/maintain
+        const goalPresets = {
+        gain: { percentDelta: 0.08, minDelta: 180, maxDelta: 450, proteinPerKg: 2.1, fatPerKg: 1.0 },
+        maintain: { percentDelta: 0, minDelta: -150, maxDelta: 150, proteinPerKg: 2.2, fatPerKg: 0.95 },
+        lose: { percentDelta: -0.20, minDelta: -700, maxDelta: -350, proteinPerKg: 2.4, fatPerKg: 0.9 },
+        };
+        const preset = goalPresets[goal] ?? goalPresets.maintain;
+
+        const desiredDelta = tdee * preset.percentDelta;
+        const clampedDelta = Math.min(preset.maxDelta, Math.max(preset.minDelta, desiredDelta));
+
+        const calorieFloorFromWeight = (gender === 'male' ? 22 : 20) * weightKg; // ~22-20 kcal/kg floor
         const absoluteFloor = gender === 'male' ? 1200 : 1100;
-        const calorieFloor = Math.max(weightFloor, absoluteFloor);
-        const targetCalories = roundCalories(Math.max(estimatedCalories, calorieFloor));
+        const calorieFloor = Math.max(calorieFloorFromWeight, absoluteFloor, bmr * 1.05); // keep close to BMR
+        const targetCalories = roundCalories(Math.max(tdee + clampedDelta, calorieFloor));
 
-        const proteinG = preset.proteinPerKg * weightKg;
-        const baseFatG = 0.9 * weightKg;
-        const minFatG = (0.20 * targetCalories) / 9;
-        const maxFatG = (0.40 * targetCalories) / 9;
-        const fatG = Math.min(Math.max(baseFatG, minFatG), maxFatG);
+        const proteinG = Math.max(preset.proteinPerKg * weightKg, 1.8 * weightKg);
+        const fatFromWeight = preset.fatPerKg * weightKg;
+        const minFatFromCalories = (0.25 * targetCalories) / 9;
+        const maxFatFromCalories = (0.40 * targetCalories) / 9;
+        const fatG = Math.min(Math.max(fatFromWeight, minFatFromCalories), maxFatFromCalories);
 
-        const proteinCalories = proteinG * 4;
-        const fatCalories = fatG * 9;
-        const carbCalories = Math.max(targetCalories - proteinCalories - fatCalories, 0);
+        const carbCalories = Math.max(targetCalories - (proteinG * 4) - (fatG * 9), 0);
         const carbsG = carbCalories / 4;
 
         let roundedProtein = roundTo5(proteinG);
@@ -234,37 +235,33 @@ export default function MacroGoalsSheet({
 
         const caloriesFromMacros = () => (roundedProtein * 4) + (roundedFat * 9) + (roundedCarbs * 4);
 
-        const ensureCaloriesWithinRange = () => {
-            const desired = targetCalories;
-            const tolerance = 20; // allow small variance due to 5g rounding
+        const alignCalories = () => {
+            const tolerance = 25; // allow small variance due to rounding
             let total = caloriesFromMacros();
             let iterations = 0;
 
-            const caloriesFloorRounded = roundCalories(calorieFloor);
-
-            if (total < caloriesFloorRounded) {
-                const needed = Math.max(0, caloriesFloorRounded - total);
-                const carbSteps = Math.ceil(needed / (4 * 5)) * 5;
-                if (carbSteps > 0) {
-                    roundedCarbs += carbSteps;
-                    total = caloriesFromMacros();
-                }
+            if (total < calorieFloor) {
+                const needed = calorieFloor - total;
+                const carbSteps = Math.ceil(needed / 20) * 5; // 5g carbs ≈ 20 kcal
+                roundedCarbs += carbSteps;
+                total = caloriesFromMacros();
             }
 
-            while (total < desired - tolerance && iterations < 12) {
+            while (total < targetCalories - tolerance && iterations < 16) {
                 roundedCarbs += 5;
                 total = caloriesFromMacros();
                 iterations += 1;
             }
-            while (total > desired + tolerance && roundedCarbs >= 5 && iterations < 24) {
+            while (total > targetCalories + tolerance && roundedCarbs >= 5 && iterations < 32) {
                 roundedCarbs -= 5;
                 total = caloriesFromMacros();
                 iterations += 1;
             }
+
+            return roundCalories(total);
         };
 
-        ensureCaloriesWithinRange();
-        const finalCalories = roundCalories(caloriesFromMacros());
+        const finalCalories = alignCalories();
 
         return {
             calories: String(finalCalories),
