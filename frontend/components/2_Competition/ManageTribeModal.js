@@ -1,50 +1,10 @@
 // components/2_Competition/ManageTribeModal.jsx
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Modal, View, StyleSheet, Pressable, Text, TextInput } from "react-native";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import Svg, { Rect } from "react-native-svg";
-import qrcode from "qrcode-generator";
 
 import scaleSize from "../../helper/scaleSize";
 import { withStrongPress } from "../../utils/haptics";
-
-const TribeQRCode = memo(({ value, size = 220 }) => {
-    const matrix = useMemo(() => {
-        try {
-            const qr = qrcode(0, "M");
-            qr.addData(value || "");
-            qr.make();
-            const count = qr.getModuleCount();
-            const cells = [];
-            for (let row = 0; row < count; row += 1) {
-                for (let col = 0; col < count; col += 1) {
-                    if (qr.isDark(row, col)) cells.push({ row, col });
-                }
-            }
-            return { cells, count };
-        } catch {
-            return { cells: [], count: 0 };
-        }
-    }, [value]);
-
-    if (!value || !matrix.count) return null;
-    const cellSize = size / matrix.count;
-    return (
-        <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-            <Rect x="0" y="0" width={size} height={size} fill="#fff" />
-            {matrix.cells.map((cell, idx) => (
-                <Rect
-                    key={`${cell.row}-${cell.col}-${idx}`}
-                    x={cell.col * cellSize}
-                    y={cell.row * cellSize}
-                    width={cellSize}
-                    height={cellSize}
-                    fill="#0b0b0b"
-                />
-            ))}
-        </Svg>
-    );
-});
 
 function ManageTribeModal({
     visible,
@@ -122,10 +82,6 @@ function ManageTribeModal({
                             <Text style={styles.metaText}>
                                 Name: <Text style={{ fontFamily: "Outfit_600SemiBold" }}>{tribe.name}</Text>
                             </Text>
-                            <Text style={[styles.metaText, { marginBottom: scaleSize(4) }]}>Share QR to join:</Text>
-                            <View style={styles.qrWrap}>
-                                <TribeQRCode value={tribe.code} size={scaleSize(220)} />
-                            </View>
                             <View style={styles.codeRow}>
                                 <Text style={[styles.metaText, styles.codeLabel]}>
                                     Code: <Text style={styles.codeValue}>{tribe.code}</Text>
@@ -231,11 +187,6 @@ const styles = StyleSheet.create({
         color: "#A5AEC0",
         fontSize: scaleSize(12),
         marginBottom: scaleSize(6),
-    },
-    qrWrap: {
-        alignItems: "center",
-        justifyContent: "center",
-        paddingVertical: scaleSize(10),
     },
     input: {
         backgroundColor: require("../../theme/mfpDark").default.field,
