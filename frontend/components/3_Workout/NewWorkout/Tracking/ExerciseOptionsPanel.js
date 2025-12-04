@@ -10,7 +10,7 @@ import scaleSize from "../../../../helper/scaleSize";
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 const PANEL_WIDTH = 260;
 
-const ExerciseOptionsPanel = ({ visible, onClose, position, replaceExercise, deleteExercise }) => {
+const ExerciseOptionsPanel = ({ visible, onClose, position, viewExercise, replaceExercise, deleteExercise }) => {
     const scale = useRef(new Animated.Value(0.95)).current;
     const opacity = useRef(new Animated.Value(0)).current;
 
@@ -61,6 +61,22 @@ const ExerciseOptionsPanel = ({ visible, onClose, position, replaceExercise, del
                     <View style={[styles.caret, { left: caretLeft }]} />
 
                     <Text style={styles.header}>Exercise options</Text>
+
+                    <RNBounceable
+                        onPress={withStrongPress(() => { viewExercise?.(); onClose?.(); })}
+                        style={styles.row}
+                        hitSlop={8}
+                    >
+                        <View style={styles.left}>
+                            <View style={[styles.iconBadge, { backgroundColor: "#ECFDF3" }]}>
+                                <MaterialCommunityIcons name="book-open-variant" size={18} color="#16A34A" />
+                            </View>
+                            <Text style={styles.rowText}>View exercise</Text>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={22} color="#9AA3AF" />
+                    </RNBounceable>
+
+                    <View style={styles.divider} />
 
                     <RNBounceable
                         onPress={withStrongPress(() => { replaceExercise?.(); onClose?.(); })}

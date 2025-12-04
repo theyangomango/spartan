@@ -50,6 +50,7 @@ import GroupMenu from "./Group/GroupMenu";
 import RestTimerModal from "./RestTimerModal";
 import useRestTimer from "./hooks/useRestTimer";
 import useWorkoutEditing from "./hooks/useWorkoutEditing";
+import { navigationRef } from "../../../../navigationRef";
 
 import scaleSize from "../../../helper/scaleSize";
 import calculate1RM from "../../../helper/calculate1RM";
@@ -964,6 +965,24 @@ const ActiveWorkoutModal = ({
     }, [activeStats, userWorkoutStats, viewingSelfEffective]);
     const isEmptyList = exercisesData.length === 0;
 
+    const handleViewExercise = useCallback((exerciseIndex) => {
+        const ex = exercisesData?.[exerciseIndex];
+        if (!ex || !ex.name) return;
+        const payload = {
+            ...ex,
+            name: ex.name,
+            title: ex.name,
+            muscleGroup: ex.muscleGroup || ex.muscle || ex.group || undefined,
+            muscle: ex.muscle || ex.muscleGroup || undefined,
+            equipment: ex.equipment || ex.equipmentType || undefined,
+            slug: ex.slug || ex.exerciseSlug || ex.exercise_slug || undefined,
+        };
+        try { Keyboard.dismiss(); } catch {}
+        const nav = navigationRef?.current;
+        const rootNav = nav?.getParent?.("ROOT") || nav;
+        try { rootNav?.navigate?.("ExerciseDetail", { exercise: payload }); } catch { }
+    }, [exercisesData]);
+
     const flashListEstimates = useMemo(() => {
         const fallback = {
             estimatedItemSize: ESTIMATED_EXERCISE_BASE_HEIGHT,
@@ -1051,13 +1070,14 @@ const ActiveWorkoutModal = ({
             updateSets={updateSets}
             replaceExercise={replaceExercise}
             deleteExercise={deleteExercise}
+            viewExercise={handleViewExercise}
             readOnly={!viewingSelfEffective}
             showOptionsTriggerIcon
             syncColumnOnEdit={viewingSelfEffective}
             onStatFocus={handleStatFocus}
             fallbackPreviousSets={fallbackPreviousSetsByName?.[String(ex?.name || "")] || undefined}
         />
-    ), [deleteExercise, replaceExercise, updateSets, viewingSelfEffective, handleStatFocus, fallbackPreviousSetsByName]);
+    ), [deleteExercise, replaceExercise, updateSets, viewingSelfEffective, handleStatFocus, fallbackPreviousSetsByName, handleViewExercise]);
 
     const renderFooter = useCallback(() => (
         <>
@@ -1575,6 +1595,7 @@ const ActiveWorkoutModal = ({
                                     updateSets={updateSets}
                                     replaceExercise={replaceExercise}
                                     deleteExercise={deleteExercise}
+                                    viewExercise={handleViewExercise}
                                     readOnly={!viewingSelfEffective}
                                     showOptionsTriggerIcon
                                     syncColumnOnEdit={viewingSelfEffective}

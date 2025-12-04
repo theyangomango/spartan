@@ -54,6 +54,7 @@ function ExerciseLog({
     syncColumnOnEdit = false,
     onStatFocus,         // optional: notify parent when any set input is focused
     fallbackPreviousSets,
+    viewExercise,
 }) {
     // ----- Android layout animation enable -----
     if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -121,6 +122,10 @@ function ExerciseLog({
     const handleDeleteExercise = useCallback(() => {
         if (deleteExercise) deleteExercise(exerciseIndex);
     }, [deleteExercise, exerciseIndex]);
+
+    const handleViewExercise = useCallback(() => {
+        if (viewExercise) viewExercise(exerciseIndex);
+    }, [exerciseIndex, viewExercise]);
 
     // ----- Previous sets (read-only display) -----
     const normalizedFallbackPrev = useMemo(() => {
@@ -384,6 +389,7 @@ function ExerciseLog({
                     visible={isPanelVisible}
                     onClose={() => setIsPanelVisible(false)}
                     position={panelPosition}
+                    viewExercise={handleViewExercise}
                     replaceExercise={handleReplaceExercise}
                     deleteExercise={handleDeleteExercise}
                 />
@@ -465,7 +471,8 @@ const areEqual = (prev, next) => {
         prev.showOptionsTriggerIcon === next.showOptionsTriggerIcon &&
         prev.syncColumnOnEdit === next.syncColumnOnEdit &&
         prev.sets === next.sets &&
-        prev.fallbackPreviousSets === next.fallbackPreviousSets)
+        prev.fallbackPreviousSets === next.fallbackPreviousSets &&
+        prev.viewExercise === next.viewExercise)
     );
 };
 
