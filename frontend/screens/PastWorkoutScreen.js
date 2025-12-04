@@ -458,14 +458,21 @@ const PastWorkoutScreen = () => {
     const volumeLabel = useMemo(() => formatNumber(workout?.volume), [workout?.volume]);
     const caloriesLabel = useMemo(() => {
         const raw = typeof workout?.calories === "number" ? workout.calories : Number(workout?.calories);
-        if (Number.isFinite(raw)) return formatNumber(raw);
-        return "--";
+        if (!Number.isFinite(raw) || raw <= 0) return "--";
+        return formatNumber(raw);
     }, [workout?.calories]);
+    const hasCalories = caloriesLabel !== "--";
     const recordsLabel = useMemo(
         () => formatNumber(workout?.PBs ?? workout?.pbs ?? 0),
         [workout?.PBs, workout?.pbs]
     );
     const weightUnit = useMemo(() => resolveWeightUnit(), []);
+    const showCaloriesInfo = useCallback(() => {
+        Alert.alert(
+            "How calories are estimated",
+            "Calories come from your latest Progress weight plus the sets, reps, and duration you logged. No weight logged = calories stay blank."
+        );
+    }, []);
 
     const workoutOwnerUid = useMemo(() => {
         const candidates = [
@@ -1209,10 +1216,27 @@ const PastWorkoutScreen = () => {
                                                     {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
                                                     <Text style={[styles.metricLabel, styles.metricLabelRight]}>Calories</Text>
                                                 </View>
-                                                <Text style={[styles.metricValue, styles.metricValueRight]}>
-                                                    {caloriesLabel}
-                                                    {caloriesLabel !== "--" ? " kcal" : ""}
-                                                </Text>
+                                                <View style={[styles.metricValueRow, styles.metricValueRowRight]}>
+                                                    <Text style={[styles.metricValue, styles.metricValueRight]}>
+                                                        {caloriesLabel}
+                                                        {hasCalories ? " kcal" : ""}
+                                                    </Text>
+                                                    {!hasCalories ? (
+                                                        <Pressable
+                                                            onPress={showCaloriesInfo}
+                                                            hitSlop={8}
+                                                            style={styles.metricInfoIcon}
+                                                            accessibilityRole="button"
+                                                            accessibilityLabel="How are calories estimated?"
+                                                        >
+                                                            <MaterialCommunityIcons
+                                                                name="information-outline"
+                                                                size={scaleSize(15)}
+                                                                color="#9aa6bf"
+                                                            />
+                                                        </Pressable>
+                                                    ) : null}
+                                                </View>
                                             </View>
                                         </View>
 
@@ -1532,6 +1556,17 @@ const styles = StyleSheet.create({
     },
     metricValueRight: {
         textAlign: "right",
+    },
+    metricValueRow: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    metricValueRowRight: {
+        justifyContent: "flex-end",
+    },
+    metricInfoIcon: {
+        marginLeft: scaleSize(6),
+        padding: scaleSize(2),
     },
     recordsValueRow: {
         flexDirection: "row",
