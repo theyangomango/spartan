@@ -76,12 +76,24 @@ const PostFooter = forwardRef(function PostFooter({
     const commentIconColor = isLightFooter ? '#333' : '#fff';
     const commentTextStyle = [styles.commentButtonText, isLightFooter && styles.commentButtonTextDark];
 
+    const isLivePost = Boolean(
+        data?.isLive ||
+        data?.liveWorkout ||
+        (typeof data?.pid === 'string' && data.pid.startsWith('workout:live'))
+    );
     const likeCount = Array.isArray(data?.likes)
         ? data.likes.length
         : Number(data?.likeCount) || 0;
+    const captionIncludedInComments = (() => {
+        if (isLivePost) return false;
+        if (Array.isArray(data?.comments)) {
+            return data.comments.some((entry) => entry?.isCaption);
+        }
+        return Boolean(data?.caption);
+    })();
     const commentCount = Array.isArray(data?.comments)
-        ? Math.max(0, data.comments.length - 1)
-        : Number(data?.commentCount) || 0;
+        ? Math.max(0, data.comments.length - (captionIncludedInComments ? 1 : 0))
+        : Math.max(0, (Number(data?.commentCount) || 0) - (captionIncludedInComments ? 1 : 0));
 
     return (
         <View style={styles.mainContainer} collapsable={false}>

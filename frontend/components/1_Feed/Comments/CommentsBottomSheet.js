@@ -11,6 +11,7 @@ import sendNotification from "../../../../backend/sendNotification";
 import { getCommentsBottomSheetStyles } from "../../../helper/getCommentsBottomSheetStyles";
 import scaleSize from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
+import { buildLivePostMetadata } from "../../../utils/livePostMeta";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("screen");
 const dynamicStylesDefault = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -120,7 +121,9 @@ const CommentsBottomSheet = ({
             sendNotification(target.uid, replyNotif);
         }
 
-        updateDoc("posts", postPid, { comments });
+        const liveMeta = buildLivePostMetadata(postData, currentUser) || {};
+        const updatePayload = Object.keys(liveMeta).length ? { ...liveMeta, comments } : { comments };
+        updateDoc("posts", postPid, updatePayload);
         incrementDocValue("posts", postPid, "commentCount");
 
         const postOwnerUid = String(postData.uid || "");

@@ -879,11 +879,20 @@ const SimpleFeedPost = ({
             : toNumber(data?.likeCount)
     ), [data?.likes, data?.likeCount]);
 
+    const captionIncludedInComments = useMemo(() => {
+        if (isLivePost) return false;
+        if (Array.isArray(data?.comments)) {
+            return data.comments.some((entry) => entry?.isCaption);
+        }
+        return Boolean(caption);
+    }, [caption, data?.comments, isLivePost]);
+
     const commentCount = (() => {
         const count = Array.isArray(data?.comments)
             ? data.comments.length
             : toNumber(data?.commentCount);
-        return Math.max(0, count - 1);
+        const offset = captionIncludedInComments ? 1 : 0;
+        return Math.max(0, count - offset);
     })();
 
     const {

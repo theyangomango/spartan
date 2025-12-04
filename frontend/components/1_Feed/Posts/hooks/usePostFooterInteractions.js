@@ -9,6 +9,7 @@ import scaleSize from '../../../../helper/scaleSize';
 import { getViewerUid } from '../../../../utils/userRefs';
 import { subscribeUserData } from '../../../../utils/userDataEvents';
 import { bumpAffinityForUser, logFeedSignal } from '../../../../helper/feedSignals';
+import { buildLivePostMetadata } from '../../../../utils/livePostMeta';
 
 const DOUBLE_TAP_GUARD_MS = 300;
 
@@ -127,10 +128,18 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
         try { haptic(); } catch {}
 
         const safePostOwnerUid = data?.uid ? String(data.uid) : data?.creatorUid ? String(data.creatorUid) : "";
+        const isLivePid = Boolean(
+            data?.isLive ||
+            data?.liveWorkout ||
+            (typeof data?.pid === 'string' && data.pid.startsWith('workout:live'))
+        );
 
         setIsLiked((prev) => {
             const now = Date.now();
             const nextLiked = !prev;
+            const metaPayload = buildLivePostMetadata(data, user) || null;
+            const liveComments = isLivePid && Array.isArray(data?.comments) ? data.comments : [];
+            const liveCommentCount = isLivePid ? Math.max(0, liveComments.length) : undefined;
 
             // Prevent accidental double toggles caused by overlapping gesture handlers.
             if (now - lastLikeToggleRef.current < DOUBLE_TAP_GUARD_MS) {
@@ -157,7 +166,12 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
                         ];
                         data.likes = updatedLikes;
                         data.likeCount = likeCount + 1;
-                        updateDoc('posts', data.pid, { likeCount: data.likeCount, likes: updatedLikes })
+                        const updatePayload = metaPayload ? { ...metaPayload, likeCount: data.likeCount, likes: updatedLikes } : { likeCount: data.likeCount, likes: updatedLikes };
+                        if (isLivePid) {
+                            updatePayload.comments = liveComments;
+                            if (liveCommentCount !== undefined) updatePayload.commentCount = liveCommentCount;
+                        }
+                        updateDoc('posts', data.pid, updatePayload)
                             .catch((error) => {
                                 console.warn?.('Like update failed', {
                                     pid: data.pid,
@@ -176,7 +190,12 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
                         const nextCount = Math.max(0, likeCount - 1);
                         data.likes = updatedLikes;
                         data.likeCount = nextCount;
-                        updateDoc('posts', data.pid, { likeCount: nextCount, likes: updatedLikes })
+                        const updatePayload = metaPayload ? { ...metaPayload, likeCount: nextCount, likes: updatedLikes } : { likeCount: nextCount, likes: updatedLikes };
+                        if (isLivePid) {
+                            updatePayload.comments = liveComments;
+                            if (liveCommentCount !== undefined) updatePayload.commentCount = liveCommentCount;
+                        }
+                        updateDoc('posts', data.pid, updatePayload)
                             .catch((error) => {
                                 console.warn?.('Unlike update failed', {
                                     pid: data.pid,

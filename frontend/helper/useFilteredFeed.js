@@ -60,6 +60,37 @@ const resolveTimestamp = (item) => {
     return 0;
 };
 
+const workoutIdentityKey = (workout, uidHint = "") => {
+    if (!workout || typeof workout !== "object") return "";
+    const createdMs = resolveTimestamp(workout);
+    const wid =
+        workout?.wid ??
+        workout?.workoutId ??
+        workout?.id ??
+        workout?.widRef ??
+        workout?.workoutUid ??
+        null;
+    if (wid !== null && wid !== undefined) {
+        const widStr = String(wid).trim();
+        if (widStr) {
+            const createdSuffix = Number.isFinite(createdMs) && createdMs > 0 ? `:${createdMs}` : "";
+            return `wid:${widStr}${createdSuffix}`;
+        }
+    }
+    if (Number.isFinite(createdMs) && createdMs > 0) {
+        const owner =
+            workout?.creatorUID ??
+            workout?.creatorUid ??
+            workout?.uid ??
+            workout?.ownerUid ??
+            uidHint ??
+            "";
+        const name = typeof workout?.name === "string" ? workout.name.toLowerCase() : "";
+        return `time:${createdMs}:${owner}:${name}`;
+    }
+    return "";
+};
+
 const normalizePost = (post, prev = null) => {
     if (!post || typeof post !== 'object') return null;
 
@@ -149,6 +180,7 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
     const livePostMetaRef = useRef(new Map());
     const liveProfileRef = useRef(new Map());
     const liveWorkoutRef = useRef(new Map());
+    const liveWorkoutKeyRef = useRef(new Map());
     const cacheKeyRef = useRef(null);
     const hydrationAttemptedRef = useRef(false);
     const cacheWriteTimeoutRef = useRef(null);
@@ -218,9 +250,19 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
         const profile = liveProfileRef.current.get(key);
         if (!workout || !profile) {
             liveMapRef.current.delete(`live:${key}`);
+            liveWorkoutKeyRef.current.delete(key);
             if (recompute) recomputeFeed(false);
             return;
         }
+
+        const workoutKey = workoutIdentityKey(workout, key);
+        const prevWorkoutKey = liveWorkoutKeyRef.current.get(key) || '';
+        const sameWorkout = workoutKey && prevWorkoutKey && workoutKey === prevWorkoutKey;
+        if (!sameWorkout) {
+            livePostMetaRef.current.delete(key);
+            liveMapRef.current.delete(`live:${key}`);
+        }
+        liveWorkoutKeyRef.current.set(key, workoutKey || '');
 
         const postMeta = livePostMetaRef.current.get(key) || null;
         const existing = liveMapRef.current.get(`live:${key}`) || null;
@@ -381,6 +423,7 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
         livePostMetaRef.current.clear();
         liveProfileRef.current.clear();
         liveWorkoutRef.current.clear();
+        liveWorkoutKeyRef.current.clear();
     }, []);
 
     const ensureHandle = useCallback((profile, uid) => {
@@ -405,6 +448,7 @@ export default function useFilteredFeed(followingUsers, pageSize = PAGE_SIZE_DEF
 const buildLiveFeedEntry = useCallback((uid, profile, workout, postMeta = null, prevEntry = null) => {
     if (!uid || !workout) return null;
 
+    const meta = postMeta && typeof postMeta === "object" ? postMeta : {};
     const createdMs = resolveTimestamp(workout) || Date.now();
     const createdFromMeta = resolveTimestamp(meta);
     const sortKey = createdFromMeta || createdMs;
@@ -425,18 +469,32 @@ const buildLiveFeedEntry = useCallback((uid, profile, workout, postMeta = null, 
         })(),
     };
 
-    const meta = postMeta && typeof postMeta === "object" ? postMeta : {};
-    const existingLikes = Array.isArray(prevEntry?.likes) ? prevEntry.likes : [];
-    const likes = Array.isArray(meta.likes) ? meta.likes : existingLikes;
-    const existingComments = Array.isArray(prevEntry?.comments) ? prevEntry.comments : [];
-    const comments = Array.isArray(meta.comments) ? meta.comments : existingComments;
-    const likeCount = Number.isFinite(meta.likeCount) ? meta.likeCount : likes.length;
-    const commentCount = Number.isFinite(meta.commentCount)
-        ? meta.commentCount
-        : Array.isArray(meta.comments)
-        ? Math.max(0, meta.comments.length - 1)
-        : Number.isFinite(prevEntry?.commentCount)
-        ? prevEntry.commentCount
+    const workoutKey = workoutIdentityKey(normalizedWorkout, uid);
+    const prevWorkoutKey = prevEntry ? workoutIdentityKey(prevEntry.workout, prevEntry?.uid ?? uid) : "";
+    const sameWorkoutAsPrev = workoutKey && prevWorkoutKey && workoutKey === prevWorkoutKey;
+
+    const metaKey = typeof meta.workoutKey === "string" ? meta.workoutKey.trim() : "";
+    const metaMatchesWorkout = Boolean(workoutKey && metaKey && workoutKey === metaKey);
+
+    const existingLikes = sameWorkoutAsPrev && Array.isArray(prevEntry?.likes) ? prevEntry.likes : [];
+    const likes = metaMatchesWorkout
+        ? (Array.isArray(meta.likes) ? meta.likes : existingLikes)
+        : [];
+    const existingComments = sameWorkoutAsPrev && Array.isArray(prevEntry?.comments) ? prevEntry.comments : [];
+    const comments = metaMatchesWorkout
+        ? (Array.isArray(meta.comments) ? meta.comments : existingComments)
+        : [];
+    const resolvedLikeCount = Number(meta.likeCount);
+    const likeCount = metaMatchesWorkout
+        ? (Number.isFinite(resolvedLikeCount) ? resolvedLikeCount : likes.length)
+        : 0;
+    const resolvedCommentCount = Number(meta.commentCount);
+    const commentCount = metaMatchesWorkout
+        ? (Number.isFinite(resolvedCommentCount)
+            ? resolvedCommentCount
+            : Array.isArray(meta.comments)
+            ? meta.comments.length
+            : 0)
         : 0;
 
     const caption = typeof meta.caption === "string"
@@ -473,6 +531,8 @@ const buildLiveFeedEntry = useCallback((uid, profile, workout, postMeta = null, 
         workout: normalizedWorkout,
         isLive: true,
         liveWorkout: true,
+        workoutKey,
+        workoutWid: normalizedWorkout?.wid ?? normalizedWorkout?.workoutId ?? normalizedWorkout?.id ?? null,
         sortKey,
     };
 }, [ensureHandle]);
@@ -581,6 +641,7 @@ const buildLiveFeedEntry = useCallback((uid, profile, workout, postMeta = null, 
                 liveMapRef.current.delete(`live:${key}`);
                 liveProfileRef.current.delete(key);
                 liveWorkoutRef.current.delete(key);
+                liveWorkoutKeyRef.current.delete(key);
                 teardownLivePostSubscription(key);
                 changed = true;
             });
@@ -599,6 +660,7 @@ const buildLiveFeedEntry = useCallback((uid, profile, workout, postMeta = null, 
                             liveMapRef.current.delete(`live:${uid}`);
                             liveProfileRef.current.delete(uid);
                             liveWorkoutRef.current.delete(uid);
+                            liveWorkoutKeyRef.current.delete(uid);
                             teardownLivePostSubscription(uid);
                             recomputeFeed(false);
                             return;
@@ -606,9 +668,17 @@ const buildLiveFeedEntry = useCallback((uid, profile, workout, postMeta = null, 
                         liveProfileRef.current.set(uid, data);
                         if (workout) {
                             liveWorkoutRef.current.set(uid, workout);
+                            const nextKey = workoutIdentityKey(workout, uid);
+                            const prevKey = liveWorkoutKeyRef.current.get(uid) || '';
+                            if (nextKey !== prevKey) {
+                                livePostMetaRef.current.delete(uid);
+                                liveMapRef.current.delete(`live:${uid}`);
+                            }
+                            liveWorkoutKeyRef.current.set(uid, nextKey || '');
                             ensureLivePostSubscription(uid);
                         } else {
                             liveWorkoutRef.current.delete(uid);
+                            liveWorkoutKeyRef.current.delete(uid);
                             teardownLivePostSubscription(uid);
                             livePostMetaRef.current.delete(uid);
                             liveMapRef.current.delete(`live:${uid}`);
