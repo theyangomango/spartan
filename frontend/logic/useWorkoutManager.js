@@ -1042,7 +1042,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
 
                 let calories = null;
                 try {
-                    const latestWeightLb = resolveUserBodyweight(global?.userData, null);
+                    const latestWeightLb = resolveUserBodyweight(global?.userData, null, { measurementsOnly: true });
                     const calorieSource = {
                         ...currW,
                         duration,

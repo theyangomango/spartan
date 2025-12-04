@@ -191,9 +191,10 @@ export default function MacroGoalsSheet({
 
         const bmr = 10 * weightKg + 6.25 * heightCm - 5 * age + (gender === 'male' ? 5 : -161); // Mifflin-St Jeor
 
-        const activityMultiplierMap = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, athlete: 1.9 };
+        const activityMultiplierMap = { sedentary: 1.2, light: 1.32, moderate: 1.46, active: 1.6, athlete: 1.75 };
         const activityMultiplier = activityMultiplierMap[activity] ?? 1.55;
-        const tdee = bmr * activityMultiplier;
+        // Slight uplift so activity isn't overly suppressed after the multiplier tweaks
+        const tdee = bmr * activityMultiplier * 1.04;
 
         const roundTo5 = (value) => {
             if (!Number.isFinite(value)) return 0;
@@ -206,9 +207,9 @@ export default function MacroGoalsSheet({
 
         // Evidence-based guardrails (ISSN / ACSM ranges): higher protein for deficit, moderate for gain/maintain
         const goalPresets = {
-        gain: { percentDelta: 0.08, minDelta: 180, maxDelta: 450, proteinPerKg: 2.1, fatPerKg: 1.0 },
-        maintain: { percentDelta: 0, minDelta: -150, maxDelta: 150, proteinPerKg: 2.2, fatPerKg: 0.95 },
-        lose: { percentDelta: -0.20, minDelta: -700, maxDelta: -350, proteinPerKg: 2.4, fatPerKg: 0.9 },
+        gain: { percentDelta: 0.06, minDelta: 150, maxDelta: 400, proteinPerKg: 2.3, fatPerKg: 1.2 },
+        maintain: { percentDelta: 0, minDelta: -180, maxDelta: 120, proteinPerKg: 2.4, fatPerKg: 1.1 },
+        lose: { percentDelta: -0.22, minDelta: -750, maxDelta: -350, proteinPerKg: 2.6, fatPerKg: 1.0 },
         };
         const preset = goalPresets[goal] ?? goalPresets.maintain;
 
@@ -220,10 +221,10 @@ export default function MacroGoalsSheet({
         const calorieFloor = Math.max(calorieFloorFromWeight, absoluteFloor, bmr * 1.05); // keep close to BMR
         const targetCalories = roundCalories(Math.max(tdee + clampedDelta, calorieFloor));
 
-        const proteinG = Math.max(preset.proteinPerKg * weightKg, 1.8 * weightKg);
+        const proteinG = Math.max(preset.proteinPerKg * weightKg, 2.2 * weightKg);
         const fatFromWeight = preset.fatPerKg * weightKg;
-        const minFatFromCalories = (0.25 * targetCalories) / 9;
-        const maxFatFromCalories = (0.40 * targetCalories) / 9;
+        const minFatFromCalories = (0.32 * targetCalories) / 9;
+        const maxFatFromCalories = (0.42 * targetCalories) / 9;
         const fatG = Math.min(Math.max(fatFromWeight, minFatFromCalories), maxFatFromCalories);
 
         const carbCalories = Math.max(targetCalories - (proteinG * 4) - (fatG * 9), 0);

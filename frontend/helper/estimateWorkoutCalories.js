@@ -239,7 +239,10 @@ export const estimateWorkoutCalories = (workout, options = {}) => {
     return { ...emptyEstimate, confidence: 0.2 };
   }
   const explicitWeight = normalizeNumber(options?.weightLb);
-  const resolvedWeightLb = explicitWeight > 0 ? explicitWeight : resolveUserBodyweight(options?.user, null);
+  const resolvedWeightLb =
+    explicitWeight > 0
+      ? explicitWeight
+      : resolveUserBodyweight(options?.user, null, { measurementsOnly: true });
   if (!resolvedWeightLb || resolvedWeightLb <= 0) {
     return emptyEstimate;
   }

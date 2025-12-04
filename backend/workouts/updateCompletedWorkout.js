@@ -458,7 +458,7 @@ export default async function updateCompletedWorkout(uid, identifierInput, updat
             };
         }
         try {
-            const weightLb = resolveUserBodyweight(weightContext, null);
+            const weightLb = resolveUserBodyweight(weightContext, null, { measurementsOnly: true });
             const estimate = estimateWorkoutCalories(calorieWorkout, { weightLb, user: weightContext });
             if (Number.isFinite(estimate?.calories)) {
                 mergedWorkout.calories = estimate.calories;

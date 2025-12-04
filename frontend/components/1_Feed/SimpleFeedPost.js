@@ -1032,8 +1032,16 @@ const SimpleFeedPost = ({
     const volumeLabel = formatNumber(workout?.volume);
     const caloriesLabel = (() => {
         const raw = typeof workout?.calories === "number" ? workout.calories : Number(workout?.calories);
-        return Number.isFinite(raw) ? formatNumber(raw) : "--";
+        if (!Number.isFinite(raw) || raw <= 0) return "--";
+        return formatNumber(raw);
     })();
+    const hasCalories = caloriesLabel !== "--";
+    const showCaloriesInfo = useCallback(() => {
+        Alert.alert(
+            "How calories are estimated",
+            "Add a weight measurement in the weight chart in the Progress section in order for calories to be estimated in future workouts!"
+        );
+    }, []);
     const recordsLabel = formatNumber(workout?.PBs ?? workout?.pbs ?? 0);
 
     const displayName = useMemo(() => {
@@ -1695,10 +1703,27 @@ const SimpleFeedPost = ({
                                             {isLivePost ? <View style={styles.metricLiveDot} /> : null}
                                             <Text style={[styles.metricLabel, styles.metricLabelRight]}>Calories</Text>
                                         </View>
-                                        <Text style={[styles.metricValue, styles.metricValueRight]}>
-                                            {caloriesLabel}
-                                            {caloriesLabel !== "--" ? " kcal" : ""}
-                                        </Text>
+                                        <View style={[styles.metricValueRow, styles.metricValueRowRight]}>
+                                            <Text style={[styles.metricValue, styles.metricValueRight]}>
+                                                {caloriesLabel}
+                                                {hasCalories ? " kcal" : ""}
+                                            </Text>
+                                            {!hasCalories ? (
+                                                <Pressable
+                                                    onPress={showCaloriesInfo}
+                                                    hitSlop={8}
+                                                    style={styles.metricInfoIcon}
+                                                    accessibilityRole="button"
+                                                    accessibilityLabel="How are calories estimated?"
+                                                >
+                                                    <MaterialCommunityIcons
+                                                        name="information-outline"
+                                                        size={scaleSize(15)}
+                                                        color="#9aa6bf"
+                                                    />
+                                                </Pressable>
+                                            ) : null}
+                                        </View>
                                     </View>
                                 </View>
 
@@ -2270,6 +2295,10 @@ const styles = StyleSheet.create({
         alignSelf: "stretch",
         justifyContent: "flex-end",
     },
+    metricInfoIcon: {
+        marginLeft: scaleSize(6),
+        padding: scaleSize(2),
+    },
     metricLiveDot: {
         width: scaleSize(6.5),
         height: scaleSize(6.5),
@@ -2289,6 +2318,13 @@ const styles = StyleSheet.create({
     },
     metricValueRight: {
         textAlign: "right",
+    },
+    metricValueRow: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    metricValueRowRight: {
+        justifyContent: "flex-end",
     },
     workoutSummaryBlock: {
         marginTop: scaleSize(6),

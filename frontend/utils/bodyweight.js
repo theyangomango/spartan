@@ -117,10 +117,30 @@ const pickLatestEntry = (entries) => {
   return latest;
 };
 
-export function resolveUserBodyweight(userInput, fallback = BODYWEIGHT_DEFAULT_LB) {
+export function resolveUserBodyweight(userInput, fallback = BODYWEIGHT_DEFAULT_LB, options = {}) {
   const user = userInput ?? getGlobalUser();
   if (!user || typeof user !== "object") {
     return fallback;
+  }
+  const { measurementsOnly = false, preferMeasurements = false } = options;
+
+  let latestMeasurementLb = null;
+  let latestRecordedAt = null;
+  for (const source of weightEntrySources(user)) {
+    const latest = pickLatestEntry(source);
+    if (!latest) continue;
+    const candidateLb = latest.unit.startsWith("kg") ? latest.weight * KG_TO_LB : latest.weight;
+    if (latestMeasurementLb == null || (Number.isFinite(latest.recordedAt) && latest.recordedAt > latestRecordedAt)) {
+      latestMeasurementLb = candidateLb;
+      latestRecordedAt = latest.recordedAt;
+    }
+  }
+
+  if (measurementsOnly) {
+    return latestMeasurementLb;
+  }
+  if (preferMeasurements && latestMeasurementLb) {
+    return latestMeasurementLb;
   }
 
   const directCandidates = [
@@ -140,20 +160,15 @@ export function resolveUserBodyweight(userInput, fallback = BODYWEIGHT_DEFAULT_L
     if (numeric) return numeric;
   }
 
-  for (const source of weightEntrySources(user)) {
-    const latest = pickLatestEntry(source);
-    if (!latest) continue;
-    if (latest.unit.startsWith("kg")) {
-      return latest.weight * KG_TO_LB;
-    }
-    return latest.weight;
+  if (latestMeasurementLb) {
+    return latestMeasurementLb;
   }
 
   return fallback;
 }
 
-export function getCurrentUserBodyweight(fallback = BODYWEIGHT_DEFAULT_LB) {
-  return resolveUserBodyweight(getGlobalUser(), fallback);
+export function getCurrentUserBodyweight(fallback = BODYWEIGHT_DEFAULT_LB, options = {}) {
+  return resolveUserBodyweight(getGlobalUser(), fallback, options);
 }
 
 export const isBodyweightMode = (mode) => mode === "bodyweight";

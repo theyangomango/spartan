@@ -250,7 +250,7 @@ const computeWorkoutCalories = (workout) => {
     } catch {
         userData = null;
     }
-    const weightLb = resolveUserBodyweight(userData, null);
+    const weightLb = resolveUserBodyweight(userData, null, { measurementsOnly: true });
     if (!weightLb || weightLb <= 0) return null;
     const payload = {
         ...workout,
