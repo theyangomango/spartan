@@ -1459,7 +1459,7 @@ function LeaderboardsSection({
 
     const scopeLabel = useMemo(() => {
         if (selectedTribeId) return "Tribe";
-        return "Following";
+        return "Following Users";
     }, [selectedTribeId]);
 
     const scopePillLabel = useMemo(() => {
