@@ -322,6 +322,14 @@ const ensureAtHandle = (value) => {
 export default function Feed({ navigation, route }) {
     const insets = useStableSafeAreaInsets();
     const isScreenFocused = useIsFocused();
+    const persistedFeedOffsetRef = useRef((() => {
+        try {
+            const saved = Number(global?.__feedLastOffset || 0);
+            return Number.isFinite(saved) && saved > 0 ? saved : 0;
+        } catch {
+            return 0;
+        }
+    })());
 
     const UID = route?.params?.uid ?? global?.userData?.uid ?? null;
 
@@ -632,6 +640,10 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
             const lastOffset = lastScrollOffsetRef.current;
             const delta = offsetY - lastOffset;
             lastScrollOffsetRef.current = offsetY;
+            if (Number.isFinite(offsetY) && offsetY >= 0) {
+                persistedFeedOffsetRef.current = offsetY;
+                try { global.__feedLastOffset = offsetY; } catch { }
+            }
             const now = Date.now();
             const dt = Math.max(now - lastScrollTimeRef.current, 1);
             lastScrollTimeRef.current = now;
@@ -659,7 +671,34 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
         } catch { }
     }, [hasPosts]);
 
+    useEffect(() => {
+        if (!isScreenFocused || !hasPosts) return;
+        const hasExplicitScrollIntent = !!(
+            route?.params?.scrollToTop ||
+            route?.params?.focusPid ||
+            route?.params?.scrollPid
+        );
+        if (hasExplicitScrollIntent) return;
+
+        const savedOffset = Number(persistedFeedOffsetRef.current || 0);
+        if (!Number.isFinite(savedOffset) || savedOffset <= 0) return;
+
+        const id = setTimeout(() => {
+            try {
+                flatListRef.current?.scrollToOffset({ offset: savedOffset, animated: false });
+            } catch { }
+        }, 0);
+        return () => clearTimeout(id);
+    }, [
+        hasPosts,
+        isScreenFocused,
+        route?.params?.focusPid,
+        route?.params?.scrollPid,
+        route?.params?.scrollToTop,
+    ]);
+
     useEffect(() => () => {
+        try { global.__feedLastOffset = Number(persistedFeedOffsetRef.current || 0); } catch { }
         if (refreshTimeoutRef.current) {
             clearTimeout(refreshTimeoutRef.current);
             refreshTimeoutRef.current = null;
@@ -1189,6 +1228,8 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
 
     const scrollToTop = useCallback(() => {
         showHeader();
+        persistedFeedOffsetRef.current = 0;
+        try { global.__feedLastOffset = 0; } catch { }
         if (flatListRef.current) {
             flatListRef.current.scrollToOffset({ offset: 0, animated: true });
         }
