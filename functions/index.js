@@ -2141,6 +2141,95 @@ export const fatsecretSearchFood = onCall(
             return brand ? `${name} ${brand}` : name;
         };
 
+        const toNum = (value) => {
+            const n = Number(value);
+            return Number.isFinite(n) ? n : null;
+        };
+
+        const getDefaultServing = (food) => {
+            const servings = food?.servings?.serving;
+            const arr = Array.isArray(servings) ? servings : (servings ? [servings] : []);
+            if (!arr.length) return null;
+            return arr.find((serving) => String(serving?.is_default || "") === "1") || arr[0] || null;
+        };
+
+        const buildDescriptionFromServing = (serving) => {
+            if (!serving || typeof serving !== "object") return "";
+            const calories = Number(serving?.calories || 0);
+            const fat = Number(serving?.fat || 0);
+            const carbs = Number(serving?.carbohydrate || 0);
+            const protein = Number(serving?.protein || 0);
+            return `Per ${serving?.serving_description || "1 serving"} - Calories: ${Math.round(calories)} kcal | Fat: ${+fat} g | Carbs: ${+carbs} g | Protein: ${+protein} g`;
+        };
+
+        const normalizeSearchFoodItem = (rawFood) => {
+            const item = rawFood && typeof rawFood === "object" ? { ...rawFood } : {};
+            const defaultServing = getDefaultServing(item);
+            if (!item.food_description && defaultServing) {
+                item.food_description = buildDescriptionFromServing(defaultServing);
+            }
+
+            if (defaultServing) {
+                const extrasPerServing = {
+                    sugar_g: toNum(defaultServing?.sugar),
+                    fiber_g: toNum(defaultServing?.fiber),
+                    sodium_mg: toNum(defaultServing?.sodium),
+                    potassium_mg: toNum(defaultServing?.potassium),
+                    satFat_g: toNum(defaultServing?.saturated_fat),
+                    transFat_g: toNum(defaultServing?.trans_fat),
+                    monoFat_g: toNum(defaultServing?.monounsaturated_fat),
+                    polyFat_g: toNum(defaultServing?.polyunsaturated_fat),
+                    cholesterol_mg: toNum(defaultServing?.cholesterol),
+                };
+                const hasExtras = Object.values(extrasPerServing).some((v) => v != null);
+                if (hasExtras) {
+                    item.extrasPerServing = extrasPerServing;
+                    item.extras_per_serving = extrasPerServing;
+                }
+
+                const macrosPerServing = {
+                    calories: toNum(defaultServing?.calories),
+                    protein: toNum(defaultServing?.protein),
+                    carbs: toNum(defaultServing?.carbohydrate),
+                    fat: toNum(defaultServing?.fat),
+                };
+                const hasMacros = Object.values(macrosPerServing).some((v) => v != null);
+                if (hasMacros) {
+                    item.macrosPerServing = macrosPerServing;
+                    item.macros_per_serving = macrosPerServing;
+                }
+            }
+
+            return item;
+        };
+
+        const getFoodsFromSearchResponse = (res) => {
+            const primary = res?.foods_search;
+            const fallback = res?.foods;
+            const raw =
+                primary?.food ??
+                primary?.foods ??
+                primary?.results?.food ??
+                primary?.search_results?.food ??
+                fallback?.food ??
+                fallback?.foods ??
+                res?.food;
+            const list = Array.isArray(raw) ? raw : (raw ? [raw] : []);
+            const container = primary || fallback || {};
+            return {
+                list,
+                pageNumber: Number(container?.page_number),
+                maxResults: Number(container?.max_results),
+                totalResults: Number(container?.total_results),
+            };
+        };
+
+        const SEARCH_METHODS = [
+            { method: "foods.search.v4", scope: "premier", includeDefaultServing: true, label: "v4" },
+            { method: "foods.search.v2", scope: "premier", includeDefaultServing: true, label: "v2" },
+            { method: "foods.search", scope: "basic", includeDefaultServing: false, label: "v1" },
+        ];
+
         const qNorm = normalize(qRaw);
 
         const qTokens = toTokens(qRaw);
@@ -2310,10 +2399,17 @@ export const fatsecretSearchFood = onCall(
         let stopEarly = false;
         let totalCallDurationMs = 0;
         const attemptedTasks = new Set(Array.isArray(cachedPayload?.attemptedTasks) ? cachedPayload.attemptedTasks : []);
+        const searchMethodStats = {
+            v4: 0,
+            v2: 0,
+            v1: 0,
+        };
+        let fallbackAttempts = 0;
 
         const handleResultList = (expr, list) => {
             let anyAdded = false;
-            for (const item of list) {
+            for (const rawItem of list) {
+                const item = normalizeSearchFoodItem(rawItem);
                 const fid = String(item?.food_id || "");
                 if (!fid) continue;
                 const display = buildDisplayName(item);
@@ -2334,20 +2430,42 @@ export const fatsecretSearchFood = onCall(
         const executeTask = async ({ expr, page }) => {
             const requestStart = Date.now();
             try {
-                const res = await fatSecretRequest(
-                    "foods.search",
-                    {
-                        search_expression: expr,
-                        max_results: RESULTS_PER_PAGE,
-                        page_number: page,
-                    },
-                    "basic"
-                );
-                const foods = res?.foods?.food;
-                if (!foods) return;
-                const list = Array.isArray(foods) ? foods : [foods];
-                if (!list.length) return;
-                handleResultList(expr, list);
+                let methodAttempts = 0;
+                let resolved = false;
+                let lastError = null;
+
+                for (const searchMethod of SEARCH_METHODS) {
+                    methodAttempts += 1;
+                    try {
+                        const params = {
+                            search_expression: expr,
+                            max_results: RESULTS_PER_PAGE,
+                            page_number: page,
+                        };
+                        if (searchMethod.includeDefaultServing) {
+                            params.flag_default_serving = "true";
+                        }
+
+                        const res = await fatSecretRequest(searchMethod.method, params, searchMethod.scope);
+                        const extracted = getFoodsFromSearchResponse(res);
+                        const list = extracted.list;
+                        if (Array.isArray(list) && list.length) {
+                            handleResultList(expr, list);
+                        }
+                        searchMethodStats[searchMethod.label] = (searchMethodStats[searchMethod.label] || 0) + 1;
+                        resolved = true;
+                        break;
+                    } catch (methodError) {
+                        lastError = methodError;
+                    }
+                }
+
+                if (methodAttempts > 1) {
+                    fallbackAttempts += methodAttempts - 1;
+                }
+                if (!resolved && lastError) {
+                    throw lastError;
+                }
             } catch (e) {
                 logger.warn("fatsecretSearchFood: variant search failed", {
                     expr,
@@ -2447,6 +2565,8 @@ export const fatsecretSearchFood = onCall(
                     .filter((v, i, arr) => arr.indexOf(v) === i),
                 uniqueFoodsConsidered: byId.size,
                 calls,
+                searchMethodStats,
+                fallbackAttempts,
                 averageScore,
                 topScore,
             },
@@ -2479,6 +2599,8 @@ export const fatsecretSearchFood = onCall(
             variantsWithHits: successfulVariants.size,
             totalCandidates: byId.size,
             calls,
+            searchMethodStats,
+            fallbackAttempts,
             durationMs: Date.now() - overallStartedAt,
             totalCallDurationMs,
             stopEarly,

@@ -589,17 +589,13 @@ export default function FoodSearchOverlay({
 
     // ---- Renderers
     const goToDetails = useCallback((food) => {
-        try { onClose?.(); } catch {}
-        // Give the modal a tick to close before navigating, avoiding stacking it above
-        setTimeout(() => {
-            navigation.navigate('FoodDetail', {
-                mode: 'add',
-                food,
-                mealName: activeMeal,
-                dayKey,
-            });
-        }, 80);
-    }, [navigation, onClose, activeMeal, dayKey]);
+        navigation.navigate('FoodDetail', {
+            mode: 'add',
+            food,
+            mealName: activeMeal,
+            dayKey,
+        });
+    }, [navigation, activeMeal, dayKey]);
 
     const handleToggleFavorite = useCallback(async (food) => {
         const uid = global?.userData?.uid || global?.userData?.id;

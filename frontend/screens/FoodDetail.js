@@ -89,6 +89,59 @@ export default function FoodDetail({ navigation, route }) {
                     : String(entry?.foodId || entry?.food_id || '').trim();
                 if (!fid) return;
 
+                const normalizeExtrasObject = (source) => {
+                    if (!source || typeof source !== 'object') return null;
+                    const toNum = (v) => {
+                        const n = Number(v);
+                        return Number.isFinite(n) ? n : null;
+                    };
+                    const next = {
+                        sugar_g: toNum(source?.sugar_g),
+                        fiber_g: toNum(source?.fiber_g),
+                        sodium_mg: toNum(source?.sodium_mg),
+                        potassium_mg: toNum(source?.potassium_mg),
+                        satFat_g: toNum(source?.satFat_g),
+                        transFat_g: toNum(source?.transFat_g),
+                        monoFat_g: toNum(source?.monoFat_g),
+                        polyFat_g: toNum(source?.polyFat_g),
+                        cholesterol_mg: toNum(source?.cholesterol_mg),
+                    };
+                    return Object.values(next).some((v) => v != null) ? next : null;
+                };
+
+                const extractExtrasFromServing = (serving) => normalizeExtrasObject({
+                    sugar_g: serving?.sugar,
+                    fiber_g: serving?.fiber,
+                    sodium_mg: serving?.sodium,
+                    potassium_mg: serving?.potassium,
+                    satFat_g: serving?.saturated_fat,
+                    transFat_g: serving?.trans_fat,
+                    monoFat_g: serving?.monounsaturated_fat,
+                    polyFat_g: serving?.polyunsaturated_fat,
+                    cholesterol_mg: serving?.cholesterol,
+                });
+
+                // 0) If search results already include per-serving micros, use them immediately.
+                if (mode === 'add') {
+                    const extrasFromResult = normalizeExtrasObject(
+                        food?.extrasPerServing || food?.extras_per_serving || food?.extrasPS
+                    );
+                    if (extrasFromResult) {
+                        if (!cancelled) setExtrasPS(extrasFromResult);
+                        try { await setFoodExtrasPS(fid, extrasFromResult); } catch { }
+                        return;
+                    }
+                    const servings = food?.servings?.serving;
+                    const arr = Array.isArray(servings) ? servings : (servings ? [servings] : []);
+                    const def = arr.find((s) => String(s?.is_default || '') === '1') || arr[0] || null;
+                    const extrasFromServing = extractExtrasFromServing(def);
+                    if (extrasFromServing) {
+                        if (!cancelled) setExtrasPS(extrasFromServing);
+                        try { await setFoodExtrasPS(fid, extrasFromServing); } catch { }
+                        return;
+                    }
+                }
+
                 // 1) If editing and entry already has per-serving extras cached, use them
                 if (mode === 'edit' && entry?.extrasPerServing) {
                     if (!cancelled) setExtrasPS(entry.extrasPerServing);
