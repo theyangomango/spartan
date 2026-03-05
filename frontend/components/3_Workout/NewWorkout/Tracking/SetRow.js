@@ -1,5 +1,5 @@
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
-import { View, StyleSheet, Text, Pressable, Dimensions, LayoutAnimation, Platform, UIManager, Keyboard } from "react-native";
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { View, StyleSheet, Text, Pressable, LayoutAnimation, Platform, UIManager, Keyboard } from "react-native";
 import * as Haptics from "expo-haptics";
 import scaleSize from "../../../../helper/scaleSize";
 import EditableStat from "./EditableStat";
@@ -49,7 +49,6 @@ const buildPreviousDisplay = (value, weighting) => {
     return { repsLabel, weightLabel };
 };
 
-const { height: screenHeight } = Dimensions.get("window");
 const ENABLE_LAYOUT_ANIM = false;
 
 // Enable LayoutAnimation on Android once
@@ -107,13 +106,42 @@ function SetRow({
     ), [handleDeleteSwipe]);
 
     const [typePanelOpen, setTypePanelOpen] = useState(false);
-    const [panelPos, setPanelPos] = useState({ top: 0, left: 0 });
-    const openTypePanel = (e) => {
+    const [panelPos, setPanelPos] = useState({ top: 0, left: 0, anchorX: null, anchorTop: null, anchorBottom: null });
+    const typeAnchorRef = useRef(null);
+    const openTypePanel = useCallback((e) => {
         if (readOnly) return;
-        const y = e?.nativeEvent?.pageY || 0;
-        setPanelPos({ top: y + scaleSize(8), left: scaleSize(20) });
-        setTypePanelOpen(true);
-    };
+
+        const fallbackY = e?.nativeEvent?.pageY || 0;
+        const fallbackTop = fallbackY + scaleSize(8);
+        const fallbackLeft = scaleSize(20);
+        const openWithPosition = (nextPos) => {
+            setPanelPos(nextPos);
+            setTypePanelOpen(true);
+        };
+
+        if (typeAnchorRef.current?.measureInWindow) {
+            try {
+                typeAnchorRef.current.measureInWindow((x, y, width, height) => {
+                    if (typeof y === "number" && typeof height === "number") {
+                        openWithPosition({
+                            top: y + height + scaleSize(8),
+                            left: typeof x === "number" ? x : fallbackLeft,
+                            anchorX: (typeof x === "number" && typeof width === "number") ? (x + width / 2) : null,
+                            anchorTop: y,
+                            anchorBottom: y + height,
+                        });
+                    } else {
+                        openWithPosition({ top: fallbackTop, left: fallbackLeft, anchorX: null, anchorTop: null, anchorBottom: null });
+                    }
+                });
+                return;
+            } catch {
+                // fall back below
+            }
+        }
+
+        openWithPosition({ top: fallbackTop, left: fallbackLeft, anchorX: null, anchorTop: null, anchorBottom: null });
+    }, [readOnly]);
     const onSelectType = (type) => {
         const nextType = set?.type === type ? null : type;
         if (onUpdateSetById && sid) onUpdateSetById(sid, { ...set, type: nextType });
@@ -139,6 +167,7 @@ function SetRow({
             >
                 <View style={[styles.stat_row, doneLocal && styles.done]}>
                     <Pressable
+                        ref={typeAnchorRef}
                         onPress={openTypePanel}
                         style={[
                             styles.set_ctnr,
