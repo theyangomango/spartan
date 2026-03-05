@@ -2172,6 +2172,7 @@ export const fatsecretSearchFood = onCall(
             if (defaultServing) {
                 const extrasPerServing = {
                     sugar_g: toNum(defaultServing?.sugar),
+                    added_sugars: toNum(defaultServing?.added_sugars),
                     fiber_g: toNum(defaultServing?.fiber),
                     sodium_mg: toNum(defaultServing?.sodium),
                     potassium_mg: toNum(defaultServing?.potassium),
@@ -2180,6 +2181,11 @@ export const fatsecretSearchFood = onCall(
                     monoFat_g: toNum(defaultServing?.monounsaturated_fat),
                     polyFat_g: toNum(defaultServing?.polyunsaturated_fat),
                     cholesterol_mg: toNum(defaultServing?.cholesterol),
+                    vitamin_d: toNum(defaultServing?.vitamin_d),
+                    vitamin_a: toNum(defaultServing?.vitamin_a),
+                    vitamin_c: toNum(defaultServing?.vitamin_c),
+                    calcium: toNum(defaultServing?.calcium),
+                    iron: toNum(defaultServing?.iron),
                 };
                 const hasExtras = Object.values(extrasPerServing).some((v) => v != null);
                 if (hasExtras) {

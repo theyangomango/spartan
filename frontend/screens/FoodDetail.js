@@ -97,6 +97,7 @@ export default function FoodDetail({ navigation, route }) {
                     };
                     const next = {
                         sugar_g: toNum(source?.sugar_g),
+                        added_sugars: toNum(source?.added_sugars),
                         fiber_g: toNum(source?.fiber_g),
                         sodium_mg: toNum(source?.sodium_mg),
                         potassium_mg: toNum(source?.potassium_mg),
@@ -105,12 +106,18 @@ export default function FoodDetail({ navigation, route }) {
                         monoFat_g: toNum(source?.monoFat_g),
                         polyFat_g: toNum(source?.polyFat_g),
                         cholesterol_mg: toNum(source?.cholesterol_mg),
+                        vitamin_d: toNum(source?.vitamin_d),
+                        vitamin_a: toNum(source?.vitamin_a),
+                        vitamin_c: toNum(source?.vitamin_c),
+                        calcium: toNum(source?.calcium),
+                        iron: toNum(source?.iron),
                     };
                     return Object.values(next).some((v) => v != null) ? next : null;
                 };
 
                 const extractExtrasFromServing = (serving) => normalizeExtrasObject({
                     sugar_g: serving?.sugar,
+                    added_sugars: serving?.added_sugars,
                     fiber_g: serving?.fiber,
                     sodium_mg: serving?.sodium,
                     potassium_mg: serving?.potassium,
@@ -119,6 +126,11 @@ export default function FoodDetail({ navigation, route }) {
                     monoFat_g: serving?.monounsaturated_fat,
                     polyFat_g: serving?.polyunsaturated_fat,
                     cholesterol_mg: serving?.cholesterol,
+                    vitamin_d: serving?.vitamin_d,
+                    vitamin_a: serving?.vitamin_a,
+                    vitamin_c: serving?.vitamin_c,
+                    calcium: serving?.calcium,
+                    iron: serving?.iron,
                 });
 
                 // 0) If search results already include per-serving micros, use them immediately.
@@ -167,6 +179,7 @@ export default function FoodDetail({ navigation, route }) {
                 const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
                 const cached = {
                     sugar_g: toNum(def.sugar),
+                    added_sugars: toNum(def.added_sugars),
                     fiber_g: toNum(def.fiber),
                     sodium_mg: toNum(def.sodium),
                     potassium_mg: toNum(def.potassium),
@@ -175,6 +188,11 @@ export default function FoodDetail({ navigation, route }) {
                     monoFat_g: toNum(def.monounsaturated_fat),
                     polyFat_g: toNum(def.polyunsaturated_fat),
                     cholesterol_mg: toNum(def.cholesterol),
+                    vitamin_d: toNum(def.vitamin_d),
+                    vitamin_a: toNum(def.vitamin_a),
+                    vitamin_c: toNum(def.vitamin_c),
+                    calcium: toNum(def.calcium),
+                    iron: toNum(def.iron),
                 };
                 if (!cancelled) {
                     setApiServing(def);
@@ -192,6 +210,7 @@ export default function FoodDetail({ navigation, route }) {
         if (extrasPS) {
             return {
                 sugar_g: extrasPS.sugar_g == null ? null : extrasPS.sugar_g * qty,
+                added_sugars: extrasPS.added_sugars == null ? null : extrasPS.added_sugars * qty,
                 fiber_g: extrasPS.fiber_g == null ? null : extrasPS.fiber_g * qty,
                 sodium_mg: extrasPS.sodium_mg == null ? null : extrasPS.sodium_mg * qty,
                 potassium_mg: extrasPS.potassium_mg == null ? null : extrasPS.potassium_mg * qty,
@@ -200,6 +219,11 @@ export default function FoodDetail({ navigation, route }) {
                 monoFat_g: extrasPS.monoFat_g == null ? null : extrasPS.monoFat_g * qty,
                 polyFat_g: extrasPS.polyFat_g == null ? null : extrasPS.polyFat_g * qty,
                 cholesterol_mg: extrasPS.cholesterol_mg == null ? null : extrasPS.cholesterol_mg * qty,
+                vitamin_d: extrasPS.vitamin_d == null ? null : extrasPS.vitamin_d * qty,
+                vitamin_a: extrasPS.vitamin_a == null ? null : extrasPS.vitamin_a * qty,
+                vitamin_c: extrasPS.vitamin_c == null ? null : extrasPS.vitamin_c * qty,
+                calcium: extrasPS.calcium == null ? null : extrasPS.calcium * qty,
+                iron: extrasPS.iron == null ? null : extrasPS.iron * qty,
             };
         }
         return parseExtraNutrientsFromDescription(baseDesc, qty);
@@ -573,6 +597,7 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
         if (extrasPS) {
             return {
                 sugar_g: extrasPS.sugar_g == null ? null : extrasPS.sugar_g * qty,
+                added_sugars: extrasPS.added_sugars == null ? null : extrasPS.added_sugars * qty,
                 fiber_g: extrasPS.fiber_g == null ? null : extrasPS.fiber_g * qty,
                 sodium_mg: extrasPS.sodium_mg == null ? null : extrasPS.sodium_mg * qty,
                 potassium_mg: extrasPS.potassium_mg == null ? null : extrasPS.potassium_mg * qty,
@@ -581,6 +606,11 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
                 monoFat_g: extrasPS.monoFat_g == null ? null : extrasPS.monoFat_g * qty,
                 polyFat_g: extrasPS.polyFat_g == null ? null : extrasPS.polyFat_g * qty,
                 cholesterol_mg: extrasPS.cholesterol_mg == null ? null : extrasPS.cholesterol_mg * qty,
+                vitamin_d: extrasPS.vitamin_d == null ? null : extrasPS.vitamin_d * qty,
+                vitamin_a: extrasPS.vitamin_a == null ? null : extrasPS.vitamin_a * qty,
+                vitamin_c: extrasPS.vitamin_c == null ? null : extrasPS.vitamin_c * qty,
+                calcium: extrasPS.calcium == null ? null : extrasPS.calcium * qty,
+                iron: extrasPS.iron == null ? null : extrasPS.iron * qty,
             };
         }
         return parseExtraNutrientsFromDescription(baseDesc, qty);
@@ -610,6 +640,7 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
                 const toNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : null; };
                 const cached = {
                     sugar_g: toNum(def.sugar),
+                    added_sugars: toNum(def.added_sugars),
                     fiber_g: toNum(def.fiber),
                     sodium_mg: toNum(def.sodium),
                     potassium_mg: toNum(def.potassium),
@@ -618,6 +649,11 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
                     monoFat_g: toNum(def.monounsaturated_fat),
                     polyFat_g: toNum(def.polyunsaturated_fat),
                     cholesterol_mg: toNum(def.cholesterol),
+                    vitamin_d: toNum(def.vitamin_d),
+                    vitamin_a: toNum(def.vitamin_a),
+                    vitamin_c: toNum(def.vitamin_c),
+                    calcium: toNum(def.calcium),
+                    iron: toNum(def.iron),
                 };
                 if (!cancelled) setExtrasPS(cached);
                 try { await setFoodExtrasPS(fid, cached); } catch { }
@@ -907,15 +943,18 @@ function MacroStat({ color, label, grams, width }) {
 function NutritionFacts({ extras }) {
     // Daily Values (FDA 2016 update)
     const DV = {
+        added_sugars: 50,
         fiber_g: 28,
         sodium_mg: 2300,
         satFat_g: 20,
         cholesterol_mg: 300,
         potassium_mg: 4700,
+        vitamin_d: 20,
     };
 
     const rows = [
         { key: 'sugar_g', label: 'Sugars', unit: 'g', value: extras?.sugar_g, dv: null },
+        { key: 'added_sugars', label: 'Added Sugars', unit: 'g', value: extras?.added_sugars, dv: DV.added_sugars },
         { key: 'fiber_g', label: 'Dietary Fiber', unit: 'g', value: extras?.fiber_g, dv: DV.fiber_g },
         { key: 'sodium_mg', label: 'Sodium', unit: 'mg', value: extras?.sodium_mg, dv: DV.sodium_mg },
         { key: 'potassium_mg', label: 'Potassium', unit: 'mg', value: extras?.potassium_mg, dv: DV.potassium_mg },
@@ -924,6 +963,11 @@ function NutritionFacts({ extras }) {
         { key: 'monoFat_g', label: 'Monounsaturated Fat', unit: 'g', value: extras?.monoFat_g, dv: null },
         { key: 'polyFat_g', label: 'Polyunsaturated Fat', unit: 'g', value: extras?.polyFat_g, dv: null },
         { key: 'cholesterol_mg', label: 'Cholesterol', unit: 'mg', value: extras?.cholesterol_mg, dv: DV.cholesterol_mg },
+        { key: 'vitamin_d', label: 'Vitamin D', unit: 'mcg', value: extras?.vitamin_d, dv: DV.vitamin_d },
+        { key: 'calcium', label: 'Calcium', unit: '%', value: extras?.calcium, dv: null },
+        { key: 'iron', label: 'Iron', unit: '%', value: extras?.iron, dv: null },
+        { key: 'vitamin_a', label: 'Vitamin A', unit: '%', value: extras?.vitamin_a, dv: null },
+        { key: 'vitamin_c', label: 'Vitamin C', unit: '%', value: extras?.vitamin_c, dv: null },
     ];
 
     const anyProvided = rows.some((r) => Number.isFinite(r.value));

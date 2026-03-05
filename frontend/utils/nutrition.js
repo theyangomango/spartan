@@ -118,6 +118,10 @@ export const parseExtraNutrientsFromDescription = (desc = '', quantity = 1) => {
 
     // Total sugars (g)
     const sugar_g = pickNumber(/\b(?:sugars?|sugar)\s*:?\s*(\d+(?:\.\d+)?)\s*g\b/i);
+    // Added sugars (g)
+    const added_sugars =
+        pickNumber(/\badded\s+sugars?\s*:?\s*(\d+(?:\.\d+)?)\s*g\b/i)
+        ?? pickNumber(/\bincludes\s*(\d+(?:\.\d+)?)\s*g\s+added\s+sugars?\b/i);
     // Dietary fiber (g)
     const fiber_g = pickNumber(/\b(?:dietary\s+fiber|fiber)\s*:?\s*(\d+(?:\.\d+)?)\s*g\b/i);
     // Sodium (mg)
@@ -134,8 +138,31 @@ export const parseExtraNutrientsFromDescription = (desc = '', quantity = 1) => {
     const polyFat_g = pickNumber(/\b(?:polyunsaturated\s+fat|poly\.?\s*fat)\s*:?\s*(\d+(?:\.\d+)?)\s*g\b/i);
     // Cholesterol (mg)
     const cholesterol_mg = pickNumber(/\bcholesterol\s*:?\s*(\d+(?:\.\d+)?)\s*mg\b/i);
+    // Vitamin D (mcg)
+    const vitamin_d = pickNumber(/\bvitamin\s*d\s*:?\s*(\d+(?:\.\d+)?)\s*(?:mcg|ug|μg)\b/i);
+    // Vitamin A/C, calcium, iron are commonly provided as percentages in labels/FatSecret payloads.
+    const vitamin_a = pickNumber(/\bvitamin\s*a\s*:?\s*(\d+(?:\.\d+)?)\s*%\b/i);
+    const vitamin_c = pickNumber(/\bvitamin\s*c\s*:?\s*(\d+(?:\.\d+)?)\s*%\b/i);
+    const calcium = pickNumber(/\bcalcium\s*:?\s*(\d+(?:\.\d+)?)\s*%\b/i);
+    const iron = pickNumber(/\biron\s*:?\s*(\d+(?:\.\d+)?)\s*%\b/i);
 
-    return { sugar_g, fiber_g, sodium_mg, potassium_mg, satFat_g, transFat_g, monoFat_g, polyFat_g, cholesterol_mg };
+    return {
+        sugar_g,
+        added_sugars,
+        fiber_g,
+        sodium_mg,
+        potassium_mg,
+        satFat_g,
+        transFat_g,
+        monoFat_g,
+        polyFat_g,
+        cholesterol_mg,
+        vitamin_d,
+        vitamin_a,
+        vitamin_c,
+        calcium,
+        iron,
+    };
 };
 
 export const formatPortion = (qty, unit) => {
