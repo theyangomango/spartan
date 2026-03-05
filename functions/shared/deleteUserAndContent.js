@@ -270,6 +270,7 @@ async function deleteUsersPrivateArtifacts(uid, batchSize = DELETE_BATCH_SIZE) {
   const result = {
     notificationsDeleted: 0,
     recentFoodsDeleted: 0,
+    favoriteFoodsDeleted: 0,
     foodLogDaysDeleted: 0,
     foodEntriesDeleted: 0,
     docDeleted: false,
@@ -285,6 +286,12 @@ async function deleteUsersPrivateArtifacts(uid, batchSize = DELETE_BATCH_SIZE) {
     result.recentFoodsDeleted = await deleteCollectionByPath(`${basePath}/recentFoods`, batchSize);
   } catch (error) {
     console.warn(`[warn] Failed to delete recent foods for ${basePath}:`, error?.message || error);
+  }
+
+  try {
+    result.favoriteFoodsDeleted = await deleteCollectionByPath(`${basePath}/favoriteFoods`, batchSize);
+  } catch (error) {
+    console.warn(`[warn] Failed to delete favorite foods for ${basePath}:`, error?.message || error);
   }
 
   try {
@@ -1022,6 +1029,7 @@ async function deleteUserCore(uid, { userDocSnap = null, handleHint = "" } = {})
     return {
       notificationsDeleted: 0,
       recentFoodsDeleted: 0,
+      favoriteFoodsDeleted: 0,
       foodLogDaysDeleted: 0,
       foodEntriesDeleted: 0,
       docDeleted: false,
@@ -1056,6 +1064,7 @@ async function deleteUserCore(uid, { userDocSnap = null, handleHint = "" } = {})
   console.log(`   • Private profile deleted: ${privateArtifacts.docDeleted ? "yes" : "no"}`);
   console.log(`   • Private notifications deleted: ${privateArtifacts.notificationsDeleted}`);
   console.log(`   • Private recent foods deleted: ${privateArtifacts.recentFoodsDeleted}`);
+  console.log(`   • Private favorite foods deleted: ${privateArtifacts.favoriteFoodsDeleted}`);
   console.log(`   • Private food log days deleted: ${privateArtifacts.foodLogDaysDeleted}`);
   console.log(`   • Private food entries deleted: ${privateArtifacts.foodEntriesDeleted}`);
   console.log(`   • Handle registry entries removed: ${handleDocsDeleted}`);
@@ -1085,6 +1094,7 @@ async function deleteUserCore(uid, { userDocSnap = null, handleHint = "" } = {})
     privateProfileDeleted: Boolean(privateArtifacts.docDeleted),
     privateNotificationsDeleted: privateArtifacts.notificationsDeleted,
     privateRecentFoodsDeleted: privateArtifacts.recentFoodsDeleted,
+    privateFavoriteFoodsDeleted: privateArtifacts.favoriteFoodsDeleted,
     privateFoodLogDaysDeleted: privateArtifacts.foodLogDaysDeleted,
     privateFoodEntriesDeleted: privateArtifacts.foodEntriesDeleted,
     handleRegistryEntriesRemoved: handleDocsDeleted,

@@ -28,6 +28,13 @@ import QuickAddModal from './QuickAddModal';
 import { searchFood, lookupBarcode } from '../../screens/fatsecretClient';
 import { useNavigation } from '@react-navigation/native';
 import { fetchRecentFoods, deleteRecentFood } from '../../utils/recentFoods';
+import {
+    fetchFavoriteFoods,
+    makeFoodFavoriteKey,
+    removeFavoriteFood,
+    syncFavoriteFoodsFromBackend,
+    upsertFavoriteFood,
+} from '../../utils/favoriteFoods';
 
 // 🔥 FIREBASE (adjust path if your firebase.config is elsewhere)
 // Recent foods now backed by Firestore subcollection users/{uid}/recentFoods
@@ -39,12 +46,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const foodKey = (item) => {
     if (!item) return '';
-    const id = String(item.food_id ?? item.id ?? '').trim();
-    if (id) return id;
-    const name = String(item.food_name ?? item.name ?? '').trim().toLowerCase();
-    const brand = String(item.brand_name ?? item.brand ?? '').trim().toLowerCase();
-    if (!name && !brand) return '';
-    return `${name}|${brand}`;
+    return makeFoodFavoriteKey({
+        foodId: item.food_id ?? item.foodId ?? item.id ?? '',
+        name: item.food_name ?? item.name ?? '',
+        brand: item.brand_name ?? item.brand ?? '',
+    });
 };
 
 const mergeUniqueFoods = (prev = [], next = []) => {
@@ -105,6 +111,31 @@ const shouldHidePer100Result = (item, query) => {
 const filterSearchResults = (items, query) => {
     if (!Array.isArray(items)) return [];
     return items.filter((item) => !shouldHidePer100Result(item, query));
+};
+
+const buildFavoriteMap = (items = []) => {
+    if (!Array.isArray(items)) return {};
+    return items.reduce((acc, item) => {
+        const key = String(item?.key || makeFoodFavoriteKey(item) || '').trim();
+        if (!key) return acc;
+        acc[key] = item || { key };
+        return acc;
+    }, {});
+};
+
+const prioritizeFavorites = (items = [], favoriteMap = {}) => {
+    if (!Array.isArray(items) || items.length === 0) return [];
+    const favored = [];
+    const others = [];
+    items.forEach((item) => {
+        const key = foodKey(item);
+        if (key && favoriteMap?.[key]) {
+            favored.push(item);
+            return;
+        }
+        others.push(item);
+    });
+    return [...favored, ...others];
 };
 
 const SCAN_RETRY_DELAY_MS = 500;
@@ -207,6 +238,7 @@ export default function FoodSearchOverlay({
 
     // ---- Recent foods state
     const [recentFoods, setRecentFoods] = useState([]);
+    const [favoriteFoodsMap, setFavoriteFoodsMap] = useState({});
     const [query, setQuery] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -217,6 +249,7 @@ export default function FoodSearchOverlay({
     const inputRef = useRef(null);
     const searchTokenRef = useRef(0);
     const latestQueryRef = useRef('');
+    const favoriteFoodsMapRef = useRef({});
 
     // ---- Barcode scanner state
     const [scannerVisible, setScannerVisible] = useState(false);
@@ -390,6 +423,35 @@ export default function FoodSearchOverlay({
         } catch { setRecentFoods([]); }
     }, []);
 
+    const loadFavoriteFoods = useCallback(async () => {
+        try {
+            const uid = global?.userData?.uid || global?.userData?.id;
+            if (!uid) {
+                favoriteFoodsMapRef.current = {};
+                setFavoriteFoodsMap({});
+                return;
+            }
+            const cachedItems = await fetchFavoriteFoods(uid, 200, { preferCache: true, refreshRemote: false });
+            const cachedMap = buildFavoriteMap(cachedItems);
+            favoriteFoodsMapRef.current = cachedMap;
+            setFavoriteFoodsMap(cachedMap);
+
+            // Refresh from backend in the background and reconcile if data changed.
+            void syncFavoriteFoodsFromBackend(uid, 200).then((remoteItems) => {
+                const remoteMap = buildFavoriteMap(remoteItems);
+                favoriteFoodsMapRef.current = remoteMap;
+                setFavoriteFoodsMap(remoteMap);
+            });
+        } catch {
+            favoriteFoodsMapRef.current = {};
+            setFavoriteFoodsMap({});
+        }
+    }, []);
+
+    const reorderResultsForFavorites = useCallback((items) => {
+        return prioritizeFavorites(items, favoriteFoodsMapRef.current);
+    }, []);
+
     const performSearch = useCallback(async (searchTerm, nextPage, { append = false } = {}) => {
         const term = String(searchTerm || '').trim();
         if (!term) return;
@@ -419,7 +481,10 @@ export default function FoodSearchOverlay({
                     : (declaredMax > 0 ? list.length >= declaredMax : list.length > 0);
             setHasMore(computedHasMore);
             setPage(nextPage);
-            setResults((prev) => (append ? mergeUniqueFoods(prev, filteredList) : filteredList));
+            setResults((prev) => {
+                const merged = append ? mergeUniqueFoods(prev, filteredList) : filteredList;
+                return reorderResultsForFavorites(merged);
+            });
         } catch {
             if (searchTokenRef.current !== token) return;
             if (!append) {
@@ -436,7 +501,7 @@ export default function FoodSearchOverlay({
                 setLoadingMorePage(null);
             }
         }
-    }, []);
+    }, [reorderResultsForFavorites]);
 
     const handleLoadMore = useCallback(() => {
         if (!visible) return;
@@ -460,6 +525,7 @@ export default function FoodSearchOverlay({
         }
         const task = InteractionManager.runAfterInteractions(() => {
             loadRecentFoods();
+            loadFavoriteFoods();
             // Reset state for a fresh session and focus the input after animation completes
             setQuery('');
             setResults([]);
@@ -472,7 +538,12 @@ export default function FoodSearchOverlay({
             setTimeout(() => inputRef.current?.focus?.(), 40);
         });
         return () => task?.cancel?.();
-    }, [visible, loadRecentFoods, (global?.__loggedFoodsSig || 0)]);
+    }, [visible, loadRecentFoods, loadFavoriteFoods, (global?.__loggedFoodsSig || 0)]);
+
+    useEffect(() => {
+        favoriteFoodsMapRef.current = favoriteFoodsMap || {};
+        setResults((prev) => reorderResultsForFavorites(prev));
+    }, [favoriteFoodsMap, reorderResultsForFavorites]);
 
     // Debounced search to avoid spamming network and re-renders
     useEffect(() => {
@@ -530,14 +601,59 @@ export default function FoodSearchOverlay({
         }, 80);
     }, [navigation, onClose, activeMeal, dayKey]);
 
+    const handleToggleFavorite = useCallback(async (food) => {
+        const uid = global?.userData?.uid || global?.userData?.id;
+        if (!uid || !food) return;
+
+        const favoritePayload = {
+            foodId: String(food?.food_id ?? food?.foodId ?? food?.id ?? '').trim(),
+            name: String(food?.food_name ?? food?.name ?? '').trim(),
+            brand: String(food?.brand_name ?? food?.brand ?? '').trim(),
+            description: String(food?.food_description ?? food?.description ?? food?.desc ?? '').trim(),
+        };
+        const key = makeFoodFavoriteKey(favoritePayload);
+        if (!key) return;
+
+        const existingMap = favoriteFoodsMapRef.current || {};
+        const wasFavorited = Boolean(existingMap[key]);
+
+        const optimisticMap = { ...existingMap };
+        if (wasFavorited) {
+            delete optimisticMap[key];
+        } else {
+            optimisticMap[key] = { key, ...favoritePayload };
+        }
+
+        favoriteFoodsMapRef.current = optimisticMap;
+        setFavoriteFoodsMap(optimisticMap);
+        setResults((prev) => prioritizeFavorites(prev, optimisticMap));
+
+        try {
+            if (wasFavorited) {
+                await removeFavoriteFood(uid, key);
+            } else {
+                const saved = await upsertFavoriteFood(uid, favoritePayload);
+                if (!saved) throw new Error('favorite-save-failed');
+            }
+        } catch {
+            // Roll back optimistic update if the write fails.
+            const rollbackMap = { ...existingMap };
+            favoriteFoodsMapRef.current = rollbackMap;
+            setFavoriteFoodsMap(rollbackMap);
+            setResults((prev) => prioritizeFavorites(prev, rollbackMap));
+        }
+    }, []);
+
     const renderSearchItem = useCallback(({ item }) => (
         <SearchResultCard
             item={item}
             onPressPlus={() => openPortion(item)}
             onPressCard={() => goToDetails(item)}
+            onToggleFavorite={() => handleToggleFavorite(item)}
+            isFavorited={Boolean(favoriteFoodsMap[foodKey(item)])}
             COLORS={COLORS}
         />
-    ), [openPortion, goToDetails, COLORS]);
+    ), [openPortion, goToDetails, handleToggleFavorite, favoriteFoodsMap, COLORS]);
 
     const handleDeleteRecent = useCallback(async (item, closeSwipe) => {
         closeSwipe?.();
@@ -563,8 +679,10 @@ export default function FoodSearchOverlay({
             openPortion={openPortion}
             goToDetails={goToDetails}
             onDelete={handleDeleteRecent}
+            favoriteFoodsMap={favoriteFoodsMap}
+            onToggleFavorite={handleToggleFavorite}
         />
-    ), [COLORS, styles, openPortion, goToDetails, handleDeleteRecent]);
+    ), [COLORS, styles, openPortion, goToDetails, handleDeleteRecent, favoriteFoodsMap, handleToggleFavorite]);
 
     const HistoryFooter = () => {
         if (!visible) return null;
@@ -806,7 +924,7 @@ export default function FoodSearchOverlay({
     );
 }
 
-const RecentHistoryItem = ({ item, COLORS, styles, openPortion, goToDetails, onDelete }) => {
+const RecentHistoryItem = ({ item, COLORS, styles, openPortion, goToDetails, onDelete, favoriteFoodsMap, onToggleFavorite }) => {
     const swipeRef = useRef(null);
 
     const mapped = useMemo(() => {
@@ -825,6 +943,11 @@ const RecentHistoryItem = ({ item, COLORS, styles, openPortion, goToDetails, onD
             macros: item?.macros || null,
         };
     }, [item]);
+
+    const isFavorited = useMemo(
+        () => Boolean(favoriteFoodsMap?.[foodKey(mapped)]),
+        [favoriteFoodsMap, mapped],
+    );
 
     const handleDeletePress = useCallback(() => {
         try { haptic(); } catch {}
@@ -854,6 +977,8 @@ const RecentHistoryItem = ({ item, COLORS, styles, openPortion, goToDetails, onD
                 item={mapped}
                 onPressPlus={() => openPortion(mapped)}
                 onPressCard={() => goToDetails(mapped)}
+                onToggleFavorite={() => onToggleFavorite?.(mapped)}
+                isFavorited={isFavorited}
                 COLORS={COLORS}
             />
         </Swipeable>

@@ -15,7 +15,7 @@ const DEFAULT_COLORS = {
     mealCardShadow: '#99a5b7ff',
 };
 
-function SearchResultCard({ item, onPressPlus, onPressCard, COLORS }) {
+function SearchResultCard({ item, onPressPlus, onPressCard, onToggleFavorite, isFavorited = false, COLORS }) {
     const theme = COLORS || DEFAULT_COLORS;
     const formatPortion = (qty, unit) => {
         const u = (unit || '').trim().toLowerCase();
@@ -91,6 +91,21 @@ function SearchResultCard({ item, onPressPlus, onPressCard, COLORS }) {
             borderWidth: StyleSheet.hairlineWidth,
             borderColor: theme.hairline || 'rgba(255,255,255,0.18)',
         },
+        actionRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+        },
+        favoriteWrap: {
+            width: scaleSize(32),
+            height: scaleSize(32),
+            borderRadius: scaleSize(18),
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: scaleSize(8),
+            backgroundColor: '#rgba(255,255,255,0.1)',
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: theme.hairline || 'rgba(255,255,255,0.18)',
+        },
     });
 
     return (
@@ -104,11 +119,22 @@ function SearchResultCard({ item, onPressPlus, onPressCard, COLORS }) {
                     <Text style={styles.resultTitle}>{item.food_name}</Text>
                     <Text style={styles.resultDescription}>{getSummary()}</Text>
                 </Pressable>
-                <RNBounceable bounceEffectIn={0.9} onPress={() => { try { haptic(); } catch {} onPressPlus?.(); }}>
-                    <View style={styles.plusWrap}>
-                        <PlusIcon size={18} color={theme.accent || '#2D9EFF'} />
-                    </View>
-                </RNBounceable>
+                <View style={styles.actionRow}>
+                    <RNBounceable bounceEffectIn={0.9} onPress={() => { try { haptic(); } catch {} onToggleFavorite?.(); }}>
+                        <View style={styles.favoriteWrap}>
+                            <Ionicons
+                                name={isFavorited ? 'bookmark' : 'bookmark-outline'}
+                                size={18}
+                                color={isFavorited ? (theme.accent || '#2D9EFF') : (theme.subtext || theme.textSecondary)}
+                            />
+                        </View>
+                    </RNBounceable>
+                    <RNBounceable bounceEffectIn={0.9} onPress={() => { try { haptic(); } catch {} onPressPlus?.(); }}>
+                        <View style={styles.plusWrap}>
+                            <PlusIcon size={18} color={theme.accent || '#2D9EFF'} />
+                        </View>
+                    </RNBounceable>
+                </View>
             </View>
         </View>
     );

@@ -1,10 +1,7 @@
 import React, { useMemo } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 
-import Feed from '../screens/FeedScreen';
-import MacroTracking from '../screens/MacroTracking';
-import Competition from '../screens/2_Competition';
-import Profile from '../screens/5_Profile';
+import { Feed, MacroTracking, Competition, Profile } from '../screens';
 
 const Tab = createBottomTabNavigator();
 

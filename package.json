@@ -5,6 +5,8 @@
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "android": "expo run:android",
+    "audit:imports": "node scripts/check-relative-imports.js",
+    "audit:unused:frontend": "node scripts/find-unused-frontend.js",
     "build": "eas build --profile=development:simulator --platform=ios",
     "postinstall": "patch-package",
     "ios": "expo run:ios",

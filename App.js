@@ -35,40 +35,42 @@ import { prepareProfileForAuth } from './frontend/services/userProfileService';
 import { registerAuthStatusController } from './frontend/state/authStatusController';
 
 /* Screens */
-import SignUp from './frontend/screens/0.0_SignUp';
-import LogIn from './frontend/screens/0.1_LogIn';
-import NewUserCreation from './frontend/screens/0.2_NewUserCreation';
-import CreateUsername from './frontend/screens/0.4_CreateUsername';
-import ChangeUsername from './frontend/screens/ChangeUsername';
-import ChangeName from './frontend/screens/ChangeName';
-import UserLogInCredentials from './frontend/screens/0.3_UserLogInCredentials';
-import Feed from './frontend/screens/FeedScreen';
-import Profile from './frontend/screens/5_Profile';
+import {
+    SignUp,
+    LogIn,
+    NewUserCreation,
+    CreateUsername,
+    ChangeUsername,
+    ChangeName,
+    UserLogInCredentials,
+    Feed,
+    Profile,
+    Explore,
+    Competition,
+    ExerciseDetail,
+    Messages,
+    Chat,
+    ViewProfile,
+    PastWorkoutScreen,
+    MacroTracking,
+    Notifications,
+    FoodDetail,
+    SearchUsers,
+    MuscleGroupExercises,
+    Settings,
+    PrivacyPolicy,
+    TermsOfService,
+    Credits,
+    PrivateProfileInfo,
+    DeleteAccount,
+    ProfileWorkoutsAndPostsScreen,
+    ProfileLoggedFoodsScreen,
+    WeightMeasurementsScreen,
+    NoInternet,
+} from './frontend/screens';
 import SelectPhotosScreen from './frontend/components/5_Profile/MakePost/SelectPhotosScreen';
 import PostUploadOptionsScreen from './frontend/components/5_Profile/MakePost/PostUploadOptionsScreen';
 import ClipBuilderScreen from './frontend/components/5_Profile/MakePost/ClipBuilderScreen';
-import Explore from './frontend/screens/4_Explore';
-import Competition from './frontend/screens/2_Competition';
-import ExerciseDetail from './frontend/screens/ExerciseDetail';
-import Messages from './frontend/screens/1.1_Messages';
-import Chat from './frontend/screens/1.2_Chat';
-import ViewProfile from './frontend/screens/4.1_ViewProfile';
-import PastWorkoutScreen from './frontend/screens/PastWorkoutScreen';
-import MacroTracking from './frontend/screens/MacroTracking';
-import Notifications from './frontend/screens/Notifications';
-import FoodDetail from './frontend/screens/FoodDetail';
-import SearchUsers from './frontend/screens/SearchUsers';
-import MuscleGroupExercises from './frontend/screens/MuscleGroupExercises';
-import Settings from './frontend/screens/Settings';
-import PrivacyPolicy from './frontend/screens/PrivacyPolicy';
-import TermsOfService from './frontend/screens/TermsOfService';
-import Credits from './frontend/screens/Credits';
-import PrivateProfileInfo from './frontend/screens/PrivateProfileInfo';
-import DeleteAccount from './frontend/screens/DeleteAccount';
-import ProfileWorkoutsAndPostsScreen from './frontend/screens/ProfileWorkoutsAndPostsScreen';
-import ProfileLoggedFoodsScreen from './frontend/screens/ProfileLoggedFoodsScreen';
-import WeightMeasurementsScreen from './frontend/screens/WeightMeasurementsScreen';
-import NoInternet from './frontend/screens/NoInternet';
 // Dark theme palette
 import theme from './frontend/theme/mfpDark';
 import ActiveWorkoutBottomSheet from './frontend/components/3_Workout/NewWorkout/ActiveWorkoutBottomSheet';

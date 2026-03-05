@@ -1,6 +1,6 @@
 // screens/FoodDetail.js
-import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar, SafeAreaView, Platform } from 'react-native';
+import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, StatusBar, SafeAreaView, Platform, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import theme from '../theme/mfpDark';
 import { db } from '../../firebase.config';
@@ -9,6 +9,7 @@ import { touchRecentFood } from '../utils/recentFoods';
 import { parseMacrosFromDescription, parseExtraNutrientsFromDescription } from '../utils/nutrition';
 import { getFoodExtrasPS, setFoodExtrasPS } from '../utils/foodCache';
 import { getFoodById } from './fatsecretClient';
+import { getCachedFavoriteStatus, isFavoriteFood, makeFoodFavoriteKey, removeFavoriteFood, upsertFavoriteFood } from '../utils/favoriteFoods';
 import Svg, { Circle } from 'react-native-svg';
 import { strong as haptic } from '../utils/haptics';
 
@@ -47,6 +48,12 @@ export default function FoodDetail({ navigation, route }) {
         return Number.isFinite(n) && n > 0 ? n : 1;
     });
     const [meal, setMeal] = useState(mealNameInit);
+    const [showDiscardChangesModal, setShowDiscardChangesModal] = useState(false);
+    const initialServingsRef = useRef((() => {
+        const n = Number(entry?.quantity ?? entry?.qty ?? 1);
+        return Number.isFinite(n) && n > 0 ? round2(n) : 1;
+    })());
+    const initialMealRef = useRef(String(mealNameInit || 'Dinner'));
     // Choose description source based on mode
 
     const baseDesc = mode === 'add' ? (food?.food_description || '') : (entry?.desc || '');
@@ -59,6 +66,18 @@ export default function FoodDetail({ navigation, route }) {
     const [saving, setSaving] = useState(false);
     const [apiServing, setApiServing] = useState(null); // temp holder when fetched from API
     const [extrasPS, setExtrasPS] = useState(null); // cached micronutrients per default serving
+
+    const favoritePayload = useMemo(() => ({
+        foodId: String(mode === 'add' ? (food?.food_id || '') : (entry?.foodId || entry?.food_id || '')).trim(),
+        name: String(mode === 'add' ? (food?.food_name || '') : (entry?.name || '')).trim(),
+        brand: String(mode === 'add' ? (food?.brand_name || '') : (entry?.brand || '')).trim(),
+        description: String(mode === 'add' ? (food?.food_description || '') : (entry?.desc || '')).trim(),
+    }), [mode, food?.food_id, food?.food_name, food?.brand_name, food?.food_description, entry?.foodId, entry?.food_id, entry?.name, entry?.brand, entry?.desc]);
+
+    const favoriteKey = useMemo(
+        () => makeFoodFavoriteKey(favoritePayload),
+        [favoritePayload],
+    );
 
     // Load extras per serving from entry cache → local cache → API
     useEffect(() => {
@@ -150,6 +169,39 @@ export default function FoodDetail({ navigation, route }) {
     useEffect(() => {
         // Ensure title in header area uses SafeArea by setting StatusBar and wrapping in SafeAreaView below
     }, []);
+
+    const currentServingsForCompare = useMemo(() => {
+        const n = Number(servings);
+        return Number.isFinite(n) && n > 0 ? round2(n) : null;
+    }, [servings]);
+
+    const hasUnsavedChanges = useMemo(() => {
+        if (readOnly || mode !== 'edit') return false;
+        const currentMeal = String(meal || '').trim();
+        const initialMeal = String(initialMealRef.current || '').trim();
+        const mealChanged = currentMeal !== initialMeal;
+        const servingChanged = currentServingsForCompare == null
+            ? String(servings ?? '') !== String(initialServingsRef.current)
+            : currentServingsForCompare !== initialServingsRef.current;
+        return mealChanged || servingChanged;
+    }, [readOnly, mode, meal, servings, currentServingsForCompare]);
+
+    const handleCloseDiscardChangesModal = useCallback(() => {
+        setShowDiscardChangesModal(false);
+    }, []);
+
+    const handleDiscardChanges = useCallback(() => {
+        setShowDiscardChangesModal(false);
+        try { navigation.goBack(); } catch { }
+    }, [navigation]);
+
+    const handleBackPress = useCallback(() => {
+        if (hasUnsavedChanges) {
+            setShowDiscardChangesModal(true);
+            return;
+        }
+        try { navigation.goBack(); } catch { }
+    }, [hasUnsavedChanges, navigation]);
 
     const adjust = (delta) => {
         if (readOnly) return;
@@ -306,7 +358,7 @@ export default function FoodDetail({ navigation, route }) {
             <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
             {/* Header inside safe area */}
             <View style={[styles.header, styles.headerScreenOffset]}>
-                <Pressable style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={8}>
+                <Pressable style={styles.backBtn} onPress={handleBackPress} hitSlop={8}>
                     <Ionicons name="chevron-back" size={22} color={COLORS.text} />
                 </Pressable>
                 <Text style={styles.headerTitle} numberOfLines={1}>
@@ -327,7 +379,10 @@ export default function FoodDetail({ navigation, route }) {
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: scaleSize(24) }} showsVerticalScrollIndicator={false}>
                 {/* Top summary section spanning full width */}
                 <View style={styles.topSummary}>
-                    <Text style={styles.title} numberOfLines={2}>{displayName}</Text>
+                    <View style={styles.titleRow}>
+                        <Text style={styles.title} numberOfLines={2}>{displayName}</Text>
+                        <FavoriteFoodButton favoritePayload={favoritePayload} favoriteKey={favoriteKey} />
+                    </View>
                     {/* Tagline: brand + default serving from description */}
                     {(() => {
                         const parts = [];
@@ -406,6 +461,41 @@ export default function FoodDetail({ navigation, route }) {
                 {/* Nutrition facts (collapsible) */}
                 <NutritionFacts extras={extras} />
             </ScrollView>
+            <Modal
+                transparent
+                visible={showDiscardChangesModal}
+                animationType="fade"
+                onRequestClose={handleCloseDiscardChangesModal}
+            >
+                <Pressable style={styles.confirmBackdrop} onPress={handleCloseDiscardChangesModal}>
+                    <Pressable style={styles.confirmCard}>
+                        <Text style={styles.confirmTitle}>Discard changes?</Text>
+                        <Text style={styles.confirmMessage}>
+                            You have unsaved edits on this food item.
+                        </Text>
+                        <View style={styles.confirmActions}>
+                            <Pressable
+                                style={[styles.confirmBtn, styles.confirmBtnCancel]}
+                                onPress={() => {
+                                    try { haptic(); } catch { }
+                                    handleCloseDiscardChangesModal();
+                                }}
+                            >
+                                <Text style={[styles.confirmBtnText, styles.confirmBtnCancelText]}>Keep Editing</Text>
+                            </Pressable>
+                            <Pressable
+                                style={[styles.confirmBtn, styles.confirmBtnDestructive]}
+                                onPress={() => {
+                                    try { haptic(); } catch { }
+                                    handleDiscardChanges();
+                                }}
+                            >
+                                <Text style={[styles.confirmBtnText, styles.confirmBtnDestructiveText]}>Discard</Text>
+                            </Pressable>
+                        </View>
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -419,6 +509,13 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
     const qty = Number(entry?.quantity || entry?.qty || 1) || 1;
     const macros = useMemo(() => parseMacrosFromDescription(baseDesc, qty), [baseDesc, qty]);
     const [extrasPS, setExtrasPS] = useState(null);
+    const favoritePayload = useMemo(() => ({
+        foodId: String(entry?.foodId || entry?.food_id || '').trim(),
+        name: String(entry?.name || '').trim(),
+        brand: String(entry?.brand || '').trim(),
+        description: String(entry?.desc || entry?.description || '').trim(),
+    }), [entry?.foodId, entry?.food_id, entry?.name, entry?.brand, entry?.desc, entry?.description]);
+    const favoriteKey = useMemo(() => makeFoodFavoriteKey(favoritePayload), [favoritePayload]);
     const extras = useMemo(() => {
         if (extrasPS) {
             return {
@@ -496,7 +593,10 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
             </View>
             <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: scaleSize(24) }} showsVerticalScrollIndicator={false}>
                 <View style={styles.topSummary}>
-                    <Text style={styles.title} numberOfLines={2}>{displayName}</Text>
+                    <View style={styles.titleRow}>
+                        <Text style={styles.title} numberOfLines={2}>{displayName}</Text>
+                        <FavoriteFoodButton favoritePayload={favoritePayload} favoriteKey={favoriteKey} />
+                    </View>
                     {(() => {
                         const parts = [];
                         if (displayBrand) parts.push(displayBrand);
@@ -516,6 +616,89 @@ export function FoodDetailInline({ entry = {}, onClose, containerStyle }) {
         </View>
     );
 }
+
+const FavoriteFoodButton = React.memo(function FavoriteFoodButton({ favoritePayload, favoriteKey }) {
+    const uid = global?.userData?.uid || global?.userData?.id || '';
+    const [isFavorited, setIsFavorited] = useState(() => {
+        if (!uid || !favoriteKey) return false;
+        const cached = getCachedFavoriteStatus(uid, favoriteKey);
+        return typeof cached === 'boolean' ? cached : false;
+    });
+    const favoriteBusyRef = useRef(false);
+    const favoriteTouchedRef = useRef(false);
+    const favoriteLoadSeqRef = useRef(0);
+
+    useEffect(() => {
+        let cancelled = false;
+        favoriteTouchedRef.current = false;
+        if (!uid || !favoriteKey) {
+            setIsFavorited(false);
+            return () => { cancelled = true; };
+        }
+
+        const cachedStatus = getCachedFavoriteStatus(uid, favoriteKey);
+        if (typeof cachedStatus === 'boolean') {
+            setIsFavorited(cachedStatus);
+        }
+
+        const seq = ++favoriteLoadSeqRef.current;
+        (async () => {
+            const exists = await isFavoriteFood(uid, favoriteKey);
+            if (cancelled) return;
+            if (seq !== favoriteLoadSeqRef.current) return;
+            if (favoriteTouchedRef.current) return;
+            setIsFavorited(exists);
+        })();
+
+        return () => { cancelled = true; };
+    }, [uid, favoriteKey]);
+
+    const toggleFavorite = useCallback(() => {
+        if (favoriteBusyRef.current || !uid || !favoriteKey) return;
+        const next = !isFavorited;
+        favoriteTouchedRef.current = true;
+        setIsFavorited(next); // instant icon flip
+        favoriteBusyRef.current = true;
+        const schedule = typeof requestAnimationFrame === 'function'
+            ? requestAnimationFrame
+            : (cb) => setTimeout(cb, 0);
+        schedule(() => {
+            try { haptic(); } catch { }
+        });
+
+        (async () => {
+            try {
+                if (next) {
+                    const saved = await upsertFavoriteFood(uid, favoritePayload);
+                    if (!saved) throw new Error('favorite-save-failed');
+                } else {
+                    await removeFavoriteFood(uid, favoriteKey);
+                }
+            } catch {
+                setIsFavorited(!next);
+                favoriteTouchedRef.current = false;
+            } finally {
+                favoriteBusyRef.current = false;
+            }
+        })();
+    }, [favoriteKey, favoritePayload, isFavorited, uid]);
+
+    return (
+        <Pressable
+            onPress={toggleFavorite}
+            disabled={!favoriteKey}
+            hitSlop={8}
+            style={[styles.favoriteBtn, !favoriteKey && styles.favoriteBtnDisabled]}
+            accessibilityLabel={isFavorited ? 'Remove from favorite foods' : 'Add to favorite foods'}
+        >
+            <Ionicons
+                name={isFavorited ? 'bookmark' : 'bookmark-outline'}
+                size={20}
+                color={isFavorited ? COLORS.accent : COLORS.subtext}
+            />
+        </Pressable>
+    );
+});
 
 function MacroBadge({ label, value, suffix }) {
     return (
@@ -738,8 +921,21 @@ const styles = StyleSheet.create({
     headerTitle: { flex: 1, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold', fontSize: scaleSize(16), textAlign: 'center' },
     saveBtn: { width: scaleSize(42), height: scaleSize(42), alignItems: 'center', justifyContent: 'center', borderRadius: scaleSize(999) },
     topSummary: { paddingHorizontal: scaleSize(18), paddingTop: scaleSize(10), paddingBottom: scaleSize(14) },
+    titleRow: { flexDirection: 'row', alignItems: 'flex-start' },
     brand: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(12), marginBottom: scaleSize(4) },
-    title: { color: COLORS.text, fontFamily: 'Nunito_800ExtraBold', fontSize: scaleSize(18), marginBottom: scaleSize(6) },
+    title: { flex: 1, color: COLORS.text, fontFamily: 'Nunito_800ExtraBold', fontSize: scaleSize(18), marginBottom: scaleSize(6), marginRight: scaleSize(8) },
+    favoriteBtn: {
+        width: scaleSize(34),
+        height: scaleSize(34),
+        borderRadius: scaleSize(17),
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: scaleSize(2),
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: COLORS.hairline,
+        backgroundColor: 'rgba(255,255,255,0.03)',
+    },
+    favoriteBtnDisabled: { opacity: 0.45 },
     desc: { color: COLORS.subtext, fontFamily: 'Nunito_600SemiBold', fontSize: scaleSize(12.5) },
     hairline: { height: scaleSize(1), backgroundColor: COLORS.hairline, opacity: 0.7 },
     badge: {
@@ -818,4 +1014,62 @@ const styles = StyleSheet.create({
     factPercentSub: { color: COLORS.accentSoft, fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(11), marginTop: scaleSize(2) },
     factPercentHigh: { color: '#F27171', fontFamily: 'Outfit_800ExtraBold', fontSize: scaleSize(11), marginTop: scaleSize(2) },
     factsEmpty: { color: COLORS.subtext, fontFamily: 'Nunito_700Bold', fontSize: scaleSize(13), paddingVertical: scaleSize(6) },
+    confirmBackdrop: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: scaleSize(20),
+        backgroundColor: 'rgba(0,0,0,0.58)',
+    },
+    confirmCard: {
+        width: '94%',
+        maxWidth: scaleSize(340),
+        borderRadius: scaleSize(18),
+        paddingVertical: scaleSize(18),
+        paddingHorizontal: scaleSize(16),
+        borderWidth: scaleSize(1),
+        borderColor: COLORS.hairline,
+        backgroundColor: theme.surface,
+    },
+    confirmTitle: {
+        color: COLORS.text,
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(17),
+        marginBottom: scaleSize(8),
+    },
+    confirmMessage: {
+        color: COLORS.subtext,
+        fontFamily: 'Nunito_700Bold',
+        fontSize: scaleSize(13),
+        lineHeight: scaleSize(19),
+        marginBottom: scaleSize(16),
+    },
+    confirmActions: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: scaleSize(10),
+    },
+    confirmBtn: {
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(14),
+        borderRadius: scaleSize(10),
+        minWidth: scaleSize(112),
+        alignItems: 'center',
+    },
+    confirmBtnCancel: {
+        backgroundColor: theme.fieldDeep,
+    },
+    confirmBtnDestructive: {
+        backgroundColor: '#F27171',
+    },
+    confirmBtnText: {
+        fontFamily: 'Outfit_600SemiBold',
+        fontSize: scaleSize(13.5),
+    },
+    confirmBtnCancelText: {
+        color: COLORS.text,
+    },
+    confirmBtnDestructiveText: {
+        color: '#fff',
+    },
 });

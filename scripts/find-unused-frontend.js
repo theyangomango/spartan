@@ -26,8 +26,9 @@ function readFileSafe(p) {
   try { return fs.readFileSync(p, 'utf8'); } catch { return ''; }
 }
 
-// Parse import/require/export-from strings
-const IMPORT_RE = /(?:import\s+[^'"\n]+?from\s+['"]([^'"\n]+)['"])|(?:export\s+[^'"\n]*?from\s+['"]([^'"\n]+)['"])|(?:require\(\s*['"]([^'"\n]+)['"]\s*\))/g;
+// Parse import/require/export-from strings.
+// Supports multiline import blocks (e.g. import { a, b } from "x").
+const IMPORT_RE = /(?:import\s+[\s\S]*?\sfrom\s+['"]([^'"\n]+)['"])|(?:export\s+[\s\S]*?\sfrom\s+['"]([^'"\n]+)['"])|(?:require\(\s*['"]([^'"\n]+)['"]\s*\))/g;
 
 function resolveImport(fromFile, spec) {
   if (!spec.startsWith('.')) return null; // ignore non-relative
