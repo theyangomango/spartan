@@ -59,6 +59,7 @@ import {
 import { scaledSize } from "../UserStats/UserStatsStyles";
 import MuscleGroupIcon from "../../3_Workout/NewWorkout/SelectExercise/MuscleGroupIcon";
 import scaleSize from "../../../helper/scaleSize";
+import { MUSCLE_ICON_HIGHLIGHT, MUSCLE_ICON_HIGHLIGHT_DIM } from "../muscleGroupIconLayout";
 
 const DEFAULT_BODY_FOCUS = "overall";
 const BODY_FOCUS_OPTIONS = [
@@ -108,8 +109,6 @@ const MUSCLE_ICON_OFFSETS = {
     overall: scaleSize(10)
 };
 
-const MUSCLE_ICON_HIGHLIGHT = "#ff6f67ff";
-const MUSCLE_ICON_HIGHLIGHT_DIM = "rgba(255, 127, 120, 0.6)";
 
 const KG_TO_LB = 2.2046226218488;
 

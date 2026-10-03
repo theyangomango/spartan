@@ -14,7 +14,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
 import HumanMuscleOutline from "../assets/human_muscle_outline";
 import HumanMuscleBackOutline from "../assets/human_muscle_back_outline";
-import { doc, onSnapshot, collection, addDoc, serverTimestamp, getDoc } from "firebase/firestore";
+import { doc, onSnapshot, collection, addDoc, serverTimestamp } from "firebase/firestore";
 
 import PastWorkoutExerciseLog from "../components/1_Feed/PastWorkoutExerciseLog";
 import EditingWorkoutModal from "../components/3_Workout/NewWorkout/EditingWorkoutModal";
@@ -30,9 +30,6 @@ import isThisUser from "../helper/isThisUser";
 import { strong as hapticStrong } from "../utils/haptics";
 import VerifiedHandle from "../components/common/VerifiedHandle";
 import useUserVerified from "../hooks/useUserVerified";
-import { RANK_TIER_THEMES } from "../components/1_Feed/FeedSnapshotCard";
-import resolveRankTierKey from "../utils/resolveRankTierKey";
-import resolveHandleColor from "../utils/resolveHandleColor";
 import { db } from "../../firebase.config";
 import { invalidateFeedCacheForUser } from "../helper/feedCache";
 import { exercises as EXERCISE_LIBRARY } from "../components/3_Workout/NewWorkout/SelectExercise/EXERCISES";
@@ -50,8 +47,6 @@ const MUSCLE_SEGMENTS = {
     legs: ["quads", "calves"],
 };
 
-const RANK_CACHE = new Map();
-const RANK_INFLIGHT = new Map();
 
 const toMillis = (value) => {
     if (value === null || typeof value === "undefined") return null;
@@ -507,112 +502,6 @@ const PastWorkoutScreen = () => {
         if (workoutOwnerUid) return `user-${workoutOwnerUid.slice(-4)}`;
         return "user";
     }, [owner?.handle, owner?.username, owner?.tag, owner?.name, workout?.handle, workout?.ownerHandle, workoutOwnerUid]);
-
-    const [rankFallback, setRankFallback] = useState(null);
-
-    const rankSource = useMemo(
-        () => ({
-            ...(owner || {}),
-            ...(workout || {}),
-            ...(rankFallback || {}),
-            uid: workoutOwnerUid || owner?.uid || workout?.uid || rankFallback?.uid,
-            id: workoutOwnerUid || owner?.id || workout?.id || rankFallback?.id || workoutOwnerUid,
-        }),
-        [owner, workout, workoutOwnerUid, rankFallback]
-    );
-
-    const rankTierKey = useMemo(() => {
-        const extraCandidates = [
-            owner?.rankTier,
-            owner?.currentRank?.tier,
-            owner?.currentRank?.rankTier,
-            owner?.rank?.tier,
-            owner?.rank?.rankTier,
-            workout?.rankTier,
-            workout?.currentRank?.tier,
-            workout?.currentRank?.rankTier,
-            workout?.rank?.tier,
-            workout?.rank?.rankTier,
-            rankFallback?.rankTier,
-            rankFallback?.currentRank?.tier,
-            rankFallback?.currentRank?.rankTier,
-            rankFallback?.rank?.tier,
-            rankFallback?.rank?.rankTier,
-        ];
-        return resolveRankTierKey(rankSource, extraCandidates);
-    }, [owner?.rankTier, owner?.currentRank?.tier, owner?.currentRank?.rankTier, owner?.rank?.tier, owner?.rank?.rankTier, workout?.rankTier, workout?.currentRank?.tier, workout?.currentRank?.rankTier, workout?.rank?.tier, workout?.rank?.rankTier, rankFallback?.rankTier, rankFallback?.currentRank?.tier, rankFallback?.currentRank?.rankTier, rankFallback?.rank?.tier, rankFallback?.rank?.rankTier, rankSource]);
-
-    const rankTheme = useMemo(() => {
-        const key = rankTierKey || "bronze";
-        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.bronze;
-    }, [rankTierKey]);
-
-    const handleColor = useMemo(
-        () => resolveHandleColor(rankSource, { rankTierKey, rankTheme }),
-        [rankSource, rankTierKey, rankTheme]
-    );
-
-    useEffect(() => {
-        if (rankTierKey) return;
-        const uidCandidate = (() => {
-            const candidates = [
-                rankSource?.uid,
-                owner?.uid,
-                workout?.uid,
-                workout?.creatorUid,
-                workout?.creatorUID,
-                workoutOwnerUid,
-            ];
-            for (const val of candidates) {
-                if (val === undefined || val === null) continue;
-                const str = String(val).trim();
-                if (str) return str;
-            }
-            return "";
-        })();
-        if (!uidCandidate) return;
-
-        const cached = RANK_CACHE.get(uidCandidate);
-        if (cached) {
-            setRankFallback((prev) => (prev?.uid === uidCandidate ? prev : { ...cached, uid: uidCandidate }));
-            return;
-        }
-
-        const inflight = RANK_INFLIGHT.get(uidCandidate);
-        if (inflight) {
-            inflight.then((payload) => {
-                if (!payload) return;
-                setRankFallback((prev) => (prev?.uid === uidCandidate ? prev : { ...payload, uid: uidCandidate }));
-            }).catch(() => {});
-            return;
-        }
-
-        const promise = getDoc(doc(db, "users", uidCandidate))
-            .then((snap) => {
-                const user = snap?.data?.() ?? snap?.data();
-                if (!user) return null;
-                const payload = {
-                    rankTier: user.rankTier || user.currentRank?.tier || user.currentRank?.rankTier || user.rank?.tier || user.rank?.rankTier || null,
-                    currentRank: user.currentRank || null,
-                    rank: user.rank || null,
-                };
-                if (payload.rankTier || payload.currentRank || payload.rank) {
-                    RANK_CACHE.set(uidCandidate, payload);
-                    return payload;
-                }
-                return null;
-            })
-            .catch(() => null)
-            .finally(() => {
-                RANK_INFLIGHT.delete(uidCandidate);
-            });
-
-        RANK_INFLIGHT.set(uidCandidate, promise);
-        promise.then((payload) => {
-            if (!payload) return;
-            setRankFallback((prev) => (prev?.uid === uidCandidate ? prev : { ...payload, uid: uidCandidate }));
-        }).catch(() => {});
-    }, [rankTierKey, rankSource?.uid, owner?.uid, workout?.uid, workout?.creatorUid, workout?.creatorUID, workoutOwnerUid]);
 
     const ownerFallbackPfp = resolvePhotoURL(owner, "");
     const workoutFallbackPfp = resolvePhotoURL(workout, ownerFallbackPfp);
@@ -1091,7 +980,7 @@ const PastWorkoutScreen = () => {
                                             <VerifiedHandle
                                                 handle={sanitizedHandle || "Friend"}
                                                 isVerified={isOwnerVerified}
-                                                textStyle={[styles.nameText, { color: handleColor }]}
+                                                textStyle={styles.nameText}
                                                 iconSize={scaleSize(15)}
                                                 numberOfLines={1}
                                                 ellipsizeMode="tail"

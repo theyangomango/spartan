@@ -55,31 +55,32 @@ export default function WorkoutStats({ userData }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
+        gap: scaledSize(8),
     },
     workout_stat: {
-        width: '31.5%',
+        flex: 1,
         height: scaledSize(68),
-        borderRadius: scaledSize(8),
-        marginTop: scaledSize(9),
-        marginBottom: 0,
-        marginHorizontal: scaledSize(3.5),
+        borderRadius: scaledSize(16),
+        borderWidth: 1,
+        backgroundColor: theme.surface,
+        marginTop: scaledSize(8),
         justifyContent: 'center',
         alignItems: 'center',
     },
-    // Match Macro Tracking palette (protein, carbs, fat)
-    total_workouts_stat_ctnr: { backgroundColor: 'rgba(22, 121, 243, 0.4)' },
-    gym_time_stat_ctnr: { backgroundColor: 'rgba(221, 72, 137, 0.4)' },
-    total_volume_stat_ctnr: { backgroundColor: 'hsla(36, 85%, 54%, 0.4)' },
+    // Match Macro Tracking palette (protein, carbs, fat), as an outline tint on the dark surface
+    total_workouts_stat_ctnr: { borderColor: 'rgba(128, 166, 255, 0.3)' },
+    gym_time_stat_ctnr: { borderColor: 'rgba(255, 124, 181, 0.3)' },
+    total_volume_stat_ctnr: { borderColor: 'rgba(255, 200, 116, 0.3)' },
     workout_stat_text: {
-        fontFamily: 'Poppins_600SemiBold',
-        fontSize: scaleSize(11.5),
-        color: theme.textPrimary,
+        fontFamily: 'Outfit_500Medium',
+        fontSize: scaleSize(12.5),
+        color: theme.textSecondary,
         letterSpacing: 0.15,
+        marginTop: scaledSize(1),
     },
     workout_stat_number: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(16),
+        fontFamily: 'Outfit_700Bold',
+        fontSize: scaleSize(18),
     },
     total_workouts_stat_number: {
         color: '#80a6ffff',

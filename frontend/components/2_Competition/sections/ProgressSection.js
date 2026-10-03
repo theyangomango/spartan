@@ -36,6 +36,14 @@ import HumanMuscleOutline from "../../../assets/human_muscle_outline";
 import HumanMuscleBackOutline from "../../../assets/human_muscle_back_outline";
 import formatHexStat from "../../../utils/formatHexStat";
 import MuscleGroupIcon from "../../3_Workout/NewWorkout/SelectExercise/MuscleGroupIcon";
+import {
+    MUSCLE_ICON_HIGHLIGHT,
+    MUSCLE_ICON_HIGHLIGHT_DIM,
+    MUSCLE_ICON_OFFSETS,
+    MUSCLE_ICON_SCALES,
+    MUSCLE_ICON_STROKE_WIDTHS,
+    OVERALL_MUSCLE_SEGMENTS,
+} from "../muscleGroupIconLayout";
 import HexagonalStats from "../UserStats/HexagonalStats";
 import {
     buildMuscleFillMap,
@@ -92,8 +100,6 @@ const POINTER_PANEL_ACCENTS = {
     weight: { r: 214, g: 220, b: 230 },
 };
 const BODYGRAPH_OUTLINE_COLOR = "#40485c";
-const MUSCLE_ICON_HIGHLIGHT = "#ff6f67ff";
-const MUSCLE_ICON_HIGHLIGHT_DIM = "rgba(255, 127, 120, 0.6)";
 
 const accentToRgba = (accent, alpha) => {
     const { r, g, b } = accent;
@@ -2382,7 +2388,6 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
 
     const muscleGroupScores = useMemo(() => {
         const hex = userData?.statsHexagon || {};
-        const overallSegments = ["calves", "quads", "abs", "obliques", "back", "forearms", "arms", "shoulders", "chest", "traps"];
         const groups = [
             { key: "chest", label: "Chest" },
             { key: "shoulders", label: "Shoulders" },
@@ -2390,27 +2395,8 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             { key: "back", label: "Back" },
             { key: "legs", label: "Legs" },
             { key: "abs", label: "Abs" },
-            { key: "overall", label: "Overall", segments: overallSegments },
+            { key: "overall", label: "Overall", segments: OVERALL_MUSCLE_SEGMENTS },
         ];
-        // Apply per-group scaling through the SVG render itself (keeps strokes crisp) instead of view transforms.
-        const iconScales = {
-            shoulders: 2.45,
-            chest: 2.65,
-            arms: 1.7,
-            back: 2.15,
-            abs: 2.8,
-            legs: 2.25,
-            overall: 1.5,
-        };
-        const iconOffsets = {
-            shoulders: scaleSize(70),
-            chest: scaleSize(80),
-            arms: scaleSize(25),
-            back: scaleSize(50),
-            abs: scaleSize(40),
-            legs: scaleSize(-20),
-            overall: scaleSize(10),
-        };
         const resolveHexValue = (key) => {
             const candidates = [hex[key], hex[String(key || "").toLowerCase()]];
             for (let i = 0; i < candidates.length; i += 1) {
@@ -2423,13 +2409,14 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             const raw = resolveHexValue(group.key);
             const display = Number.isFinite(raw) ? formatHexStat(raw) : "--";
             const segments = group.segments || MUSCLE_SEGMENTS[group.key] || [];
-            const iconStrokeWidth = group.key === "back" ? 14 : null;
+            const iconStrokeWidth = MUSCLE_ICON_STROKE_WIDTHS[group.key] || null;
             return {
                 ...group,
                 display,
                 segments,
-                iconScale: iconScales[group.key] || 1,
-                iconOffset: iconOffsets[group.key] || 0,
+                // Scaling is applied through the SVG render itself (keeps strokes crisp) instead of view transforms.
+                iconScale: MUSCLE_ICON_SCALES[group.key] || 1,
+                iconOffset: scaleSize(MUSCLE_ICON_OFFSETS[group.key] || 0),
                 iconStrokeWidth,
             };
         });

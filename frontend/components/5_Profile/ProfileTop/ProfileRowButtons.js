@@ -29,34 +29,26 @@ export default function ProfileRowButtons({ handleEditProfile, handleOpenViewSta
 
 const styles = StyleSheet.create({
     row: {
-        marginHorizontal: scaledSize(5),
-        marginTop: scaledSize(10),
+        marginTop: scaledSize(12),
         flexDirection: "row",
-        justifyContent: "space-around",
-        height: scaledSize(32),
+        gap: scaledSize(8),
+        height: scaledSize(36),
     },
     flex: {
         flex: 1,
     },
     button: {
         paddingHorizontal: scaledSize(20),
-        borderRadius: scaledSize(10),
-        // Increase contrast on Feed/bg: subtle translucent pill + hairline
-        backgroundColor: 'rgba(255,255,255,0.18)',
-        borderWidth: scaledSize(1),
-        borderColor: theme.hairline,
+        borderRadius: scaledSize(12),
+        backgroundColor: theme.surface,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.12)',
         justifyContent: "center",
         alignItems: "center",
-        marginHorizontal: scaledSize(3),
-        shadowColor: '#000',
-        shadowOpacity: 0.12,
-        shadowRadius: scaleSize(6),
-        shadowOffset: { width: 0, height: scaleSize(3) },
-        elevation: 2,
     },
     edit_profile_text: {
-        fontFamily: "Poppins_600SemiBold",
-        fontSize: scaleSize(12.5),
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(14),
         color: '#E5E7EB',
     },
 });

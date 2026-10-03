@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
+import { CalendarCheck, Check, Dumbbell, Target } from "lucide-react-native";
+import Svg, { Circle } from "react-native-svg";
 
 import theme from "../../../theme/mfpDark";
 import { scaleSize } from "../layoutConstants";
@@ -14,8 +16,17 @@ import {
     parseRequirementTask,
     evaluateRequirementProgress,
 } from "../../../../shared/rankProgress.js";
-import RankTierMiniBadge from "../RankTierMiniBadge";
 import LevelUpTransition from "../LevelUpTransition";
+import MuscleGroupIcon from "../../3_Workout/NewWorkout/SelectExercise/MuscleGroupIcon";
+import {
+    MUSCLE_ICON_BASE_SIZE,
+    MUSCLE_ICON_HIGHLIGHT,
+    MUSCLE_ICON_OFFSETS,
+    MUSCLE_ICON_SCALES,
+    MUSCLE_ICON_STROKE_WIDTHS,
+    OVERALL_MUSCLE_SEGMENTS,
+} from "../muscleGroupIconLayout";
+import { DEFAULT_MUSCLE_SEGMENTS } from "../../../utils/muscleTierColors";
 import { dequeueRankPromotion, subscribeRankPromotions, subscribeUserData } from "../../../utils/userDataEvents";
 import { LADDER_SCROLL_TARGET_KEY } from "../../../utils/competitionTabEvents";
 import formatHexStat from "../../../utils/formatHexStat";
@@ -75,6 +86,14 @@ const formatRequirementProgressText = (descriptor, currentValue, targetValue, fa
     return fallback;
 };
 
+// Theme colors are 8-digit hex strings; swap the alpha channel for a 0-1 opacity.
+const withAlpha = (hex, opacity) => {
+    const alpha = Math.round(Math.min(1, Math.max(0, opacity)) * 255)
+        .toString(16)
+        .padStart(2, "0");
+    return `${String(hex).slice(0, 7)}${alpha}`;
+};
+
 const clampRatio = (value) => {
     if (!Number.isFinite(value)) return 0;
     return Math.min(1, Math.max(0, value));
@@ -85,44 +104,88 @@ const capitalizeLabel = (value) => {
     return value.charAt(0).toUpperCase() + value.slice(1);
 };
 
-const renderRequirementLabel = (taskLabel, descriptor, taskComplete, emphasisColor) => {
-    const baseStyle = [styles.requirementCardTitle, taskComplete && styles.requirementTextCompleted];
-    const emphasisStyle = [styles.requirementCardTitleEmphasis, emphasisColor ? { color: emphasisColor } : null];
-
-    if (!descriptor || !descriptor.type) {
-        return <Text style={baseStyle}>{taskLabel}</Text>;
+// Splits a quest into what is measured (title), what to hit (goal), and an icon for its kind.
+const describeRequirement = (taskLabel, descriptor) => {
+    if (descriptor?.type === "score") {
+        const isOverall = descriptor.key === "overall";
+        return {
+            title: isOverall ? "Overall score" : `${capitalizeLabel(descriptor.key)} score`,
+            goal: `Reach ${formatScoreValue(descriptor.target || 0)}`,
+            Icon: Target,
+            muscleKey: MUSCLE_ICON_SCALES[descriptor.key] ? descriptor.key : null,
+        };
     }
-
-    if (descriptor.type === "score") {
-        const bodyLabel = descriptor.key === "overall" ? "Overall" : capitalizeLabel(descriptor.key);
-        const targetNumber = formatScoreValue(descriptor.target || 0);
-        return (
-            <Text style={baseStyle}>
-                Reach <Text style={emphasisStyle}>{targetNumber}+</Text> <Text style={emphasisStyle}>{bodyLabel}</Text>
-            </Text>
-        );
+    if (descriptor?.type === "volume") {
+        return {
+            title: "Total volume",
+            goal: `Lift ${formatWeightValue(descriptor.target || 0)} lbs`,
+            Icon: Dumbbell,
+        };
     }
-
-    if (descriptor.type === "volume") {
-        const weightNumber = formatWeightValue(descriptor.target || 0);
-        return (
-            <Text style={baseStyle}>
-                Lift <Text style={emphasisStyle}>{weightNumber}</Text> lbs Total
-            </Text>
-        );
+    if (descriptor?.type === "workouts") {
+        return {
+            title: "Workouts",
+            goal: `Log ${formatCountValue(descriptor.target || 0)}`,
+            Icon: CalendarCheck,
+        };
     }
-
-    if (descriptor.type === "workouts") {
-        const workoutsNumber = formatCountValue(descriptor.target || 0);
-        return (
-            <Text style={baseStyle}>
-                Log <Text style={emphasisStyle}>{workoutsNumber}</Text> Workouts
-            </Text>
-        );
-    }
-
-    return <Text style={baseStyle}>{taskLabel}</Text>;
+    return { title: taskLabel, goal: "", Icon: Target };
 };
+
+const RING_SIZE = scaleSize(38);
+const RING_STROKE = scaleSize(3);
+const RING_ICON_SIZE = RING_SIZE - 2 * RING_STROKE - scaleSize(3);
+
+// The same zoomed muscle figure as the Progress tab, sized to sit inside a quest ring.
+function QuestMuscleIcon({ muscleKey }) {
+    const segments = muscleKey === "overall" ? OVERALL_MUSCLE_SEGMENTS : DEFAULT_MUSCLE_SEGMENTS[muscleKey] || [];
+    const offset = ((MUSCLE_ICON_OFFSETS[muscleKey] || 0) * RING_ICON_SIZE) / MUSCLE_ICON_BASE_SIZE;
+    return (
+        <View style={styles.questMuscleIcon}>
+            <View style={[styles.questMuscleIconZoom, { marginTop: offset }]}>
+                <MuscleGroupIcon
+                    segments={segments}
+                    strokeWidth={MUSCLE_ICON_STROKE_WIDTHS[muscleKey] || null}
+                    highlightColor={MUSCLE_ICON_HIGHLIGHT}
+                    scale={MUSCLE_ICON_SCALES[muscleKey] || 1}
+                />
+            </View>
+        </View>
+    );
+}
+
+function QuestRing({ ratio, color, trackColor, children }) {
+    const radius = (RING_SIZE - RING_STROKE) / 2;
+    const circumference = 2 * Math.PI * radius;
+    return (
+        <View style={styles.questRing}>
+            <Svg width={RING_SIZE} height={RING_SIZE} style={StyleSheet.absoluteFill}>
+                <Circle
+                    cx={RING_SIZE / 2}
+                    cy={RING_SIZE / 2}
+                    r={radius}
+                    stroke={trackColor}
+                    strokeWidth={RING_STROKE}
+                    fill="none"
+                />
+                {ratio > 0 && (
+                    <Circle
+                        cx={RING_SIZE / 2}
+                        cy={RING_SIZE / 2}
+                        r={radius}
+                        stroke={color}
+                        strokeWidth={RING_STROKE}
+                        strokeLinecap="round"
+                        strokeDasharray={`${circumference * ratio} ${circumference}`}
+                        fill="none"
+                        transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
+                    />
+                )}
+            </Svg>
+            {children}
+        </View>
+    );
+}
 
 function ExercisesSection({ onScroll, scrollSignal = 0 }) {
     const insets = useSafeAreaInsets();
@@ -137,7 +200,6 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
     const [levelUpQueue, setLevelUpQueue] = useState([]);
     const scrollViewRef = useRef(null);
     const cardLayoutsRef = useRef({});
-    const rankCardHeightsRef = useRef({});
     const [scrollContainerHeight, setScrollContainerHeight] = useState(0);
     const [contentHeight, setContentHeight] = useState(0);
 
@@ -241,8 +303,8 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                 return;
             }
 
-            const rankCardHeight = rankCardHeightsRef.current[targetKey] || 0;
-            const desiredOffset = cardBottom - viewportAnchor - scrollContainerHeight + rankCardHeight;
+            // Rest the target rank card just above the footer so its quest panel sits in view above it.
+            const desiredOffset = cardBottom - viewportAnchor;
             const targetOffset = Math.max(0, Math.min(maxOffset, desiredOffset));
             try {
                 scrollView.scrollTo({ y: targetOffset, animated: options.animated });
@@ -370,123 +432,143 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                             onLayout={(event) => handleCardLayout(entry.key, event?.nativeEvent?.layout)}
                         >
                             <View style={cardShouldDim ? styles.dimmedCard : null}>
-                                <View
-                                    onLayout={(event) => {
-                                        const h = event?.nativeEvent?.layout?.height || 0;
-                                        if (h > 0) rankCardHeightsRef.current[entry.key] = h;
-                                    }}
-                                >
-                                    <FeedSnapshotCard
-                                        rankTier={entry.rankTier}
-                                        rankLabel={entry.rankLabel}
-                                        rankLevel={entry.rankLevel}
-                                        showRankTabs={false}
-                                        forceTabKey="rank"
-                                        enableRankAnimations={entryIsCurrent}
-                                        overallRating={showOverallRating ? userOverallScore : null}
-                                        showOverallRating={showOverallRating}
-                                        pendingRequirementsCount={currentPendingQuests}
-                                    />
-                                </View>
+                                <FeedSnapshotCard
+                                    rankTier={entry.rankTier}
+                                    rankLabel={entry.rankLabel}
+                                    rankLevel={entry.rankLevel}
+                                    showRankTabs={false}
+                                    forceTabKey="rank"
+                                    enableRankAnimations={entryIsCurrent}
+                                    overallRating={showOverallRating ? userOverallScore : null}
+                                    showOverallRating={showOverallRating}
+                                    pendingRequirementsCount={currentPendingQuests}
+                                    eyebrowLabel={entryIsCurrent ? "Current rank" : null}
+                                />
                             </View>
-                            {hasRequirements && (
-                                <View
-                                    style={[
-                                        styles.requirementCardsColumn,
-                                        shouldDimRequirementsBlock && styles.dimmedCard,
-                                    ]}
-                                >
-                                    {tasksToRender.map((taskStatus, requirementIndex) => {
-                                        const themeKey = promotionThemeKey || entry.rankTier;
-                                        const themeColors = CARD_THEME_COLORS[themeKey] || CARD_THEME_COLORS.gold;
-                                        const taskLabel = taskStatus?.label || "";
-                                        const descriptor = taskStatus?.descriptor || null;
-                                        const taskComplete = !!taskStatus?.complete;
-                                        const progressRatio = clampRatio(
-                                            typeof taskStatus?.ratio === "number"
-                                                ? taskStatus.ratio
-                                                : taskComplete
-                                                ? 1
-                                                : 0
-                                        );
-                                        const progressText = formatRequirementProgressText(
-                                            descriptor,
-                                            taskStatus?.currentValue,
-                                            descriptor?.target,
-                                            taskComplete ? "Completed" : "In progress"
-                                        );
-                                        const statusLabel = taskComplete ? "Completed" : "In Progress";
-                                        const fillColor = themeColors.accent;
-                                        const fillPercent = Math.min(
-                                            100,
-                                            Math.max(0, Math.round(progressRatio * 100))
-                                        );
-                                        const badgeContent = taskComplete ? (
-                                            <RankTierMiniBadge tier={promotionThemeKey} level="III" size={scaleSize(34)} />
-                                        ) : (
+                            {hasRequirements && (() => {
+                                const themeColors =
+                                    CARD_THEME_COLORS[promotionThemeKey || entry.rankTier] || CARD_THEME_COLORS.gold;
+                                const completedCount = tasksToRender.filter((task) => task?.complete).length;
+                                return (
+                                    <View
+                                        style={[
+                                            styles.questPanel,
+                                            { borderColor: withAlpha(themeColors.accent, 0.22) },
+                                            shouldDimRequirementsBlock && styles.dimmedCard,
+                                        ]}
+                                    >
+                                        <LinearGradient
+                                            colors={[withAlpha(themeColors.gradient[1], 0.2), withAlpha(themeColors.gradient[1], 0)]}
+                                            style={styles.questPanelGlow}
+                                            pointerEvents="none"
+                                        />
+                                        <View style={styles.questPanelHeader}>
+                                            <View>
+                                                <Text style={styles.questPanelEyebrow}>
+                                                    {requirementsCompleted ? "Unlocked" : "Next rank"}
+                                                </Text>
+                                                <Text style={styles.questPanelTitle}>
+                                                    Reach <Text style={{ color: themeColors.accent }}>{entry.rankLabel}</Text>
+                                                </Text>
+                                            </View>
                                             <View
                                                 style={[
-                                                    styles.requirementOutlineBadge,
-                                                    { borderColor: themeColors.accent },
+                                                    styles.questCountPill,
+                                                    { backgroundColor: withAlpha(themeColors.accent, 0.14) },
                                                 ]}
-                                            />
-                                        );
-                                        return (
-                                            <View key={`${entry.key}-requirement-${requirementIndex}`} style={styles.requirementCardWrapper}>
-                                                <LinearGradient colors={themeColors.gradient} style={styles.requirementCard}>
-                                                    <View style={styles.requirementCardRow}>
-                                                        <View style={styles.requirementBadge}>
-                                                            {badgeContent}
+                                            >
+                                                <Text style={[styles.questCountText, { color: themeColors.accent }]}>
+                                                    {completedCount} of {tasksToRender.length}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        <View style={styles.questSegments}>
+                                            {tasksToRender.map((taskStatus, segmentIndex) => (
+                                                <View
+                                                    key={`${entry.key}-segment-${segmentIndex}`}
+                                                    style={[
+                                                        styles.questSegment,
+                                                        taskStatus?.complete && { backgroundColor: themeColors.accent },
+                                                    ]}
+                                                />
+                                            ))}
+                                        </View>
+                                        <View style={styles.questList}>
+                                            {tasksToRender.map((taskStatus, requirementIndex) => {
+                                                const descriptor = taskStatus?.descriptor || null;
+                                                const taskComplete = !!taskStatus?.complete;
+                                                const progressRatio = clampRatio(
+                                                    typeof taskStatus?.ratio === "number"
+                                                        ? taskStatus.ratio
+                                                        : taskComplete
+                                                        ? 1
+                                                        : 0
+                                                );
+                                                const progressText = formatRequirementProgressText(
+                                                    descriptor,
+                                                    taskStatus?.currentValue,
+                                                    descriptor?.target,
+                                                    ""
+                                                );
+                                                const [currentText, targetText] = progressText.split(" / ");
+                                                const { title, goal, Icon, muscleKey } = describeRequirement(
+                                                    taskStatus?.label || "",
+                                                    descriptor
+                                                );
+                                                const QuestIcon = taskComplete ? Check : Icon;
+                                                return (
+                                                    <View
+                                                        key={`${entry.key}-requirement-${requirementIndex}`}
+                                                        style={[
+                                                            styles.questTile,
+                                                            taskComplete && {
+                                                                backgroundColor: withAlpha(themeColors.accent, 0.1),
+                                                            },
+                                                        ]}
+                                                    >
+                                                        <QuestRing
+                                                            ratio={progressRatio}
+                                                            color={themeColors.accent}
+                                                            trackColor={withAlpha(themeColors.accent, 0.16)}
+                                                        >
+                                                            {muscleKey && !taskComplete ? (
+                                                                <QuestMuscleIcon muscleKey={muscleKey} />
+                                                            ) : (
+                                                                <QuestIcon
+                                                                    size={scaleSize(17)}
+                                                                    color={themeColors.accent}
+                                                                    strokeWidth={taskComplete ? 3 : 2}
+                                                                />
+                                                            )}
+                                                        </QuestRing>
+                                                        <View style={styles.questText}>
+                                                            <Text style={styles.questTitle} numberOfLines={1}>
+                                                                {title}
+                                                            </Text>
+                                                            {!!goal && (
+                                                                <Text style={styles.questGoal} numberOfLines={1}>
+                                                                    {goal}
+                                                                </Text>
+                                                            )}
                                                         </View>
-                                                        <View style={styles.requirementTextContainer}>
-                                                            {renderRequirementLabel(taskLabel, descriptor, taskComplete, themeColors.accent)}
-                                                        </View>
-                                                        <View
+                                                        <Text
                                                             style={[
-                                                                styles.requirementStatusBadge,
-                                                                taskComplete
-                                                                    ? [
-                                                                          styles.requirementStatusBadgeDone,
-                                                                          { backgroundColor: themeColors.accent, borderColor: themeColors.accent },
-                                                                      ]
-                                                                    : [
-                                                                          styles.requirementStatusBadgeActive,
-                                                                          { borderColor: themeColors.accent },
-                                                                      ],
+                                                                styles.questValue,
+                                                                taskComplete && { color: themeColors.accent },
                                                             ]}
                                                         >
-                                                            <Text
-                                                                style={[
-                                                                    styles.requirementStatusIcon,
-                                                                    taskComplete
-                                                                        ? styles.requirementStatusIconDone
-                                                                        : { color: themeColors.accent },
-                                                                ]}
-                                                            >
-                                                                {statusLabel}
-                                                            </Text>
-                                                    </View>
-                                                    </View>
-                                                    <View style={styles.requirementProgressTrack}>
-                                                        <View
-                                                            style={[
-                                                                styles.requirementProgressFill,
-                                                                {
-                                                                    width: `${fillPercent}%`,
-                                                                    backgroundColor: fillColor,
-                                                                },
-                                                            ]}
-                                                        />
-                                                        <Text style={styles.requirementProgressText}>
-                                                            {progressText}
+                                                            {taskComplete ? "Done" : currentText}
+                                                            {!!targetText && !taskComplete && (
+                                                                <Text style={styles.questValueTarget}> / {targetText}</Text>
+                                                            )}
                                                         </Text>
                                                     </View>
-                                                </LinearGradient>
-                                            </View>
-                                        );
-                                    })}
-                                </View>
-                            )}
+                                                );
+                                            })}
+                                        </View>
+                                    </View>
+                                );
+                            })()}
                         </View>
                     );
                 })}
@@ -519,118 +601,125 @@ const styles = StyleSheet.create({
         marginTop: scaleSize(8),
     },
     dimmedCard: {
-        opacity: 0.18,
+        opacity: 0.4,
     },
-    requirementCardsColumn: {
+    questPanel: {
         marginTop: scaleSize(14),
-    },
-    requirementCardWrapper: {
-        marginBottom: scaleSize(14),
-        borderRadius: scaleSize(18),
+        marginBottom: scaleSize(18),
+        marginHorizontal: scaleSize(14),
+        borderRadius: scaleSize(20),
+        borderWidth: 1,
+        backgroundColor: theme.surface,
         overflow: "hidden",
-        shadowColor: "#000000",
-        shadowOpacity: 0.25,
-        shadowOffset: { width: 0, height: scaleSize(5) },
-        shadowRadius: scaleSize(8),
     },
-    requirementCard: {
-        borderRadius: scaleSize(18),
-        paddingVertical: scaleSize(14),
-        paddingHorizontal: scaleSize(16),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.2)",
-    },
-    requirementCardRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: scaleSize(12),
-    },
-    requirementBadge: {
-        width: scaleSize(34),
-        height: scaleSize(34),
-        alignItems: "center",
-        justifyContent: "center",
-        marginRight: scaleSize(2),
-    },
-    requirementOutlineBadge: {
-        width: scaleSize(32),
-        height: scaleSize(32),
-        borderRadius: scaleSize(16),
-        borderWidth: scaleSize(2.2),
-        backgroundColor: "transparent",
-    },
-    requirementTextContainer: {
-        flex: 1,
-        paddingHorizontal: scaleSize(6),
-        justifyContent: "center",
-    },
-    requirementCardTitle: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(13.5),
-        color: "#ffffff",
-        letterSpacing: 0.5,
-    },
-    requirementCardTitleEmphasis: {
-        fontFamily: "Outfit_900Black",
-        fontSize: scaleSize(13),
-    },
-    requirementStatusBadge: {
-        paddingHorizontal: scaleSize(12),
-        minHeight: scaleSize(28),
-        paddingVertical: scaleSize(5),
-        minWidth: scaleSize(96),
-        borderRadius: scaleSize(14),
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: scaleSize(1),
-        borderColor: "rgba(255,255,255,0.35)",
-        backgroundColor: "rgba(0,0,0,0.25)",
-        alignSelf: "center",
-    },
-    requirementStatusBadgeDone: {
-        backgroundColor: theme.primary,
-    },
-    requirementStatusBadgeActive: {
-        backgroundColor: "rgba(255,255,255,0.15)",
-    },
-    requirementStatusIcon: {
-        fontFamily: "Outfit_800ExtraBold",
-        fontSize: scaleSize(10),
-        color: "#ffffff",
-        letterSpacing: 0.2,
-        textTransform: "uppercase",
-        textAlign: "center",
-        lineHeight: scaleSize(12),
-    },
-    requirementStatusIconDone: {
-        color: "#0a0a0a",
-    },
-    requirementProgressTrack: {
-        height: scaleSize(22),
-        borderRadius: scaleSize(12),
-        backgroundColor: "rgba(0,0,0,0.35)",
-        overflow: "hidden",
-        justifyContent: "center",
-        alignItems: "center",
-        alignSelf: "stretch",
-        width: "100%",
-        marginTop: scaleSize(4),
-    },
-    requirementProgressFill: {
+    questPanelGlow: {
         position: "absolute",
         left: 0,
+        right: 0,
         top: 0,
-        bottom: 0,
+        height: scaleSize(72),
+    },
+    questPanelHeader: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: scaleSize(16),
+        paddingTop: scaleSize(16),
+        paddingBottom: scaleSize(12),
+    },
+    questPanelEyebrow: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(10.5),
+        color: theme.textSecondary,
+        letterSpacing: 1.2,
+        textTransform: "uppercase",
+        marginBottom: scaleSize(3),
+    },
+    questPanelTitle: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(18),
+        color: theme.textPrimary,
+    },
+    questCountPill: {
+        paddingHorizontal: scaleSize(11),
+        paddingVertical: scaleSize(5),
         borderRadius: scaleSize(12),
     },
-    requirementProgressText: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(11),
-        color: "#0a0a0a",
-        textAlign: "center",
+    questCountText: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(12),
+        fontVariant: ["tabular-nums"],
     },
-    requirementTextCompleted: {
-        color: "#ffffff",
+    questSegments: {
+        flexDirection: "row",
+        gap: scaleSize(5),
+        paddingHorizontal: scaleSize(16),
+    },
+    questSegment: {
+        flex: 1,
+        height: scaleSize(4),
+        borderRadius: scaleSize(2),
+        backgroundColor: "rgba(255,255,255,0.1)",
+    },
+    questList: {
+        padding: scaleSize(10),
+        paddingTop: scaleSize(12),
+        gap: scaleSize(6),
+    },
+    questTile: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: scaleSize(7),
+        paddingHorizontal: scaleSize(10),
+        borderRadius: scaleSize(13),
+        backgroundColor: "rgba(255,255,255,0.045)",
+    },
+    questRing: {
+        width: RING_SIZE,
+        height: RING_SIZE,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    questMuscleIcon: {
+        width: RING_ICON_SIZE,
+        height: RING_ICON_SIZE,
+        borderRadius: RING_ICON_SIZE / 2,
+        overflow: "hidden",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    questMuscleIconZoom: {
+        width: "100%",
+        height: "100%",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    questText: {
+        flex: 1,
+        paddingHorizontal: scaleSize(10),
+    },
+    questTitle: {
+        fontFamily: "Outfit_600SemiBold",
+        fontSize: scaleSize(14),
+        lineHeight: scaleSize(17),
+        color: theme.textPrimary,
+    },
+    questGoal: {
+        fontFamily: "Outfit_400Regular",
+        fontSize: scaleSize(12),
+        lineHeight: scaleSize(15),
+        color: theme.textSecondary,
+    },
+    questValue: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(15),
+        color: theme.textPrimary,
+        fontVariant: ["tabular-nums"],
+    },
+    questValueTarget: {
+        fontFamily: "Outfit_400Regular",
+        fontSize: scaleSize(12),
+        color: theme.muted,
     },
 });
 

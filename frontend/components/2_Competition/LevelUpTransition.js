@@ -493,9 +493,6 @@ const styles = StyleSheet.create({
     },
     cardWrap: {
         width: Math.min(DEVICE_WIDTH - scaleSize(16), scaleSize(460)),
-        borderRadius: scaleSize(18),
-        overflow: "hidden",
-        backgroundColor: "rgba(5,7,13,0.65)",
         shadowOpacity: 0.4,
         shadowOffset: { width: 0, height: scaleSize(10) },
         shadowRadius: scaleSize(18),

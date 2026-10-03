@@ -49,22 +49,22 @@ export default function NutritionSummaryCard({ totals, goals, COLORS }) {
 
 const makeStyles = (COLORS) =>
     StyleSheet.create({
-        // Full-width row style to match meals
+        // Inset rounded card to match the meal groups
         card: {
             backgroundColor: COLORS.card,
-            borderRadius: 0,
-            paddingTop: scaleSize(10),
-            paddingBottom: scaleSize(10),
-            paddingLeft: scaleSize(24),
-            paddingRight: scaleSize(26),
+            borderRadius: scaleSize(20),
+            marginHorizontal: scaleSize(14),
+            paddingTop: scaleSize(12),
+            paddingBottom: scaleSize(12),
+            paddingLeft: scaleSize(14),
+            paddingRight: scaleSize(18),
             marginBottom: scaleSize(8),
-            borderTopWidth: StyleSheet.hairlineWidth,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderColor: COLORS.hairline,
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.07)',
             shadowOpacity: 0,
             elevation: 0,
         },
-        row: { flexDirection: 'row', gap: scaleSize(18), alignItems: 'center' },
+        row: { flexDirection: 'row', gap: scaleSize(14), alignItems: 'center' },
         // Center the ring vertically alongside the macro bars
         progressContainer: { marginRight: scaleSize(0), justifyContent: 'center', alignItems: 'center' },
         center: { alignItems: 'center', justifyContent: 'center', marginTop: scaleSize(2) },

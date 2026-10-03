@@ -1,21 +1,19 @@
 import React, { useEffect, useRef } from "react";
-import { StyleSheet, View, Text, Dimensions, Pressable } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import FastImage from 'react-native-fast-image';
 import { usePfp } from "../../../helper/usePFPs";
 import { resolvePhotoURL } from "../../../utils/profilePhoto";
 import theme from '../../../theme/mfpDark';
-import { withStrongPress } from "../../../utils/haptics";
 import DismissableTextInput from "../../common/DismissableTextInput";
-import formatHexStat from "../../../utils/formatHexStat";
+import ProfileIdentity, { PROFILE_AVATAR_SIZE } from "./ProfileIdentity";
 
-const { height: screenHeight } = Dimensions.get('window');
 const scaledSize = (size) => scaleSize(size);
 const PFP_RADIUS_FACTOR = 22.5 / 54;
 const PFP_RING_PADDING_FACTOR = 2.25 / 54;
 const PFP_RING_BORDER_FACTOR = 3 / 54;
 const PFP_RING_RADIUS_FACTOR = 26.5 / (54 + 2 * 2.25);
-const PFP_SIZE = scaledSize(64);
+const PFP_SIZE = PROFILE_AVATAR_SIZE;
 const PFP_RADIUS = Math.round(PFP_SIZE * PFP_RADIUS_FACTOR);
 const PFP_RING_PADDING = Math.round(PFP_SIZE * PFP_RING_PADDING_FACTOR);
 const PFP_RING_BORDER = Math.round(PFP_SIZE * PFP_RING_BORDER_FACTOR);
@@ -39,20 +37,10 @@ export default function ProfileInfo({
     // Derive counts from array lengths for accuracy
     const followersCount = Array.isArray(userData?.followers) ? userData.followers.length : 0;
     const followingCount = Array.isArray(userData?.following) ? userData.following.length : 0;
-    const overallLabel = `${formatHexStat(userData?.statsHexagon?.overall)} overall`;
     const bioDraft = typeof bioValue === "string" ? bioValue : String(bioValue ?? "");
     const trimmedBio = bioDraft.trim();
     const bioText = trimmedBio.length > 0 ? trimmedBio : 'No bio yet...';
     const bioInputRef = useRef(null);
-    const displayName = (() => {
-        const direct = typeof userData?.name === 'string' ? userData.name.trim() : '';
-        if (direct) return direct;
-        const fallback = typeof userData?.displayName === 'string' ? userData.displayName.trim() : '';
-        if (fallback) return fallback;
-        const handle = typeof userData?.handle === 'string' ? userData.handle.trim() : '';
-        return handle || 'New User';
-    })();
-
     useEffect(() => {
         if (!isEditingBio) return undefined;
         const timer = setTimeout(() => {
@@ -75,72 +63,38 @@ export default function ProfileInfo({
         </View>
     );
 
+    const bio = isEditingBio ? (
+        <DismissableTextInput
+            ref={bioInputRef}
+            style={[styles.bio_text, styles.bio_input, isSavingBio && styles.bio_input_disabled]}
+            value={bioDraft}
+            onChangeText={onBioChange}
+            editable={!isSavingBio}
+            multiline
+            placeholder="No bio yet..."
+            placeholderTextColor={theme.muted}
+            onSubmitEditing={onBioSubmit}
+            onBlur={onBioSubmit}
+            returnKeyType="done"
+            blurOnSubmit
+        />
+    ) : (
+        <Text style={[styles.bio_text, trimmedBio.length === 0 && styles.bio_placeholder_text]}>{bioText}</Text>
+    );
+
     return (
-        <View style={styles.main_ctnr}>
-            <View style={styles.top_row}>
-                <Pressable style={styles.followers_stat_ctnr} onPress={withStrongPress(onPressFollowers)} hitSlop={8}>
-                    <Text style={styles.user_stat_count_text}>{followersCount}</Text>
-                    <Text style={styles.user_stat_text}>Followers</Text>
-                </Pressable>
-                <View style={styles.pfp_ctnr}>{renderPfpImage()}</View>
-                <Pressable style={styles.following_stat_ctnr} onPress={withStrongPress(onPressFollowing)} hitSlop={8}>
-                    <Text style={styles.user_stat_count_text}>{followingCount}</Text>
-                    <Text style={styles.user_stat_text}>Following</Text>
-                </Pressable>
-            </View>
-            <View style={styles.profile_info_ctnr}>
-                <View style={styles.name_and_score_ctnr}>
-                    <Text style={styles.name_text}>{displayName}</Text>
-                    <View style={styles.border_line}></View>
-                    <Text style={styles.score_text}>{overallLabel}</Text>
-                </View>
-                <View style={styles.bio_ctnr}>
-                    {isEditingBio ? (
-                        <DismissableTextInput
-                            ref={bioInputRef}
-                            style={[
-                                styles.bio_text,
-                                styles.bio_input,
-                                isSavingBio && styles.bio_input_disabled,
-                                trimmedBio.length === 0 && styles.bio_placeholder_text,
-                            ]}
-                            value={bioDraft}
-                            onChangeText={onBioChange}
-                            editable={!isSavingBio}
-                            multiline
-                            placeholder="No bio yet..."
-                            placeholderTextColor={theme.textSecondary}
-                            onSubmitEditing={onBioSubmit}
-                            onBlur={onBioSubmit}
-                            returnKeyType="done"
-                            blurOnSubmit
-                        />
-                    ) : (
-                        <Text style={[styles.bio_text, trimmedBio.length === 0 && styles.bio_placeholder_text]}>{bioText}</Text>
-                    )}
-                </View>
-            </View>
-        </View>
+        <ProfileIdentity
+            avatar={renderPfpImage()}
+            bio={bio}
+            followersCount={followersCount}
+            followingCount={followingCount}
+            onPressFollowers={onPressFollowers}
+            onPressFollowing={onPressFollowing}
+        />
     );
 }
 
 const styles = StyleSheet.create({
-    main_ctnr: {
-        marginTop: scaleSize(5),
-        marginBottom: scaledSize(5),
-    },
-    top_row: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    pfp_ctnr: {
-        marginHorizontal: scaledSize(12),
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'relative',
-        paddingBottom: scaledSize(8),
-    },
     pfp_ring: {
         borderWidth: PFP_RING_BORDER,
         borderRadius: PFP_RING_RADIUS,
@@ -152,65 +106,14 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
         borderRadius: PFP_RADIUS,
     },
-    followers_stat_ctnr: {
-        alignItems: 'flex-end',
-    },
-    following_stat_ctnr: {
-        alignItems: 'flex-start',
-    },
-    user_stat_count_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(17),
-        color: '#E5E7EB',
-        paddingBottom: scaledSize(1),
-    },
-    user_stat_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(14.5),
-        color: '#A5ACB8',
-    },
-    profile_info_ctnr: {
-        alignItems: 'center',
-    },
-    name_and_score_ctnr: {
-        marginTop: scaledSize(14),
-        flexDirection: 'row',
-        paddingBottom: scaledSize(3.5),
-        width: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    border_line: {
-        height: '60%',
-        alignSelf: 'center',
-        borderWidth: scaledSize(1),
-        marginHorizontal: scaledSize(10),
-        borderColor: require('../../../theme/mfpDark').default.hairline,
-    },
-    name_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(16),
-        flex: 1,
-        textAlign: 'right',
-        color: '#F1F5F9',
-    },
-    score_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(16),
-        color: '#0499FE',
-        flex: 1,
-        textAlign: 'left',
-    },
-    bio_ctnr: { marginTop: scaledSize(2) },
     bio_text: {
         // Make bio visually distinct from handle: lighter weight, softer color
         fontFamily: 'Outfit_400Regular',
-        fontSize: scaleSize(13),
+        fontSize: scaleSize(13.5),
         color: theme.textSecondary,
-        lineHeight: scaledSize(17),
+        lineHeight: scaledSize(18),
         letterSpacing: 0.1,
         textAlign: 'center',
-        paddingHorizontal: scaledSize(8),
     },
     bio_input: {
         backgroundColor: 'transparent',
@@ -223,6 +126,6 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     bio_placeholder_text: {
-        color: '#FFFFFF',
+        color: theme.muted,
     },
 });

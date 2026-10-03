@@ -116,26 +116,28 @@ const ProfileContentCards = ({
 };
 
 const CARD_RADIUS = scaleSize(20);
-const CARD_BACKGROUND = 'transparent';
+const CARD_BACKGROUND = '#17171c';
 const CARD_DIVIDER = 'rgba(255, 255, 255, 0.08)';
 
 const styles = StyleSheet.create({
     container: {
         backgroundColor: CARD_BACKGROUND,
-        borderTopWidth: 2,
-        borderBottomWidth: 2,
+        marginHorizontal: scaleSize(14),
+        borderRadius: CARD_RADIUS,
+        borderWidth: 1,
         borderColor: CARD_DIVIDER,
+        overflow: 'hidden',
     },
     card: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: scaleSize(15),
-        paddingHorizontal: scaleSize(18),
+        paddingHorizontal: scaleSize(16),
         backgroundColor: 'transparent',
     },
     cardDivider: {
-        borderBottomWidth: 2,
-        borderBottomColor: CARD_DIVIDER,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: 'rgba(162, 162, 162, 0.28)',
     },
     lastCard: {
         borderBottomWidth: 0,
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         marginRight: scaleSize(14),
-        borderWidth: scaleSize(1),
+        backgroundColor: 'rgba(255, 255, 255, 0.07)',
         // backgroundColor: 'rgba(38, 45, 64, 0.82)',
         // borderColor: 'rgba(168, 188, 224, 0.28)',
         position: 'relative',

@@ -17,7 +17,6 @@ import UserStatsWorkoutViewerScreen from "./UserStatsWorkoutViewerScreen";
 import { styles, COLORS, scaledSize, screenWidth } from "./UserStatsStyles";
 import formatHexStat from "../../../utils/formatHexStat";
 import VerifiedHandle from "../../common/VerifiedHandle";
-import resolveRankTierKey from "../../../utils/resolveRankTierKey";
 import { navigateOneWay } from "../../../../navigationRef";
 import {
     getExercisesGrouped,
@@ -27,8 +26,6 @@ import {
     formatJoinDate,
 } from "./userStatsUtils";
 import UserStatsProgressPreview from "./UserStatsProgressPreview";
-import { RANK_TIER_THEMES } from "../../1_Feed/FeedSnapshotCard";
-import resolveHandleColor from "../../../utils/resolveHandleColor";
 
 // Enable LayoutAnimation on Android
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -117,15 +114,6 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
 
     const statsForViewer = useMemo(() => sanitizeStatsForViewer(user?.statsExercises || {}, user?.uid, viewerUid, viewerData), [user?.statsExercises, user?.uid, viewerUid, viewerData]);
     const userForViewer = useMemo(() => ({ ...user, statsExercises: statsForViewer }), [user, statsForViewer]);
-    const rankTierKey = useMemo(() => resolveRankTierKey(user), [user]);
-    const rankTheme = useMemo(() => {
-        const key = rankTierKey || "bronze";
-        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.bronze;
-    }, [rankTierKey]);
-    const handleColor = useMemo(
-        () => resolveHandleColor(user, { rankTierKey, rankTheme, fallback: styles.handle.color }),
-        [user, rankTierKey, rankTheme]
-    );
 
     const exerciseGroups = useMemo(() => (
         showExercises ? getExercisesGrouped(userForViewer) : []
@@ -511,7 +499,7 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
                         <VerifiedHandle
                             handle={user.handle}
                             isVerified={Boolean(user?.isVerified ?? user?.verified)}
-                            textStyle={[styles.handle, { color: handleColor }]}
+                            textStyle={styles.handle}
                             numberOfLines={1}
                             containerStyle={styles.handleRow}
                             iconSize={scaleSize(18)}

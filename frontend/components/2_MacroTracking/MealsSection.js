@@ -43,7 +43,7 @@ function MealsSection({
                 const list = meals[m.name] ?? [];
                 const mealCalories = Math.round(list.reduce((s, e) => s + (e?.macros?.calories || 0), 0));
                 return (
-                    <React.Fragment key={m.name}>
+                    <View key={m.name} style={styles.mealGroup}>
                         <MealCard
                             item={m}
                             PlusIcon={PlusIcon}
@@ -76,7 +76,7 @@ function MealsSection({
                             ) : null}
                             <Text style={styles.addFoodText}>Add Food</Text>
                         </TouchableOpacity>
-                    </React.Fragment>
+                    </View>
                 );
             })}
         </View>
@@ -108,17 +108,24 @@ const makeStyles = (COLORS) =>
             justifyContent: 'space-between',
         },
         sectionTitle: { fontSize: scaleSize(16), color: COLORS.text, fontFamily: 'Nunito_800ExtraBold' },
-        // Full-width list like MyFitnessPal: no outer horizontal padding,
-        // each row handles its own left/right padding.
+        // Each meal is one inset rounded card; its rows handle their own padding.
+        mealGroup: {
+            marginHorizontal: scaleSize(14),
+            marginTop: scaleSize(12),
+            borderRadius: scaleSize(20),
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.07)',
+            backgroundColor: COLORS.card,
+            overflow: 'hidden',
+        },
         underMealList: { paddingHorizontal: 0, marginTop: 0, marginBottom: 0 },
         underMealCard: {
             borderWidth: 0,
             borderRadius: 0,
             paddingVertical: scaleSize(10),
-            paddingHorizontal: scaleSize(26),
+            paddingHorizontal: scaleSize(18),
             marginVertical: 0,
             borderTopWidth: StyleSheet.hairlineWidth,
-            borderBottomWidth: StyleSheet.hairlineWidth,
             borderColor: COLORS.hairline,
             shadowOpacity: 0,
             elevation: 0,
@@ -126,9 +133,9 @@ const makeStyles = (COLORS) =>
         },
         addFoodRow: {
             paddingVertical: scaleSize(13),
-            paddingHorizontal: scaleSize(26),
+            paddingHorizontal: scaleSize(18),
             backgroundColor: COLORS.card,
-            borderBottomWidth: StyleSheet.hairlineWidth,
+            borderTopWidth: StyleSheet.hairlineWidth,
             borderColor: COLORS.hairline,
             flexDirection: 'row',
             alignItems: 'center',

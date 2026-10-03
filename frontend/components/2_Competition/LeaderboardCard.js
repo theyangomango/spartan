@@ -200,6 +200,8 @@ const styles = StyleSheet.create({
         paddingRight: scaleSize(20),
         marginBottom: scaleSize(10),
         backgroundColor: theme.surface,
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.06)',
     },
     handle_row: {
         maxWidth: width * 0.45,
@@ -210,9 +212,9 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingLeft: scaleSize(14),
         paddingRight: scaleSize(18),
-        borderWidth: scaleSize(2),
-        borderColor: '#57B2FF',
-        backgroundColor: theme.surface,
+        borderWidth: 1,
+        borderColor: theme.primaryHairline,
+        backgroundColor: '#161f2e',
         marginBottom: scaleSize(10),
     },
     card_left: {

@@ -14,9 +14,6 @@ import { strong as hapticStrong } from "../../../utils/haptics";
 import VerifiedHandle from "../../common/VerifiedHandle";
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import theme from "../../../theme/mfpDark";
-import { RANK_TIER_THEMES } from "../FeedSnapshotCard";
-import resolveRankTierKey from "../../../utils/resolveRankTierKey";
-import resolveHandleColor from "../../../utils/resolveHandleColor";
 
 const dynamicStyles = getCommentCardStyles();
 
@@ -108,18 +105,6 @@ export default function CommentCard({
         }
     };
 
-    const rankTierKey = useMemo(() => resolveRankTierKey(data), [data]);
-
-    const rankTheme = useMemo(() => {
-        const key = rankTierKey || "bronze";
-        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.bronze;
-    }, [rankTierKey]);
-
-    const handleColor = useMemo(
-        () => resolveHandleColor(data, { rankTierKey, rankTheme }),
-        [data, rankTierKey, rankTheme]
-    );
-
     return (
         <View style={[styles.card, isReply && styles.replyCard, isFirst && styles.firstCard]}>
             <Pressable onPress={handleNavigateToProfile}>
@@ -139,7 +124,7 @@ export default function CommentCard({
                         <VerifiedHandle
                             handle={data.handle}
                             isVerified={Boolean(data?.isVerified ?? data?.verified)}
-                            textStyle={[styles.handle_text, { color: handleColor }]}
+                            textStyle={styles.handle_text}
                             numberOfLines={1}
                             containerStyle={styles.handle_row}
                         />

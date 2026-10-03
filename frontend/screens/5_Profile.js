@@ -98,13 +98,6 @@ export default function Profile({ navigation }) {
         return unsubscribe;
     }, []);
 
-    function uploadPost() {
-        navigation.navigate('PostOptions', {
-            images: [],
-            userData,
-        });
-    }
-
     const handleEditProfile = useCallback(() => {
         setIsEditProfileBottomSheetVisible(true);
     }, []);
@@ -145,7 +138,6 @@ export default function Profile({ navigation }) {
                 <View style={styles.body_ctnr}>
                     <ProfileHeader
                         userData={userData}
-                        onPressCreateBtn={uploadPost}
                         onPressSettings={() => {
                             try {
                                 const rootNav = navigation?.getParent?.('ROOT');
@@ -240,8 +232,8 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(120),
     },
     body_ctnr: {
-        paddingHorizontal: scaleSize(10),
-        paddingBottom: scaleSize(14),
+        paddingHorizontal: scaleSize(14),
+        paddingBottom: scaleSize(4),
     },
     cards_ctnr: {
         paddingHorizontal: 0,

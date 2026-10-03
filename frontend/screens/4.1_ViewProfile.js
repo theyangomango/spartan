@@ -565,8 +565,8 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(120),
     },
     body_ctnr: {
-        paddingHorizontal: scaleSize(10),
-        paddingBottom: scaleSize(14),
+        paddingHorizontal: scaleSize(14),
+        paddingBottom: scaleSize(4),
     },
     cards_ctnr: {
         paddingHorizontal: 0,

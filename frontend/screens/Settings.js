@@ -169,14 +169,16 @@ export default function Settings({ navigation }) {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.section}>Account & Privacy</Text>
         {/* <Row label={`Units: ${unitsLbs ? 'lb' : 'kg'}`} value={unitsLbs} onValueChange={toggleUnits} /> */}
+        <View style={styles.group}>
         <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('PrivateProfileInfo', { transition: 'slide-from-right' })}>
           <Text style={styles.linkText}>Private profile</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.link} onPress={confirmDelete}>
+        <TouchableOpacity style={[styles.link, styles.linkLast]} onPress={confirmDelete}>
           <Text style={styles.linkText}>Delete account</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
+        </View>
 
         {/* <Text style={styles.section}>Notifications</Text>
         <Row label="Push notifications" value={pushEnabled} onValueChange={togglePush} /> */}
@@ -184,6 +186,7 @@ export default function Settings({ navigation }) {
         {/* Privacy section removed; food/macros privacy toggle removed */}
 
         <Text style={styles.section}>Support</Text>
+        <View style={styles.group}>
         <TouchableOpacity style={styles.link} onPress={() => Linking.openURL('mailto:support@thespartan.app?subject=Spartan%20Support') }>
           <Text style={styles.linkText}>Contact support</Text>
           <Ionicons name="open-outline" size={18} color={theme.textSecondary} />
@@ -196,10 +199,11 @@ export default function Settings({ navigation }) {
           <Text style={styles.linkText}>Privacy Policy</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('Credits', { transition: 'slide-from-right' }) }>
+        <TouchableOpacity style={[styles.link, styles.linkLast]} onPress={() => navigation.navigate('Credits', { transition: 'slide-from-right' }) }>
           <Text style={styles.linkText}>Credits</Text>
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
+        </View>
 
         <View style={{ height: scaleSize(22) }} />
         <TouchableOpacity style={styles.logoutBtn} onPress={logout}>
@@ -228,19 +232,29 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: scaleSize(14), paddingTop: scaleSize(8), paddingBottom: scaleSize(6) },
   iconBtn: { padding: scaleSize(6), width: scaleSize(40) },
   title: { fontFamily: 'Outfit_700Bold', fontSize: scaleSize(18), color: theme.textPrimary },
-  content: { paddingHorizontal: scaleSize(16), paddingTop: scaleSize(10) },
+  content: { paddingHorizontal: scaleSize(14), paddingTop: scaleSize(10) },
   section: {
     marginTop: scaleSize(18),
-    marginBottom: scaleSize(10),
+    marginBottom: scaleSize(8),
+    marginLeft: scaleSize(4),
     fontFamily: 'Outfit_700Bold',
-    fontSize: scaleSize(16),
+    fontSize: scaleSize(11),
     color: theme.textSecondary,
-    letterSpacing: 0.3,
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
   },
+  group: {
+    backgroundColor: theme.surface,
+    borderRadius: scaleSize(20),
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    overflow: 'hidden',
+  },
+  linkLast: { borderBottomWidth: 0 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: scaleSize(12), borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline },
   rowLabel: { fontFamily: 'Outfit_500Medium', fontSize: scaleSize(14), color: theme.textPrimary },
-  link: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: scaleSize(12), borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline },
+  link: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: scaleSize(14), paddingHorizontal: scaleSize(16), borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline },
   linkText: { fontFamily: 'Outfit_500Medium', fontSize: scaleSize(14), color: theme.textPrimary },
-  logoutBtn: { marginTop: scaleSize(10), backgroundColor: 'rgba(185,28,28,0.18)', borderRadius: scaleSize(12), alignItems: 'center', justifyContent: 'center', paddingVertical: scaleSize(12) },
+  logoutBtn: { marginTop: scaleSize(10), backgroundColor: 'rgba(185,28,28,0.18)', borderRadius: scaleSize(16), borderWidth: 1, borderColor: 'rgba(252,165,165,0.22)', alignItems: 'center', justifyContent: 'center', paddingVertical: scaleSize(13) },
   logoutText: { fontFamily: 'Outfit_700Bold', color: '#FCA5A5' },
 });

@@ -1542,13 +1542,15 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
                 <FeedSnapshotCard
                     onPressOverall={handleOpenUserStats}
                     onPressCard={handleOpenLadder}
-                    onPressBodyCard={handleOpenProgress}
                     rankTier={snapshotRankTier}
                     rankLabel={snapshotRankLabel}
                     rankLevel={snapshotRankLevel}
                     overallRating={userOverallScore}
                     showOverallRating={userOverallScore != null}
                     pendingRequirementsCount={pendingQuestsCount}
+                    eyebrowLabel="Your rank"
+                    showRankTabs={false}
+                    forceTabKey="rank"
                 />
             </View>
         ),
@@ -1825,6 +1827,7 @@ const styles = StyleSheet.create({
         paddingVertical: scaleSize(24),
     },
     snapshotCardContainer: {
+        marginTop: scaleSize(6),
         marginBottom: scaleSize(18),
     },
     createPostButton: {

@@ -25,7 +25,7 @@ const BAR_WIDTH = scaleSize(86);
 const FONT_HANDLE = ts(15);
 const FONT_BAR = ts(27);
 
-const BAR_RADIUS = scaleSize(10);
+const BAR_RADIUS = scaleSize(16);
 const BAR_MARGIN_H = scaleSize(18);
 
 const HANDLE_PT = scaleSize(5);
@@ -34,6 +34,26 @@ const HANDLE_MT = scaleSize(-1);
 const BAR_TEXT_PT = scaleSize(6);
 
 const AnimatedLinearGradient = Animated.createAnimatedComponent(LinearGradient);
+
+// Medal tints sit on the dark card surface instead of filling the bar.
+const MEDAL_COLORS = {
+    gold: { r: 255, g: 200, b: 61 },
+    silver: { r: 216, g: 223, b: 234 },
+    bronze: { r: 255, g: 149, b: 85 },
+};
+const medalRgba = ({ r, g, b }, alpha) => `rgba(${r}, ${g}, ${b}, ${alpha})`;
+
+function PodiumBar({ medal, height, place }) {
+    const color = MEDAL_COLORS[medal];
+    return (
+        <LinearGradient
+            colors={[medalRgba(color, 0.42), medalRgba(color, 0.06)]}
+            style={[styles.bar_ctnr, { height, width: BAR_WIDTH, borderColor: medalRgba(color, 0.5) }]}
+        >
+            <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR, color: medalRgba(color, 1) }]}>{place}</Text>
+        </LinearGradient>
+    );
+}
 
 export default function Podium({ data, topOffset = 0 }) {
     // Subtle animated drift for blue streaks
@@ -181,10 +201,7 @@ export default function Podium({ data, topOffset = 0 }) {
                             )}
                         </View>
                     )}
-                    <View style={[styles.bar_ctnr, styles.silver_ctnr, { height: BAR_HEIGHT_LEFT, width: BAR_WIDTH }]}>
-                        {/* Unified number color for all bars */}
-                        <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR }]}>2</Text>
-                    </View>
+                    <PodiumBar medal="silver" height={BAR_HEIGHT_LEFT} place={2} />
                 </View>
 
                 {/* Center */}
@@ -211,9 +228,7 @@ export default function Podium({ data, topOffset = 0 }) {
                             )}
                         </View>
                     )}
-                    <View style={[styles.bar_ctnr, styles.gold_ctnr, { height: BAR_HEIGHT_CENTER, width: BAR_WIDTH }]}>
-                        <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR }]}>1</Text>
-                    </View>
+                    <PodiumBar medal="gold" height={BAR_HEIGHT_CENTER} place={1} />
                 </View>
 
                 {/* Right */}
@@ -240,9 +255,7 @@ export default function Podium({ data, topOffset = 0 }) {
                             )}
                         </View>
                     )}
-                    <View style={[styles.bar_ctnr, styles.bronze_ctnr, { height: BAR_HEIGHT_RIGHT, width: BAR_WIDTH }]}>
-                        <Text style={[styles.bar_text_unified, { fontSize: FONT_BAR }]}>3</Text>
-                    </View>
+                    <PodiumBar medal="bronze" height={BAR_HEIGHT_RIGHT} place={3} />
                 </View>
             </View>
         </View>
@@ -302,15 +315,15 @@ const styles = StyleSheet.create({
         borderTopRightRadius: BAR_RADIUS,
         marginHorizontal: BAR_MARGIN_H,
         marginTop: scaleSize(3),
-        alignItems: 'center'
+        alignItems: 'center',
+        backgroundColor: theme.surface,
+        borderWidth: 1,
+        borderBottomWidth: 0,
+        overflow: 'hidden',
     },
     left: { alignItems: 'center', width: '28.5%' },
     center: { alignItems: 'center', width: '28.5%' },
     right: { alignItems: 'center', width: '28.5%' },
-    // Slightly richer tones that sit better on dark
-    silver_ctnr: { backgroundColor: '#D8DFEA' },
-    gold_ctnr: { backgroundColor: '#FFC83D' },
-    bronze_ctnr: { backgroundColor: '#FF9555' },
     pfp_ctnr: {
         aspectRatio: 1,
         borderRadius: scaleSize(54),

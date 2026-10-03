@@ -10,7 +10,8 @@ import formatHexStat from "../../utils/formatHexStat";
 import { strong as triggerStrongHaptic } from "../../utils/haptics";
 import HumanMuscleOutline from "../../assets/human_muscle_outline";
 import HumanMuscleBackOutline from "../../assets/human_muscle_back_outline";
-import { deriveBadgeDetailColors, resolveLevelStage, withAlpha } from "../2_Competition/rankBadgeLevelHelpers";
+import { resolveLevelStage, withAlpha } from "../2_Competition/rankBadgeLevelHelpers";
+import RankBadgeEmblem from "../2_Competition/RankBadgeEmblem";
 import { buildMuscleFillMap, DEFAULT_MUSCLE_SEGMENTS as MUSCLE_SEGMENTS } from "../../utils/muscleTierColors";
 
 const RANK_TAB_CONFIG = [
@@ -34,6 +35,28 @@ const RANK_TAB_CONFIG = [
 ];
 
 const scaled = (value) => scaleSize(value);
+
+// A looped Animated.sequence restarts every step from JS, which costs a bridge call per step.
+// Each cycle is baked into a single timing's easing curve instead, so the native driver can
+// run the whole loop on its own.
+const easeOutCubic = Easing.out(Easing.cubic);
+const easeInOutCubic = Easing.inOut(Easing.cubic);
+
+const BADGE_PULSE_CYCLE_MS = 1400;
+// Rises 0 -> 1 over the first half of the cycle and falls back to 0 over the second.
+const badgePulseEasing = (t) => (t < 0.5 ? easeInOutCubic(t * 2) : 1 - easeInOutCubic((t - 0.5) * 2));
+
+const getParticleCycleMs = ({ delay, duration, cooldown }) => delay + duration + cooldown;
+// One particle cycle: wait out the delay at 0, burst to 1, then hold at 1 through the cooldown.
+const makeParticleCycleEasing = (particle) => {
+    const cycleMs = getParticleCycleMs(particle);
+    return (t) => {
+        const elapsed = t * cycleMs;
+        if (elapsed <= particle.delay) return 0;
+        if (elapsed >= particle.delay + particle.duration) return 1;
+        return easeOutCubic((elapsed - particle.delay) / particle.duration);
+    };
+};
 const BODYGRAPH_OUTLINE_COLOR = "#40485c";
 
 const getInitialStatsHexagon = () => {
@@ -250,6 +273,7 @@ export default function FeedSnapshotCard({
     overallRating = null,
     showOverallRating = true,
     pendingRequirementsCount = null,
+    eyebrowLabel = null,
     showRankTabs = true,
     enableRankAnimations = true,
     onPressOverall,
@@ -267,14 +291,23 @@ export default function FeedSnapshotCard({
         (overallRating ?? rankTheme.overallRating ?? RANK_TIER_THEMES.bronze.overallRating);
     const resolvedShowOverall = showOverallRating !== false && resolvedOverallRating != null;
     const rankLevelStage = resolveLevelStage(resolvedRankLevel);
-    const badgeDetailColors = deriveBadgeDetailColors(rankTheme, RANK_TIER_THEMES.bronze);
-    const showSeedGem = rankLevelStage === 1;
-    const showGem = rankLevelStage >= 2;
-    const showInnerShell = rankLevelStage >= 3;
-    const showOuterShell = rankLevelStage >= 4;
-    const showBadgeWings = rankLevelStage >= 5;
-    const minimalShellColor = withAlpha(badgeDetailColors.accentPrimary, 0.12);
-    const minimalShellBorder = withAlpha(badgeDetailColors.accentPrimary, 0.45);
+    // Dark surface washed with the tier colour, so the badge and title carry the saturation.
+    const tierGlowColor = (rankTheme.gradientColors || goldTheme.gradientColors)[1];
+    const rankCardGlowColors = [
+        withAlpha(tierGlowColor, 0.42),
+        withAlpha(tierGlowColor, 0.12),
+        withAlpha(tierGlowColor, 0.03),
+    ];
+    const rankCardBorderColor = withAlpha(rankTheme.borderColor || goldTheme.borderColor, 0.32);
+    const rankAccentColor = rankTheme.titleSecondaryColor || goldTheme.titleSecondaryColor;
+    // Split "Bronze II" into the tier name and its numeral so the numeral can take the tier colour.
+    const rankTitleParts = (() => {
+        const label = String(resolvedRankLabel || "").trim();
+        const lastSpace = label.lastIndexOf(" ");
+        if (lastSpace <= 0) return { name: label, level: "" };
+        return { name: label.slice(0, lastSpace), level: label.slice(lastSpace + 1) };
+    })();
+    const showRankHeader = !!eyebrowLabel || resolvedShowOverall;
 
     const pointsToNextRank = useMemo(() => {
         const ratingNumber = Number(resolvedOverallRating);
@@ -340,179 +373,6 @@ export default function FeedSnapshotCard({
         [statsHexagon]
     );
 
-    const renderBadgeCore = () => (
-        <View
-            style={[
-                styles.rankBadgeCore,
-                !showInnerShell && !showOuterShell ? styles.rankBadgeCoreExpanded : null,
-                {
-                    backgroundColor: rankTheme.badgeCoreColor || goldTheme.badgeCoreColor,
-                    shadowColor: rankTheme.badgeCoreShadowColor || goldTheme.badgeCoreShadowColor,
-                },
-            ]}
-        >
-            <View pointerEvents="none" style={styles.rankBadgeLevelLayer}>
-                {rankLevelStage >= 2 && (
-                    <View
-                        style={[
-                            styles.rankBadgeLevelRing,
-                            { borderColor: badgeDetailColors.ringColor },
-                        ]}
-                    />
-                )}
-                {rankLevelStage >= 3 && (
-                    <>
-                        <View
-                            style={[
-                                styles.rankBadgeLevelRay,
-                                { backgroundColor: badgeDetailColors.sparkleColor },
-                            ]}
-                        />
-                        <View
-                            style={[
-                                styles.rankBadgeLevelRay,
-                                styles.rankBadgeLevelRayVertical,
-                                { backgroundColor: badgeDetailColors.sparkleColor },
-                            ]}
-                        />
-                    </>
-                )}
-                {rankLevelStage >= 4 && (
-                    <>
-                        <View
-                            style={[
-                                styles.rankBadgeLevelSparkle,
-                                styles.rankBadgeLevelSparkleTopLeft,
-                                {
-                                    backgroundColor: badgeDetailColors.sparkleColor,
-                                    shadowColor: badgeDetailColors.sparkleColor,
-                                },
-                            ]}
-                        />
-                        <View
-                            style={[
-                                styles.rankBadgeLevelSparkle,
-                                styles.rankBadgeLevelSparkleBottomRight,
-                                {
-                                    backgroundColor: badgeDetailColors.sparkleColor,
-                                    shadowColor: badgeDetailColors.sparkleColor,
-                                },
-                            ]}
-                        />
-                    </>
-                )}
-                {showBadgeWings && (
-                    <>
-                        <View
-                            style={[
-                                styles.rankBadgeLevelFlare,
-                                styles.rankBadgeLevelFlareLeft,
-                                {
-                                    backgroundColor: badgeDetailColors.wingColor,
-                                    shadowColor: badgeDetailColors.wingColor,
-                                },
-                            ]}
-                        />
-                        <View
-                            style={[
-                                styles.rankBadgeLevelFlare,
-                                styles.rankBadgeLevelFlareRight,
-                                {
-                                    backgroundColor: badgeDetailColors.wingColor,
-                                    shadowColor: badgeDetailColors.wingColor,
-                                },
-                            ]}
-                        />
-                    </>
-                )}
-            </View>
-            {showSeedGem && (
-                <View
-                    style={[
-                        styles.rankBadgeSeedGem,
-                        {
-                            backgroundColor: badgeDetailColors.accentPrimary,
-                        },
-                    ]}
-                />
-            )}
-            {showGem ? (
-                <>
-                    <View
-                        style={[
-                            styles.rankBadgeGem,
-                            !showInnerShell && !showOuterShell ? styles.rankBadgeGemStandalone : null,
-                            {
-                                backgroundColor: rankTheme.badgeGemColor || goldTheme.badgeGemColor,
-                                borderColor: rankTheme.badgeGemBorderColor || goldTheme.badgeGemBorderColor,
-                            },
-                        ]}
-                    />
-                    <View
-                        style={[
-                            styles.rankBadgeGemInner,
-                            !showInnerShell && !showOuterShell ? styles.rankBadgeGemInnerStandalone : null,
-                            {
-                                backgroundColor:
-                                    rankTheme.badgeGemInnerColor || goldTheme.badgeGemInnerColor,
-                                borderColor:
-                                    rankTheme.badgeGemInnerBorderColor || goldTheme.badgeGemInnerBorderColor,
-                            },
-                        ]}
-                    />
-                </>
-            ) : null}
-        </View>
-    );
-
-    const renderBadgeShell = () => {
-        const core = renderBadgeCore();
-        if (showOuterShell) {
-            return (
-                <LinearGradient
-                    colors={rankTheme.badgeOuterGradient || goldTheme.badgeOuterGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.rankBadgeOuter}
-                >
-                    <LinearGradient
-                        colors={rankTheme.badgeInnerGradient || goldTheme.badgeInnerGradient}
-                        start={{ x: 0, y: 0 }}
-                        end={{ x: 1, y: 1 }}
-                        style={styles.rankBadgeInner}
-                    >
-                        {core}
-                    </LinearGradient>
-                </LinearGradient>
-            );
-        }
-        if (showInnerShell) {
-            return (
-                <LinearGradient
-                    colors={rankTheme.badgeInnerGradient || goldTheme.badgeInnerGradient}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
-                    style={styles.rankBadgeInnerStandalone}
-                >
-                    {core}
-                </LinearGradient>
-            );
-        }
-        return (
-            <View
-                style={[
-                    styles.rankBadgeMinimalShell,
-                    {
-                        backgroundColor: minimalShellColor,
-                        borderColor: minimalShellBorder,
-                    },
-                ]}
-            >
-                {core}
-            </View>
-        );
-    };
-
     const particles = useMemo(() => {
         if (!enableRankAnimations) return [];
         const particleCount = 36;
@@ -554,31 +414,19 @@ export default function FeedSnapshotCard({
     const badgePulseValue = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
-        if (!enableRankAnimations) {
-            badgePulseValue.setValue(0);
-            return undefined;
-        }
+        badgePulseValue.setValue(0);
+        if (!enableRankAnimations) return undefined;
         const pulseLoop = Animated.loop(
-            Animated.sequence([
-                Animated.timing(badgePulseValue, {
-                    toValue: 1,
-                    duration: 700,
-                    easing: Easing.inOut(Easing.cubic),
-                    useNativeDriver: true,
-                }),
-                Animated.timing(badgePulseValue, {
-                    toValue: 0,
-                    duration: 700,
-                    easing: Easing.inOut(Easing.cubic),
-                    useNativeDriver: true,
-                }),
-            ]),
-            { resetBeforeIteration: true }
+            Animated.timing(badgePulseValue, {
+                toValue: 1,
+                duration: BADGE_PULSE_CYCLE_MS,
+                easing: badgePulseEasing,
+                useNativeDriver: true,
+            })
         );
         pulseLoop.start();
         return () => {
             pulseLoop.stop();
-            badgePulseValue.stopAnimation();
         };
     }, [badgePulseValue, enableRankAnimations]);
 
@@ -592,44 +440,23 @@ export default function FeedSnapshotCard({
     useEffect(() => {
         if (!enableRankAnimations || !particleAnimatedValues.length) return undefined;
 
-        const loops = particleAnimatedValues
-            .map((value, index) => {
-                const particle = particles[index];
-                if (!particle) return null;
-                value.setValue(0);
-
-                const burstSequence = Animated.sequence([
-                    Animated.timing(value, {
-                        toValue: 1,
-                        duration: particle.duration,
-                        delay: particle.delay,
-                        easing: Easing.out(Easing.cubic),
-                        useNativeDriver: true,
-                    }),
-                    Animated.timing(value, {
-                        toValue: 1,
-                        duration: particle.cooldown,
-                        easing: Easing.linear,
-                        useNativeDriver: true,
-                    }),
-                ]);
-
-                const loop = Animated.loop(burstSequence, { resetBeforeIteration: true });
-                if (loop && typeof loop.start === "function") {
-                    loop.start();
-                    return loop;
-                }
-                return null;
-            })
-            .filter(Boolean);
-
-        return () => {
-            loops.forEach((loop) => loop?.stop());
-            particleAnimatedValues.forEach((value) =>
-                value.stopAnimation(() => {
-                    value.setValue(0);
+        const loops = particleAnimatedValues.map((value, index) => {
+            const particle = particles[index];
+            value.setValue(0);
+            const loop = Animated.loop(
+                Animated.timing(value, {
+                    toValue: 1,
+                    duration: getParticleCycleMs(particle),
+                    easing: makeParticleCycleEasing(particle),
+                    useNativeDriver: true,
                 })
             );
+            loop.start();
+            return loop;
+        });
+
+        return () => {
+            loops.forEach((loop) => loop.stop());
         };
     }, [enableRankAnimations, particleAnimatedValues, particles]);
 
@@ -690,11 +517,11 @@ export default function FeedSnapshotCard({
                     {...cardWrapperProps}
                 >
                     <LinearGradient
-                        colors={rankTheme.gradientColors || goldTheme.gradientColors}
-                        locations={rankTheme.gradientLocations || goldTheme.gradientLocations}
+                        colors={rankCardGlowColors}
+                        locations={[0, 0.5, 1]}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={styles.rankCard}
+                        style={[styles.rankCard, styles.rankCardFrame, styles.rankCardRank, { borderColor: rankCardBorderColor }]}
                     >
                         {enableRankAnimations && (
                             <View pointerEvents="none" style={styles.rankParticleLayer}>
@@ -745,76 +572,47 @@ export default function FeedSnapshotCard({
                                 })}
                             </View>
                         )}
-                        <View style={styles.rankCardContent}>
+                        {showRankHeader && (
+                            <View style={styles.rankHeaderRow}>
+                                <Text style={styles.rankEyebrow}>{eyebrowLabel || ""}</Text>
+                                {resolvedShowOverall ? (
+                                    <View style={[styles.rankOvrChip, { backgroundColor: withAlpha(rankAccentColor, 0.14) }]}>
+                                        <Text style={[styles.rankOvrLabel, { color: rankAccentColor }]}>OVR</Text>
+                                        <Text style={styles.rankOvrValue}>{resolvedOverallRating}</Text>
+                                    </View>
+                                ) : null}
+                            </View>
+                        )}
+                        <View style={[styles.rankCardContent, !showRankHeader && styles.rankCardContentNoHeader]}>
                             <Animated.View
                                 style={[
                                     styles.rankBadgeCluster,
                                     enableRankAnimations ? { transform: [{ scale: badgePulseScale }] } : null,
                                 ]}
                             >
-                                {showBadgeWings && (
-                                    <LinearGradient
-                                        colors={rankTheme.wingGradient || goldTheme.wingGradient}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={[styles.rankWing, styles.rankWingLeft]}
-                                    />
-                                )}
-                                {showBadgeWings && (
-                                    <LinearGradient
-                                        colors={rankTheme.wingGradient || goldTheme.wingGradient}
-                                        start={{ x: 0, y: 0 }}
-                                        end={{ x: 1, y: 1 }}
-                                        style={[styles.rankWing, styles.rankWingRight]}
-                                    />
-                                )}
-                                {renderBadgeShell()}
+                                <RankBadgeEmblem rankTheme={rankTheme} stage={rankLevelStage} size={scaled(104)} />
                             </Animated.View>
                             <Text style={[styles.rankTitle, { color: rankTheme.titleColor || goldTheme.titleColor }]}>
-                                {resolvedRankLabel}
-                                {resolvedShowOverall ? (
-                                    <Text
-                                        style={[
-                                            styles.rankTitleSecondary,
-                                            { color: rankTheme.titleSecondaryColor || goldTheme.titleSecondaryColor },
-                                        ]}
-                                    >
-                                        {` · ${resolvedOverallRating} OVR`}
-                                    </Text>
+                                {rankTitleParts.name}
+                                {rankTitleParts.level ? (
+                                    <Text style={{ color: rankAccentColor }}>{` ${rankTitleParts.level}`}</Text>
                                 ) : null}
                             </Text>
-                            {pointsToNextRankCopy ? (
-                                <View style={styles.rankProgressRow}>
-                                    <Text style={styles.rankProgressText}>{pointsToNextRankCopy}</Text>
-                                    <Ionicons
-                                        name="chevron-forward"
-                                        size={scaled(13)}
-                                        color="rgba(255,255,255,0.88)"
-                                        style={styles.rankProgressIcon}
-                                    />
-                                </View>
-                            ) : null}
                         </View>
-                        <View
-                            pointerEvents="none"
-                            style={[
-                                styles.rankCardBorderTop,
-                                { backgroundColor: rankTheme.borderColor || goldTheme.borderColor },
-                            ]}
-                        />
-                        <View
-                            pointerEvents="none"
-                            style={[
-                                styles.rankCardBorderBottom,
-                                { backgroundColor: rankTheme.borderColor || goldTheme.borderColor },
-                            ]}
-                        />
+                        {pointsToNextRankCopy ? (
+                            <View style={[styles.rankFooter, { borderTopColor: withAlpha(rankAccentColor, 0.18) }]}>
+                                <Text style={[styles.rankProgressText, { color: rankAccentColor }]}>
+                                    {pointsToNextRankCopy}
+                                </Text>
+                                <Ionicons name="chevron-forward" size={scaled(14)} color={rankAccentColor} />
+                            </View>
+                        ) : null}
                     </LinearGradient>
                 </CardWrapper>
                 {!isRankTabActive &&
                     (isBodygraphTabActive ? (
                         <BodyCardWrapper style={styles.rankCardWrapper} {...bodyCardWrapperProps}>
-                            <View style={[styles.rankCard, styles.bodygraphCard]}>
+                            <View style={[styles.rankCard, styles.rankCardFrame, styles.bodygraphCard]}>
                                 <View style={styles.bodygraphContent}>
                                     <View style={styles.bodygraphStatsColumn}>
                                         {hasOverallStat ? (
@@ -863,7 +661,7 @@ export default function FeedSnapshotCard({
                             </View>
                         </BodyCardWrapper>
                     ) : (
-                        <View style={[styles.rankCard, styles.rankPlaceholderCard]}>
+                        <View style={[styles.rankCard, styles.rankCardFrame, styles.rankPlaceholderCard]}>
                             <Text style={styles.rankPlaceholderTitle}>
                                 {placeholderCopy?.title || activeRankTabConfig.label}
                             </Text>
@@ -979,7 +777,6 @@ const styles = StyleSheet.create({
         color: "rgba(255,255,255,0.7)",
     },
     rankCard: {
-        borderRadius: 0,
         paddingVertical: scaled(26),
         paddingHorizontal: scaleSize(24),
         justifyContent: "center",
@@ -987,43 +784,88 @@ const styles = StyleSheet.create({
         minHeight: scaleSize(220),
         height: scaleSize(220),
     },
+    rankCardFrame: {
+        marginHorizontal: scaleSize(14),
+        borderRadius: scaleSize(20),
+        borderWidth: 1,
+        borderColor: theme.hairline,
+        backgroundColor: theme.surface,
+        overflow: "hidden",
+    },
+    rankCardRank: {
+        height: "auto",
+        minHeight: 0,
+        paddingVertical: 0,
+        paddingHorizontal: 0,
+    },
+    rankHeaderRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: scaleSize(16),
+        paddingTop: scaleSize(14),
+        minHeight: scaleSize(38),
+        zIndex: 2,
+    },
+    rankEyebrow: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaled(11),
+        color: theme.textSecondary,
+        letterSpacing: 1.1,
+        textTransform: "uppercase",
+    },
+    rankOvrChip: {
+        flexDirection: "row",
+        alignItems: "baseline",
+        paddingHorizontal: scaleSize(10),
+        paddingVertical: scaleSize(4),
+        borderRadius: scaleSize(12),
+    },
+    rankOvrLabel: {
+        fontFamily: "Outfit_800ExtraBold",
+        fontSize: scaled(10),
+        letterSpacing: 0.8,
+        marginRight: scaleSize(5),
+    },
+    rankOvrValue: {
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaled(14),
+        color: theme.textPrimary,
+        fontVariant: ["tabular-nums"],
+    },
+    rankFooter: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingHorizontal: scaleSize(16),
+        paddingVertical: scaleSize(12),
+        borderTopWidth: StyleSheet.hairlineWidth,
+        backgroundColor: "rgba(0,0,0,0.16)",
+        zIndex: 2,
+    },
     rankCardWrapper: {
         width: "100%",
     },
     rankCardHidden: {
         display: "none",
     },
-    rankCardBorderTop: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: scaled(5),
-        backgroundColor: "#f4d85c",
-        zIndex: 5,
-    },
-    rankCardBorderBottom: {
-        position: "absolute",
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: scaled(5),
-        backgroundColor: "#f4d85c",
-        zIndex: 5,
-    },
     rankCardContent: {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         paddingTop: scaleSize(4),
+        paddingBottom: scaleSize(20),
         zIndex: 2,
     },
+    rankCardContentNoHeader: {
+        paddingTop: scaleSize(22),
+    },
     rankBadgeCluster: {
-        width: scaled(96),
-        height: scaled(88),
+        width: scaled(130),
+        height: scaled(104),
         justifyContent: "center",
         alignItems: "center",
-        marginBottom: scaled(14),
+        marginBottom: scaled(2),
         position: "relative",
     },
     rankParticleLayer: {
@@ -1037,10 +879,6 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 0 },
     },
     rankPlaceholderCard: {
-        backgroundColor: "rgba(6, 8, 18, 0.85)",
-        borderTopWidth: StyleSheet.hairlineWidth,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.14)",
         alignItems: "center",
         justifyContent: "center",
         paddingVertical: scaleSize(40),
@@ -1060,142 +898,22 @@ const styles = StyleSheet.create({
         marginTop: scaleSize(6),
         lineHeight: scaled(18),
     },
-    rankBadgeOuter: {
-        width: "100%",
-        height: "90%",
-        borderRadius: scaleSize(26),
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    rankBadgeInner: {
-        width: "80%",
-        height: "78%",
-        borderRadius: scaleSize(22),
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "rgba(255,255,255,0.08)",
-        borderWidth: scaleSize(1),
-        borderColor: "rgba(255,255,255,0.25)",
-    },
-    rankBadgeInnerStandalone: {
-        width: "80%",
-        height: "78%",
-        borderRadius: scaleSize(22),
-        justifyContent: "center",
-        alignItems: "center",
-        borderWidth: scaleSize(1),
-        borderColor: "rgba(255,255,255,0.25)",
-    },
-    rankBadgeMinimalShell: {
-        width: "78%",
-        height: "74%",
-        borderRadius: scaleSize(22),
-        justifyContent: "center",
-        alignItems: "center",
-        borderWidth: StyleSheet.hairlineWidth,
-    },
-    rankBadgeCore: {
-        width: "78%",
-        height: "74%",
-        backgroundColor: "#f4d85c",
-        borderRadius: scaleSize(20),
-        justifyContent: "center",
-        alignItems: "center",
-        shadowColor: "#c7850a",
-        shadowOpacity: 0.35,
-        shadowOffset: { width: 0, height: 8 },
-        shadowRadius: scaleSize(10),
-        elevation: 4,
-    },
-    rankBadgeCoreExpanded: {
-        width: "86%",
-        height: "80%",
-    },
-    rankBadgeGem: {
-        width: scaled(28),
-        height: scaled(28),
-        backgroundColor: "#fff7d6",
-        transform: [{ rotate: "45deg" }],
-        borderRadius: scaleSize(6),
-        borderWidth: scaleSize(1),
-        borderColor: "rgba(207,151,33,0.4)",
-    },
-    rankBadgeGemStandalone: {
-        width: scaled(32),
-        height: scaled(32),
-    },
-    rankBadgeGemInner: {
-        position: "absolute",
-        width: scaled(14),
-        height: scaled(14),
-        backgroundColor: "#f1b739",
-        transform: [{ rotate: "45deg" }],
-        borderRadius: scaleSize(3),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.5)",
-        top: "50%",
-        left: "50%",
-        marginLeft: -scaled(7),
-        marginTop: -scaled(7),
-    },
-    rankBadgeGemInnerStandalone: {
-        width: scaled(16),
-        height: scaled(16),
-    },
-    rankBadgeSeedGem: {
-        position: "absolute",
-        width: scaled(14),
-        height: scaled(14),
-        borderRadius: scaled(3),
-        transform: [{ rotate: "45deg" }],
-        opacity: 0.85,
-    },
-    rankProgressRow: {
-        marginTop: scaleSize(4),
-        flexDirection: "row",
-        alignItems: "center",
-    },
     rankProgressText: {
         fontFamily: "Outfit_500Medium",
         fontSize: scaled(13),
         color: "rgba(255,255,255,0.8)",
         letterSpacing: 0.2,
     },
-    rankProgressIcon: {
-        marginLeft: scaleSize(6),
-    },
-    rankWing: {
-        position: "absolute",
-        width: scaled(36),
-        height: scaled(52),
-        borderRadius: scaleSize(14),
-        opacity: 0.8,
-    },
-    rankWingLeft: {
-        left: -scaleSize(22),
-        transform: [{ rotate: "-10deg" }],
-    },
-    rankWingRight: {
-        right: -scaleSize(22),
-        transform: [{ rotate: "10deg" }],
-    },
     rankTitle: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaled(20),
+        fontFamily: "Outfit_800ExtraBold",
+        fontSize: scaled(22),
         color: "#fffef4",
-        marginTop: scaled(6),
-        letterSpacing: 0.25,
+        marginTop: scaled(4),
+        letterSpacing: 2,
         textAlign: "center",
         textTransform: "uppercase",
     },
-    rankTitleSecondary: {
-        fontFamily: "Outfit_600SemiBold",
-        color: "#f9da73ff",
-        fontSize: scaled(20),
-    },
     bodygraphCard: {
-        backgroundColor: "#050609",
-        borderWidth: 0,
         paddingHorizontal: scaleSize(20),
         justifyContent: "center",
     },

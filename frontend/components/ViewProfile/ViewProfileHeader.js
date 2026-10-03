@@ -1,4 +1,4 @@
-import { StyleSheet, View, Text } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { ArrowDown2, Send2 } from "iconsax-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -7,9 +7,8 @@ import scaleSize from "../../helper/scaleSize";
 import { withStrongPress } from "../../utils/haptics";
 import { getUnifiedHeaderMetrics } from "../../theme/headerMetrics";
 import VerifiedHandle from "../common/VerifiedHandle";
-import { RANK_TIER_THEMES } from "../1_Feed/FeedSnapshotCard";
-import resolveRankTierKey, { resolveRankLabel } from "../../utils/resolveRankTierKey";
-import resolveHandleColor from "../../utils/resolveHandleColor";
+import { RANK_BADGE_ASPECT_RATIO } from "../2_Competition/RankBadgeEmblem";
+import ProfileRankBadge from "../5_Profile/ProfileTop/ProfileRankBadge";
 
 const METRICS = getUnifiedHeaderMetrics();
 const ICON_SIZE = METRICS.iconSize;
@@ -17,30 +16,26 @@ const HEADER_HORIZONTAL_PADDING = Math.max(0, METRICS.paddingH - scaleSize(6));
 const ICON_WRAPPER_SIZE = scaleSize(ICON_SIZE + 2);
 const ICON_COLOR = "#CBD5E1";
 const ICON_STROKE_WIDTH = 2.4;
-const CENTER_MAX_WIDTH = 0.72;
+const RANK_BADGE_SIZE = scaleSize(40);
+const RANK_BADGE_GAP = scaleSize(2);
+// Both sides take the same width so the handle stays centred.
+const SIDE_SLOT_WIDTH = RANK_BADGE_SIZE * RANK_BADGE_ASPECT_RATIO + RANK_BADGE_GAP + ICON_WRAPPER_SIZE;
 
 export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOptions, isVerified = false, user = null }) {
-    const rankTierKey = resolveRankTierKey(user);
-    const rankTheme = (() => {
-        const key = rankTierKey || "bronze";
-        return RANK_TIER_THEMES[key] || RANK_TIER_THEMES.bronze;
-    })();
-    const handleColor = resolveHandleColor(user, { rankTierKey, rankTheme });
-    const rankLabel = resolveRankLabel(user, rankTierKey, rankTheme) || rankTheme?.displayName || null;
-    const rankTextColor = handleColor;
-
     return (
         <View style={styles.main_ctnr}>
-            <RNBounceable onPress={withStrongPress(goBack)} hitSlop={10} style={styles.iconBtn}>
-                <Ionicons name="chevron-back" size={ICON_SIZE} color={theme.textSecondary} />
-            </RNBounceable>
+            <View style={styles.side}>
+                <RNBounceable onPress={withStrongPress(goBack)} hitSlop={10} style={styles.iconBtn}>
+                    <Ionicons name="chevron-back" size={ICON_SIZE} color={theme.textSecondary} />
+                </RNBounceable>
+            </View>
 
             <RNBounceable style={styles.center} onPress={withStrongPress(onOpenOptions)}>
                 <View style={styles.handleRow}>
                     <VerifiedHandle
                         handle={handle}
                         isVerified={isVerified}
-                        textStyle={[styles.handle_text, { color: handleColor }]}
+                        textStyle={styles.handle_text}
                         numberOfLines={1}
                         containerStyle={styles.handleInner}
                         iconSize={scaleSize(18)}
@@ -53,20 +48,14 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
                         style={styles.centerChevron}
                     /> */}
                 </View>
-                {rankLabel ? (
-                    <Text
-                        style={[styles.rank_text, { color: rankTextColor }]}
-                        numberOfLines={1}
-                        ellipsizeMode="tail"
-                    >
-                        {rankLabel}
-                    </Text>
-                ) : null}
             </RNBounceable>
 
-            <RNBounceable onPress={withStrongPress(toMessages)} hitSlop={10} style={styles.iconBtn}>
-                <Send2 size={ICON_SIZE} color={ICON_COLOR} strokeWidth={ICON_STROKE_WIDTH} variant="Linear" />
-            </RNBounceable>
+            <View style={[styles.side, styles.sideRight]}>
+                <ProfileRankBadge user={user} size={RANK_BADGE_SIZE} style={styles.rankBadge} />
+                <RNBounceable onPress={withStrongPress(toMessages)} hitSlop={10} style={styles.iconBtn}>
+                    <Send2 size={ICON_SIZE} color={ICON_COLOR} strokeWidth={ICON_STROKE_WIDTH} variant="Linear" />
+                </RNBounceable>
+            </View>
         </View>
     );
 }
@@ -90,7 +79,6 @@ const styles = StyleSheet.create({
         paddingBottom: scaleSize(2),
         justifyContent: "center",
         paddingHorizontal: scaleSize(6),
-        maxWidth: `${CENTER_MAX_WIDTH * 100}%`,
         flexShrink: 1,
         height: METRICS.centerH,
     },
@@ -105,23 +93,26 @@ const styles = StyleSheet.create({
         flexShrink: 1,
     },
     handle_text: {
-        fontFamily: "Poppins_700Bold",
-        fontSize: scaleSize(15),
+        fontFamily: "Outfit_700Bold",
+        fontSize: scaleSize(17),
         color: theme.textPrimary,
-        maxWidth: "100%",
-        flexShrink: 1,
-        includeFontPadding: false,
-    },
-    rank_text: {
-        fontFamily: "Poppins_600SemiBold",
-        fontSize: scaleSize(11),
-        marginTop: scaleSize(2),
         maxWidth: "100%",
         flexShrink: 1,
         includeFontPadding: false,
     },
     centerChevron: {
         marginLeft: scaleSize(6),
+    },
+    side: {
+        width: SIDE_SLOT_WIDTH,
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    sideRight: {
+        justifyContent: "flex-end",
+    },
+    rankBadge: {
+        marginRight: RANK_BADGE_GAP,
     },
     iconBtn: {
         width: ICON_WRAPPER_SIZE,
