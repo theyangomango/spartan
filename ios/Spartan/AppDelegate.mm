@@ -60,3 +60,42 @@
 }
 
 @end
+
+// Apps built with the iOS 27 SDK must adopt the UIScene lifecycle or UIKit aborts at launch.
+// This delegate attaches the window that the app delegate already created to the connecting scene.
+@interface SceneDelegate : UIResponder <UIWindowSceneDelegate>
+@end
+
+@implementation SceneDelegate
+
+- (UIWindow *)window
+{
+  return UIApplication.sharedApplication.delegate.window;
+}
+
+- (void)scene:(UIScene *)scene willConnectToSession:(UISceneSession *)session options:(UISceneConnectionOptions *)connectionOptions
+{
+  if (![scene isKindOfClass:[UIWindowScene class]]) {
+    return;
+  }
+  UIWindow *window = self.window;
+  window.windowScene = (UIWindowScene *)scene;
+  [window makeKeyAndVisible];
+  [self scene:scene openURLContexts:connectionOptions.URLContexts];
+}
+
+- (void)scene:(UIScene *)scene openURLContexts:(NSSet<UIOpenURLContext *> *)URLContexts
+{
+  UIApplication *application = UIApplication.sharedApplication;
+  for (UIOpenURLContext *context in URLContexts) {
+    [application.delegate application:application openURL:context.URL options:@{}];
+  }
+}
+
+- (void)scene:(UIScene *)scene continueUserActivity:(NSUserActivity *)userActivity
+{
+  UIApplication *application = UIApplication.sharedApplication;
+  [application.delegate application:application continueUserActivity:userActivity restorationHandler:^(NSArray<id<UIUserActivityRestoring>> *restorableObjects) {}];
+}
+
+@end
