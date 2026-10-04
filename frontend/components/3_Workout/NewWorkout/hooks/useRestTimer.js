@@ -121,7 +121,8 @@ export default function useRestTimer() {
       // Keep same cycle id for add
       if (!restCycleRef.current) restCycleRef.current = Date.now();
       try { global.__restTimerEndAt = endAtRef.current; global.__restTimerTotal = (lastScheduledRemainingRef.current || delta); global.__restCycleId = restCycleRef.current; } catch {}
-      scheduleLocalPush(lastScheduledRemainingRef.current);
+      // Notify when the extended timer ends: the time left from now, not the cumulative total.
+      scheduleLocalPush(Math.max(1, Math.ceil((endAtRef.current - Date.now()) / 1000)));
     }
     setCountdown((s) => s + delta);
   }, [scheduleLocalPush]);

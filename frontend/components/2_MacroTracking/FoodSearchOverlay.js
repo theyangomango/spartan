@@ -589,7 +589,7 @@ export default function FoodSearchOverlay({
                                     </Text>
                                 </View>
 
-                                <Pressable onPress={() => { try { haptic(); } catch {} openQuick(); }} hitSlop={8} style={styles.headerRight}>
+                                <Pressable onPress={openQuick} hitSlop={8} style={styles.headerRight}>
                                     <Text style={styles.headerActionText}>Quick Add</Text>
                                 </Pressable>
                             </View>

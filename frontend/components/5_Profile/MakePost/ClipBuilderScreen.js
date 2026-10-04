@@ -349,8 +349,9 @@ export default function ClipBuilderScreen({ navigation, route }) {
             collapseComposer();
         } catch (error) {
             console.error('[ClipBuilder] share failed', error);
-            if (global?.userData && previousPosts) {
-                global.userData.posts = previousPosts;
+            // Undo the optimistic pid even when there was no posts array before.
+            if (global?.userData) {
+                global.userData.posts = previousPosts ?? [];
             }
             if (optimisticPostAdded) {
                 removeOptimisticFeedPost(pid);

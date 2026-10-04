@@ -41,6 +41,7 @@ export default function DeleteAccount({ navigation }) {
         'Account unavailable',
         'We could not determine your account. Please log in again and retry account deletion.'
       );
+      deleteInFlightRef.current = false;
       return;
     }
 

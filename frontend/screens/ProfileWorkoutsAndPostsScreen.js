@@ -67,6 +67,9 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
     );
 
     const previousPostIdsKeyRef = useRef(null);
+    // Read through a ref so the posts loader below is keyed on the id list's content, not its identity.
+    const normalizedPostIdsRef = useRef(normalizedPostIds);
+    normalizedPostIdsRef.current = normalizedPostIds;
 
     const postsByPid = useMemo(() => {
         const map = new Map();
@@ -198,8 +201,12 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
     }, [isViewingSelf]);
 
 
+    const hasUserData = Boolean(userData);
+
+    // Loads the profile's posts in chunks. It must only re-run when the set of post ids (or access) changes:
+    // re-running mid-load cancels the chunks still in flight and drops those posts.
     useEffect(() => {
-        if (!userData || !canViewContent) {
+        if (!hasUserData || !canViewContent) {
             setPosts([]);
             setPostsLoading(false);
             setPostsError(null);
@@ -207,7 +214,7 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
             return;
         }
 
-        const ids = normalizedPostIds;
+        const ids = normalizedPostIdsRef.current;
         const idsKey = postIdsKey;
 
         if (!ids.length) {
@@ -219,10 +226,6 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         }
 
         const prevKey = previousPostIdsKeyRef.current;
-        const hasLoadedPosts = posts.length > 0;
-        if (prevKey === idsKey && hasLoadedPosts) {
-            return;
-        }
         previousPostIdsKeyRef.current = idsKey;
 
         let cancelled = false;
@@ -282,7 +285,7 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         return () => {
             cancelled = true;
         };
-    }, [canViewContent, normalizedPostIds, postIdsKey, posts.length, userData]);
+    }, [canViewContent, hasUserData, postIdsKey]);
 
     const visibleWorkouts = useMemo(() => {
         if (!userData || !canViewContent) return [];
