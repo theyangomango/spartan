@@ -19,7 +19,7 @@ import Svg, { Defs, LinearGradient, Line, Path, Stop } from "react-native-svg";
 import makeID from "../../../../backend/helper/makeID";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import { subscribeUserData } from "../../../utils/userDataEvents";
-import { derivePublicWeightFields, sanitizeEntries, selectWeightEntrySource } from "../../../utils/weightEntries";
+import { MAX_BODY_WEIGHT, derivePublicWeightFields, sanitizeEntries, selectWeightEntrySource } from "../../../utils/weightEntries";
 import { DEVICE_WIDTH, scaleSize } from "../layoutConstants";
 import { chartPointerStyles, chartTypography, chartCardTypography, chartCardLayout } from "../../charts/chartStyles";
 import { navigateOneWay } from "../../../../navigationRef";
@@ -788,6 +788,11 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             const weightNumber = Number.parseFloat(String(weightInput).replace(",", "."));
             if (!Number.isFinite(weightNumber) || weightNumber <= 0) {
                 Alert.alert("Invalid weight", "Enter a weight greater than 0 to log your measurement.");
+                return;
+            }
+            // A typo such as an extra digit would otherwise skew calorie estimates and bodyweight exercises.
+            if (weightNumber > MAX_BODY_WEIGHT) {
+                Alert.alert("Invalid weight", "That weight looks too high. Check the number and try again.");
                 return;
             }
 

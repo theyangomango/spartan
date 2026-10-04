@@ -1,5 +1,7 @@
 
 const KG_TO_LB = 2.2046226218488;
+// Upper bound for a body-weight entry, in either unit; catches typos such as an extra digit.
+export const MAX_BODY_WEIGHT = 1500;
 
 const roundToTenth = (value) => {
     if (!Number.isFinite(value)) return null;

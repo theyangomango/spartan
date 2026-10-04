@@ -165,6 +165,11 @@ export const formatAxisValue = (value) => {
         return `${toScaledString(scaled)}m`;
     }
 
+    // Below 10,000 show the whole number: "1.8k" would label neighbouring ticks (1,798 ... 1,802) identically.
+    if (abs >= 1_000 && abs < 10_000) {
+        return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    }
+
     if (abs >= 1_000) {
         const scaled = num / 1_000;
         return `${toScaledString(scaled)}k`;

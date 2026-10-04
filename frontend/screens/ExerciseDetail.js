@@ -95,7 +95,8 @@ const buildXAxisLabels = (domain, desiredCount = DEFAULT_X_AXIS_LABEL_COUNT) => 
         const isLast = i === count - 1;
         const timestamp = isLast ? maxX : minX + step * i;
         const formatted = formatXAxisDateLabel(timestamp, span);
-        if (formatted) labels.push({ label: formatted, timestamp });
+        // Leave a repeated date blank: a short span would otherwise print the same day at every tick.
+        if (formatted) labels.push({ label: labels.some((entry) => entry.label === formatted) ? "" : formatted, timestamp });
     }
 
     return labels;

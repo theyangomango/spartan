@@ -23,7 +23,7 @@ export const buildMetricDeltaDisplay = (delta, unitLabel, formatter = formatVolu
 
 export const formatWeightValue = (value) => {
     const num = Number(value);
-    if (!Number.isFinite(num) || num <= 0) return "00";
+    if (!Number.isFinite(num) || num <= 0) return "--";
     const rounded = Math.round(num * 10) / 10;
     return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 };
@@ -196,7 +196,9 @@ export const buildXAxisLabels = (domain, desiredCount = DEFAULT_X_AXIS_LABEL_COU
         const timestamp = isLast ? maxX : minX + step * i;
         const formatted = formatXAxisDateLabel(timestamp, span);
         if (formatted) {
-            labels.push({ label: formatted, timestamp });
+            // Leave a repeated date blank: a short span would otherwise print the same day at every tick.
+            const isRepeat = labels.some((entry) => entry.label === formatted);
+            labels.push({ label: isRepeat ? "" : formatted, timestamp });
         }
     }
 
