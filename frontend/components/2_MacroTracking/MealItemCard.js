@@ -1,11 +1,22 @@
 // components/2_MacroTracking/MealItemCard.js
-import React, { useMemo } from 'react';
+import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
+
+const formatCals = (n) => {
+    const v = Math.round(Number(n || 0));
+    return isFinite(v) ? String(v) : '0';
+};
+
+const pruneLeadingCalories = (s) => {
+    if (!s) return '';
+    // Remove a leading "123 kcal" (with optional comma)
+    return String(s).replace(/^\s*\d+(?:\.\d+)?\s*(?:kcal|cal(?:ories)?)\s*,?\s*/i, '');
+};
 
 export default function MealItemCard({
     entry,
@@ -15,22 +26,8 @@ export default function MealItemCard({
     onPress,
     renderSummary,
     showCaloriesRight = false,
-    compact = false,
     enableSwipe = true,
 }) {
-    const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-
-    const formatCals = (n) => {
-        const v = Math.round(Number(n || 0));
-        return isFinite(v) ? String(v) : '0';
-    };
-
-    const pruneLeadingCalories = (s) => {
-        if (!s) return '';
-        // Remove a leading "123 kcal" (with optional comma)
-        return String(s).replace(/^\s*\d+(?:\.\d+)?\s*(?:kcal|cal(?:ories)?)\s*,?\s*/i, '');
-    };
-
     const renderRight = () => (
         <View style={styles.actionsContainer}>
             <Pressable
@@ -50,7 +47,6 @@ export default function MealItemCard({
             android_ripple={{ color: 'rgba(255,255,255,0.06)' }}
             style={[
                 styles.card,
-                compact && styles.cardCompact,
                 { backgroundColor: COLORS.card, borderColor: COLORS.hairline },
                 cardStyle,
             ]}
@@ -60,14 +56,12 @@ export default function MealItemCard({
                     <Text style={[styles.name, { color: COLORS.text }]} numberOfLines={1}>
                         {entry?.name}
                     </Text>
-                    {!compact && (
-                        <Text style={[styles.summary, { color: COLORS.subtext }]} numberOfLines={1}>
-                            {(() => {
-                                const s = renderSummary ? renderSummary(entry) : '';
-                                return showCaloriesRight ? pruneLeadingCalories(s) : s;
-                            })()}
-                        </Text>
-                    )}
+                    <Text style={[styles.summary, { color: COLORS.subtext }]} numberOfLines={1}>
+                        {(() => {
+                            const s = renderSummary ? renderSummary(entry) : '';
+                            return showCaloriesRight ? pruneLeadingCalories(s) : s;
+                        })()}
+                    </Text>
                 </View>
                 {showCaloriesRight && (
                     <Text style={[styles.cals, { color: COLORS.text }]}>
@@ -78,7 +72,7 @@ export default function MealItemCard({
         </Pressable>
     );
 
-    if (compact || !enableSwipe) return CardInner; // Skip swipe when disabled or in compact mode
+    if (!enableSwipe) return CardInner; // Skip swipe when disabled
 
     return (
         <Swipeable
@@ -92,42 +86,40 @@ export default function MealItemCard({
     );
 }
 
-const makeStyles = (COLORS) =>
-    StyleSheet.create({
-        card: {
-            borderRadius: scaleSize(14),
-            paddingVertical: scaleSize(8),
-            paddingHorizontal: scaleSize(16),
-            marginVertical: scaleSize(2),
-            borderWidth: StyleSheet.hairlineWidth,
-            shadowOpacity: 0.02,
-            shadowRadius: scaleSize(2),
-            shadowOffset: { width: 0, height: scaleSize(1) },
-            elevation: 1,
-        },
-        cardCompact: { paddingVertical: scaleSize(6) },
-        row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: scaleSize(28) },
-        textCol: { flex: 1, justifyContent: 'center' },
-        name: { fontSize: scaleSize(12.5), fontFamily: 'Nunito_700Bold', marginBottom: scaleSize(2), flexShrink: 1, paddingRight: scaleSize(20) },
-        cals: { fontSize: scaleSize(14), fontFamily: 'Outfit_700Bold' },
-        summary: { fontSize: scaleSize(12), fontFamily: 'Nunito_600SemiBold' },
-        actionsContainer: {
-            justifyContent: 'center',
-            alignItems: 'flex-end',
-            height: '100%',
-            width: scaleSize(112),
-        },
-        deleteBtn: {
-            width: '100%',
-            height: '100%',
-            minHeight: scaleSize(32),
-            borderRadius: 0,
-            paddingHorizontal: scaleSize(16),
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: scaleSize(6),
-            flexDirection: 'row',
-            backgroundColor: 'rgba(242,113,113,0.16)'
-        },
-        deleteText: { color: '#F27171', fontFamily: 'Outfit_700Bold', fontSize: scaleSize(12.5) },
-    });
+const styles = StyleSheet.create({
+    card: {
+        borderRadius: scaleSize(14),
+        paddingVertical: scaleSize(8),
+        paddingHorizontal: scaleSize(16),
+        marginVertical: scaleSize(2),
+        borderWidth: StyleSheet.hairlineWidth,
+        shadowOpacity: 0.02,
+        shadowRadius: scaleSize(2),
+        shadowOffset: { width: 0, height: scaleSize(1) },
+        elevation: 1,
+    },
+    row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: scaleSize(28) },
+    textCol: { flex: 1, justifyContent: 'center' },
+    name: { fontSize: scaleSize(12.5), fontFamily: 'Nunito_700Bold', marginBottom: scaleSize(2), flexShrink: 1, paddingRight: scaleSize(20) },
+    cals: { fontSize: scaleSize(14), fontFamily: 'Outfit_700Bold' },
+    summary: { fontSize: scaleSize(12), fontFamily: 'Nunito_600SemiBold' },
+    actionsContainer: {
+        justifyContent: 'center',
+        alignItems: 'flex-end',
+        height: '100%',
+        width: scaleSize(112),
+    },
+    deleteBtn: {
+        width: '100%',
+        height: '100%',
+        minHeight: scaleSize(32),
+        borderRadius: 0,
+        paddingHorizontal: scaleSize(16),
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: scaleSize(6),
+        flexDirection: 'row',
+        backgroundColor: 'rgba(242,113,113,0.16)'
+    },
+    deleteText: { color: '#F27171', fontFamily: 'Outfit_700Bold', fontSize: scaleSize(12.5) },
+});

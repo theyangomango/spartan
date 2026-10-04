@@ -1,12 +1,9 @@
 import React from "react";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { StyleSheet, View, Text, Dimensions } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
 import { withStrongPress } from "../../../utils/haptics";
-
-const { height: screenHeight } = Dimensions.get("window");
-const scaledSize = (size) => scaleSize(size);
 
 export default function ProfileRowButtons({ handleEditProfile, handleOpenViewStats }) {
     return (
@@ -17,7 +14,6 @@ export default function ProfileRowButtons({ handleEditProfile, handleOpenViewSta
                 </View>
             </RNBounceable>
 
-            {/* ✅ Enable View Stats and remove disabled/opacity */}
             <RNBounceable style={styles.flex} onPress={withStrongPress(handleOpenViewStats)}>
                 <View style={[styles.button, styles.flex]}>
                     <Text style={styles.edit_profile_text}>View Stats</Text>
@@ -29,17 +25,17 @@ export default function ProfileRowButtons({ handleEditProfile, handleOpenViewSta
 
 const styles = StyleSheet.create({
     row: {
-        marginTop: scaledSize(12),
+        marginTop: scaleSize(12),
         flexDirection: "row",
-        gap: scaledSize(8),
-        height: scaledSize(36),
+        gap: scaleSize(8),
+        height: scaleSize(36),
     },
     flex: {
         flex: 1,
     },
     button: {
-        paddingHorizontal: scaledSize(20),
-        borderRadius: scaledSize(12),
+        paddingHorizontal: scaleSize(20),
+        borderRadius: scaleSize(12),
         backgroundColor: theme.surface,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.12)',

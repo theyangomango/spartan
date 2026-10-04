@@ -6,13 +6,11 @@ import {
     SafeAreaView,
     TouchableOpacity,
     StatusBar,
-    StyleSheet,
     Text,
     View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import Footer from "../components/Footer";
 import SimpleFeedPost from "../components/1_Feed/SimpleFeedPost";
@@ -26,203 +24,15 @@ import readDocsByIds from "../../backend/helper/firebase/readDocsByIds";
 import { canViewerAccessProfile, filterViewableWorkouts } from "../utils/workoutPrivacy";
 import { withStrongPress, strong as hapticStrong } from "../utils/haptics";
 import { clearFooterSuppression } from "../state/footerSuppressionStore";
+import { subscribeUserData } from "../utils/userDataEvents";
 import { collection, doc, getDoc, getDocs, limit, query, where } from "firebase/firestore";
 import { db } from "../../firebase.config";
 import { isClipPost } from "../utils/postTypes";
-
-const ensureAtHandle = (handle = '') => {
-    const trimmed = String(handle || '').trim();
-    if (!trimmed) return '';
-    return trimmed.startsWith('@') ? trimmed : `@${trimmed}`;
-};
-
-const toMillis = (value) => {
-    if (!value && value !== 0) return undefined;
-    if (typeof value === 'number') return value;
-    if (value?.toMillis) return value.toMillis();
-    const t = new Date(value).getTime();
-    return Number.isFinite(t) ? t : undefined;
-};
-
-const bestTimestamp = (workout) => Math.max(
-    toMillis(workout?.finishedAt) ?? 0,
-    toMillis(workout?.completedAt) ?? 0,
-    toMillis(workout?.startedAt) ?? 0,
-    toMillis(workout?.createdAt) ?? 0,
-    toMillis(workout?.created) ?? 0,
-);
-
-const buildWorkoutPid = (uid, workout, fallbackIndex) => {
-    const safeUid = uid ? String(uid) : 'self';
-    const baseId = workout?.wid ?? workout?.id ?? workout?.workoutId ?? workout?.logId ?? workout?.sessionId;
-    const suffix = baseId ? String(baseId) : String(bestTimestamp(workout) || fallbackIndex || Date.now());
-    return `workout:${safeUid}:${suffix}`;
-};
-
-const toNumber = (value, fallback = 0) => {
-    const num = Number(value);
-    return Number.isFinite(num) ? num : fallback;
-};
-
-const sanitizeEntry = (entry) => {
-    if (!entry || typeof entry !== 'object') return entry;
-    try {
-        return JSON.parse(JSON.stringify(entry, (_key, val) => (typeof val === 'function' ? undefined : val)));
-    } catch {
-        return { ...entry };
-    }
-};
-
-const stringCandidates = (values) => {
-    for (const value of values) {
-        if (value === null || value === undefined) continue;
-        if (typeof value === 'string' || typeof value === 'number') {
-            const str = String(value).trim();
-            if (str) return str;
-        }
-    }
-    return '';
-};
-
-const ensureHandle = (handle = '') => {
-    if (!handle) return '';
-    const str = String(handle).trim();
-    return str.startsWith('@') ? str.slice(1) : str;
-};
-
-const normalizeMediaEntry = (entry) => {
-    if (!entry) return null;
-    if (typeof entry === 'string') {
-        const uri = entry.trim();
-        return uri ? { uri, type: 'image', cropRect: null } : null;
-    }
-    if (typeof entry === 'object') {
-        const uri = entry.uri ?? entry.url ?? entry.image ?? entry.photoURL ?? entry.photoUrl ?? entry.photo ?? null;
-        if (!uri) return null;
-        const raw = String(entry.type ?? entry.mediaType ?? entry.kind ?? 'image').toLowerCase();
-        return { uri, type: raw.includes('video') ? 'video' : 'image', cropRect: entry.cropRect || null };
-    }
-    return null;
-};
-
-const mergeMediaSources = (...sources) => {
-    const flattened = sources.flatMap((src) => (Array.isArray(src) ? src : []));
-    const seen = new Set();
-    const result = [];
-    flattened.forEach((entry) => {
-        const normalized = normalizeMediaEntry(entry);
-        if (!normalized?.uri) return;
-        const key = `${normalized.uri}|${normalized.type}`;
-        if (seen.has(key)) return;
-        seen.add(key);
-        result.push(normalized);
-    });
-    return result;
-};
-
-const extractWidFromWorkout = (workout) => stringCandidates([
-    workout?.wid,
-    workout?.workoutWid,
-    workout?.workoutId,
-    workout?.workoutID,
-    workout?.id,
-]);
-
-const extractPidFromWorkout = (workout) => stringCandidates([
-    workout?.postPid,
-    workout?.postPID,
-    workout?.postId,
-    workout?.pid,
-]);
-
-const resolveWorkoutCreatedAt = (workout) => {
-    if (!workout) return 0;
-    const fields = ['created', 'createdAt', 'completedAt', 'finishedAt', 'startedAt', 'updatedAt'];
-    for (const field of fields) {
-        const ms = toMillis(workout?.[field]);
-        if (ms) return ms;
-    }
-    return 0;
-};
-
-const buildFeedPostData = (workout, fallbackIndex = 0) => {
-    if (!workout || typeof workout !== 'object') return null;
-
-    const viewer = (() => { try { return global?.userData || null; } catch { return null; } })();
-    const ownerUid = workout?.uid ?? workout?.userUid ?? workout?.creatorUid ?? workout?.creatorUID ?? viewer?.uid ?? 'self';
-    const handle = workout?.handle || workout?.username || viewer?.handle || '';
-    const name = workout?.name || viewer?.name || handle || 'You';
-    const pfp = workout?.pfp || workout?.pfpUrl || workout?.photoURL || workout?.photo || viewer?.image || viewer?.pfp || viewer?.pfpUrl || '';
-    const pfpVersion = workout?.pfpVersion ?? workout?.pfp_version ?? viewer?.pfpVersion ?? viewer?.pfp_version ?? 0;
-    const created = bestTimestamp(workout);
-
-    return {
-        pid: buildWorkoutPid(ownerUid, workout, fallbackIndex),
-        uid: String(ownerUid || ''),
-        handle,
-        name,
-        pfp,
-        pfpVersion,
-        workout: { ...workout },
-        created,
-        createdAt: created,
-        likes: Array.isArray(workout?.likes) ? [...workout.likes] : [],
-        likeCount: toNumber(workout?.likeCount ?? workout?.likesCount, 0),
-        comments: Array.isArray(workout?.comments) ? [...workout.comments] : [],
-        commentCount: toNumber(workout?.commentCount ?? workout?.commentsCount, 0),
-        media: Array.isArray(workout?.media) ? [...workout.media] : [],
-        images: Array.isArray(workout?.images) ? [...workout.images] : [],
-        caption: workout?.caption || workout?.templateName || workout?.template?.name || workout?.name || '',
-        __synthetic: true,
-    };
-};
-
-const sortPostsByCreated = (list) => {
-    if (!Array.isArray(list)) return [];
-    return [...list].sort((a, b) => {
-        const left = Number(a?.created ?? a?.createdAt ?? a?.timestamp ?? 0) || 0;
-        const right = Number(b?.created ?? b?.createdAt ?? b?.timestamp ?? 0) || 0;
-        return right - left;
-    });
-};
-
-const getWorkoutTimestamp = (workout = {}) => {
-    const candidates = [
-        workout.finishedAt,
-        workout.completedAt,
-        workout.createdAt,
-        workout.created,
-        workout.startedAt,
-    ];
-    for (const value of candidates) {
-        if (value == null) continue;
-        if (typeof value === 'number' && Number.isFinite(value)) return value;
-        if (typeof value?.toMillis === 'function') {
-            const millis = value.toMillis();
-            if (Number.isFinite(millis)) return millis;
-        }
-        const parsed = new Date(value).getTime();
-        if (Number.isFinite(parsed)) return parsed;
-    }
-    return 0;
-};
-
-const sortWorkoutsByTimestamp = (list) => {
-    if (!Array.isArray(list)) return [];
-    return [...list].sort((a, b) => getWorkoutTimestamp(b) - getWorkoutTimestamp(a));
-};
-
-const LockedView = ({ subtitle }) => (
-    <View style={styles.lockedContainer}>
-        <View style={styles.lockedIconWrap}>
-            <Ionicons name="lock-closed" size={scaleSize(42)} color="#A5B4FC" />
-        </View>
-        <Text style={styles.lockedTitle}>This account is private</Text>
-        <Text style={styles.lockedSubtitle}>
-            {subtitle || 'Follow to see their workouts and posts.'}
-        </Text>
-    </View>
-);
+import { buildEditPostPayload, ensureAtHandle, extractPidFromWorkout, stringCandidates } from "../utils/feedItemUtils";
+import { sanitizeEntry } from "../utils/workoutRouteParams";
+import LockedView from "./profileWorkoutsAndPosts/LockedView";
+import styles from "./profileWorkoutsAndPosts/ProfileWorkoutsAndPosts.styles";
+import { extractWidFromWorkout, sortPostsByCreated, sortWorkoutsByTimestamp } from "./profileWorkoutsAndPosts/profileWorkoutsAndPostsUtils";
 
 export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
     const params = route?.params || {};
@@ -282,8 +92,6 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
     const [activeFeedItem, setActiveFeedItem] = useState(null);
     const [workoutPostsState, setWorkoutPostsState] = useState({ byPid: {}, byWid: {} });
     const [workoutPostsLoading, setWorkoutPostsLoading] = useState(false);
-
-    const insets = useSafeAreaInsets();
 
     useFocusEffect(
         useCallback(() => {
@@ -374,7 +182,6 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
     useEffect(() => {
         if (!isViewingSelf) return undefined;
         try {
-            const { subscribeUserData } = require('../utils/userDataEvents');
             const unsubscribe = subscribeUserData((nextUser) => {
                 if (nextUser && nextUser.uid) setUserData(nextUser);
             });
@@ -586,10 +393,6 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
             const fetched = workoutPostsState.byPid[candidate];
             if (fetched) return fetched;
         }
-        if (wid) {
-            const mapped = workoutPostsState.byWid[String(wid)];
-            if (mapped === null) return null;
-        }
         return null;
     }, [extractPidFromWorkout, extractWidFromWorkout, postsByPid, workoutPostsState]);
 
@@ -718,7 +521,7 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         openPastWorkout(resolved, { startEditing: true });
     }, [openPastWorkout, resolveFeedItem]);
 
-    const handleEditPost = useCallback(async (post, _options = {}) => {
+    const handleEditPost = useCallback(async (post) => {
         const resolved = resolveFeedItem(post);
         if (!resolved) return;
 
@@ -735,90 +538,11 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
             console.warn('ProfileWorkoutsAndPostsScreen: handleEditPost failed to fetch latest post', { pid, error });
         }
 
-        const resolvedCaption = (() => {
-            if (typeof latest.caption === 'string' && latest.caption.trim()) {
-                return latest.caption;
-            }
-            const captionComment = Array.isArray(latest.comments)
-                ? latest.comments.find((comment) => comment?.isCaption && typeof comment?.content === 'string')
-                : null;
-            return captionComment?.content || '';
-        })();
-
-        const mediaEntries = [];
-        const seen = new Set();
-
-        if (Array.isArray(latest.media)) {
-            latest.media.forEach((entry) => {
-                const uri = typeof entry === 'string' ? entry : entry?.uri;
-                if (!uri || seen.has(uri)) return;
-                seen.add(uri);
-                const entryTypeRaw = typeof entry === 'string' ? undefined : entry?.type;
-                const type = entryTypeRaw === 'clip' ? 'video' : entryTypeRaw;
-                const cropRect = typeof entry === 'string' ? null : entry?.cropRect || null;
-                const duration =
-                    typeof entry === 'string'
-                        ? 0
-                        : Number(
-                              entry?.duration ??
-                              entry?.videoDuration ??
-                              entry?.length ??
-                              entry?.seconds ??
-                              0
-                          ) || 0;
-                const width = typeof entry?.width === 'number' ? entry.width : (typeof entry?.naturalWidth === 'number' ? entry.naturalWidth : 0);
-                const height = typeof entry?.height === 'number' ? entry.height : (typeof entry?.naturalHeight === 'number' ? entry.naturalHeight : 0);
-                const aspectRatio = typeof entry?.aspectRatio === 'number'
-                    ? entry.aspectRatio
-                    : (width && height ? width / height : null);
-                mediaEntries.push({
-                    uri,
-                    type: type === 'video' ? 'video' : 'image',
-                    duration,
-                    cropRect,
-                    width,
-                    height,
-                    aspectRatio,
-                    isClip: Boolean(entry?.isClip || entryTypeRaw === 'clip' || latest?.type === 'clip'),
-                });
-            });
-        }
-
-        if (Array.isArray(latest.images)) {
-            latest.images.forEach((entry) => {
-                const uri = typeof entry === 'string' ? entry : entry?.uri;
-                if (!uri || seen.has(uri)) return;
-                seen.add(uri);
-                mediaEntries.push({
-                    uri,
-                    type: 'image',
-                    duration: 0,
-                    cropRect: typeof entry === 'string' ? null : entry?.cropRect || null,
-                    width: typeof entry?.width === 'number' ? entry.width : 0,
-                    height: typeof entry?.height === 'number' ? entry.height : 0,
-                    aspectRatio: typeof entry?.aspectRatio === 'number' ? entry.aspectRatio : null,
-                    isClip: false,
-                });
-            });
-        }
-
-        const workoutName = (() => {
-            const source = latest.workout || resolved.workout || null;
-            if (!source || typeof source !== 'object') return '';
-            const candidate = source.templateName || source.template?.name || source.name || source.workoutName || '';
-            return candidate ? String(candidate).trim() : '';
-        })();
+        const { resolvedCaption, mediaEntries, editingPayload } = buildEditPostPayload(latest, resolved.workout, pid);
 
         try {
             shouldRefreshOnFocusRef.current = true;
         } catch { }
-
-        const editingPayload = {
-            pid,
-            caption: resolvedCaption,
-            mediaEntries,
-            workoutName,
-        };
 
         if (isClipPost(latest)) {
             const clipEntry = mediaEntries.find((entry) => entry?.type === 'video');
@@ -948,9 +672,8 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
                 onPressProfile={(_, data) => handlePressProfile(data || item)}
                 onPressWorkout={(_, data) => handlePostWorkout(data || item)}
                 onPressComments={(_, data) => handlePressComments(data || item)}
-                onPressShare={() => { }}
                 onPressLikes={(_, data) => handlePressLikes(data || item)}
-                onPressEditPost={(_, data, opts) => handleEditPost(data || item, opts)}
+                onPressEditPost={(_, data) => handleEditPost(data || item)}
                 onPressEditWorkout={(_, data) => handleEditWorkout(data || item)}
             />
         </View>
@@ -1060,14 +783,12 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
                 data={workoutFeedItems}
                 renderItem={renderPost}
                 keyExtractor={keyExtractor}
-                ListEmptyComponent={() => (
-                    workoutPostsLoading ? (
-                        <View style={styles.loadingWrap}>
-                            <ActivityIndicator size="small" color="#93C5FD" />
-                            <Text style={styles.loadingNote}>Syncing workouts…</Text>
-                        </View>
-                    ) : workoutsEmptyComponent
-                )}
+                ListEmptyComponent={workoutPostsLoading ? (
+                    <View style={styles.loadingWrap}>
+                        <ActivityIndicator size="small" color="#93C5FD" />
+                        <Text style={styles.loadingNote}>Syncing workouts…</Text>
+                    </View>
+                ) : workoutsEmptyComponent}
                 contentContainerStyle={styles.workoutListContent}
                 style={styles.list}
                 showsVerticalScrollIndicator={false}
@@ -1120,158 +841,3 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         </SafeAreaView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: theme.bg,
-    },
-    contentWrap: {
-        flex: 1,
-    },
-    bodyContent: {
-        flex: 1,
-        paddingHorizontal: 0,
-        paddingTop: scaleSize(4),
-    },
-    list: {
-        flex: 1,
-    },
-    listContent: {
-        paddingBottom: scaleSize(120),
-        paddingHorizontal: 0,
-    },
-    workoutListContent: {
-        paddingBottom: scaleSize(120),
-        paddingTop: scaleSize(6),
-    },
-    headerContainer: {
-        backgroundColor: theme.bg,
-        paddingBottom: scaleSize(6),
-    },
-    headerRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        position: 'relative',
-        paddingHorizontal: scaleSize(20),
-        paddingBottom: scaleSize(6),
-    },
-    headerBackButton: {
-        position: 'absolute',
-        left: scaleSize(20),
-        top: '50%',
-        transform: [{ translateY: -scaleSize(17) }],
-        width: scaleSize(34),
-        height: scaleSize(34),
-        borderRadius: scaleSize(17),
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    segmentWrap: {
-        borderRadius: scaleSize(999),
-    },
-    segmentBg: {
-        flexDirection: 'row',
-        backgroundColor: theme.surface,
-        borderRadius: scaleSize(999),
-        padding: scaleSize(4),
-        borderWidth: scaleSize(1),
-        borderColor: theme.hairline,
-        shadowColor: '#000',
-        shadowOpacity: 0.12,
-        shadowRadius: scaleSize(8),
-        shadowOffset: { width: 0, height: scaleSize(3) },
-        elevation: 1,
-    },
-    segmentChip: {
-        borderRadius: scaleSize(999),
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: theme.surface,
-        width: scaleSize(105),
-        height: scaleSize(34),
-        marginHorizontal: scaleSize(2),
-    },
-    segmentChipActive: {
-        backgroundColor: theme.primary,
-        shadowColor: theme.primary,
-        shadowOpacity: 0.15,
-        shadowRadius: scaleSize(8),
-        shadowOffset: { width: 0, height: scaleSize(3) },
-        elevation: 2,
-    },
-    segmentChipText: {
-        fontSize: scaleSize(12.5),
-        fontFamily: 'Outfit_600SemiBold',
-        color: theme.textSecondary,
-    },
-    segmentChipTextActive: {
-        color: theme.textPrimary,
-    },
-    postWrapper: {
-    },
-    emptyState: {
-        alignItems: 'center',
-        paddingHorizontal: scaleSize(20),
-        paddingVertical: scaleSize(16),
-    },
-    emptyTitle: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(14.5),
-        color: '#E3E9FF',
-        marginBottom: scaleSize(4),
-    },
-    emptySubtitle: {
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(12.5),
-        color: '#9CA3AF',
-        textAlign: 'center',
-    },
-    loadingWrap: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    loadingNote: {
-        marginTop: scaleSize(8),
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(12),
-        color: '#9CA3AF',
-    },
-    errorContainer: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: scaleSize(24),
-    },
-    lockedContainer: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: scaleSize(24),
-    },
-    lockedIconWrap: {
-        width: scaleSize(78),
-        height: scaleSize(78),
-        borderRadius: scaleSize(39),
-        backgroundColor: 'rgba(99, 102, 241, 0.22)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginBottom: scaleSize(14),
-    },
-    lockedTitle: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(16.5),
-        color: '#E5E9FF',
-        marginBottom: scaleSize(6),
-    },
-    lockedSubtitle: {
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(13),
-        lineHeight: scaleSize(19),
-        color: '#9CA3AF',
-        textAlign: 'center',
-    },
-});

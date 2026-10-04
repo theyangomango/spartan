@@ -1,66 +1,37 @@
 // components/3_Workout/NewWorkout/Tracking/ExerciseLog.js
 import React, { useState, useEffect, useRef, memo, useCallback, useMemo } from "react";
-import { View, StyleSheet, Text, Pressable, Animated, LayoutAnimation, Platform, UIManager } from "react-native";
+import { View, Text, Pressable, Animated } from "react-native";
 import * as Haptics from "expo-haptics";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import SetRow from "./SetRow";
 import theme from "../../../../theme/mfpDark";
 import ExerciseOptionsPanel from "./ExerciseOptionsPanel";
+import styles from "./ExerciseLog.styles";
+import useDebounced from "./useDebounced";
 
 import scaleSize from "../../../../helper/scaleSize";
 import workoutTypography from "../../shared/workoutTypography";
 import ExerciseAvatar from "../../../common/ExerciseAvatar";
 import { computeDisplayNumbers } from "../../shared/setTypeUtils";
+import { normalizePrevKeepZero } from "../../shared/workoutSetUtils";
 import { resolveExerciseWeighting } from "../../../../utils/bodyweight";
-const ENABLE_LAYOUT_ANIM = false;
 const SYNC_DEBOUNCE_MS = 80;
 const RAF_FALLBACK_MS = 24;
 
-// simple debounce
-const useDebounced = (fn, delay = 120) => {
-    const fnRef = useRef(fn);
-    const tRef = useRef(null);
-    useEffect(() => { fnRef.current = fn; }, [fn]);
-    const schedule = useCallback((...args) => {
-        if (tRef.current) clearTimeout(tRef.current);
-        tRef.current = setTimeout(() => fnRef.current(...args), delay);
-    }, [delay]);
-    const flush = useCallback((...args) => {
-        if (tRef.current) clearTimeout(tRef.current);
-        fnRef.current(...args);
-    }, []);
-    useEffect(() => () => { if (tRef.current) clearTimeout(tRef.current); }, []);
-    return { schedule, flush };
-};
-
-const normalizePrevCandidate = (candidate) => {
-    if (!candidate || typeof candidate !== "object") return null;
-    const weight = Number(candidate?.weight) || 0;
-    const reps = Number(candidate?.reps) || 0;
-    return { weight, reps };
-};
-
 function ExerciseLog({
     name,
-    muscle,
     exerciseIndex,
     updateSets,          // parent setter
     sets,                // source of truth
     replaceExercise,
     deleteExercise,
     readOnly = false,
-    showOptionsTriggerIcon = false,
     syncColumnOnEdit = false,
     onStatFocus,         // optional: notify parent when any set input is focused
     fallbackPreviousSets,
     viewExercise,
 }) {
-    // ----- Android layout animation enable -----
-    if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
-        try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch { }
-    }
-
     // ----- Local draft to avoid parent churn on every keystroke -----
     const [draft, setDraft] = useState(() => Array.isArray(sets) ? sets : []);
     const setsRef = useRef(draft);
@@ -131,13 +102,13 @@ function ExerciseLog({
     const normalizedFallbackPrev = useMemo(() => {
         if (!Array.isArray(fallbackPreviousSets)) return [];
         return fallbackPreviousSets
-            .map((row) => normalizePrevCandidate(row))
+            .map((row) => normalizePrevKeepZero(row))
             .filter(Boolean);
     }, [fallbackPreviousSets]);
 
     const previousSets = useMemo(() => {
         const inlinePrev = Array.isArray(sets)
-            ? sets.map((set) => normalizePrevCandidate(set?.prev))
+            ? sets.map((set) => normalizePrevKeepZero(set?.prev))
             : [];
         const inlineHasData = inlinePrev.some(Boolean);
 
@@ -207,14 +178,9 @@ function ExerciseLog({
     };
 
     // ----- Local mutations (no parent call) -----
-    const withLayout = (fn) => (...args) => {
-        if (ENABLE_LAYOUT_ANIM) { try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {} }
-        fn(...args);
-    };
-
     const genLocalId = useCallback(() => `${name}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`, [name]);
 
-    const addSet = withLayout(() => {
+    const addSet = () => {
         const current = setsRef.current || [];
         const lastSet = current[current.length - 1] || null;
         let defaultWeight = lastSet && Object.prototype.hasOwnProperty.call(lastSet, "weight")
@@ -237,7 +203,7 @@ function ExerciseLog({
         setsRef.current = next;
         flushNextFrame(next);
         try { Haptics.selectionAsync?.(); } catch {}
-    });
+    };
 
     useEffect(() => {
         if (readOnly) return;
@@ -326,13 +292,13 @@ function ExerciseLog({
         scheduleSync(next);
     }, [scheduleSync, syncColumnOnEdit, name]);
 
-    const deleteSetById = withLayout((sid) => {
+    const deleteSetById = (sid) => {
         const cur = setsRef.current || [];
         const next = cur.filter((s) => s?.id !== sid);
         setDraft(next);
         setsRef.current = next;
         flushNextFrame(next);
-    });
+    };
 
     useEffect(() => {
         if (readOnly) return;
@@ -348,7 +314,7 @@ function ExerciseLog({
             if (row.prev != null) continue;
 
             const fallbackPrev = Array.isArray(previousSets) ? previousSets[i] : null;
-            const normalizedPrev = normalizePrevCandidate(fallbackPrev);
+            const normalizedPrev = normalizePrevKeepZero(fallbackPrev);
             if (!normalizedPrev) continue;
 
             next[i] = { ...row, prev: normalizedPrev };
@@ -432,7 +398,6 @@ function ExerciseLog({
                     return (
                         <SetRow
                             key={sid}
-                            itemKey={sid}
                             sid={sid}
                             previousSet={previousSets[index]}
                             set={item}
@@ -466,9 +431,7 @@ const areEqual = (prev, next) => {
     return (
         // parent-driven replacement of the whole sets array
         (prev.name === next.name &&
-        prev.muscle === next.muscle &&
         prev.readOnly === next.readOnly &&
-        prev.showOptionsTriggerIcon === next.showOptionsTriggerIcon &&
         prev.syncColumnOnEdit === next.syncColumnOnEdit &&
         prev.sets === next.sets &&
         prev.fallbackPreviousSets === next.fallbackPreviousSets &&
@@ -477,50 +440,3 @@ const areEqual = (prev, next) => {
 };
 
 export default memo(ExerciseLog, areEqual);
-
-const styles = StyleSheet.create({
-    main_ctnr: { marginTop: scaleSize(16), marginBottom: scaleSize(6), position: "relative" },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingLeft: scaleSize(20),
-        paddingRight: scaleSize(14),
-        paddingBottom: scaleSize(10),
-        marginHorizontal: scaleSize(2.5),
-    },
-    nameContainer: { flexDirection: "row", alignItems: "center", flexShrink: 1, marginRight: scaleSize(10), paddingBottom: scaleSize(4), flex: 1 },
-    avatar: { marginRight: scaleSize(10) },
-    nameText: { flexShrink: 1, fontSize: scaleSize(14), lineHeight: scaleSize(20) },
-    optionsButton: {
-        backgroundColor: theme.restPillBg,
-        borderRadius: scaleSize(10),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.primaryHairline,
-        height: scaleSize(26),
-        width: scaleSize(32),
-        justifyContent: "center",
-        alignItems: "center",
-        mart: scaleSize(4)
-
-    },
-    labels: { flexDirection: "row", paddingBottom: scaleSize(5), marginHorizontal: scaleSize(2.5) },
-    set_col: { marginLeft: "5%", width: "8%", alignItems: "center" },
-    prev_col: { width: "38%", alignItems: "center" },
-    w_col: { width: "18%", alignItems: "center" },
-    weightLabelWrapper: { flexDirection: "row", alignItems: "center" },
-    weightLabelIcon: { marginRight: scaleSize(4) },
-    r_col: { width: "18%", alignItems: "center" },
-    add_set_btn_ctnr: { paddingHorizontal: scaleSize(20) },
-    add_set_btn: {
-        width: "100%",
-        marginTop: scaleSize(8),
-        alignSelf: "center",
-        height: scaleSize(28),
-        borderRadius: scaleSize(20),
-        backgroundColor: theme.addSetBg,
-        justifyContent: "center",
-        alignItems: "center",
-        flexDirection: "row",
-    },
-    add_set_text: { marginLeft: scaleSize(1), marginRight: scaleSize(5) },
-});

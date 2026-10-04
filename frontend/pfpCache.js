@@ -1,8 +1,6 @@
-// pfpCache.js (JS)
-import FastImage from "react-native-fast-image";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getDownloadURL, ref } from "firebase/storage";
-import { storage } from "../firebase.config"; // ← adjust path
+import { storage } from "../firebase.config";
 
 // In-memory cache and in-flight request de-dupe
 const mem = new Map();            // key -> uri
@@ -72,31 +70,4 @@ export async function getPfpUrl(uid, version = 0) {
 
     pending.set(key, p);
     return p;
-}
-
-export async function preloadPfps(list) {
-    // list: [{ uid, version? }]
-    await hydrate();
-    const sources = [];
-    for (const item of list) {
-        const version = item.version != null ? item.version : 0;
-        try {
-            const uri = await getPfpUrl(item.uid, version);
-            sources.push({
-                uri,
-                priority: FastImage.priority.normal,
-                cache: FastImage.cacheControl.immutable,
-            });
-        } catch (e) {
-            // skip broken ones
-        }
-    }
-    if (sources.length) FastImage.preload(sources);
-}
-
-// Optional helper if you ever need to wipe persisted map
-export async function clearPfpCache() {
-    mem.clear();
-    pending.clear();
-    await AsyncStorage.removeItem(STORE_KEY);
 }

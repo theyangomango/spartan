@@ -15,17 +15,11 @@ import {
     UIManager,
     Keyboard,
     Easing,
+    Dimensions,
+    FlatList,
 } from "react-native";
-import { Dimensions, FlatList } from "react-native";
-// AsyncStorage removed for reminder gating; show only on create/join events
-let FlashListLib = null;
-try { FlashListLib = require("@shopify/flash-list"); } catch { }
-const canUseFlashList = !!(FlashListLib && FlashListLib.FlashList && UIManager?.getViewManagerConfig && UIManager.getViewManagerConfig('CellContainer') && UIManager.getViewManagerConfig('AutoLayoutView'));
-const BaseListComponent = canUseFlashList ? FlashListLib.FlashList : FlatList;
-const AnimatedFlashList = RNAnimated.createAnimatedComponent(BaseListComponent);
 import Animated, { useAnimatedStyle, interpolate, interpolateColor, Extrapolate, useAnimatedReaction, runOnJS } from "react-native-reanimated";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Weight } from "iconsax-react-native";
 import { strong as haptic, withStrongPress } from "../../../utils/haptics";
 import ExerciseLog from "./Tracking/ExerciseLog";
 import { StatKeyboardProvider } from "./Tracking/StatKeyboardContext";
@@ -35,7 +29,6 @@ import FastImage from "react-native-fast-image";
 import sendNotification from "../../../../backend/sendNotification";
 import theme from "../../../theme/mfpDark";
 import { resolvePhotoURL } from "../../../utils/profilePhoto";
-// Lazy-load confetti only when needed to keep bundle lean during editing
 
 // Realtime / Firestore
 import { getFirestore, doc, setDoc, serverTimestamp, arrayUnion, addDoc, collection, onSnapshot, query, orderBy, limit } from "firebase/firestore";
@@ -45,21 +38,25 @@ import { useGroupViewing } from "./Group/useGroupViewing";
 import GroupHeader from "./Group/GroupHeader";
 import GroupMenu from "./Group/GroupMenu";
 
-// Invite picker (bottom sheet)
-// Invite picker moved to screen level for full-screen backdrop
 import RestTimerModal from "./RestTimerModal";
 import useRestTimer from "./hooks/useRestTimer";
 import useWorkoutEditing from "./hooks/useWorkoutEditing";
 import { navigationRef } from "../../../../navigationRef";
 
 import scaleSize from "../../../helper/scaleSize";
-import calculate1RM from "../../../helper/calculate1RM";
-import { estimateWorkoutCalories } from "../../../helper/estimateWorkoutCalories";
-import { resolveUserBodyweight } from "../../../utils/bodyweight";
 import { formatWorkoutTimestamp } from "../../../utils/date";
 import ConfirmWorkoutModal from "./components/ConfirmWorkoutModal";
-// import WorkoutReminderModal from "./components/WorkoutReminderModal";
 import KeyboardDismissAccessory, { useKeyboardAccessoryId } from "../../common/KeyboardDismissAccessory";
+import CollapsedTimerText from "./CollapsedTimerText";
+import styles from "./ActiveWorkoutModal.styles";
+import { ensureWorkoutMetrics } from "./activeWorkoutMetrics";
+import { extractLatestSetsFromStats, extractSetsFromCompletedWorkout } from "./previousSets";
+
+let FlashListLib = null;
+try { FlashListLib = require("@shopify/flash-list"); } catch { }
+const canUseFlashList = !!(FlashListLib && FlashListLib.FlashList && UIManager?.getViewManagerConfig && UIManager.getViewManagerConfig('CellContainer') && UIManager.getViewManagerConfig('AutoLayoutView'));
+const BaseListComponent = canUseFlashList ? FlashListLib.FlashList : FlatList;
+const AnimatedFlashList = RNAnimated.createAnimatedComponent(BaseListComponent);
 
 const HANDLE_HORIZONTAL_PADDING = scaleSize(0);
 const HEADER_COLLAPSED_TRANSLATE = scaleSize(0);
@@ -74,63 +71,12 @@ const HEADER_EXPANDED_BG = theme.bg;
 
 const SHEET_EXPANDED_BG = theme.bg;
 const SHEET_COLOR_THRESHOLD = 0.15;
-const CTA_SHADOW_COLOR = '#000000';
 
 const ensureUri = (value) => {
     const str = (value ?? "").toString().trim();
     return str.length ? str : "";
 };
 const toUidString = (uid) => (uid == null ? "" : String(uid));
-
-const normalizePrevSetRow = (row) => {
-    if (!row || typeof row !== "object") return null;
-    const weight = Number(row?.weight) || 0;
-    const reps = Number(row?.reps) || 0;
-    return { weight, reps };
-};
-
-const extractLatestSetsFromStats = (entry) => {
-    if (!entry || typeof entry !== "object") return [];
-    const sets = Array.isArray(entry?.sets) ? entry.sets : [];
-    if (!sets.length) return [];
-    const lastWid = sets[sets.length - 1]?.wid;
-    if (lastWid) {
-        const collected = [];
-        for (let i = sets.length - 1; i >= 0; i--) {
-            const row = sets[i];
-            if (row?.wid !== lastWid) break;
-            const normalized = normalizePrevSetRow(row);
-            if (normalized) collected.push(normalized);
-        }
-        if (collected.length) return collected.reverse();
-    }
-    // Fallback when wid is missing: surface the most recent meaningful entries
-    const trimmed = [];
-    for (let i = sets.length - 1; i >= 0 && trimmed.length < 8; i--) {
-        const normalized = normalizePrevSetRow(sets[i]);
-        if (normalized) trimmed.push(normalized);
-    }
-    return trimmed.reverse();
-};
-
-const extractSetsFromCompletedWorkout = (exercise) => {
-    if (!exercise || typeof exercise !== "object") return [];
-    const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
-    if (!sets.length) return [];
-    const normalized = sets
-        .map((row) => normalizePrevSetRow(row))
-        .filter(Boolean);
-    return normalized;
-};
-
-const getUserExerciseStats = () => {
-    try {
-        const source = global?.userData?.statsExercises;
-        return (source && typeof source === "object") ? source : {};
-    } catch {
-        return {};
-    }
-};
 
 const perfNow = () => {
     const { performance: perfGlobal } = typeof global !== "undefined" ? global : {};
@@ -139,170 +85,6 @@ const perfNow = () => {
         return perf.now();
     }
     return Date.now();
-};
-
-const findStatsEntryForExercise = (statsMap, rawName) => {
-    if (!statsMap || typeof statsMap !== "object") return null;
-    const name = typeof rawName === "string" ? rawName.trim() : "";
-    if (!name) return null;
-    if (statsMap[name]) return statsMap[name];
-    const lowered = name.toLowerCase();
-    const matchKey = Object.keys(statsMap).find(
-        (key) => typeof key === "string" && key.trim().toLowerCase() === lowered
-    );
-    return matchKey ? statsMap[matchKey] : null;
-};
-
-const getPreviousOneRm = (statsMap, rawName) => {
-    const entry = findStatsEntryForExercise(statsMap, rawName);
-    if (!entry || typeof entry !== "object") return 0;
-    const direct = Number(entry?.["1RM"]);
-    if (Number.isFinite(direct) && direct > 0) return direct;
-    const fallback = Number(entry?.oneRM ?? entry?.oneRm ?? entry?.max ?? 0);
-    return Number.isFinite(fallback) && fallback > 0 ? fallback : 0;
-};
-
-const deriveWorkoutMetrics = (workout) => {
-    if (!workout || typeof workout !== "object") {
-        return { volume: 0, reps: 0, PBs: 0 };
-    }
-
-    const statsMap = getUserExerciseStats();
-    const exercises = Array.isArray(workout?.exercises) ? workout.exercises : [];
-
-    let totalVolume = 0;
-    let totalReps = 0;
-    let totalPBs = 0;
-
-    exercises.forEach((exercise) => {
-        const name = typeof exercise?.name === "string" ? exercise.name : "";
-        const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
-        if (!sets.length) return;
-
-        const validSets = sets.filter((set) => {
-            const reps = Number(set?.reps) || 0;
-            const weight = Number(set?.weight) || 0;
-            const isDone = !!set?.isDone;
-            return isDone && reps > 0 && weight > 0;
-        });
-
-        if (!validSets.length) return;
-
-        const previousMax = getPreviousOneRm(statsMap, name);
-
-        let hitPB = previousMax <= 0;
-
-        validSets.forEach((set) => {
-            const reps = Number(set?.reps) || 0;
-            const weight = Number(set?.weight) || 0;
-            totalVolume += weight * reps;
-            totalReps += reps;
-            if (!hitPB) {
-                const estimate = calculate1RM(weight, reps);
-                if (estimate > previousMax) {
-                    hitPB = true;
-                }
-            }
-        });
-
-        if (hitPB) totalPBs += 1;
-    });
-
-    return {
-        volume: Number.isFinite(totalVolume) ? totalVolume : 0,
-        reps: Number.isFinite(totalReps) ? totalReps : 0,
-        PBs: Number.isFinite(totalPBs) ? totalPBs : 0,
-    };
-};
-
-const normalizeCalorieValue = (value) => {
-    const num = Number(value);
-    return Number.isFinite(num) ? num : null;
-};
-
-const buildExercisesForCalories = (workout) => {
-    const exercises = Array.isArray(workout?.exercises) ? workout.exercises : [];
-    return exercises
-        .map((exercise) => {
-            const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
-            const doneSets = sets.filter((set) => !!set?.isDone);
-            if (!doneSets.length) return null;
-            return { ...exercise, sets: doneSets };
-        })
-        .filter(Boolean);
-};
-
-const resolveDurationForCalories = (workout) => {
-    const explicit = Number(workout?.duration);
-    if (Number.isFinite(explicit) && explicit > 0) return explicit;
-    const created = Number(workout?.created);
-    if (Number.isFinite(created) && created > 0) {
-        return Math.max(0, Date.now() - created);
-    }
-    return 0;
-};
-
-const computeWorkoutCalories = (workout) => {
-    const sanitizedExercises = buildExercisesForCalories(workout);
-    if (!sanitizedExercises.length) return null;
-    let userData = null;
-    try {
-        userData = global?.userData || null;
-    } catch {
-        userData = null;
-    }
-    const weightLb = resolveUserBodyweight(userData, null, { measurementsOnly: true });
-    if (!weightLb || weightLb <= 0) return null;
-    const payload = {
-        ...workout,
-        duration: resolveDurationForCalories(workout),
-        exercises: sanitizedExercises,
-    };
-    const estimate = estimateWorkoutCalories(payload, { weightLb, user: userData });
-    const calories = Number(estimate?.calories);
-    return Number.isFinite(calories) ? calories : null;
-};
-
-const ensureWorkoutMetrics = (workout) => {
-    if (!workout || typeof workout !== "object") return workout;
-
-    const { volume, reps, PBs } = deriveWorkoutMetrics(workout);
-    const hasVolumeProp = Object.prototype.hasOwnProperty.call(workout, "volume");
-    const hasRepsProp = Object.prototype.hasOwnProperty.call(workout, "reps");
-    const hasPBsProp = Object.prototype.hasOwnProperty.call(workout, "PBs");
-    const prevVolume = Number(workout?.volume) || 0;
-    const prevReps = Number(workout?.reps) || 0;
-    const prevPBs = Number(workout?.PBs ?? workout?.pbs) || 0;
-    const needsUpdate =
-        !hasVolumeProp ||
-        !hasRepsProp ||
-        !hasPBsProp ||
-        typeof workout.volume !== "number" ||
-        typeof workout.reps !== "number" ||
-        typeof workout.PBs !== "number" ||
-        prevVolume !== volume ||
-        prevReps !== reps ||
-        prevPBs !== PBs;
-
-    const nextCalories = computeWorkoutCalories(workout);
-    const prevCalories = normalizeCalorieValue(workout?.calories);
-    const caloriesChanged = nextCalories !== prevCalories;
-
-    if (!needsUpdate && !caloriesChanged) return workout;
-
-    const nextWorkout = { ...workout };
-    if (needsUpdate) {
-        nextWorkout.volume = volume;
-        nextWorkout.reps = reps;
-        nextWorkout.PBs = PBs;
-        if (Object.prototype.hasOwnProperty.call(nextWorkout, "pbs")) {
-            delete nextWorkout.pbs;
-        }
-    }
-    if (caloriesChanged) {
-        nextWorkout.calories = nextCalories;
-    }
-    return nextWorkout;
 };
 
 // FlashList sizing helpers to keep footer actions from overlapping while template data hydrates
@@ -349,11 +131,7 @@ const ActiveWorkoutModal = ({
     const [deleteConfirmModalVisible, setDeleteConfirmModalVisible] = useState(false);
     const [finishConfirmModalVisible, setFinishConfirmModalVisible] = useState(false);
     const [isFinishing, setIsFinishing] = useState(false);
-    // Reminder modal (self only)
-    // const [reminderVisible, setReminderVisible] = useState(false);
-    const reminderVisible = false;
     const [endWorkoutSheetVisible, setEndWorkoutSheetVisible] = useState(false);
-    // const reminderShownRef = useRef(new Set());
     const {
         restModalVisible,
         restModalKey,
@@ -363,12 +141,8 @@ const ActiveWorkoutModal = ({
         startCountdown,
         addCountdown,
         resetCountdown,
-        setCountdown,
         restTotal,
     } = useRestTimer();
-
-    // Invite picker now controlled by parent (Workout screen)
-    // Parent provides showGroupModal() to open, and registerInviteHandler(fn) to receive callback.
 
     const scrollY = useRef(new RNAnimated.Value(0)).current;
     const listRef = useRef(null);
@@ -382,6 +156,18 @@ const ActiveWorkoutModal = ({
     const updateSheetReadyForFocus = useCallback((ready) => {
         setSheetReadyForFocus((prev) => (prev === ready ? prev : ready));
     }, []);
+
+    const meUid = String(global?.userData?.uid || "");
+    const myActiveWid = String(global?.userData?.currentWorkout?.wid || "");
+    const cardWid = String(workout?.wid || "");
+    const friendUidFromWorkout = String(workout?.creatorUID || workout?.creatorUid || "");
+
+    // If parent passed a uid (preferred), use it; if boolean true, fall back to workout's creator
+    const forcedUid =
+        typeof forceViewingFriend === "string"
+            ? forceViewingFriend
+            : (forceViewingFriend ? friendUidFromWorkout : null);
+    const lockFriend = !!forcedUid;
 
     const [liveFeaturesEnabled, setLiveFeaturesEnabled] = useState(false);
     useEffect(() => {
@@ -441,21 +227,7 @@ const ActiveWorkoutModal = ({
         return () => { try { subShow.remove(); subHide.remove(); } catch { } };
     }, []);
 
-    // Editing helpers/state (initialized after viewingSelfEffective is known)
-
     // ===== Group / viewing state — with friend-lock =====
-    const meUid = String(global?.userData?.uid || "");
-    const myActiveWid = String(global?.userData?.currentWorkout?.wid || "");
-    const cardWid = String(workout?.wid || "");
-    const friendUidFromWorkout = String(workout?.creatorUID || workout?.creatorUid || "");
-
-    // If parent passed a uid (preferred), use it; if boolean true, fall back to workout's creator
-    const forcedUid =
-        typeof forceViewingFriend === "string"
-            ? forceViewingFriend
-            : (forceViewingFriend ? friendUidFromWorkout : null);
-    const lockFriend = !!forcedUid;
-
     const forceSelfView = useMemo(() => {
         try { return String(global?.__forceWorkoutSelfViewWid || "") === cardWid; }
         catch { return false; }
@@ -569,13 +341,6 @@ const ActiveWorkoutModal = ({
 
     // keep caller informed (if they care)
     useEffect(() => { onViewingChange?.(!!viewingSelfEffective); }, [viewingSelfEffective, onViewingChange]);
-
-    // derived: whether there are others; currently unused but keep pattern
-
-    // no-op
-
-    // Recreate editing hook with correct viewingSelf binding
-    // Note: We re-bind by calling the hook once (above) and only using its functions; viewingSelf gates inside each method
 
     // When viewing a friend: prefer the passed workout (e.g., a past workout)
     // Only use friend's activeWorkout if it matches the card's wid to avoid brief flashes
@@ -730,7 +495,6 @@ const ActiveWorkoutModal = ({
             );
             try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch { }
             updateWorkoutWithMetrics({ ...workout, exercises: nextExercises });
-            setIsDoneState((prev) => { const next = prev.map((row) => row.slice()); next[replaceIndex] = newSets.map((s) => !!s.isDone); return next; });
             setReplaceIndex(null);
             setSelectExerciseModalVisible(false);
             return;
@@ -741,8 +505,6 @@ const ActiveWorkoutModal = ({
         setSelectExerciseModalVisible(false);
         haptic();
     }, [appendExercises, replaceIndex, viewingSelfEffective, workout, updateWorkoutWithMetrics]);
-
-    // deleteExercise and updateSets provided by hook
 
     const confirmCancelWorkout = () => {
         if (!viewingSelfEffective) return;
@@ -868,8 +630,7 @@ const ActiveWorkoutModal = ({
     });
 
     // Dimming logic:
-    // - When Reminder Modal is visible: dim content
-    // - Else, dim only while viewing someone else's workout (self view stays full opacity)
+    // - Dim only while viewing someone else's workout (self view stays full opacity)
     // Track whether I'm actively part of this workout (wid match, just started, or listed in participants/members)
     const hasActiveWorkoutContext = useMemo(() => {
         const widCard = String(cardWid || "");
@@ -908,7 +669,7 @@ const ActiveWorkoutModal = ({
 
     // Smoothly animate context dim to avoid harsh jumps when switching between spectating and self
     const contentDimAnim = useRef(new RNAnimated.Value(1)).current;
-    const targetOpacity = reminderVisible ? 0.6 : (dimDueToContext ? 0.6 : 1);
+    const targetOpacity = dimDueToContext ? 0.6 : 1;
     useEffect(() => {
         try {
             RNAnimated.timing(contentDimAnim, {
@@ -1058,13 +819,26 @@ const ActiveWorkoutModal = ({
         confirmCancelWorkout();
     }, [confirmCancelWorkout]);
 
+    // Focus handler from child set inputs: gently scroll the exercise into view
+    const handleStatFocus = useCallback((exerciseIndex /*, setIndex */) => {
+        try {
+            const ref = listRef.current;
+            if (!ref) return;
+            // Scroll the exercise near the top so its inputs are above keyboard
+            requestAnimationFrame(() => {
+                try {
+                    ref.scrollToIndex({ index: exerciseIndex, animated: true, viewPosition: 0.1 });
+                } catch { /* fallback if not measured yet */ }
+            });
+        } catch { }
+    }, []);
+
     const renderExerciseItem = useCallback(({
         item: ex,
         index: exerciseIndex,
     }) => (
         <ExerciseLog
             name={ex.name}
-            muscle={ex.muscle}
             exerciseIndex={exerciseIndex}
             sets={ex.sets}
             updateSets={updateSets}
@@ -1072,7 +846,6 @@ const ActiveWorkoutModal = ({
             deleteExercise={deleteExercise}
             viewExercise={handleViewExercise}
             readOnly={!viewingSelfEffective}
-            showOptionsTriggerIcon
             syncColumnOnEdit={viewingSelfEffective}
             onStatFocus={handleStatFocus}
             fallbackPreviousSets={fallbackPreviousSetsByName?.[String(ex?.name || "")] || undefined}
@@ -1159,13 +932,6 @@ const ActiveWorkoutModal = ({
         ),
         [viewingSelfEffective, activeWorkout?.wid, cardWid, liveFeaturesEnabled]
     );
-
-    // Am I an active participant in this workout?
-    const meIsMember = useMemo(() => {
-        if (!liveFeaturesEnabled) return false;
-        const my = String(meUid || "");
-        return Array.isArray(members) && members.some((m) => String(m) === my);
-    }, [members, meUid, liveFeaturesEnabled]);
 
     // ===== Confetti + Cheer Events =====
     const [confettiTick, setConfettiTick] = useState(0);
@@ -1470,44 +1236,6 @@ const ActiveWorkoutModal = ({
         registerInviteHandler?.(handleInviteSelected);
     }, [registerInviteHandler, handleInviteSelected]);
 
-    /*
-    // Show the reminder whenever a new workout starts (per wid once per mount).
-    // Triggered by local flag `__justStarted` or the global one-shot `__showWorkoutReminderForWid`.
-    useEffect(() => {
-        try {
-            if (!viewingSelfEffective) return;
-            const wid = String(workout?.wid || "");
-            if (!wid || reminderShownRef.current.has(wid)) return;
-
-            const shouldFromFlag = (typeof global !== 'undefined') && (global.__showWorkoutReminderForWid === wid);
-            const shouldFromLocal = !!workout?.__justStarted;
-            if (shouldFromFlag || shouldFromLocal) {
-                reminderShownRef.current.add(wid);
-                setReminderVisible(true);
-                // Clear triggers so it doesn't reshow on any subsequent small state updates
-                try { if (shouldFromFlag) global.__showWorkoutReminderForWid = null; } catch { }
-                if (shouldFromLocal) {
-                    try { updateWorkoutWithMetrics({ ...(workout || {}), __justStarted: false }); } catch { }
-                }
-            }
-        } catch { }
-    }, [viewingSelfEffective, workout?.wid, workout?.__justStarted, updateWorkoutWithMetrics, workout]);
-    */
-
-    // Focus handler from child set inputs: gently scroll the exercise into view
-    const handleStatFocus = useCallback((exerciseIndex /*, setIndex */) => {
-        try {
-            const ref = listRef.current;
-            if (!ref) return;
-            // Scroll the exercise near the top so its inputs are above keyboard
-            requestAnimationFrame(() => {
-                try {
-                    ref.scrollToIndex({ index: exerciseIndex, animated: true, viewPosition: 0.1 });
-                } catch { /* fallback if not measured yet */ }
-            });
-        } catch { }
-    }, []);
-
     if (__DEV__ && renderStart != null) {
         const duration = perfNow() - renderStart;
         try {
@@ -1589,7 +1317,6 @@ const ActiveWorkoutModal = ({
                                 <ExerciseLog
                                     key={`${ex?.name || "ex"}-${exerciseIndex}`}
                                     name={ex.name}
-                                    muscle={ex.muscle}
                                     exerciseIndex={exerciseIndex}
                                     sets={ex.sets}
                                     updateSets={updateSets}
@@ -1597,7 +1324,6 @@ const ActiveWorkoutModal = ({
                                     deleteExercise={deleteExercise}
                                     viewExercise={handleViewExercise}
                                     readOnly={!viewingSelfEffective}
-                                    showOptionsTriggerIcon
                                     syncColumnOnEdit={viewingSelfEffective}
                                     onStatFocus={handleStatFocus}
                                     fallbackPreviousSets={fallbackPreviousSetsByName?.[String(ex?.name || "")] || undefined}
@@ -1632,7 +1358,6 @@ const ActiveWorkoutModal = ({
                 <SelectExerciseModal
                     closeModal={closeSelectExerciseModal}
                     appendExercises={handleAppendOrReplace}
-                    userWorkoutStats={activeStats}
                 />
             </Modal>
             {/* Rest Timer Modal */}
@@ -1726,12 +1451,6 @@ const ActiveWorkoutModal = ({
                     }}
                 />
             )}
-            {/*
-            <WorkoutReminderModal
-                visible={reminderVisible}
-                onDismiss={() => setReminderVisible(false)}
-            />
-            */}
             {/* Confetti overlay (mount when cheering is relevant: spectating live OR self active) */}
             {(friendOngoing || isActiveSelf) && (() => {
                 const ConfettiCannon = loadConfettiModule(); return ConfettiCannon ? (
@@ -1785,267 +1504,6 @@ const ActiveWorkoutModal = ({
         </StatKeyboardProvider>
     );
 };
-
-const CollapsedTimerText = memo(({ timerRef }) => {
-    const [timer, setTimer] = useState(() => timerRef?.current || "00:00");
-
-    useEffect(() => {
-        const update = () => {
-            setTimer(timerRef?.current || "00:00");
-        };
-        update();
-        const intervalId = setInterval(update, 1000);
-        return () => clearInterval(intervalId);
-    }, [timerRef]);
-
-    return (
-        <Text style={styles.collapsedHudTimer} numberOfLines={1}>
-            {timer}
-        </Text>
-    );
-});
-
-const styles = StyleSheet.create({
-    main_ctnr: { flex: 1 },
-
-    // Header animation wrappers
-    headerAnimated: { backgroundColor: 'transparent', position: 'relative', alignItems: 'stretch', alignSelf: 'center', width: '100%', overflow: 'hidden' },
-    headerCollapsedOverlay: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        zIndex: 3,
-        alignItems: 'center',
-    },
-    headerContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        width: '100%',
-        zIndex: 2,
-    },
-    headerInner: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    headerShadow: { height: scaleSize(2), backgroundColor: theme.hairline },
-    bodyContainer: { flex: 1, width: '100%' },
-    collapsedHud: {
-        // backgroundColor: 'rgba(33, 44, 68, 0.96)',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        width: '100%',
-        // borderRadius: scaleSize(18),
-        paddingHorizontal: scaleSize(18),
-        // borderWidth: scaleSize(1),
-        borderColor: 'rgba(255,255,255,0.12)',
-        shadowColor: CTA_SHADOW_COLOR,
-        shadowOpacity: 0.12,
-        shadowRadius: scaleSize(10),
-        shadowOffset: { width: 0, height: scaleSize(4) },
-        elevation: 6,
-    },
-    collapsedHudContent: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: scaleSize(-4)
-    },
-    collapsedHudLabel: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(14),
-        color: '#fff',
-        flexShrink: 1,
-        textAlign: 'center',
-    },
-    collapsedHudSeparator: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(14),
-        color: '#fff',
-        marginHorizontal: scaleSize(12),
-    },
-    collapsedHudTimer: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(14),
-        color: '#fff',
-    },
-    // Allow the BottomSheet background to show through
-    scrollview: { paddingTop: scaleSize(5), backgroundColor: 'transparent' },
-    titleDisplayContainer: {
-        paddingHorizontal: scaleSize(24),
-        marginBottom: scaleSize(12),
-    },
-    titleDisplayText: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(17),
-        color: theme.textPrimary,
-    },
-    titleDisplaySubText: {
-        marginTop: scaleSize(2),
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(13),
-        color: theme.textSecondary,
-    },
-    titleDisplayInput: {
-        width: '100%',
-        padding: 0,
-        paddingVertical: 0,
-        textAlignVertical: 'top',
-    },
-    // Ensure FlashList receives a parent with a valid size
-    listWrap: { flex: 1 },
-
-    waitingWrap: { flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: 'transparent' },
-    waitingText: { marginTop: scaleSize(6), fontFamily: "Nunito_700Bold", color: theme.textPrimary },
-
-    add_exercise_btn: {
-        marginHorizontal: scaleSize(20),
-        marginTop: scaleSize(18),
-        borderRadius: scaleSize(20),
-        backgroundColor: '#E2EDFF',
-        borderWidth: 0,
-        justifyContent: "center",
-        alignItems: "center",
-        flexDirection: "row",
-        paddingVertical: scaleSize(13),
-        paddingHorizontal: scaleSize(18),
-        shadowColor: '#000000',
-        shadowOpacity: 0.12,
-        shadowRadius: scaleSize(8),
-        shadowOffset: { width: 0, height: scaleSize(4) },
-        elevation: 3,
-    },
-    add_exercise_text: {
-        fontSize: scaleSize(13),
-        fontFamily: "Outfit_700Bold",
-        color: theme.surface,
-    },
-    end_workout_btn: {
-        marginHorizontal: scaleSize(20),
-        marginTop: scaleSize(12),
-        borderRadius: scaleSize(20),
-        backgroundColor: '#2d2d2dff',
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,255,255,0.08)',
-        justifyContent: "center",
-        alignItems: "center",
-        flexDirection: "row",
-        paddingVertical: scaleSize(13),
-        paddingHorizontal: scaleSize(18),
-    },
-    end_workout_btn_text: {
-        fontSize: scaleSize(13),
-        fontFamily: "Outfit_700Bold",
-        color: theme.textPrimary,
-    },
-    end_workout_overlay: {
-        flex: 1,
-        justifyContent: "flex-end",
-        backgroundColor: 'rgba(0, 0, 0, 0.82)',
-    },
-    end_workout_sheet: {
-        backgroundColor: theme.bg,
-        borderTopLeftRadius: scaleSize(26),
-        borderTopRightRadius: scaleSize(26),
-        paddingTop: scaleSize(16),
-        paddingBottom: scaleSize(56),
-        paddingHorizontal: scaleSize(22),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,255,255,0.06)',
-        shadowColor: '#000000',
-        shadowOpacity: 0.18,
-        shadowRadius: scaleSize(12),
-        shadowOffset: { width: 0, height: -scaleSize(4) },
-        elevation: 10,
-    },
-    end_workout_backdrop: {
-        flex: 1,
-    },
-    end_workout_sheet_handle: {
-        alignSelf: "center",
-        width: scaleSize(34),
-        height: scaleSize(4),
-        borderRadius: scaleSize(2),
-        marginBottom: scaleSize(12),
-    },
-    end_workout_options: {
-        marginTop: scaleSize(6),
-    },
-    end_workout_option: {
-        width: '100%',
-        paddingVertical: scaleSize(13),
-        paddingHorizontal: scaleSize(18),
-        alignItems: "center",
-        justifyContent: "center",
-        borderRadius: scaleSize(18),
-        // borderWidth: StyleSheet.hairlineWidth,
-        // borderColor: 'rgba(255,255,255,0.06)',
-        backgroundColor: 'rgba(255,255,255,0.04)',
-        marginBottom: scaleSize(12),
-    },
-    end_workout_option_finish: {
-        // borderColor: 'rgba(108,216,176,0.32)',
-        backgroundColor: 'rgba(100, 193, 159, 0.21)',
-    },
-    end_workout_option_cancel: {
-        // borderColor: 'rgba(255, 137, 147, 0.57)',
-        backgroundColor: 'rgba(193, 90, 98, 0.18)',
-    },
-    end_workout_option_last: {
-        marginBottom: 0,
-    },
-    end_workout_option_pressed: {
-        opacity: 0.85,
-    },
-    end_workout_option_text: {
-        fontSize: scaleSize(13),
-        fontFamily: "Outfit_700Bold",
-        color: theme.textPrimary,
-        textAlign: "center",
-        letterSpacing: 0.2,
-    },
-    end_workout_option_text_finish: {
-        color: '#52cba3e5',
-    },
-    end_workout_option_text_cancel: {
-        color: 'rgba(255,137,147,0.92)',
-    },
-    cheerOverlayContainer: {
-        position: 'absolute',
-        top: scaleSize(18),
-        right: scaleSize(20),
-        width: scaleSize(48),
-        height: scaleSize(48),
-        borderRadius: scaleSize(24),
-        backgroundColor: 'rgba(15, 20, 35, 0.82)',
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: 'rgba(255,255,255,0.35)',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden',
-    },
-    cheerOverlayAvatar: {
-        width: '100%',
-        height: '100%',
-    },
-    cheerOverlayFallback: {
-        flex: 1,
-        width: '100%',
-        height: '100%',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(255,255,255,0.16)',
-    },
-    cheerOverlayFallbackText: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(16),
-        color: '#FFFFFF',
-    },
-
-});
 
 // Prevent unnecessary re-renders: only re-render when meaningful props change.
 // Note: `workout` changes when any exercise/sets change (by design),

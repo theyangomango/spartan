@@ -66,7 +66,7 @@ export const ensureMessageListener = (cid) => {
     attachListener(safeCid);
 };
 
-export const teardownMessageListeners = () => {
+const teardownMessageListeners = () => {
     activeListeners.forEach((unsub) => {
         try { unsub(); } catch { }
     });

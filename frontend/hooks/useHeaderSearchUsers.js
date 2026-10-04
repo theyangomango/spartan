@@ -5,7 +5,7 @@ import { db } from "../../firebase.config";
 import { coerceUid, normalizeUserRef } from "../utils/userRefs";
 
 /**
- * Header search users data source shared by Feed and Workout screens.
+ * Header search users data source for the Feed screen.
  * - Subscribes to global/users for baseline suggestions
  * - Provides mergeUsersIntoRef for adding seeds (from posts, etc.)
  * - Optionally hydrates following and a small prefetch window

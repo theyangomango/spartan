@@ -1,27 +1,14 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
-import { View, Platform, UIManager, Animated, Easing } from 'react-native';
+import { View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import UserStatsModal from './UserStatsModal';
-import HexagonalStats from './HexagonalStats';
 import scaleSize, { ss } from '../../../helper/scaleSize';
+import theme from '../../../theme/mfpDark';
 
-// Enable LayoutAnimation on Android (even though UserStatsModal already handles it)
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-    try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch { }
-}
-
-const GROUP_KEYS = ['shoulders', 'chest', 'arms', 'legs', 'back', 'abs'];
-const clamp01 = (x) => Math.max(0, Math.min(1, x));
-const lerp = (a, b, t) => a + (b - a) * t;
-
-function interpHex(from, to, t) {
-    const A = from || {}; const B = to || {};
-    const out = {};
-    GROUP_KEYS.forEach((k) => { out[k] = Math.round(lerp(Number(A[k] || 0), Number(B[k] || 0), t)); });
-    out.overall = Math.round((Number(out.shoulders || 0) + Number(out.chest || 0) + Number(out.arms || 0) + Number(out.legs || 0) + Number(out.back || 0) + Number(out.abs || 0)) / 6);
-    return out;
-}
+const renderBackdrop = (props) => (
+    <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+);
 
 export default function UserStatsAfterWorkoutSheet({
     visible,
@@ -42,13 +29,8 @@ export default function UserStatsAfterWorkoutSheet({
     }, [heightPercent]);
     const snapPoints = useMemo(() => [snapPoint], [snapPoint]);
 
-    // Animation driver for the hex morph and OVR value
-    const anim = useRef(new Animated.Value(0)).current; // drives crossfades
-
-    // Drive only the crossfade; indexing is controlled via prop
     useEffect(() => {
         if (!visible) return;
-        anim.setValue(0);
 
         // Crescendo: a flurry of very short taps that grow in intensity
         // Keep independent from fade so visuals stay instant; total ~520ms
@@ -66,15 +48,8 @@ export default function UserStatsAfterWorkoutSheet({
         push(420, () => Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Heavy));
         push(520, () => Haptics.notificationAsync?.(Haptics.NotificationFeedbackType.Success));
 
-        Animated.timing(anim, {
-            toValue: 1,
-            duration: 120, // ultra-snappy fade for the polygon
-            easing: Easing.out(Easing.cubic),
-            useNativeDriver: true,
-        }).start();
-
         return () => { tids.forEach((id) => clearTimeout(id)); };
-    }, [visible, anim]);
+    }, [visible]);
 
     // Clear any global primed values after the sheet is closed to prevent stale arrows next time
     useEffect(() => {
@@ -84,7 +59,6 @@ export default function UserStatsAfterWorkoutSheet({
         }
     }, [visible]);
 
-    // Use target stats immediately in the modal; overlay only for quick visual fade
     const animUser = useMemo(() => {
         const toNow = toHexagon || (global?.__hexChangeTo || null) || (user?.statsHexagon || {});
         return { ...(user || {}), statsHexagon: toNow };
@@ -98,12 +72,10 @@ export default function UserStatsAfterWorkoutSheet({
             onClose={onClose}
             snapPoints={snapPoints}
             backgroundStyle={{
-                backgroundColor: require("../../../theme/mfpDark").default.bg,
+                backgroundColor: theme.bg,
                 borderTopLeftRadius: scaleSize(25),
                 borderTopRightRadius: scaleSize(25),
-            }} backdropComponent={(props) => (
-                <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
-            )}
+            }} backdropComponent={renderBackdrop}
             handleStyle={{ display: 'none' }}
         >
             <View style={{ flex: 1 }}>

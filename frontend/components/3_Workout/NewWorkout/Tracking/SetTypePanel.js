@@ -21,7 +21,7 @@ const ITEM = ({ color, letter, label, onPress }) => (
   </RNBounceable>
 );
 
-function SetTypePanel({ visible, onClose, position, current, onSelect }) {
+function SetTypePanel({ visible, onClose, position, onSelect }) {
   const scale = useRef(new Animated.Value(0.96)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const [panelHeight, setPanelHeight] = useState(0);
@@ -118,7 +118,6 @@ function SetTypePanel({ visible, onClose, position, current, onSelect }) {
 const areEqual = (prev, next) => {
   return (
     prev.visible === next.visible &&
-    prev.current === next.current &&
     prev.onClose === next.onClose &&
     prev.onSelect === next.onSelect &&
     (prev.position?.top || 0) === (next.position?.top || 0) &&
@@ -166,5 +165,4 @@ const styles = StyleSheet.create({
   letterBadge: { width: scaleSize(24), height: scaleSize(24), borderRadius: scaleSize(6), alignItems: "center", justifyContent: "center" },
   letterText: { color: "#FFFFFF", fontFamily: "Outfit_700Bold", fontSize: scaleSize(10.5) },
   itemLabel: { color: theme.textPrimary, fontFamily: "Outfit_700Bold", fontSize: scaleSize(13) },
-  separator: { height: scaleSize(1), backgroundColor: theme.hairline, marginHorizontal: scaleSize(8), marginVertical: scaleSize(4), borderRadius: scaleSize(1) },
 });

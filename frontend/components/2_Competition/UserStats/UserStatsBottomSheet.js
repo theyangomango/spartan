@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BottomSheet from "@gorhom/bottom-sheet";
 import { useSharedValue, useAnimatedReaction } from "react-native-reanimated";
-import { useWindowDimensions, StyleSheet, View } from "react-native";
+import { useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import UserStatsModal from "./UserStatsModal";
 import scaleSize from "../../../helper/scaleSize";
@@ -10,6 +10,7 @@ import { strong as hapticStrong } from "../../../utils/haptics";
 import { onHexagonUpdate } from "../../../utils/hexagonEvents";
 import buildEffectiveStatsUser from "./effectiveStatsUser";
 import isThisUser from "../../../helper/isThisUser";
+import theme from "../../../theme/mfpDark";
 
 const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheetProgressSV, heightRatio = 1 }) => {
     const bottomSheetRef = useRef(null);
@@ -22,7 +23,6 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
         const targetHeight = Math.max(scaleSize(180), fullHeight * clampedRatio);
         return [targetHeight];
     }, [windowHeight, insetTop, heightRatio]);
-    const isFullHeight = snapPoints[0] >= windowHeight + insetTop - 1;
     const [tick, setTick] = useState(0);
     const animatedIndexSV = useSharedValue(-1);
     const animatedPositionSV = useSharedValue(0);
@@ -123,7 +123,7 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
             handleComponent={renderHandle}
             handleHeight={0}
             backgroundStyle={{
-                backgroundColor: require("../../../theme/mfpDark").default.bg,
+                backgroundColor: theme.bg,
                 borderTopLeftRadius: scaleSize(24),
                 borderTopRightRadius: scaleSize(24),
             }}

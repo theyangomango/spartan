@@ -10,20 +10,3 @@ export const isClipPost = (post) => {
         return entryType === 'clip';
     });
 };
-
-export const getPrimaryVideoEntry = (post) => {
-    if (!post) return null;
-    const mediaList = Array.isArray(post?.media) ? post.media : [];
-    if (!mediaList.length) return null;
-    const entry = mediaList.find((item) => {
-        if (!item) return false;
-        const entryType = typeof item.type === 'string' ? item.type.toLowerCase() : '';
-        return entryType === 'video' || entryType === 'clip' || item.isClip;
-    });
-    return entry || null;
-};
-
-export default {
-    isClipPost,
-    getPrimaryVideoEntry,
-};

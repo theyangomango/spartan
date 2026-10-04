@@ -6,6 +6,15 @@ import theme from "../../../theme/mfpDark";
 import { withStrongPress } from "../../../utils/haptics";
 
 export const PROFILE_AVATAR_SIZE = scaleSize(72);
+const PFP_RADIUS_FACTOR = 22.5 / 54;
+const PFP_RING_PADDING_FACTOR = 2.25 / 54;
+const PFP_RING_BORDER_FACTOR = 3 / 54;
+const PFP_RING_RADIUS_FACTOR = 26.5 / (54 + 2 * 2.25);
+const PFP_SIZE = PROFILE_AVATAR_SIZE;
+export const PFP_RADIUS = Math.round(PFP_SIZE * PFP_RADIUS_FACTOR);
+export const PFP_RING_PADDING = Math.round(PFP_SIZE * PFP_RING_PADDING_FACTOR);
+export const PFP_RING_BORDER = Math.round(PFP_SIZE * PFP_RING_BORDER_FACTOR);
+export const PFP_RING_RADIUS = Math.round((PFP_SIZE + PFP_RING_PADDING * 2) * PFP_RING_RADIUS_FACTOR);
 
 /**
  * The identity block shared by the own-profile and view-profile screens: a centred avatar

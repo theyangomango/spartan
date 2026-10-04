@@ -1,30 +1,21 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import React, { memo } from 'react';
+import React, { memo, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PlusIcon from '../../assets/PlusIcon';
 
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
+import { formatPortion } from '../../utils/nutrition';
 
 const DEFAULT_COLORS = {
-    background: '#f5f6fa',
     textPrimary: '#151515ff',
     textSecondary: '#999',
     card: '#ffffffff',
-    mealCardShadow: '#99a5b7ff',
 };
 
 function SearchResultCard({ item, onPressPlus, onPressCard, onToggleFavorite, isFavorited = false, COLORS }) {
     const theme = COLORS || DEFAULT_COLORS;
-    const formatPortion = (qty, unit) => {
-        const u = (unit || '').trim().toLowerCase();
-        if (/^g(ram|rams)?$/.test(u)) return `${qty}g`;
-        if (/^(mg|milligram|milligrams)$/.test(u)) return `${qty}mg`;
-        if (/^(kg|kilogram|kilograms)$/.test(u)) return `${qty}kg`;
-        return `${qty} ${unit.trim()}`; // default keeps a space
-    };
-
     const getSummary = () => {
         const desc = item.food_description || '';
 
@@ -62,51 +53,7 @@ function SearchResultCard({ item, onPressPlus, onPressCard, onToggleFavorite, is
         return [calories, grams, brand].filter(Boolean).join(', ');
     };
 
-    const styles = StyleSheet.create({
-        resultCard: {
-            backgroundColor: theme.card,
-            borderRadius: 0,
-            paddingVertical: scaleSize(12),
-            paddingHorizontal: scaleSize(26),
-            marginVertical: 0,
-            // Full-width list row look: hairlines top & bottom, no shadow
-            borderTopWidth: StyleSheet.hairlineWidth,
-            borderBottomWidth: StyleSheet.hairlineWidth,
-            borderColor: (theme.hairline || 'rgba(2,6,23,0.06)'),
-            shadowOpacity: 0,
-            elevation: 0,
-        },
-        contentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-        textContainer: { flex: 1, marginRight: scaleSize(12) },
-        textPressable: { flex: 1, marginRight: scaleSize(12) },
-        resultTitle: { fontFamily: 'Mulish_700Bold', fontSize: scaleSize(12.5), color: theme.text || theme.textPrimary, marginBottom: scaleSize(4) },
-        resultDescription: { fontFamily: 'Mulish_500Medium', fontSize: scaleSize(12.5), color: theme.subtext || theme.textSecondary },
-        plusWrap: {
-            width: scaleSize(32),
-            height: scaleSize(32),
-            borderRadius: scaleSize(18),
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#rgba(255,255,255,0.1)',
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: theme.hairline || 'rgba(255,255,255,0.18)',
-        },
-        actionRow: {
-            flexDirection: 'row',
-            alignItems: 'center',
-        },
-        favoriteWrap: {
-            width: scaleSize(32),
-            height: scaleSize(32),
-            borderRadius: scaleSize(18),
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginRight: scaleSize(8),
-            backgroundColor: '#rgba(255,255,255,0.1)',
-            borderWidth: StyleSheet.hairlineWidth,
-            borderColor: theme.hairline || 'rgba(255,255,255,0.18)',
-        },
-    });
+    const styles = useMemo(() => makeStyles(theme), [theme]);
 
     return (
         <View style={styles.resultCard}>
@@ -141,3 +88,48 @@ function SearchResultCard({ item, onPressPlus, onPressCard, onToggleFavorite, is
 }
 
 export default memo(SearchResultCard);
+
+const makeStyles = (theme) => StyleSheet.create({
+    resultCard: {
+        backgroundColor: theme.card,
+        borderRadius: 0,
+        paddingVertical: scaleSize(12),
+        paddingHorizontal: scaleSize(26),
+        marginVertical: 0,
+        // Full-width list row look: hairlines top & bottom, no shadow
+        borderTopWidth: StyleSheet.hairlineWidth,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderColor: (theme.hairline || 'rgba(2,6,23,0.06)'),
+        shadowOpacity: 0,
+        elevation: 0,
+    },
+    contentRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    textPressable: { flex: 1, marginRight: scaleSize(12) },
+    resultTitle: { fontFamily: 'Mulish_700Bold', fontSize: scaleSize(12.5), color: theme.text || theme.textPrimary, marginBottom: scaleSize(4) },
+    resultDescription: { fontFamily: 'Mulish_500Medium', fontSize: scaleSize(12.5), color: theme.subtext || theme.textSecondary },
+    plusWrap: {
+        width: scaleSize(32),
+        height: scaleSize(32),
+        borderRadius: scaleSize(18),
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#rgba(255,255,255,0.1)',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline || 'rgba(255,255,255,0.18)',
+    },
+    actionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    favoriteWrap: {
+        width: scaleSize(32),
+        height: scaleSize(32),
+        borderRadius: scaleSize(18),
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: scaleSize(8),
+        backgroundColor: '#rgba(255,255,255,0.1)',
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: theme.hairline || 'rgba(255,255,255,0.18)',
+    },
+});

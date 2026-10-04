@@ -11,9 +11,9 @@ import { usePfp } from "../../../helper/usePFPs";
 import { withStrongPress } from "../../../utils/haptics";
 import { resolvePhotoURL } from "../../../utils/profilePhoto";
 import { sanitizeStatsForViewer, canViewWorkout } from "../../../utils/workoutPrivacy";
+import { sanitizeWorkoutForRoute } from "../../../utils/workoutRouteParams";
 import UserStatsExerciseCard from "./UserStatsExerciseCard";
 import UserStatsExerciseDetailScreen from "./UserStatsExerciseDetailScreen";
-import UserStatsWorkoutViewerScreen from "./UserStatsWorkoutViewerScreen";
 import { styles, COLORS, scaledSize, screenWidth } from "./UserStatsStyles";
 import formatHexStat from "../../../utils/formatHexStat";
 import VerifiedHandle from "../../common/VerifiedHandle";
@@ -32,48 +32,13 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch { }
 }
 
-const sanitizeWorkoutForRoute = (workout) => {
-    if (!workout || typeof workout !== "object") return null;
-    const replacer = (_key, value) => (typeof value === "function" ? undefined : value);
-    try {
-        return JSON.parse(JSON.stringify(workout, replacer));
-    } catch {
-        const clone = { ...workout };
-        clone.exercises = Array.isArray(workout.exercises)
-            ? workout.exercises.map((exercise) => {
-                if (!exercise || typeof exercise !== "object") return {};
-                const sets = Array.isArray(exercise.sets)
-                    ? exercise.sets.map((set) => {
-                        if (!set || typeof set !== "object") return {};
-                        const { weight, reps, unit, units, weightUnit, kg, lbs, ...rest } = set;
-                        const normalized = {
-                            ...rest,
-                            weight: Number(weight ?? kg ?? lbs ?? 0) || 0,
-                            reps: Number(reps ?? set?.rep ?? set?.r ?? 0) || 0,
-                        };
-                        const resolvedUnit = unit || units || weightUnit || (kg != null ? "kg" : undefined);
-                        if (resolvedUnit) normalized.unit = resolvedUnit;
-                        normalized.prev = Object.prototype.hasOwnProperty.call(set, "prev")
-                            ? (set?.prev && typeof set.prev === "object"
-                                ? {
-                                    weight: Number(set.prev?.weight) || 0,
-                                    reps: Number(set.prev?.reps) || 0,
-                                }
-                                : null)
-                            : null;
-                        return normalized;
-                    })
-                    : [];
-                return { ...exercise, sets };
-            })
-            : [];
-        return clone;
-    }
-};
+// Back-swipe gesture (edge) for the detail overlay
+const EDGE_BACK_GESTURE_WIDTH = 200;
+const BACK_SWIPE_TRIGGER = 36;
 
 // `onBack` is set when this is shown as a full screen rather than inside the bottom sheet:
 // the sheet's grabber is replaced by a back button.
-export default function UserStatsModal({ user, toViewProfile, navigation, hexOverlay, hexProps = {}, deferExercises = false, visible = true, onDetailActiveChange = () => {}, onBack = null }) {
+export default function UserStatsModal({ user, toViewProfile, navigation, hexProps = {}, deferExercises = false, visible = true, onDetailActiveChange = () => {}, onBack = null }) {
     // Optionally defer heavy grouping work until after interactions (for smoother open)
     const [showExercises, setShowExercises] = useState(!deferExercises);
     const viewerData = (() => {
@@ -149,7 +114,7 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
     };
     const closeDetail = () => {
         try {
-            Animated.timing(detailTranslateX, { toValue: screenWidth, duration: 220, useNativeDriver: true }).start(({ finished }) => {
+            Animated.timing(detailTranslateX, { toValue: screenWidth, duration: 220, useNativeDriver: true }).start(() => {
                 setDetailName(null);
             });
         } catch { setDetailName(null); }
@@ -202,6 +167,34 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
         }
         return list;
     }, [detailName, detailSets]);
+
+    const findWorkoutByWid = useCallback(async (widRaw) => {
+        const wid = String(widRaw || "");
+        if (!wid) return null;
+        // 1) Prefer visible user's completedWorkouts if available
+        try {
+            const fromProp = Array.isArray(user?.completedWorkouts) ? user.completedWorkouts.find(w => String(w?.wid || w?.id || "") === wid) : null;
+            if (fromProp) return ensureWorkoutPrivacy(fromProp);
+        } catch { }
+        // 2) If viewing self, use local completedWorkouts
+        try {
+            const me = global?.userData;
+            if (me && String(me?.uid || "") === String(user?.uid || "")) {
+                const arr = Array.isArray(me?.completedWorkouts) ? me.completedWorkouts : [];
+                const found = arr.find(w => String(w?.wid || w?.id || "") === wid);
+                if (found) return ensureWorkoutPrivacy(found);
+            }
+        } catch { }
+        // 3) Fallback: fetch from Firestore
+        try {
+            const snap = await getDoc(doc(db, "workouts", wid));
+            if (snap.exists()) {
+                const d = snap.data() || {};
+                return ensureWorkoutPrivacy({ wid, ...d });
+            }
+        } catch { }
+        return { wid, privacyMode: 'global' };
+    }, [user?.completedWorkouts, user?.uid]);
 
     const detailWorkoutCache = useRef(new Map());
     const [detailWorkouts, setDetailWorkouts] = useState([]);
@@ -287,70 +280,12 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
         return () => { active = false; };
     }, [detailName, detailWorkoutIds, viewerUid, viewerData, sortWorkouts, user, findWorkoutByWid]);
 
-    const detailExercise = detailName ? statsForViewer?.[detailName] : null;
-
-
-    // ---- Workout viewer state (open per set press) ----
-    const [viewerOpen, setViewerOpen] = useState(false);
-    const [viewerWorkout, setViewerWorkout] = useState(null);
-    // Slide-in from right for workout viewer
-    const viewerTranslateX = useRef(new Animated.Value(screenWidth)).current;
-    // Match DayDetails: yellow handle fades as overlay slides
-    const viewerHandleOpacity = useMemo(() => (
-        viewerTranslateX.interpolate({
-            inputRange: [0, screenWidth],
-            outputRange: [1, 0],
-            extrapolate: 'clamp',
-        })
-    ), [viewerTranslateX, screenWidth]);
-    const timerRef = useRef("");
-
-    const findWorkoutByWid = useCallback(async (widRaw) => {
-        const wid = String(widRaw || "");
-        if (!wid) return null;
-        // 1) Prefer visible user's completedWorkouts if available
-        try {
-            const fromProp = Array.isArray(user?.completedWorkouts) ? user.completedWorkouts.find(w => String(w?.wid || w?.id || "") === wid) : null;
-            if (fromProp) return ensureWorkoutPrivacy(fromProp);
-        } catch { }
-        // 2) If viewing self, use local completedWorkouts
-        try {
-            const me = global?.userData;
-            if (me && String(me?.uid || "") === String(user?.uid || "")) {
-                const arr = Array.isArray(me?.completedWorkouts) ? me.completedWorkouts : [];
-                const found = arr.find(w => String(w?.wid || w?.id || "") === wid);
-                if (found) return ensureWorkoutPrivacy(found);
-            }
-        } catch { }
-        // 3) Fallback: fetch from Firestore
-        try {
-            const snap = await getDoc(doc(db, "workouts", wid));
-            if (snap.exists()) {
-                const d = snap.data() || {};
-                return ensureWorkoutPrivacy({ wid, ...d });
-            }
-        } catch { }
-        return { wid, privacyMode: 'global' };
-    }, [user?.completedWorkouts, user?.uid]);
-
-    const closeViewer = () => {
-        try {
-            Animated.timing(viewerTranslateX, { toValue: screenWidth, duration: 220, useNativeDriver: true }).start(({ finished }) => {
-                setViewerWorkout(null);
-                setViewerOpen(false);
-            });
-        } catch { setViewerWorkout(null); setViewerOpen(false); }
-    };
-
     const resetToHome = useCallback(() => {
         setDetailName(null);
         setDetailWorkouts([]);
         setDetailLoading(false);
         try { detailTranslateX.setValue(screenWidth); } catch { }
-        setViewerWorkout(null);
-        setViewerOpen(false);
-        try { viewerTranslateX.setValue(screenWidth); } catch { }
-    }, [detailTranslateX, viewerTranslateX, screenWidth]);
+    }, [detailTranslateX, screenWidth]);
 
     const handleWorkoutPress = useCallback(async (entry) => {
         try {
@@ -420,16 +355,12 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
         prevUidRef.current = uid;
     }, [isVisible, user?.uid, resetToHome]);
 
-    // Back-swipe gesture (edge) for detail and viewer overlays
-    const EDGE_BACK_GESTURE_WIDTH = 200;
-    const BACK_SWIPE_TRIGGER = 36;
-
     // Detail back gesture
     const detailBackEligible = useSharedValue(0);
-    const onDetailBackUpdateX = React.useCallback((dx) => {
+    const onDetailBackUpdateX = useCallback((dx) => {
         try { detailTranslateX.setValue(Math.max(0, dx || 0)); } catch { }
     }, [detailTranslateX]);
-    const onDetailBackEnd = React.useCallback((dx, vx) => {
+    const onDetailBackEnd = useCallback((dx, vx) => {
         const shouldClose = (dx || 0) > BACK_SWIPE_TRIGGER || (vx || 0) > 600;
         if (shouldClose) closeDetail();
         else {
@@ -447,30 +378,6 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
             .onEnd((e) => { 'worklet'; detailBackEligible.value = 0; runOnJS(onDetailBackEnd)(e.translationX, e.velocityX); })
             .onFinalize(() => { 'worklet'; detailBackEligible.value = 0; })
     ), [detailBackEligible, onDetailBackEnd, onDetailBackUpdateX]);
-
-    // Viewer back gesture
-    const viewerBackEligible = useSharedValue(0);
-    const onViewerBackUpdateX = React.useCallback((dx) => {
-        try { viewerTranslateX.setValue(Math.max(0, dx || 0)); } catch { }
-    }, [viewerTranslateX]);
-    const onViewerBackEnd = React.useCallback((dx, vx) => {
-        const shouldClose = (dx || 0) > BACK_SWIPE_TRIGGER || (vx || 0) > 600;
-        if (shouldClose) closeViewer();
-        else {
-            try { Animated.timing(viewerTranslateX, { toValue: 0, duration: 180, useNativeDriver: true }).start(); } catch { }
-        }
-    }, [viewerTranslateX]);
-    const viewerBackPan = useMemo(() => (
-        Gesture.Pan()
-            .hitSlop({ left: 0, width: EDGE_BACK_GESTURE_WIDTH })
-            .minDistance(8)
-            .activeOffsetX([-16, 16])
-            .failOffsetY([-12, 12])
-            .onBegin(() => { 'worklet'; viewerBackEligible.value = 1; })
-            .onUpdate((e) => { 'worklet'; if (!viewerBackEligible.value) return; runOnJS(onViewerBackUpdateX)(e.translationX); })
-            .onEnd((e) => { 'worklet'; viewerBackEligible.value = 0; runOnJS(onViewerBackEnd)(e.translationX, e.velocityX); })
-            .onFinalize(() => { 'worklet'; viewerBackEligible.value = 0; })
-    ), [viewerBackEligible, onViewerBackEnd, onViewerBackUpdateX]);
 
     return (
         <View style={styles.container}>
@@ -547,7 +454,6 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
             >
                 <UserStatsProgressPreview
                     user={userForViewer}
-                    hexOverlay={hexOverlay}
                     hexProps={hexProps}
                     onWorkoutPress={handleWorkoutPress}
                 />
@@ -602,24 +508,10 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
                 detailName={detailName}
                 translateX={detailTranslateX}
                 workoutIds={detailWorkoutIds}
-                exercise={detailExercise}
                 workouts={detailWorkouts}
                 loading={detailLoading}
                 onClose={closeDetail}
                 fullScreen={!!onBack}
-            />
-            <UserStatsWorkoutViewerScreen
-                visible={viewerOpen}
-                gesture={viewerBackPan}
-                translateX={viewerTranslateX}
-                handleOpacity={viewerHandleOpacity}
-                workout={viewerWorkout}
-                viewerUid={viewerUid}
-                viewerData={viewerData}
-                statsForViewer={statsForViewer}
-                onClose={closeViewer}
-                user={user}
-                timerRef={timerRef}
             />
         </View>
     );

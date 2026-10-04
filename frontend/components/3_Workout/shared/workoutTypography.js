@@ -2,17 +2,12 @@ import { StyleSheet } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
 
-export const workoutTypography = StyleSheet.create({
+const workoutTypography = StyleSheet.create({
     exerciseName: {
         fontFamily: "Mulish_800ExtraBold",
         color: theme.primary,
         fontSize: scaleSize(14.5),
         flexShrink: 1,
-    },
-    muscleLabel: {
-        fontFamily: "Poppins_700Bold",
-        fontSize: scaleSize(10.5),
-        color: "#fff",
     },
     columnLabel: {
         fontFamily: "Mulish_800ExtraBold",

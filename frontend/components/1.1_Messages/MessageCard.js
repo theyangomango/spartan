@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import FastImage from "react-native-fast-image";
 import getDisplayTime from "../../helper/getDisplayTime";
 import { usePfp } from "../../helper/usePFPs";
@@ -8,10 +8,9 @@ import { resolvePhotoURL } from "../../utils/profilePhoto";
 
 import scaleSize, { ts } from "../../helper/scaleSize";
 import { strong as haptic } from "../../utils/haptics";
-import { TouchableOpacity } from "react-native";
 import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
-import resolveRankTierKey from "../../utils/resolveRankTierKey";
+import { chatTimestampToMillis } from "../1.2_Chat/chatMessageUtils";
 
 const CARD_MIN_HEIGHT = scaleSize(72);
 const PROFILE_SIZE = scaleSize(36);
@@ -33,19 +32,6 @@ const SINGLE_PFP_STYLE = {
 };
 
 /* ---------- Helpers: robust timestamp + compact fallback ---------- */
-const toMillis = (t) => {
-    if (!t) return null;
-    if (typeof t === "number") return t < 1e12 ? t * 1000 : t; // sec -> ms
-    if (typeof t === "string") {
-        const ms = Date.parse(t);
-        return Number.isNaN(ms) ? null : ms;
-    }
-    if (t instanceof Date) return t.getTime();
-    if (typeof t?.toMillis === "function") return t.toMillis();
-    if (typeof t?.seconds === "number") return t.seconds * 1000;
-    return null;
-};
-
 const formatCompact = (ms) => {
     if (!ms) return "";
     const diff = Math.max(0, Date.now() - ms);
@@ -62,7 +48,7 @@ const formatCompact = (ms) => {
 };
 
 const safeDisplayTime = (timestamp) => {
-    const ms = toMillis(timestamp);
+    const ms = chatTimestampToMillis(timestamp);
     if (!ms) return "";
     // Try app's formatter first; fall back to compact if it yields NaN
     try {
@@ -88,15 +74,12 @@ const Pfp = ({ uid, version = 0, fallbackUri, style }) => {
     );
 };
 
-const ParticipantHandle = ({ participant, textStyle, containerStyle, preserveTextAlignment = false }) => {
+const ParticipantHandle = ({ participant, textStyle, containerStyle }) => {
     const handle = participant?.handle ?? "Friend";
     const user = participant?.user ?? null;
     const fallbackVerified = Boolean(user?.isVerified ?? user?.verified);
     const uid = user?.uid ? String(user.uid) : "";
     const isVerified = useUserVerified(uid, fallbackVerified);
-    const preserveSlot = preserveTextAlignment && isVerified;
-    const rankTierKey = resolveRankTierKey(user);
-    const handleColor = theme.textPrimary;
     const flattened = StyleSheet.flatten(textStyle) || {};
     const fontSize = Number(flattened.fontSize) || HANDLE_FONT;
     const iconOffset = -Math.round(fontSize * 0.14);
@@ -106,10 +89,9 @@ const ParticipantHandle = ({ participant, textStyle, containerStyle, preserveTex
         <VerifiedHandle
             handle={handle}
             isVerified={isVerified}
-            textStyle={[textStyle, { color: handleColor }]}
+            textStyle={[textStyle, { color: theme.textPrimary }]}
             numberOfLines={1}
             ellipsizeMode="tail"
-            preserveTextAlignment={preserveSlot}
             containerStyle={containerStyle}
             iconSize={iconSize}
             iconStyle={{ marginTop: iconOffset }}
@@ -201,18 +183,11 @@ export default function MessageCard({ usersExcludingSelf, content, timestamp, to
             {/* middle: text */}
             <View style={styles.textCol}>
                 {isSingleConversation ? (
-                    firstParticipant ? (
-                        <ParticipantHandle
-                            participant={firstParticipant}
-                            textStyle={styles.handle}
-                            preserveTextAlignment
-                            containerStyle={styles.handleRow}
-                        />
-                    ) : (
-                        <Text style={styles.handle} numberOfLines={1} ellipsizeMode="tail">
-                            Friend
-                        </Text>
-                    )
+                    <ParticipantHandle
+                        participant={firstParticipant}
+                        textStyle={styles.handle}
+                        containerStyle={styles.handleRow}
+                    />
                 ) : participantsMeta.length ? (
                     <View style={styles.multiHandlesRow}>
                         {participantsMeta.map((participant, idx) => (

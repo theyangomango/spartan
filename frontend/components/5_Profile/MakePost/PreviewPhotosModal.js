@@ -12,7 +12,7 @@ const screenWidth = Dimensions.get('window').width;
 const NUM_COLUMNS = 3;
 const ITEM_SIZE = screenWidth / NUM_COLUMNS;
 
-const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, isLimited, onRequestMoreAccess }) => {
+const PreviewPhotosModal = ({ assets, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, isLimited, onRequestMoreAccess }) => {
     const renderPhoto = useCallback(({ item }) => {
         const key = item.id || item.uri;
         const order = selectedOrderMap.get(key) || selectedOrderMap.get(item.uri) || 0;
@@ -83,12 +83,6 @@ const PreviewPhotosModal = ({ assets, images, selectedOrderMap, toggleSelect, lo
                 updateCellsBatchingPeriod={12}
                 windowSize={9}
                 removeClippedSubviews={false}
-                shouldItemUpdate={(prev, next) => {
-                    const itemKey = next.item?.id || next.item?.uri;
-                    const prevOrder = prev.extraData?.get(itemKey) || prev.extraData?.get(next.item?.uri) || 0;
-                    const nextOrder = next.extraData?.get(itemKey) || next.extraData?.get(next.item?.uri) || 0;
-                    return prevOrder !== nextOrder;
-                }}
                 onEndReached={onEndReached}
                 onEndReachedThreshold={0.5}
                 onScroll={handleScroll}

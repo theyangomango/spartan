@@ -1,4 +1,3 @@
-// components/1.1_Messages/MessagesHeader.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet, View, Text, TouchableOpacity } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -23,6 +22,22 @@ const CHIP_MARGIN_HORIZONTAL = scaleSize(3);
 const SEGMENT_PADDING = scaleSize(4);
 const CHIP_SLIDE_DISTANCE = CHIP_WIDTH + CHIP_MARGIN_HORIZONTAL * 2;
 const SLIDER_BASE_LEFT = SEGMENT_PADDING + CHIP_MARGIN_HORIZONTAL;
+
+const Chip = ({ label, active, onPress }) => (
+    <RNBounceable
+        onPress={onPress}
+        style={styles.chip}
+    >
+        <Text
+            style={[
+                styles.chipText,
+                active ? styles.chipTextActive : styles.chipTextInactive,
+            ]}
+        >
+            {label}
+        </Text>
+    </RNBounceable>
+);
 
 export default function MessagesHeader({
     toFeedScreen,
@@ -59,22 +74,6 @@ export default function MessagesHeader({
         inputRange: [0, 1],
         outputRange: [0, CHIP_SLIDE_DISTANCE],
     });
-
-    const Chip = ({ label, active, onPress }) => (
-        <RNBounceable
-            onPress={onPress}
-            style={styles.chip}
-        >
-            <Text
-                style={[
-                    styles.chipText,
-                    active ? styles.chipTextActive : styles.chipTextInactive,
-                ]}
-            >
-                {label}
-            </Text>
-        </RNBounceable>
-    );
 
     return (
         <View style={[styles.root, { paddingTop: headerPaddingTop }]}>
@@ -176,7 +175,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
     rightIcon: { right: scaleSize(23), justifyContent: "center" },
-    // no extra bubble; keep the pill clean
     plusBadge: {
         position: "absolute",
         right: scaleSize(-6),

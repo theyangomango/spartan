@@ -31,24 +31,6 @@ const toNumberOrNull = (value) => {
     return Number.isFinite(num) ? num : null;
 };
 
-const hexToRgba = (hexColor, alpha = 1) => {
-    if (typeof hexColor !== "string") return null;
-    const normalized = hexColor.trim().replace("#", "");
-    if (![3, 6].includes(normalized.length)) return null;
-    const full = normalized.length === 3
-        ? normalized
-            .split("")
-            .map((ch) => ch + ch)
-            .join("")
-        : normalized;
-    const intVal = parseInt(full, 16);
-    const r = (intVal >> 16) & 255;
-    const g = (intVal >> 8) & 255;
-    const b = intVal & 255;
-    const safeAlpha = Math.min(Math.max(Number(alpha) || 0, 0), 1);
-    return `rgba(${r}, ${g}, ${b}, ${safeAlpha})`;
-};
-
 const resolveHexTierColor = (score) => {
     const value = toNumberOrNull(score);
     if (value === null || value <= 0) return null;
@@ -80,9 +62,8 @@ const buildMuscleFillMap = (statsHexagon, muscleSegments = DEFAULT_MUSCLE_SEGMEN
 };
 
 export {
-    HEX_TIER_COLORS,
-    resolveHexTierColor,
     buildMuscleFillMap,
-    hexToRgba,
     DEFAULT_MUSCLE_SEGMENTS,
 };
+
+export const BODYGRAPH_OUTLINE_COLOR = "#40485c";

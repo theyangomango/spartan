@@ -1,20 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, ScrollView, Text, Dimensions, TouchableOpacity } from "react-native";
+import { StyleSheet, View, ScrollView, Text, TouchableOpacity } from "react-native";
 import ProfilePicture from "./ProfilePicture";
 import formatPhoneNumber from "../../../helper/formatPhoneNumber";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import THEME from "../../../theme/mfpDark";
-import scaleSize from "../../../helper/scaleSize";
+import scaleSize, { scaleWidth375 } from "../../../helper/scaleSize";
 import DismissableTextInput from "../../common/DismissableTextInput";
 import { useNavigation } from "@react-navigation/native";
 import { subscribeUserData, emitUserDataUpdate } from "../../../utils/userDataEvents";
-
-const { width: screenWidth } = Dimensions.get('window');
-const scale = screenWidth / 375; // Base screen width assumed as 375
-
-function wScale(size) {
-    return Math.round(size * scale);
-}
 
 const EditProfileModal = ({ setPFP }) => {
     const navigation = useNavigation();
@@ -178,7 +171,7 @@ const styles = StyleSheet.create({
     },
     scrollContainer: {
         alignItems: 'center',
-        paddingVertical: scaleSize(wScale(20)),
+        paddingVertical: scaleSize(scaleWidth375(20)),
     },
     heading: {
         fontSize: scaleSize(13.5),
@@ -186,19 +179,19 @@ const styles = StyleSheet.create({
         letterSpacing: 0.1,
         color: THEME.textSecondary,
         alignSelf: 'flex-start',
-        paddingLeft: scaleSize(wScale(20)),
+        paddingLeft: scaleSize(scaleWidth375(20)),
         width: '100%',
-        paddingVertical: scaleSize(wScale(12)),
+        paddingVertical: scaleSize(scaleWidth375(12)),
         backgroundColor: THEME.fieldDeep
     },
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: scaleSize(wScale(20)),
+        paddingHorizontal: scaleSize(scaleWidth375(20)),
         backgroundColor: THEME.bg,
         marginVertical: 0,
-        paddingVertical: scaleSize(wScale(12.5)),
-        borderBottomWidth: wScale(1),
+        paddingVertical: scaleSize(scaleWidth375(12.5)),
+        borderBottomWidth: scaleWidth375(1),
         borderBottomColor: THEME.hairline,
     },
     label: {
@@ -214,22 +207,22 @@ const styles = StyleSheet.create({
         textAlign: 'right',
     },
     changeButton: {
-        minWidth: scaleSize(wScale(55)),
+        minWidth: scaleSize(scaleWidth375(55)),
         alignItems: 'flex-end',
         justifyContent: 'center',
-        marginLeft: scaleSize(wScale(12)),
+        marginLeft: scaleSize(scaleWidth375(12)),
     },
     non_editable_input_text: {
         fontSize: scaleSize(14),
         color: THEME.textSecondary,
         fontFamily: 'Outfit_500Medium',
-        paddingRight: scaleSize(wScale(6)),
+        paddingRight: scaleSize(scaleWidth375(6)),
     },
     editable_input_text: {
         fontSize: scaleSize(14),
         color: THEME.textPrimary,
         fontFamily: 'Outfit_500Medium',
-        paddingRight: scaleSize(wScale(6)),
+        paddingRight: scaleSize(scaleWidth375(6)),
     },
     valueField: {
         flex: 1,

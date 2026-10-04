@@ -10,7 +10,7 @@ const noop = () => {};
 
 // Centralized workout editing store to avoid re-rendering the parent screen.
 // Components can subscribe to just the slices they need.
-export const useWorkoutStore = createWithEqualityFn((set, get) => ({
+const useWorkoutStore = createWithEqualityFn((set) => ({
   workout: null,
   sheetState: WORKOUT_SHEET_STATES.HIDDEN,
   timer: '',
@@ -32,14 +32,6 @@ export const useWorkoutStore = createWithEqualityFn((set, get) => ({
       workout,
       sheetState: workout ? state.sheetState : WORKOUT_SHEET_STATES.HIDDEN,
     })),
-
-  patchWorkout: (updater) =>
-    set((state) => {
-      const curr = state.workout;
-      if (!curr) return { workout: curr };
-      const next = typeof updater === 'function' ? updater(curr) : { ...curr, ...updater };
-      return { workout: next };
-    }),
 
   setSheetState: (sheetState) =>
     set((state) => (state.sheetState === sheetState ? state : { sheetState: sheetState ?? WORKOUT_SHEET_STATES.HIDDEN })),

@@ -1,6 +1,5 @@
-// components/Tracking/Group/GroupMenu.jsx
 import React from "react";
-import { Modal, View, Text, StyleSheet, Pressable, FlatList, Dimensions } from "react-native";
+import { Modal, View, Text, StyleSheet, Pressable, FlatList } from "react-native";
 import scaleSize from "../../../../helper/scaleSize";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { Feather } from "@expo/vector-icons";
@@ -9,8 +8,7 @@ import theme from "../../../../theme/mfpDark";
 import VerifiedHandle from "../../../common/VerifiedHandle";
 import useUserVerified from "../../../../hooks/useUserVerified";
 
-const { height: screenHeight } = Dimensions.get("window");
-const scaledSize = (size) => scaleSize(size);
+const ParticipantSeparator = () => <View style={styles.menuHairline} />;
 
 const ParticipantItem = ({ participant, selected, onPress }) => {
     const uri = participant?.pfp || participant?.image || participant?.photoURL || participant?.avatar || "";
@@ -86,8 +84,8 @@ const GroupMenu = ({ visible, onClose, participants = [], viewing, onInvite, onS
                                     onPress={() => onSelectParticipant?.(item)}
                                 />
                             )}
-                            ItemSeparatorComponent={() => <View style={styles.menuHairline} />}
-                            style={{ maxHeight: scaledSize(260) }}
+                            ItemSeparatorComponent={ParticipantSeparator}
+                            style={{ maxHeight: scaleSize(260) }}
                         />
                     )}
                 </View>
@@ -102,16 +100,16 @@ const styles = StyleSheet.create({
     menuBackdrop: {
         flex: 1,
         backgroundColor: "rgba(0,0,0,0.15)",
-        paddingTop: scaledSize(70),
-        paddingRight: scaledSize(12),
+        paddingTop: scaleSize(70),
+        paddingRight: scaleSize(12),
         alignItems: "flex-end",
     },
     menuCard: {
-        width: scaledSize(300),
+        width: scaleSize(300),
         backgroundColor: theme.surface,
-        borderRadius: scaledSize(14),
-        paddingVertical: scaledSize(10),
-        paddingHorizontal: scaledSize(10),
+        borderRadius: scaleSize(14),
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(10),
         shadowColor: "#000",
         shadowOpacity: 0.12,
         shadowRadius: scaleSize(12),
@@ -122,63 +120,63 @@ const styles = StyleSheet.create({
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(16),
         color: theme.textPrimary,
-        marginBottom: scaledSize(6),
-        paddingHorizontal: scaledSize(4),
+        marginBottom: scaleSize(6),
+        paddingHorizontal: scaleSize(4),
     },
 
     menuItem: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: scaledSize(10),
-        paddingHorizontal: scaledSize(8),
-        borderRadius: scaledSize(10),
+        paddingVertical: scaleSize(10),
+        paddingHorizontal: scaleSize(8),
+        borderRadius: scaleSize(10),
     },
     menuItemText: {
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(14),
         color: theme.textPrimary,
-        marginLeft: scaledSize(8),
+        marginLeft: scaleSize(8),
         flexShrink: 1,
     },
 
     menuDivider: {
         height: scaleSize(1),
         backgroundColor: theme.hairline,
-        marginVertical: scaledSize(8),
+        marginVertical: scaleSize(8),
     },
     menuSectionHeader: {
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(13),
         color: theme.textSecondary,
-        paddingHorizontal: scaledSize(6),
-        marginTop: scaledSize(6),
-        marginBottom: scaledSize(4),
+        paddingHorizontal: scaleSize(6),
+        marginTop: scaleSize(6),
+        marginBottom: scaleSize(4),
     },
     menuEmpty: {
         fontFamily: "Outfit_500Medium",
         fontSize: scaleSize(13.5),
         color: theme.textSecondary,
-        paddingHorizontal: scaledSize(8),
-        paddingVertical: scaledSize(6),
+        paddingHorizontal: scaleSize(8),
+        paddingVertical: scaleSize(6),
     },
     menuHairline: {
         height: StyleSheet.hairlineWidth,
         backgroundColor: theme.hairline,
-        marginLeft: scaledSize(50),
+        marginLeft: scaleSize(50),
     },
 
     participantRow: {
         flexDirection: "row",
         alignItems: "center",
-        paddingVertical: scaledSize(8),
-        paddingHorizontal: scaledSize(6),
+        paddingVertical: scaleSize(8),
+        paddingHorizontal: scaleSize(6),
     },
     participantPfpWrap: {
-        width: scaledSize(30),
-        height: scaledSize(30),
-        borderRadius: scaledSize(15),
+        width: scaleSize(30),
+        height: scaleSize(30),
+        borderRadius: scaleSize(15),
         overflow: "hidden",
-        marginRight: scaledSize(10),
+        marginRight: scaleSize(10),
         backgroundColor: theme.surface,
         borderWidth: scaleSize(1),
         borderColor: theme.hairline,

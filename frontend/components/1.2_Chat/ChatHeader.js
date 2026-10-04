@@ -1,4 +1,3 @@
-// components/1.2_Chat/ChatHeader.jsx
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import FastImage from "react-native-fast-image";
@@ -10,7 +9,6 @@ import theme from "../../theme/mfpDark";
 import VerifiedHandle from "../common/VerifiedHandle";
 import useUserVerified from "../../hooks/useUserVerified";
 import { resolvePhotoURL } from "../../utils/profilePhoto";
-import resolveRankTierKey from "../../utils/resolveRankTierKey";
 
 const HAIRLINE = theme.hairline;
 const BG = theme.bg;
@@ -38,8 +36,6 @@ const ChatHeaderHandle = ({ participant, textStyle, containerStyle }) => {
     const fallbackVerified = Boolean(user?.isVerified ?? user?.verified);
     const uid = user?.uid ? String(user.uid) : "";
     const isVerified = useUserVerified(uid, fallbackVerified);
-    const rankTierKey = resolveRankTierKey(user);
-    const handleColor = theme.textPrimary;
     const flattened = StyleSheet.flatten(textStyle) || {};
     const fontSize = Number(flattened.fontSize) || ts(13);
     const iconOffset = -Math.round(fontSize * 0.14); // tighten alignment with baseline
@@ -49,7 +45,7 @@ const ChatHeaderHandle = ({ participant, textStyle, containerStyle }) => {
         <VerifiedHandle
             handle={handle}
             isVerified={isVerified}
-            textStyle={[textStyle, { color: handleColor }]}
+            textStyle={[textStyle, { color: theme.textPrimary }]}
             numberOfLines={1}
             ellipsizeMode="tail"
             containerStyle={containerStyle}
@@ -72,7 +68,6 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages, onPressParticipant })
             };
         })
     ), [usersExcludingSelf]);
-    const handlesLabel = participantsMeta.map((p) => p.handle).join(", ");
     const u0 = usersExcludingSelf[0] || null;
     const u1 = usersExcludingSelf[1] || null;
     const fallback0 = resolvePhotoURL(u0, "");
@@ -93,8 +88,6 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages, onPressParticipant })
         else navigation.goBack();
     };
 
-    const hasHandles = handlesLabel.length > 0;
-    const primaryLabel = hasHandles ? handlesLabel : "Direct Message";
     const firstParticipant = participantsMeta[0] || null;
     const isSingleConversation = participantsMeta.length === 1;
     const canOpenProfile = isSingleConversation && typeof onPressParticipant === "function";
@@ -128,7 +121,6 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages, onPressParticipant })
                         participant={firstParticipant}
                         textStyle={styles.nameText}
                         containerStyle={styles.nameRow}
-                        iconSize={scaleSize(19)}
                     />
                 ) : participantsMeta.length > 1 ? (
                     <View style={styles.multiHandlesRow}>
@@ -153,7 +145,7 @@ const ChatHeader = ({ usersExcludingSelf = [], toMessages, onPressParticipant })
                     </View>
                 ) : (
                     <Text numberOfLines={1} style={styles.nameText}>
-                        {primaryLabel}
+                        Direct Message
                     </Text>
                 )}
             </View>
@@ -213,7 +205,7 @@ const styles = StyleSheet.create({
         justifyContent: "center",
     },
 
-    // leave space = left(20) + icon hitbox(36) + gutter(24)
+    // leave space = left(20) + icon hitbox(36) + gutter(18)
     centerRow: {
         flexDirection: "row",
         alignItems: "center",

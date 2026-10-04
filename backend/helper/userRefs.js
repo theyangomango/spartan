@@ -34,17 +34,6 @@ export const coerceUid = (input) => {
     return "";
 };
 
-export const normalizeUserRef = (user) => {
-    const uid = coerceUid(user);
-    if (!uid) return null;
-    return {
-        uid,
-        handle: user?.handle || user?.username || "",
-        name: user?.name || user?.displayName || "",
-        pfp: user?.pfp || user?.image || user?.photoURL || "",
-    };
-};
-
 export const ensureUidArray = (list) => {
     if (!Array.isArray(list)) return [];
     const out = [];
@@ -56,18 +45,4 @@ export const ensureUidArray = (list) => {
         out.push(uid);
     }
     return out;
-};
-
-export const mergeUidSets = (base = [], incoming = []) => {
-    const set = new Set();
-    ensureUidArray(base).forEach((uid) => set.add(uid));
-    ensureUidArray(incoming).forEach((uid) => set.add(uid));
-    return Array.from(set);
-};
-
-export default {
-    coerceUid,
-    normalizeUserRef,
-    ensureUidArray,
-    mergeUidSets,
 };

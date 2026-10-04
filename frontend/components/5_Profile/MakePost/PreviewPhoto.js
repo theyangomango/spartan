@@ -46,7 +46,6 @@ function PreviewPhoto({ asset, uri, type, duration, selected, order, onToggle })
                 if (thumbnailUri && isMounted) {
                     videoThumbnailCache.set(cacheKey, thumbnailUri);
                     setVideoPreviewUri(thumbnailUri);
-                    return;
                 }
             } catch (error) {
                 console.warn('[PreviewPhoto] Failed to generate video thumbnail', error?.message || error);

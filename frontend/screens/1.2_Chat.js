@@ -5,7 +5,6 @@ import {
     KeyboardAvoidingView,
     Platform,
     StatusBar,
-    StyleSheet,
     Keyboard,
     ActivityIndicator,
     Dimensions,
@@ -24,6 +23,13 @@ import MessageItem from "../components/1.2_Chat/MessageItem";
 import MessageInput from "../components/1.2_Chat/MessageInput";
 import ReactionPopover from "../components/1.2_Chat/ReactionPopover";
 import MediaViewerModal from "../components/1.2_Chat/MediaViewerModal";
+import {
+    chatTimestampToMillis,
+    dateKeyFromMs,
+    getMessageSenderUid,
+    getMessageTimeMs,
+} from "../components/1.2_Chat/chatMessageUtils";
+import { resolveUploadErrorMessage } from "../components/1.2_Chat/chatUploadErrors";
 
 import sendMessageV2 from "../../backend/messages/sendMessageV2";
 import registerChatParticipants from "../../backend/messages/registerChatParticipants";
@@ -33,11 +39,11 @@ import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import theme from "../theme/mfpDark";
 import Animated, { runOnJS, useSharedValue, withTiming } from "react-native-reanimated";
 
 import scaleSize from "../helper/scaleSize";
 import { ensureUidArray, coerceUid } from "../utils/userRefs";
+import styles, { COLORS } from "./1.2_Chat.styles";
 
 const { width: W } = Dimensions.get("window");
 const MAX_REVEAL = 72;
@@ -45,33 +51,22 @@ const BACK_START_WIDTH = W * 0.1; // capture left-edge pan for back gesture
 const BACK_COMPLETE_DISTANCE = W * 0.33; // require ~33% drag to pop
 const BACK_COMPLETE_VELOCITY = 1100; // px/s fling threshold
 const MAX_ATTACHMENTS = 8;
-
-const UPLOAD_ERROR_COPY = {
-    UNRESOLVED_ASSET_URI: "We couldn't access that item. Download it to your device first, then try again.",
-    ASSET_READ_FAILED: "We couldn't read the selected file. Please choose a different one.",
-    ASSET_EMPTY: "The selected file appears to be empty. Please pick a different one.",
-    VIDEO_NOT_ALLOWED: "Videos can't be shared in chat yet. Please pick images instead.",
-};
-
-const resolveUploadErrorMessage = (error) => {
-    const code = typeof error?.code === "string" ? error.code : "";
-    if (code && UPLOAD_ERROR_COPY[code]) return UPLOAD_ERROR_COPY[code];
-    if (typeof error?.message === "string") {
-        const directMessage = Object.entries(UPLOAD_ERROR_COPY).find(([, msg]) => msg === error.message);
-        if (directMessage) return directMessage[1];
-    }
-    if (code && code.startsWith("storage/unauthorized")) {
-        return "You don't have permission to upload to this chat right now.";
-    }
-    if (code && code.startsWith("storage/quota-exceeded")) {
-        return "You've hit the upload limit for now. Please wait a bit and retry.";
-    }
-    return "Something went wrong while sending your message. Please try again.";
-};
+const REACTION_OPTIONS = [
+    { key: "👍", emoji: "👍" },
+    { key: "❤️", emoji: "❤️" },
+    { key: "😂", emoji: "😂" },
+    { key: "😮", emoji: "😮" },
+];
 
 const AnimatedKeyboardAvoidingView = Animated.createAnimatedComponent(KeyboardAvoidingView);
 
-const COLORS = { surface: theme.surface, primary: theme.primary, hairline: theme.hairline, bg: theme.bg, text: theme.textPrimary, subtext: theme.textSecondary, field: theme.field };
+const isImageAsset = (asset) => {
+    const type = typeof asset?.type === "string" ? asset.type.toLowerCase() : "";
+    const mime = typeof asset?.mimeType === "string" ? asset.mimeType.toLowerCase() : "";
+    if (type.includes("video") || mime.startsWith("video/")) return false;
+    if (type.includes("image") || mime.startsWith("image/")) return true;
+    return true; // default to allow unknown types from the image picker
+};
 
 const normalizeParticipant = (raw) => {
     if (!raw || typeof raw !== "object") return null;
@@ -363,13 +358,6 @@ export default function Chat({ navigation, route }) {
         if (res.canceled) return;
 
         const pickedAssets = Array.isArray(res.assets) ? res.assets : [];
-        const isImageAsset = (asset) => {
-            const type = typeof asset?.type === "string" ? asset.type.toLowerCase() : "";
-            const mime = typeof asset?.mimeType === "string" ? asset.mimeType.toLowerCase() : "";
-            if (type.includes("video") || mime.startsWith("video/")) return false;
-            if (type.includes("image") || mime.startsWith("image/")) return true;
-            return true; // default to allow unknown types from the image picker
-        };
         const imageAssets = pickedAssets.filter(isImageAsset);
 
         if (!imageAssets.length) {
@@ -421,17 +409,7 @@ export default function Chat({ navigation, route }) {
     const sheetSenderUid = useMemo(() => {
         if (!sheet?.msg) return '';
         const msg = sheet.msg;
-        return (
-            msg?.sender?.uid ??
-            msg?.senderUid ??
-            msg?.fromUid ??
-            msg?.uid ??
-            msg?.userId ??
-            msg?.authorId ??
-            msg?.from?.uid ??
-            msg?.author?.uid ??
-            ''
-        );
+        return getMessageSenderUid(msg) ?? '';
     }, [sheet?.msg]);
 
     const sheetActions = useMemo(() => {
@@ -480,7 +458,6 @@ export default function Chat({ navigation, route }) {
         if (key === "report") {
             const message = sheet.msg;
             closeActions();
-            if (!message) return;
             const senderHandle =
                 message?.sender?.handle ||
                 message?.senderHandle ||
@@ -506,8 +483,6 @@ export default function Chat({ navigation, route }) {
     // on media tap -> open viewer
     const openMedia = (payload, anchor) => setViewer({ ...payload, anchor });
     const closeViewer = () => setViewer(null);
-
-    const bottomInset = (isFocused ? 4 : 16) + insets.bottom;
 
     // Group detection and avatar map for sender lookups
     const isGroup = !!(data?.isGroup || (Array.isArray(data?.users) && data.users.length > 2));
@@ -601,33 +576,14 @@ export default function Chat({ navigation, route }) {
         });
 
     /** ---------------- Date chips (inverted list friendly) ---------------- */
-    const toMs = (t) => {
-        if (!t) return 0;
-        if (typeof t === "number") return t < 1e12 ? t * 1000 : t;
-        if (typeof t === "string") return Date.parse(t) || 0;
-        if (typeof t?.toMillis === "function") return t.toMillis();
-        if (typeof t?.seconds === "number") return t.seconds * 1000;
-        if (t instanceof Date) return t.getTime();
-        return 0;
-    };
-    const dateKeyFromMs = (ms) => {
-        const d = new Date(ms || 0);
-        if (isNaN(+d)) return "";
-        return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
-    };
-    const msgTimeMs = (m) => {
-        // Prefer server timestamp; fallback to clientTs for stable ordering
-        const s = toMs(m?.timestamp);
-        return s || Number(m?.clientTs) || 0;
-    };
 
     // sort newest → oldest, then inject a date item AFTER each day's block
     const { messagesOnly, withSeparators } = useMemo(() => {
         const list = Array.isArray(messagesRaw) ? [...messagesRaw] : [];
         // stable newest-first sort using clientTs fallback to avoid top flash
-        list.sort((a, b) => msgTimeMs(b) - msgTimeMs(a));
+        list.sort((a, b) => getMessageTimeMs(b) - getMessageTimeMs(a));
         const out = [];
-        let currentKey = list.length ? dateKeyFromMs(msgTimeMs(list[0])) : "";
+        let currentKey = list.length ? dateKeyFromMs(getMessageTimeMs(list[0])) : "";
         let group = [];
         let block = 0;
 
@@ -640,12 +596,12 @@ export default function Chat({ navigation, route }) {
 
         for (let i = 0; i < list.length; i++) {
             const m = list[i];
-            const k = dateKeyFromMs(msgTimeMs(m));
+            const k = dateKeyFromMs(getMessageTimeMs(m));
             if (k !== currentKey) {
                 flush();
                 currentKey = k;
             }
-            const pending = !toMs(m?.timestamp) && (m?.senderUid === currentUid || m?.sender?.uid === currentUid);
+            const pending = !chatTimestampToMillis(m?.timestamp) && (m?.senderUid === currentUid || m?.sender?.uid === currentUid);
             group.push({ type: "msg", _pending: pending, ...m });
         }
         flush();
@@ -660,9 +616,7 @@ export default function Chat({ navigation, route }) {
         const id = newest.clientId || newest.id;
         if (!id || latestSeenIdRef.current === id) return;
         latestSeenIdRef.current = id;
-        const senderUid =
-            newest?.sender?.uid ?? newest?.senderUid ?? newest?.fromUid ?? newest?.uid ??
-            newest?.userId ?? newest?.authorId ?? newest?.from?.uid ?? newest?.author?.uid ?? null;
+        const senderUid = getMessageSenderUid(newest);
         // Skip haptic on the very first render
         if (!firstMessageSeenRef.current) {
             firstMessageSeenRef.current = true;
@@ -682,7 +636,7 @@ export default function Chat({ navigation, route }) {
         }
     }, [messagesOnly, currentUid]);
 
-    const renderItem = ({ item, index }) => {
+    const renderItem = ({ item }) => {
         if (item.type === "date") {
             return (
                 <View style={styles.dateWrap}>
@@ -727,13 +681,12 @@ export default function Chat({ navigation, route }) {
         <AnimatedKeyboardAvoidingView
             style={styles.flex}
             behavior={Platform.OS === "ios" ? "padding" : undefined}
-            keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 0}
+            keyboardVerticalOffset={0}
         >
             <StatusBar barStyle="light-content" />
             <View style={[styles.container, { paddingTop: insets.top }]}>
                 <ChatHeader
                     usersExcludingSelf={headerUsersExcludingSelf}
-                    // toMessages={() => navigation.navigate("Messages", { message: data, index })}
                     toMessages={() => navigation.goBack()}
                     onPressParticipant={toHeaderProfile}
                 />
@@ -811,12 +764,7 @@ export default function Chat({ navigation, route }) {
                             visible={sheet.visible}
                             anchor={sheet.anchor}
                             onClose={closeActions}
-                            reactions={[
-                                { key: "👍", emoji: "👍" },
-                                { key: "❤️", emoji: "❤️" },
-                                { key: "😂", emoji: "😂" },
-                                { key: "😮", emoji: "😮" },
-                            ]}
+                            reactions={REACTION_OPTIONS}
                             actions={sheetActions}
                             onReaction={handleReaction}
                             onAction={handleAction}
@@ -831,56 +779,3 @@ export default function Chat({ navigation, route }) {
         </AnimatedKeyboardAvoidingView>
     );
 }
-
-const styles = StyleSheet.create({
-    flex: { flex: 1, backgroundColor: COLORS.bg },
-    container: { flex: 1, backgroundColor: COLORS.bg },
-    surface: {
-        flex: 1,
-        backgroundColor: COLORS.bg,
-        borderTopColor: COLORS.hairline,
-        borderTopWidth: StyleSheet.hairlineWidth,
-    },
-    list: { flex: 1 },
-    uploadOverlay: {
-        position: "absolute",
-        right: scaleSize(16),
-        bottom: scaleSize(80),
-        paddingVertical: scaleSize(8),
-        paddingHorizontal: scaleSize(10),
-        borderRadius: scaleSize(12),
-        // dim using a tone close to theme.bg, with alpha
-        backgroundColor: "rgba(24,27,40,0.75)",
-    },
-    blockedBanner: {
-        paddingHorizontal: scaleSize(16),
-        paddingVertical: scaleSize(8),
-        backgroundColor: "rgba(255, 95, 95, 0.15)",
-        borderRadius: scaleSize(10),
-        marginHorizontal: scaleSize(12),
-        marginBottom: scaleSize(6),
-    },
-    blockedBannerText: {
-        color: COLORS.subtext,
-        fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(12),
-        textAlign: "center",
-    },
-
-    // date chip styles (same sleek vibe)
-    dateWrap: { width: "100%", alignItems: "center", paddingVertical: scaleSize(10) },
-    dateChip: {
-        paddingHorizontal: scaleSize(10),
-        paddingVertical: scaleSize(6),
-        backgroundColor: COLORS.field,
-        borderRadius: scaleSize(14),
-        borderWidth: scaleSize(1),
-        borderColor: COLORS.hairline,
-    },
-    dateText: {
-        color: COLORS.subtext,
-        fontSize: scaleSize(12),
-        fontFamily: "Outfit_500Medium",
-        letterSpacing: 0.2,
-    },
-});

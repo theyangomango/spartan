@@ -1,127 +1,39 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { StyleSheet, View, ScrollView, Text, TouchableOpacity, Image, Dimensions, FlatList, Alert, Platform, Pressable, Animated } from "react-native";
+import { View, ScrollView, Text, TouchableOpacity, Image, Dimensions, FlatList, Alert, Platform, Pressable, Animated } from "react-native";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Feather, MaterialCommunityIcons, FontAwesome6, Ionicons } from '@expo/vector-icons';
+import { Feather, MaterialCommunityIcons, FontAwesome6 } from '@expo/vector-icons';
 import FastImage from 'react-native-fast-image';
-import CroppedVideo from '../../common/CroppedVideo';
-import * as MediaLibrary from 'expo-media-library';
 import Slider from '@react-native-community/slider';
-import makeID from "../../../../backend/helper/makeID";
-// Storage handled via native resumable helper to avoid RN Blob issues
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
+import CroppedVideo from '../../common/CroppedVideo';
+import makeID from "../../../../backend/helper/makeID";
+// Storage handled via native resumable helper to avoid RN Blob issues
 import uploadResumableNative from "../../../../backend/storage/uploadResumableNative";
 import createPost from "../../../../backend/posts/createPost";
 import arrayAppend from "../../../../backend/helper/firebase/arrayAppend";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
 import readDoc from "../../../../backend/helper/firebase/readDoc";
+import { jumpToTab } from "../../../../navigationRef";
 import { compressUnder250KB } from "./compressUnder250KB";
 import PostHonestyModal from "./PostHonestyModal";
+import { headerBottomPadding, HIT_SLOP } from "./composerLayout";
+import { mediaSignatureFor, normalizeMediaSelectionEntry, normalizeMediaList, isRemoteUri } from "./postMediaUtils";
+import { ensureVideoAsset } from "./videoUploadAsset";
+import styles from "./PostUploadOptionsScreen.styles";
 import theme from '../../../theme/mfpDark';
+import { scaleWidth375 } from "../../../helper/scaleSize";
+import { formatClockTime } from "../../../utils/date";
 import { withStrongPress } from "../../../utils/haptics";
 import { resolvePhotoURL } from "../../../utils/profilePhoto";
 import { getViewerUid } from "../../../utils/userRefs";
 import { subscribeUserData } from "../../../utils/userDataEvents";
 import { addOptimisticFeedPost, removeOptimisticFeedPost } from "../../../utils/optimisticFeedPosts";
-
 import DismissableTextInput from "../../common/DismissableTextInput";
 
 const { width: screenWidth } = Dimensions.get('window');
-const scale = screenWidth / 375; // Assuming a base screen width of 375 (like iPhone X)
 
-function scaleSize(size) {
-    return Math.round(size * scale);
-}
-
-const composeHorizontalPadding = scaleSize(18);
-const avatarSize = scaleSize(36);
-const headerBottomPadding = scaleSize(12);
 const MAX_CAPTION_LINES = 10;
-
-const formatClockTime = (seconds) => {
-    const total = Math.max(0, Math.floor(Number(seconds) || 0));
-    const mins = Math.floor(total / 60);
-    const secs = total % 60;
-    return `${mins}:${String(secs).padStart(2, '0')}`;
-};
-
-const mediaSignatureFor = (entry) => {
-    if (!entry) return 'null';
-    const type = entry.type || 'image';
-    const uri = typeof entry.uri === 'string' ? entry.uri : JSON.stringify(entry.uri || '');
-    const crop = entry?.cropRect;
-    let cropKey = '';
-    if (crop && typeof crop === 'object') {
-        const { x = 0, y = 0, width = 1, height = 1 } = crop;
-        cropKey = `:${Number(x).toFixed(4)}-${Number(y).toFixed(4)}-${Number(width).toFixed(4)}-${Number(height).toFixed(4)}`;
-    }
-    return `${type}:${uri}${cropKey}`;
-};
-
-const normalizeMediaSelectionEntry = (entry, index = 0) => {
-    if (!entry) return null;
-    if (typeof entry === 'string') {
-        return {
-            uri: entry,
-            previewUri: entry,
-            originalUri: entry,
-            localUri: entry.startsWith('file://') ? entry : null,
-            type: 'image',
-            duration: 0,
-            assetId: null,
-            cropRect: null,
-        };
-    }
-    if (typeof entry === 'object') {
-        const uri = entry.uri || entry.url || entry.image || entry.path || null;
-        if (!uri) return null;
-        const typeSource = entry.type
-            || entry.mediaType
-            || entry.kind
-            || entry.mime
-            || entry.mimeType
-            || entry.contentType
-            || entry.fileType
-            || 'image';
-        const normalizedType = String(typeSource).toLowerCase().includes('video') ? 'video' : 'image';
-        const previewUri = entry.previewUri || uri;
-        const originalUri = entry.originalUri || uri;
-        const localUri = entry.localUri || (uri.startsWith('file://') ? uri : null);
-        const assetId = entry.assetId || entry.id || null;
-        const width = typeof entry.width === 'number' ? entry.width : null;
-        const height = typeof entry.height === 'number' ? entry.height : null;
-        return {
-            uri,
-            previewUri,
-            originalUri,
-            localUri,
-            type: normalizedType,
-            duration: Number(entry.duration) || 0,
-            assetId,
-            cropRect: entry.cropRect || null,
-            width,
-            height,
-            aspectRatio: typeof entry.aspectRatio === 'number'
-                ? entry.aspectRatio
-                : (width && height ? width / height : null),
-            isClip: Boolean(entry.isClip),
-        };
-    }
-    return null;
-};
-
-const normalizeMediaList = (list) => {
-    if (!Array.isArray(list)) return [];
-    const normalized = [];
-    list.forEach((entry, idx) => {
-        const item = normalizeMediaSelectionEntry(entry, idx);
-        if (!item) return;
-        normalized.push(item);
-    });
-    return normalized;
-};
-
-const isRemoteUri = (uri) => /^https?:\/\//i.test(String(uri || ''));
 
 export default function PostOptionsScreen({ navigation, route }) {
     const editingPost = route?.params?.editingPost || null;
@@ -212,7 +124,7 @@ export default function PostOptionsScreen({ navigation, route }) {
     const sharePromiseRef = useRef(null);
     const isMountedRef = useRef(true);
     const insets = useSafeAreaInsets();
-    const headerTopPadding = useMemo(() => scaleSize(6) + Math.max(0, insets.top), [insets.top]);
+    const headerTopPadding = useMemo(() => scaleWidth375(6) + Math.max(0, insets.top), [insets.top]);
     const userImage = resolvePhotoURL(global?.userData, "");
     const captionLastValidRef = useRef('');
     const [measureState, setMeasureState] = useState({ text: ' ', nonce: 0 });
@@ -286,7 +198,7 @@ export default function PostOptionsScreen({ navigation, route }) {
 
     const mediaList = useMemo(() => (
         Array.isArray(selectedImages)
-            ? selectedImages.map((entry, idx) => normalizeMediaSelectionEntry(entry, idx)).filter(Boolean)
+            ? selectedImages.map((entry) => normalizeMediaSelectionEntry(entry)).filter(Boolean)
             : []
     ), [selectedImages]);
     const hasMedia = mediaList.length > 0;
@@ -456,90 +368,6 @@ export default function PostOptionsScreen({ navigation, route }) {
             throw error;
         }
     }, [compressionPreset]);
-
-    const ensureVideoAsset = useCallback(async (entry) => {
-        if (!entry) return null;
-
-        const ensureFileScheme = (uri) => (uri && uri.startsWith('file://') ? uri : null);
-        let assetInfo = null;
-        const loadAssetInfo = async () => {
-            if (assetInfo || !entry.assetId) return assetInfo;
-            try {
-                assetInfo = await MediaLibrary.getAssetInfoAsync(entry.assetId);
-            } catch (error) {
-                console.warn('[PostUploadOptions] getAssetInfoAsync failed', error);
-                assetInfo = null;
-            }
-            return assetInfo;
-        };
-
-        let sourceUri = entry.localUri || entry.uri || null;
-        let fileUri = ensureFileScheme(sourceUri);
-
-        if (!fileUri && entry.assetId) {
-            const info = await loadAssetInfo();
-            if (info?.localUri) {
-                fileUri = ensureFileScheme(info.localUri);
-                if (!fileUri) {
-                    sourceUri = info.localUri;
-                }
-            }
-        }
-
-        let fallbackUri = fileUri ? null : sourceUri;
-
-        const withoutQuery = (sourceUri || '').split('?')[0];
-        let ext = (withoutQuery.match(/\.([a-zA-Z0-9]+)$/)?.[1] || '').toLowerCase();
-        if (!ext && entry.assetId) {
-            const info = await loadAssetInfo();
-            if (info?.filename) {
-                const parts = info.filename.split('.');
-                const candidate = parts[parts.length - 1];
-                if (candidate) ext = candidate.toLowerCase();
-            }
-        }
-        if (!ext) ext = 'mp4';
-        const normalizedExt = ['mp4', 'mov', 'm4v'].includes(ext) ? ext : 'mp4';
-
-        if (!fileUri && fallbackUri) {
-            const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || FileSystem.temporaryDirectory;
-            if (!cacheDir) throw new Error('No cache directory available for video upload');
-            const tempTarget = `${cacheDir}upload-video-${makeID()}.${normalizedExt}`;
-            const isRemote = /^https?:\/\//i.test(fallbackUri);
-            try {
-                if (isRemote) {
-                    const download = await FileSystem.downloadAsync(fallbackUri, tempTarget);
-                    fileUri = download?.uri || tempTarget;
-                } else {
-                    await FileSystem.copyAsync({ from: fallbackUri, to: tempTarget });
-                    fileUri = tempTarget;
-                }
-            } catch (error) {
-                console.warn('[PostUploadOptions] copyAsync failed for video', error);
-                fileUri = ensureFileScheme(fallbackUri);
-            }
-        }
-
-        if (!fileUri) {
-            throw new Error('Unable to resolve local video path for upload');
-        }
-
-        const info = await FileSystem.getInfoAsync(fileUri).catch(() => null);
-        const size = typeof info?.size === 'number' ? info.size : null;
-
-        let mime = entry?.mime || entry?.mimeType || null;
-        if (!mime) {
-            if (normalizedExt === 'mov') mime = 'video/quicktime';
-            else mime = `video/${normalizedExt === 'm4v' ? 'mp4' : normalizedExt}`;
-        }
-
-        return {
-            fileUri,
-            ext: normalizedExt,
-            mime,
-            size,
-        };
-    }, []);
 
     useEffect(() => {
         if (!mediaList.length) return;
@@ -754,7 +582,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                     />
                     {paused && (
                         <View style={styles.video_play_icon_wrap} pointerEvents="none">
-                            <FontAwesome6 name="circle-play" size={scaleSize(56)} color="#fff" />
+                            <FontAwesome6 name="circle-play" size={scaleWidth375(56)} color="#fff" />
                         </View>
                     )}
                     {videoDuration > 0 && (
@@ -791,7 +619,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                         >
                             <MaterialCommunityIcons
                                 name={areVideosMuted ? 'volume-off' : 'volume-high'}
-                                size={scaleSize(18)}
+                                size={scaleWidth375(18)}
                                 color="#fff"
                             />
                         </Pressable>
@@ -922,27 +750,6 @@ export default function PostOptionsScreen({ navigation, route }) {
             navigation.navigate('SelectPhotos', params);
         };
 
-        if (isClipMode && mediaList.length > 0) {
-            Alert.alert(
-                'Switch to regular post?',
-                'Adding standard media will remove your clip.',
-                [
-                    { text: 'Cancel', style: 'cancel' },
-                        {
-                            text: 'Switch',
-                            style: 'destructive',
-                            onPress: () => {
-                                setIsClipMode(false);
-                                setSelectedImages([]);
-                                selectionSourceRef.current = "user";
-                                openPicker();
-                            },
-                        },
-                ]
-            );
-            return;
-        }
-
         openPicker();
     }, [isClipMode, mediaList, navigation, workoutParam, setSelectedImages]);
 
@@ -955,26 +762,6 @@ export default function PostOptionsScreen({ navigation, route }) {
             }
             navigation.navigate(target, params);
         };
-
-        if (!isClipMode && mediaList.length > 0) {
-            Alert.alert(
-                'Replace media with a clip?',
-                'Adding a clip will remove your current photos and videos.',
-                [
-                    { text: 'Cancel', style: 'cancel' },
-                        {
-                            text: 'Replace',
-                            style: 'destructive',
-                            onPress: () => {
-                                setSelectedImages([]);
-                                selectionSourceRef.current = "user";
-                                proceed();
-                            },
-                        },
-                ]
-            );
-            return;
-        }
 
         proceed();
     }, [caption, isClipMode, mediaList, navigation, setSelectedImages]);
@@ -1259,7 +1046,6 @@ export default function PostOptionsScreen({ navigation, route }) {
                 return;
             }
             try {
-                const { jumpToTab } = require('../../../../navigationRef');
                 jumpToTab('Feed');
             } catch {
                 navigation.navigate('Tabs', { screen: 'Feed' });
@@ -1276,7 +1062,7 @@ export default function PostOptionsScreen({ navigation, route }) {
         <View style={styles.main_ctnr}>
             <View style={[styles.header, { paddingTop: headerTopPadding }]}>
                 <TouchableOpacity onPress={withStrongPress(goBack)} style={styles.cancel_btn} hitSlop={HIT_SLOP}>
-                    <Feather name="x" size={scaleSize(20)} color={theme.textSecondary} />
+                    <Feather name="x" size={scaleWidth375(20)} color={theme.textSecondary} />
                 </TouchableOpacity>
                 <View
                     style={[styles.header_title_ctnr, { top: headerTopPadding, bottom: headerBottomPadding }]}
@@ -1311,7 +1097,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                             />
                         ) : (
                             <View style={styles.avatar_placeholder}>
-                                <Feather name="user" size={scaleSize(20)} color={theme.textSecondary} />
+                                <Feather name="user" size={scaleWidth375(20)} color={theme.textSecondary} />
                             </View>
                         )}
                     </View>
@@ -1385,7 +1171,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                         >
                             <Feather
                                 name={isClipMode ? 'film' : 'image'}
-                                size={scaleSize(18)}
+                                size={scaleWidth375(18)}
                                 color={theme.primary}
                             />
                             <Text style={styles.media_manage_text}>{isClipMode ? 'Edit clip' : 'Edit media'}</Text>
@@ -1402,7 +1188,7 @@ export default function PostOptionsScreen({ navigation, route }) {
                             style={styles.add_media_cta}
                             onPress={withStrongPress(handleOpenSelectPhotos)}
                         >
-                            <Feather name="image" size={scaleSize(22)} color={theme.primary} />
+                            <Feather name="image" size={scaleWidth375(22)} color={theme.primary} />
                             <Text style={styles.add_media_title}>Attatch Media (optional)</Text>
                             <Text style={styles.add_media_subtitle}>Share your progress with photos or videos</Text>
                         </TouchableOpacity>
@@ -1427,268 +1213,3 @@ export default function PostOptionsScreen({ navigation, route }) {
         </View>
     );
 }
-
-const HIT_SLOP = { top: scaleSize(8), bottom: scaleSize(8), left: scaleSize(8), right: scaleSize(8) };
-
-const styles = StyleSheet.create({
-    main_ctnr: {
-        flex: 1,
-        backgroundColor: theme.surface
-    },
-    header: {
-        alignItems: 'center',
-        paddingHorizontal: scaleSize(18),
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        backgroundColor: theme.bg,
-        paddingBottom: headerBottomPadding,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: theme.hairline,
-        position: 'relative'
-    },
-    cancel_btn: {
-        paddingVertical: scaleSize(6),
-        paddingHorizontal: scaleSize(8)
-    },
-    header_title_ctnr: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        alignItems: 'center',
-        justifyContent: 'center'
-    },
-    header_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(16),
-        textAlign: 'center',
-        color: theme.textPrimary
-    },
-    share_btn: {
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    share_btn_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(14.5),
-        color: theme.primary
-    },
-    share_btn_text_disabled: {
-        color: theme.textSecondary
-    },
-    body_scrollview: {
-        flex: 1,
-        backgroundColor: theme.surface
-    },
-    body_content: {
-        paddingHorizontal: composeHorizontalPadding,
-        paddingTop: scaleSize(18),
-        paddingBottom: scaleSize(40)
-    },
-    compose_row: {
-        flexDirection: 'row'
-    },
-    avatar_ctnr: {
-        width: avatarSize
-    },
-    avatar: {
-        width: avatarSize,
-        height: avatarSize,
-        borderRadius: avatarSize / 2,
-        backgroundColor: theme.surface
-    },
-    avatar_placeholder: {
-        width: avatarSize,
-        height: avatarSize,
-        borderRadius: avatarSize / 2,
-        backgroundColor: theme.hairline,
-        alignItems: 'center',
-        justifyContent: 'center'
-    },
-    caption_ctnr: {
-        flex: 1,
-        marginLeft: scaleSize(12),
-        position: 'relative'
-    },
-    caption_text: {
-        fontSize: scaleSize(17),
-        fontFamily: 'Outfit_500Medium',
-        color: theme.textPrimary,
-        minHeight: avatarSize,
-        paddingVertical: 0,
-        paddingHorizontal: 0
-    },
-    caption_measure: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        top: 0,
-        opacity: 0,
-        zIndex: -1,
-        minHeight: 0
-    },
-    caption_limit_text: {
-        marginTop: scaleSize(6),
-        fontSize: scaleSize(12),
-        fontFamily: 'Outfit_400Regular',
-        color: theme.textSecondary
-    },
-    media_carousel_wrapper: {
-        marginTop: scaleSize(18),
-        marginHorizontal: -composeHorizontalPadding,
-        alignItems: 'center'
-    },
-    media_container: {
-        width: '100%',
-        backgroundColor: theme.field,
-        overflow: 'hidden'
-    },
-    media_list: {
-        width: '100%',
-        height: '100%'
-    },
-    media_slide: {
-        justifyContent: 'center',
-        alignItems: 'center'
-    },
-    media_image: {
-        width: '100%',
-        height: '100%',
-        borderRadius: 0
-    },
-    video_controls_overlay: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        justifyContent: 'flex-start',
-        alignItems: 'flex-end',
-        padding: scaleSize(12),
-    },
-    video_mute_button: {
-        backgroundColor: 'rgba(0,0,0,0.45)',
-        borderRadius: scaleSize(20),
-        padding: scaleSize(8),
-    },
-    video_play_icon_wrap: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    video_slider_overlay: {
-        position: 'absolute',
-        left: 0,
-        right: 0,
-        bottom: 0,
-        paddingHorizontal: scaleSize(12),
-        paddingBottom: scaleSize(10),
-        paddingTop: scaleSize(6),
-        backgroundColor: 'rgba(0,0,0,0.35)',
-    },
-    video_slider: {
-        height: scaleSize(30),
-    },
-    video_time_row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginBottom: scaleSize(6),
-    },
-    video_time_text: {
-        fontSize: scaleSize(11),
-        color: '#fff',
-        fontFamily: 'Outfit_600SemiBold',
-    },
-    media_indicator_row: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: scaleSize(8)
-    },
-    media_manage_btn: {
-        marginTop: scaleSize(16),
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center'
-    },
-    media_manage_text: {
-        marginLeft: scaleSize(8),
-        color: theme.primary,
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(14)
-    },
-    add_media_stack: {
-        marginTop: scaleSize(18)
-    },
-    add_media_cta: {
-        marginTop: 0,
-        marginHorizontal: -composeHorizontalPadding,
-        paddingVertical: scaleSize(32),
-        paddingHorizontal: composeHorizontalPadding,
-        borderRadius: scaleSize(16),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
-        backgroundColor: theme.surface,
-        alignItems: 'center'
-    },
-    add_media_title: {
-        marginTop: scaleSize(12),
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(16),
-        color: theme.textPrimary
-    },
-    add_media_subtitle: {
-        marginTop: scaleSize(6),
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(13),
-        color: theme.textSecondary
-    },
-    clip_badge: {
-        marginTop: scaleSize(12),
-        alignSelf: 'center',
-        backgroundColor: 'rgba(255,255,255,0.12)',
-        paddingHorizontal: scaleSize(18),
-        paddingVertical: scaleSize(6),
-        borderRadius: scaleSize(20),
-    },
-    clip_badge_text: {
-        color: theme.textPrimary,
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(13),
-        letterSpacing: 0.5,
-    },
-    media_dot: {
-        width: scaleSize(6),
-        height: scaleSize(4.5),
-        borderRadius: 100,
-        backgroundColor: 'rgba(255,255,255,0.22)',
-        marginHorizontal: scaleSize(3)
-    },
-    media_dash: {
-        width: scaleSize(22),
-        height: scaleSize(4.5),
-        borderRadius: 100,
-        backgroundColor: 'rgba(255,255,255,0.6)',
-        marginHorizontal: scaleSize(3)
-    },
-    edit_workout_container: {
-        marginTop: scaleSize(24),
-        paddingHorizontal: 0,
-    },
-    edit_workout_label: {
-        color: theme.textSecondary,
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(12),
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-        marginBottom: scaleSize(6),
-    },
-    edit_workout_name: {
-        color: theme.primary,
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(16),
-    }
-});

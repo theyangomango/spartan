@@ -81,7 +81,7 @@ export const parseRequirementTask = (taskLabel) => {
     return { type: "generic", label };
 };
 
-export const normalizeStatsHexagon = (rawStats) => {
+const normalizeStatsHexagon = (rawStats) => {
     if (!rawStats || typeof rawStats !== "object") return {};
     return Object.entries(rawStats).reduce((acc, [key, value]) => {
         const normalizedKey = String(key || "").toLowerCase();
@@ -109,7 +109,7 @@ const extractWorkoutVolume = (workout) => {
     return 0;
 };
 
-export const computeTotalLiftedVolume = (workouts) => {
+const computeTotalLiftedVolume = (workouts) => {
     if (!Array.isArray(workouts)) return 0;
     return workouts.reduce((sum, workout) => sum + extractWorkoutVolume(workout), 0);
 };
@@ -172,13 +172,13 @@ export const evaluateRequirementProgress = (descriptor, metrics = {}) => {
     };
 };
 
-export const buildRequirementMetrics = (completedWorkouts, statsHexagon) => ({
+const buildRequirementMetrics = (completedWorkouts, statsHexagon) => ({
     totalWorkouts: Array.isArray(completedWorkouts) ? completedWorkouts.length : 0,
     totalVolume: computeTotalLiftedVolume(completedWorkouts),
     statsHexagon: normalizeStatsHexagon(statsHexagon),
 });
 
-export const computeRankProgress = (metrics = {}) => {
+const computeRankProgress = (metrics = {}) => {
     const promotionStatuses = new Map();
     const baseEntry = LADDER_LEVELS_ASC[0] || null;
     let currentRankKey = baseEntry?.key || null;
@@ -244,6 +244,4 @@ export const computeRankProgressFromData = ({ completedWorkouts, statsHexagon } 
 export {
     DISPLAY_TITLES,
     LADDER_LEVELS,
-    LADDER_LEVELS_ASC,
-    LADDER_LEVELS_DESC,
 };

@@ -7,58 +7,57 @@ import computeHexagonStats from "../logic/computeHexagonStats";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
 import { emitUserDataUpdate } from "../utils/userDataEvents";
 
+const stripKeys = (obj, keys) => {
+    if (!obj || typeof obj !== "object") return obj;
+    if (!Array.isArray(keys) || keys.length === 0) return obj;
+    const out = {};
+    for (const k of Object.keys(obj)) {
+        if (!keys.includes(k)) out[k] = obj[k];
+    }
+    return out;
+};
+
+const normalizeSavedExercises = (raw) => {
+    if (!raw) return {};
+    if (Array.isArray(raw)) {
+        return raw.reduce((acc, entry) => {
+            if (!entry) return acc;
+            const name = String(entry?.name || entry).trim();
+            if (!name) return acc;
+            const muscleGroup = entry?.muscleGroup ?? entry?.muscle ?? null;
+            acc[name] = {
+                name,
+                muscleGroup,
+                muscle: entry?.muscle ?? entry?.muscleGroup ?? muscleGroup ?? null,
+                slug: entry?.slug ?? null,
+            };
+            return acc;
+        }, {});
+    }
+    if (typeof raw === "object") {
+        return Object.entries(raw).reduce((acc, [key, value]) => {
+            const name = String(value?.name || key).trim();
+            if (!name) return acc;
+            const muscleGroup = value?.muscleGroup ?? value?.muscle ?? null;
+            acc[name] = {
+                name,
+                muscleGroup,
+                muscle: value?.muscle ?? value?.muscleGroup ?? muscleGroup ?? null,
+                slug: value?.slug ?? null,
+            };
+            return acc;
+        }, {});
+    }
+    return {};
+};
+
 /**
- * Subscribes to users/{uid}, returns {user} and also writes into global.userData.
+ * Subscribes to usersPublic/{uid}, returns {user} and also writes into global.userData.
  * No deep deps on global.* so we avoid update loops.
  */
 export default function useUserDoc(uid, options = {}) {
     const { ignoreKeys = [] } = options || {};
     const prevRef = useRef(null);
-    // Helper lives outside render for reuse below
-    const stripKeys = (obj, keys) => {
-        if (!obj || typeof obj !== "object") return obj;
-        if (!Array.isArray(keys) || keys.length === 0) return obj;
-        const out = {};
-        for (const k of Object.keys(obj)) {
-            if (!keys.includes(k)) out[k] = obj[k];
-        }
-        return out;
-    };
-
-    const normalizeSavedExercises = (raw) => {
-        if (!raw) return {};
-        if (Array.isArray(raw)) {
-            return raw.reduce((acc, entry) => {
-                if (!entry) return acc;
-                const name = String(entry?.name || entry).trim();
-                if (!name) return acc;
-                const muscleGroup = entry?.muscleGroup ?? entry?.muscle ?? null;
-                acc[name] = {
-                    name,
-                    muscleGroup,
-                    muscle: entry?.muscle ?? entry?.muscleGroup ?? muscleGroup ?? null,
-                    slug: entry?.slug ?? null,
-                };
-                return acc;
-            }, {});
-        }
-        if (typeof raw === "object") {
-            return Object.entries(raw).reduce((acc, [key, value]) => {
-                const name = String(value?.name || key).trim();
-                if (!name) return acc;
-                const muscleGroup = value?.muscleGroup ?? value?.muscle ?? null;
-                acc[name] = {
-                    name,
-                    muscleGroup,
-                    muscle: value?.muscle ?? value?.muscleGroup ?? muscleGroup ?? null,
-                    slug: value?.slug ?? null,
-                };
-                return acc;
-            }, {});
-        }
-        return {};
-    };
-
     // Seed from global.userData if already available to avoid initial flash
     const [user, setUser] = useState(() => {
         try {

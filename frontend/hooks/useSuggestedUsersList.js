@@ -34,14 +34,12 @@ const mapEntry = (entry) => {
  */
 export default function useSuggestedUsersList() {
     const [suggestedUsers, setSuggestedUsers] = useState([]);
-    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
         const ref = doc(db, DOC_COLLECTION, DOC_ID);
         const unsubscribe = onSnapshot(
             ref,
             (snapshot) => {
-                setIsLoaded(true);
                 const data = snapshot.data() || {};
                 const rawList = Array.isArray(data?.list)
                     ? data.list
@@ -52,7 +50,6 @@ export default function useSuggestedUsersList() {
                 setSuggestedUsers(mapped);
             },
             () => {
-                setIsLoaded(true);
                 setSuggestedUsers([]);
             }
         );
@@ -61,5 +58,5 @@ export default function useSuggestedUsersList() {
         };
     }, []);
 
-    return { suggestedUsers, isLoaded };
+    return { suggestedUsers };
 }

@@ -14,6 +14,8 @@ import useSuggestedUsersList from '../hooks/useSuggestedUsersList';
 
 const EXTRA_SEARCH_HEADER_GAP = scaleSize(8);
 
+const ItemSeparator = () => <View style={styles.sep} />;
+
 export default function SearchUsers({ navigation, route }) {
   const initialUsers = Array.isArray(route?.params?.initialUsers) ? route.params.initialUsers : [];
   const initialSuggestions = Array.isArray(route?.params?.initialSuggestions) ? route.params.initialSuggestions : [];
@@ -237,9 +239,9 @@ export default function SearchUsers({ navigation, route }) {
         data={qStr ? results : suggestions}
         keyExtractor={(it) => it.uid}
         renderItem={({ item }) => (
-          <ProfileCard user={item} query={qStr} onPress={() => openUser(item)} />
+          <ProfileCard user={item} onPress={() => openUser(item)} />
         )}
-        ItemSeparatorComponent={() => <View style={styles.sep} />}
+        ItemSeparatorComponent={ItemSeparator}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
       />

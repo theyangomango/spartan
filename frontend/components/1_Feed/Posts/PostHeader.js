@@ -1,8 +1,8 @@
 import React from "react";
-import { View, Text, StyleSheet, Pressable, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, Pressable } from "react-native";
 import FastImage from "react-native-fast-image";
 import formatDate from "../../../helper/formatDate";
-import scaleSize, { ts } from "../../../helper/scaleSize";
+import scaleSize from "../../../helper/scaleSize";
 import { usePfp } from "../../../helper/usePFPs";
 import { resolvePhotoURL } from "../../../utils/profilePhoto";
 import RNBounceable from "@freakycoder/react-native-bounceable";
@@ -12,7 +12,6 @@ import VerifiedHandle from "../../common/VerifiedHandle";
 
 function PostHeader({
     data,
-    url,
     position,
     totalImages,
     toViewProfile,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import scaleSize from '../helper/scaleSize';
 import FastImage from 'react-native-fast-image';
 import { usePfp } from '../helper/usePFPs';
@@ -11,22 +11,16 @@ import VerifiedHandle from './common/VerifiedHandle';
 import useUserVerified from '../hooks/useUserVerified';
 import { resolvePhotoURL } from '../utils/profilePhoto';
 
-const { height } = Dimensions.get('window');
-
-// Centralized scaler
-const s = (n) => scaleSize(n);
-
 // Tunables via scale
 const SIZES = {
-    pfp: s(38),
-    handleFont: s(13),
-    nameFont: s(12.5),
-    icon: s(24),
-    iconFilled: s(16),
-    paddingV: s(10),
-    paddingL: s(20),
-    paddingR: s(22),
-    cardRadius: s(12),
+    pfp: scaleSize(38),
+    handleFont: scaleSize(13),
+    nameFont: scaleSize(12.5),
+    icon: scaleSize(24),
+    iconFilled: scaleSize(16),
+    paddingV: scaleSize(10),
+    paddingL: scaleSize(20),
+    paddingR: scaleSize(22),
     ring: 2,
 };
 
@@ -105,29 +99,24 @@ const styles = StyleSheet.create({
         paddingVertical: SIZES.paddingV,
         flexDirection: 'row',
         alignItems: 'center',
-        // borderRadius: SIZES.cardRadius,
         backgroundColor: theme.surface,
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: theme.hairline,
     },
     // selected/pressed backgrounds are applied inline to allow overrides via props
     text_ctnr: {
-        marginLeft: scaleSize(s(12)),
+        marginLeft: scaleSize(scaleSize(12)),
         flex: 1,
     },
     handle_text: {
         fontFamily: 'Outfit_700Bold',
         color: theme.textPrimary,
-        marginBottom: scaleSize(s(2)),
+        marginBottom: scaleSize(scaleSize(2)),
         letterSpacing: 0.2,
     },
     name_text: {
         fontFamily: 'Outfit_500Medium',
         color: theme.textSecondary,
-    },
-    tickCircle: {
-        justifyContent: 'center',
-        alignItems: 'center',
     },
 });
 

@@ -1,23 +1,8 @@
 import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
 import { auth } from '../../firebase.config';
-import { prepareProfileForAuth } from '../services/userProfileService';
+import { prepareProfileForAuth, resolveHandle } from '../services/userProfileService';
 
 const PROVIDER_ID = 'google.com';
-
-const HANDLE_FIELDS = ['handle', 'handleLower', 'handle_lower', 'username', 'usernameLower', 'username_lower', 'tag', 'tagLower', 'tag_lower'];
-
-const resolveHandle = (...sources) => {
-  for (const source of sources) {
-    if (!source || typeof source !== 'object') continue;
-    for (const field of HANDLE_FIELDS) {
-      const value = source[field];
-      if (typeof value === 'string' && value.trim()) {
-        return value.trim();
-      }
-    }
-  }
-  return '';
-};
 
 export async function signInWithGoogleResponse({ profile, tokens }) {
   if (!tokens?.idToken) {

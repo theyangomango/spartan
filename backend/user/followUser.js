@@ -1,16 +1,8 @@
 import { httpsCallable } from "firebase/functions";
 import { functions } from "../../firebase.config";
+import coerceUid from "./coerceTargetUid";
 
 const followCallable = httpsCallable(functions, "followUserAction");
-
-const coerceUid = (value) => {
-    if (!value && value !== 0) return "";
-    if (typeof value === "string" || typeof value === "number") return String(value).trim();
-    if (typeof value === "object") {
-        return coerceUid(value.uid || value.id || value.userUid || value.profileUid);
-    }
-    return "";
-};
 
 export default async function followUser(this_user, user) {
     const targetUid = coerceUid(user);

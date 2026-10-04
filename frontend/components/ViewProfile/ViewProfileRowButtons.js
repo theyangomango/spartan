@@ -1,20 +1,13 @@
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet, View, Text, Dimensions } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 import followUser from "../../../backend/user/followUser";
 import unfollowUser from "../../../backend/user/unfollowUser";
 import cancelFollowRequest from "../../../backend/user/cancelFollowRequest";
 import theme from "../../theme/mfpDark";
-import scaleSizeGlobal from "../../helper/scaleSize";
+import scaleSizeGlobal, { scaleWidth375 } from "../../helper/scaleSize";
 import { withStrongPress } from "../../utils/haptics";
 import { subscribeUserData } from "../../utils/userDataEvents";
-
-const { width: screenWidth } = Dimensions.get('window');
-const scale = screenWidth / 375; // Base screen width assumed as 375
-
-function scaleSize(size) {
-    return Math.round(size * scale);
-}
 
 export default function ViewProfileRowButtons({ handleOpenViewStats, user, isBlocked = false, onBlockedPress }) {
     const targetIsPrivate = Boolean(
@@ -172,42 +165,42 @@ export default function ViewProfileRowButtons({ handleOpenViewStats, user, isBlo
 
 const styles = StyleSheet.create({
     row: {
-        marginTop: scaleSize(12),
+        marginTop: scaleWidth375(12),
         flexDirection: 'row',
-        gap: scaleSize(8),
-        height: scaleSize(36),
+        gap: scaleWidth375(8),
+        height: scaleWidth375(36),
     },
     flex: {
         flex: 1,
     },
     follow_button: {
-        paddingHorizontal: scaleSize(20),
-        borderRadius: scaleSize(12),
+        paddingHorizontal: scaleWidth375(20),
+        borderRadius: scaleWidth375(12),
         backgroundColor: theme.primary,
         justifyContent: 'center',
         alignItems: 'center',
     },
     following_button: {
-        paddingHorizontal: scaleSize(20),
-        borderRadius: scaleSize(12),
+        paddingHorizontal: scaleWidth375(20),
+        borderRadius: scaleWidth375(12),
         backgroundColor: theme.surface,
-        borderWidth: scaleSize(1.2),
+        borderWidth: scaleWidth375(1.2),
         borderColor: theme.primary,
         justifyContent: 'center',
         alignItems: 'center',
     },
     requested_button: {
-        paddingHorizontal: scaleSize(20),
-        borderRadius: scaleSize(12),
+        paddingHorizontal: scaleWidth375(20),
+        borderRadius: scaleWidth375(12),
         backgroundColor: 'rgba(53, 159, 252, 0.12)',
-        borderWidth: scaleSize(1.2),
+        borderWidth: scaleWidth375(1.2),
         borderColor: theme.primary,
         justifyContent: 'center',
         alignItems: 'center',
     },
     view_stats_button: {
-        paddingHorizontal: scaleSize(20),
-        borderRadius: scaleSize(12),
+        paddingHorizontal: scaleWidth375(20),
+        borderRadius: scaleWidth375(12),
         backgroundColor: theme.surface,
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.12)',
@@ -230,8 +223,8 @@ const styles = StyleSheet.create({
         color: theme.primary,
     },
     blocked_button: {
-        paddingHorizontal: scaleSize(20),
-        borderRadius: scaleSize(12),
+        paddingHorizontal: scaleWidth375(20),
+        borderRadius: scaleWidth375(12),
         backgroundColor: '#ef4444',
         justifyContent: 'center',
         alignItems: 'center',

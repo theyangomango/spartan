@@ -113,5 +113,3 @@ export const buildExerciseSummaries = (workout, limit = 3) => {
 
   return summaries;
 };
-
-export default buildExerciseSummaries;

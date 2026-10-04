@@ -15,7 +15,6 @@ function computeTransforms(cropRect, layout, naturalSize) {
 
     const videoWidth = naturalSize.width;
     const videoHeight = naturalSize.height;
-    if (!videoWidth || !videoHeight) return null;
 
     const cropWidthPx = cropRect.width * videoWidth;
     const cropHeightPx = cropRect.height * videoHeight;

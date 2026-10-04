@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState, useEffect, useRef } from "react";
+import React, { useMemo, useCallback, useState, useEffect } from "react";
 import {
     SafeAreaView,
     View,
@@ -12,236 +12,29 @@ import {
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import FastImage from "react-native-fast-image";
+import { doc, onSnapshot } from "firebase/firestore";
+
 import HumanMuscleOutline from "../assets/human_muscle_outline";
 import HumanMuscleBackOutline from "../assets/human_muscle_back_outline";
-import { doc, onSnapshot, collection, addDoc, serverTimestamp } from "firebase/firestore";
-
 import PastWorkoutExerciseLog from "../components/1_Feed/PastWorkoutExerciseLog";
 import EditingWorkoutModal from "../components/3_Workout/NewWorkout/EditingWorkoutModal";
 import theme from "../theme/mfpDark";
 import scaleSize from "../helper/scaleSize";
 import { usePfp } from "../helper/usePFPs";
 import { resolvePhotoURL } from "../utils/profilePhoto";
-import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
-import updateCompletedWorkout from "../../backend/workouts/updateCompletedWorkout";
-import { emitHexagonUpdate } from "../utils/hexagonEvents";
-import { emitUserDataUpdate } from "../utils/userDataEvents";
 import isThisUser from "../helper/isThisUser";
 import { strong as hapticStrong } from "../utils/haptics";
 import VerifiedHandle from "../components/common/VerifiedHandle";
 import useUserVerified from "../hooks/useUserVerified";
 import { db } from "../../firebase.config";
-import { invalidateFeedCacheForUser } from "../helper/feedCache";
-import { exercises as EXERCISE_LIBRARY } from "../components/3_Workout/NewWorkout/SelectExercise/EXERCISES";
+import { BODYGRAPH_OUTLINE_COLOR } from "../utils/muscleTierColors";
+import { MUSCLE_HIGHLIGHT, MUSCLE_SEGMENTS, formatDuration, formatNumber, resolveWorkoutTitle, resolveWeightUnit, initialsFrom } from "../components/1_Feed/workoutDisplay";
+import styles, { HEADER_ICON_SIZE } from "./PastWorkoutScreen.styles";
+import { toMillis, formatTimestamp, pickFirstString, findExerciseMeta, resolveEquipmentLabel } from "./pastWorkout/pastWorkoutUtils";
+import usePastWorkoutCheer from "./pastWorkout/usePastWorkoutCheer";
+import useSaveEditedWorkout from "./pastWorkout/useSaveEditedWorkout";
 
-const HEADER_ICON_SIZE = scaleSize(20);
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const BODYGRAPH_OUTLINE_COLOR = "#40485c";
-const MUSCLE_HIGHLIGHT = "#ff6f67";
-const MUSCLE_SEGMENTS = {
-    shoulders: ["shoulders"],
-    chest: ["chest"],
-    arms: ["arms", "forearms"],
-    back: ["back", "traps"],
-    abs: ["abs", "obliques"],
-    legs: ["quads", "calves"],
-};
-
-
-const toMillis = (value) => {
-    if (value === null || typeof value === "undefined") return null;
-    if (typeof value === "number") {
-        const numeric = Number(value);
-        return Number.isFinite(numeric) ? numeric : null;
-    }
-    if (typeof value === "string") {
-        const parsed = Date.parse(value);
-        return Number.isFinite(parsed) ? parsed : null;
-    }
-    if (typeof value === "object") {
-        if (typeof value.toMillis === "function") {
-            try {
-                const ms = value.toMillis();
-                return Number.isFinite(ms) ? ms : null;
-            } catch {
-                return null;
-            }
-        }
-        if (typeof value.seconds === "number") {
-            const ms = value.seconds * 1000 + (typeof value.nanoseconds === "number" ? value.nanoseconds / 1e6 : 0);
-            return Number.isFinite(ms) ? ms : null;
-        }
-        if (typeof value._seconds === "number") {
-            const ms = value._seconds * 1000 + (typeof value._nanoseconds === "number" ? value._nanoseconds / 1e6 : 0);
-            return Number.isFinite(ms) ? ms : null;
-        }
-    }
-    return null;
-};
-
-const formatTimestamp = (value) => {
-    const ms = toMillis(value);
-    if (ms === null) return "";
-    const date = new Date(ms);
-    if (Number.isNaN(date.getTime())) return "";
-
-    let datePart = "";
-    let timePart = "";
-    try {
-        datePart = date.toLocaleDateString(undefined, {
-            month: "long",
-            day: "2-digit",
-            year: "numeric",
-        });
-    } catch {
-        datePart = "";
-    }
-    try {
-        timePart = date.toLocaleTimeString(undefined, {
-            hour: "numeric",
-            minute: "2-digit",
-        });
-    } catch {
-        timePart = "";
-    }
-
-    if (datePart && timePart) return `${datePart} at ${timePart}`;
-    return datePart || timePart || "";
-};
-
-const formatDuration = (durationMs) => {
-    const ms = Number(durationMs);
-    if (!Number.isFinite(ms) || ms <= 0) return "--";
-    const totalMinutes = Math.max(0, Math.round(ms / 60000));
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    if (hours > 0 && minutes > 0) return `${hours}h ${minutes}m`;
-    if (hours > 0) return `${hours}h`;
-    if (minutes > 0) return `${minutes}m`;
-    const totalSeconds = Math.max(0, Math.round(ms / 1000));
-    if (totalSeconds >= 60) {
-        const mins = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        return `${mins}m ${seconds}s`;
-    }
-    return `${totalSeconds}s`;
-};
-
-const formatNumber = (value) => {
-    const num = Number(value);
-    if (!Number.isFinite(num)) return "--";
-    try {
-        return num.toLocaleString();
-    } catch {
-        return String(num);
-    }
-};
-
-const resolveWeightUnit = () => {
-    try {
-        const raw = global?.userData?.settings?.units || global?.userData?.units;
-        if (!raw) return "lb";
-        const normalized = String(raw).toLowerCase();
-        return normalized === "kg" ? "kg" : "lb";
-    } catch {
-        return "lb";
-    }
-};
-
-const resolveWorkoutTitle = (workout, caption) => (
-    workout?.templateName ||
-    workout?.template?.name ||
-    workout?.name ||
-    caption ||
-    "Workout"
-);
-
-const initialsFrom = (name = "") => {
-    const parts = String(name).trim().split(/\s+/).filter(Boolean);
-    if (!parts.length) return "";
-    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-};
-
-const pickFirstString = (...values) => {
-    for (const value of values) {
-        if (typeof value !== "string") continue;
-        const trimmed = value.trim();
-        if (trimmed) return trimmed;
-    }
-    return "";
-};
-
-const EXERCISE_META_LOOKUP = (() => {
-    const map = new Map();
-    const register = (rawName, meta) => {
-        const normalized = typeof rawName === "string" ? rawName.trim().toLowerCase() : "";
-        if (!normalized || map.has(normalized)) return;
-        map.set(normalized, meta);
-    };
-    (Array.isArray(EXERCISE_LIBRARY) ? EXERCISE_LIBRARY : []).forEach((exercise) => {
-        if (!exercise) return;
-        const name = typeof exercise.name === "string" ? exercise.name.trim() : "";
-        if (!name) return;
-        register(name, exercise);
-        const simplified = name.replace(/\s*\(([^)]+)\)\s*/g, "").trim();
-        if (simplified && simplified !== name) register(simplified, exercise);
-    });
-    return map;
-})();
-
-const findExerciseMeta = (rawName) => {
-    if (typeof rawName !== "string") return null;
-    const normalized = rawName.trim().toLowerCase();
-    if (!normalized) return null;
-    const direct = EXERCISE_META_LOOKUP.get(normalized);
-    if (direct) return direct;
-    const simplified = normalized.replace(/\s*\(([^)]+)\)\s*/g, "").trim();
-    if (simplified && simplified !== normalized) {
-        return EXERCISE_META_LOOKUP.get(simplified) || null;
-    }
-    return null;
-};
-
-const extractEquipmentLabel = (value) => {
-    if (value == null) return "";
-    if (typeof value === "string") {
-        return value.trim();
-    }
-    if (Array.isArray(value)) {
-        const joined = value
-            .map((item) => extractEquipmentLabel(item))
-            .filter(Boolean)
-            .join(", ");
-        return joined.trim();
-    }
-    if (typeof value === "object") {
-        const candidates = [
-            value.label,
-            value.name,
-            value.title,
-            value.type,
-            value.category,
-            value.value,
-        ];
-        for (const candidate of candidates) {
-            if (candidate && candidate !== value) {
-                const label = extractEquipmentLabel(candidate);
-                if (label) return label;
-            }
-        }
-        return "";
-    }
-    return String(value).trim();
-};
-
-const resolveEquipmentLabel = (...candidates) => {
-    for (const candidate of candidates) {
-        const label = extractEquipmentLabel(candidate);
-        if (label) return label;
-    }
-    return "";
-};
 
 const PastWorkoutScreen = () => {
     const navigation = useNavigation();
@@ -250,13 +43,13 @@ const PastWorkoutScreen = () => {
     const [workout, setWorkout] = useState(routeWorkout);
     const owner = route.params?.owner ?? {};
     const deriveLiveStatus = useCallback(
-        (candidateWorkout, fallbackLive = false) => {
+        (candidateWorkout) => {
             const fromRoute = Boolean(route.params?.isLiveWorkout);
             const fromWorkout = Boolean(candidateWorkout?.isLive || candidateWorkout?.live);
             const fromPid = typeof route.params?.postMeta?.pid === "string"
                 ? route.params.postMeta.pid.startsWith("workout:live")
                 : false;
-            return fromRoute || fromWorkout || fromPid || fallbackLive;
+            return fromRoute || fromWorkout || fromPid;
         },
         [route.params?.isLiveWorkout, route.params?.postMeta?.pid]
     );
@@ -280,51 +73,7 @@ const PastWorkoutScreen = () => {
         }
         return "";
     }, [workout, routeWorkout]);
-    const [confettiTick, setConfettiTick] = useState(0);
-    const confettiRef = useRef(null);
-    const ConfettiModuleRef = useRef(null);
-    const loadConfettiModule = useCallback(() => {
-        if (!ConfettiModuleRef.current) {
-            try { ConfettiModuleRef.current = require("react-native-confetti-cannon").default; } catch { }
-        }
-        return ConfettiModuleRef.current;
-    }, []);
-    const fireConfetti = useCallback(() => {
-        loadConfettiModule();
-        try {
-            const api = confettiRef.current;
-            if (api && typeof api.start === "function") {
-                api.start();
-                return;
-            }
-        } catch { }
-        setConfettiTick((t) => t + 1);
-    }, [loadConfettiModule]);
-    const sendCheerEvent = useCallback(async () => {
-        if (!isLiveWorkout) return;
-        try {
-            const wid = workoutWid;
-            if (!wid) return;
-            const fromUid = String(global?.userData?.uid || "");
-            if (!fromUid) return;
-            const fromHandle = String(global?.userData?.handle || "");
-            const fromName = String(global?.userData?.name || "");
-            const fromPfp = resolvePhotoURL(global?.userData, "");
-            const fromPfpVersion = Number(global?.userData?.pfpVersion ?? 0);
-            await addDoc(collection(db, "workouts", wid, "events"), {
-                type: "cheer",
-                fromUid,
-                fromHandle,
-                fromName,
-                fromPfp,
-                fromPfpVersion,
-                createdAt: serverTimestamp(),
-                source: "workout_viewer",
-            });
-        } catch (e) {
-            console.log("PastWorkoutScreen cheer error", e?.message || e);
-        }
-    }, [isLiveWorkout, workoutWid]);
+    const { confettiTick, confettiRef, loadConfettiModule, handleCheer } = usePastWorkoutCheer({ isLiveWorkout, workoutWid });
 
     useEffect(() => {
         setWorkout(routeWorkout);
@@ -567,7 +316,6 @@ const PastWorkoutScreen = () => {
 
     const isOwner = Boolean(viewerUid && workoutOwnerUid && viewerUid === workoutOwnerUid);
     const canEditWorkout = Boolean(isOwner && !isLiveWorkout);
-    // const [deletingWorkout, setDeletingWorkout] = useState(false);
     const [editingVisible, setEditingVisible] = useState(false);
     const startEditingFromRoute = Boolean(route.params?.startEditing);
 
@@ -755,149 +503,7 @@ const PastWorkoutScreen = () => {
         [navigation]
     );
 
-    /*
-    const performDeleteWorkout = useCallback(async () => {
-        if (!canEditWorkout || deletingWorkout) return;
-        const uid = viewerUid;
-        if (!uid) return;
-        const identifier = {
-            wid: workout?.wid ?? workout?.id ?? workout?.workoutId ?? workout?.pid ?? null,
-            created:
-                workout?.created ??
-                workout?.finishedAt ??
-                workout?.completedAt ??
-                workout?.createdAt ??
-                null,
-        };
-        setDeletingWorkout(true);
-        try {
-            const result = await deleteCompletedWorkout(uid, identifier);
-            if (result?.ok) {
-                try {
-                    if (global?.userData) {
-                        global.userData.completedWorkouts = Array.isArray(result.completedWorkouts)
-                            ? result.completedWorkouts
-                            : [];
-                        global.userData.statsExercises = result.statsExercises || {};
-                        global.userData.statsHexagon = result.statsHexagon || {};
-                        global.userData.statsHexagonMeta = result.statsHexagonMeta || {};
-                        global.userData.statsTotalVolume = result.statsTotalVolume || 0;
-                        global.userData.statsTotalHours = result.statsTotalHours || 0;
-                        global.userData.statsTotalWorkouts = result.statsTotalWorkouts || 0;
-                        global.userData.workoutsByDate = result.workoutsByDate || {};
-                    }
-                } catch {
-                    // no-op
-                }
-                emitHexagonUpdate();
-                navigation.goBack();
-            } else {
-                Alert.alert("Delete failed", "Please try again.");
-            }
-        } catch (error) {
-            Alert.alert("Delete failed", "Please try again in a moment.");
-        } finally {
-            setDeletingWorkout(false);
-        }
-    }, [canEditWorkout, deletingWorkout, viewerUid, workout, navigation]);
-
-    const handleRequestDeleteWorkout = useCallback(() => {
-        if (!canEditWorkout || deletingWorkout) return;
-        Alert.alert("Delete workout?", "This will remove the workout from your history and stats.", [
-            { text: "Cancel", style: "cancel" },
-            {
-                text: deletingWorkout ? "Deleting..." : "Delete",
-                style: "destructive",
-                onPress: performDeleteWorkout,
-            },
-        ]);
-    }, [canEditWorkout, deletingWorkout, performDeleteWorkout]);
-    */
-
-    const handleSaveEditedWorkout = useCallback(async (updatedWorkout) => {
-        if (!canEditWorkout || !updatedWorkout) return;
-        const uid = viewerUid;
-        if (!uid) throw new Error("missing-uid");
-
-        try {
-            const payload = {
-                ...(workout || {}),
-                ...(updatedWorkout || {}),
-            };
-
-            console.log("[PastWorkoutScreen] updateCompletedWorkout -> start", {
-                uid,
-                identifier: workoutIdentifier,
-                payload,
-            });
-
-            const result = await updateCompletedWorkout(uid, workoutIdentifier, payload);
-            console.log("[PastWorkoutScreen] updateCompletedWorkout -> result", result);
-
-            if (!result?.ok) {
-                console.warn("[PastWorkoutScreen] updateCompletedWorkout returned non-ok result", result);
-                throw new Error(result?.error || "update-failed");
-            }
-
-            const nextWorkouts = Array.isArray(result.completedWorkouts) ? result.completedWorkouts : [];
-
-            const updatedEntry = (() => {
-                const targetWid = payload?.wid ?? payload?.id ?? payload?.workoutId ?? payload?.pid ?? null;
-                const targetCreated = payload?.created ?? payload?.createdAt ?? payload?.finishedAt ?? payload?.completedAt ?? null;
-                return nextWorkouts.find((item) => {
-                    if (!item || typeof item !== "object") return false;
-                    const wid = item?.wid ?? item?.id ?? item?.workoutId ?? item?.pid ?? null;
-                    if (targetWid && wid != null && String(wid) === String(targetWid)) return true;
-                    if (targetCreated) {
-                        const created = item?.created ?? item?.createdAt ?? item?.finishedAt ?? item?.completedAt ?? null;
-                        if (created && Math.abs(toMillis(created) - toMillis(targetCreated)) < 2000) return true;
-                    }
-                    return false;
-                }) || payload;
-            })();
-
-            setWorkout(updatedEntry);
-            invalidateFeedCacheForUser(uid);
-
-            try {
-                if (global?.userData) {
-                    global.userData.completedWorkouts = nextWorkouts;
-                    if (result.statsExercises) global.userData.statsExercises = result.statsExercises;
-                    if (result.statsHexagon) global.userData.statsHexagon = result.statsHexagon;
-                    if (result.statsHexagonMeta) global.userData.statsHexagonMeta = result.statsHexagonMeta;
-                    if (Number.isFinite(result.statsTotalVolume)) global.userData.statsTotalVolume = result.statsTotalVolume;
-                    if (Number.isFinite(result.statsTotalHours)) global.userData.statsTotalHours = result.statsTotalHours;
-                    if (Number.isFinite(result.statsTotalWorkouts)) global.userData.statsTotalWorkouts = result.statsTotalWorkouts;
-                    if (result.workoutsByDate) global.userData.workoutsByDate = result.workoutsByDate;
-                    if (Object.prototype.hasOwnProperty.call(result, "currentRank")) {
-                        global.userData.currentRank = result.currentRank;
-                    }
-                    if (Object.prototype.hasOwnProperty.call(result, "rankTier")) {
-                        global.userData.rankTier = result.rankTier;
-                    }
-                    if (Object.prototype.hasOwnProperty.call(result, "rankLabel")) {
-                        global.userData.rankLabel = result.rankLabel;
-                    }
-                    if (Object.prototype.hasOwnProperty.call(result, "rankLevel")) {
-                        global.userData.rankLevel = result.rankLevel;
-                    }
-                    emitHexagonUpdate();
-                    emitUserDataUpdate();
-                }
-            } catch (syncError) {
-                console.warn("[PastWorkoutScreen] Failed to sync global user data after update", syncError);
-            }
-
-            return result;
-        } catch (error) {
-            console.error("[PastWorkoutScreen] updateCompletedWorkout failed", {
-                error,
-                identifier: workoutIdentifier,
-            });
-            Alert.alert("Save failed", "Please try again.");
-            throw error;
-        }
-    }, [canEditWorkout, viewerUid, workout, workoutIdentifier]);
+    const handleSaveEditedWorkout = useSaveEditedWorkout({ canEditWorkout, viewerUid, workout, workoutIdentifier, setWorkout });
 
     const handlePressDetailMenu = useCallback(() => {
         if (!canEditWorkout) return;
@@ -912,12 +518,6 @@ const PastWorkoutScreen = () => {
         );
     }, [canEditWorkout]);
 
-    const handleCheer = useCallback(() => {
-        try { hapticStrong(); } catch { }
-        fireConfetti();
-        sendCheerEvent();
-    }, [fireConfetti, sendCheerEvent]);
-
     return (
         <SafeAreaView style={[styles.safeArea, isLiveWorkout && styles.safeAreaLive]}>
             <View style={[styles.header, isLiveWorkout && styles.headerLive]}>
@@ -928,22 +528,6 @@ const PastWorkoutScreen = () => {
                     {isLiveWorkout ? "Workout in Progress" : "Workout Details"}
                 </Text>
                 <View style={styles.headerRight}>
-                    {/* 
-                    {canEditWorkout ? (
-                        <Pressable
-                            onPress={handleRequestDeleteWorkout}
-                            hitSlop={8}
-                            style={styles.headerIconButton}
-                            disabled={deletingWorkout}
-                        >
-                            <Ionicons
-                                name={deletingWorkout ? "time-outline" : "trash-outline"}
-                                size={HEADER_ICON_SIZE}
-                                color={deletingWorkout ? theme.textSecondary : theme.textPrimary}
-                            />
-                        </Pressable>
-                    ) : null}
-                    */}
                 </View>
             </View>
 
@@ -1023,125 +607,110 @@ const PastWorkoutScreen = () => {
                                     </View>
                                 </View>
 
-                                {workout ? (
-                                    <Pressable
-                                        onPress={handlePressWorkoutHeader}
-                                        style={styles.titleBlock}
-                                        hitSlop={{ top: scaleSize(6), bottom: scaleSize(6) }}
-                                    >
-                                        <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
-                                            {title}
-                                        </Text>
-                                        {shouldShowSubtitle ? (
-                                            <Text style={styles.captionText}>
-                                                {caption}
-                                            </Text>
-                                        ) : null}
-                                    </Pressable>
-                                ) : (
-                                    <View style={styles.titleBlock}>
-                                        <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
-                                            {title}
-                                        </Text>
-                                        {shouldShowSubtitle ? (
-                                            <Text style={styles.captionText}>
-                                                {caption}
-                                            </Text>
-                                        ) : null}
-                                    </View>
-                                )}
-                            </View>
-
-                            {workout ? (
                                 <Pressable
                                     onPress={handlePressWorkoutHeader}
-                                    style={styles.metricsRow}
+                                    style={styles.titleBlock}
+                                    hitSlop={{ top: scaleSize(6), bottom: scaleSize(6) }}
                                 >
-                                    <View style={styles.metricsFigures}>
-                                        <View style={[styles.metricsFigureSlot, styles.metricsFigureFront]}>
-                                            <HumanMuscleOutline
-                                                color={BODYGRAPH_OUTLINE_COLOR}
-                                                width="120%"
-                                                height="120%"
-                                                preserveAspectRatio="xMidYMid meet"
-                                                fills={muscleFills}
-                                                style={styles.metricsFigure}
-                                            />
-                                        </View>
-                                        <View style={[styles.metricsFigureSlot, styles.metricsFigureBack]}>
-                                            <HumanMuscleBackOutline
-                                                color={BODYGRAPH_OUTLINE_COLOR}
-                                                width="120%"
-                                                height="120%"
-                                                preserveAspectRatio="xMidYMid meet"
-                                                fills={muscleFills}
-                                                style={styles.metricsFigure}
-                                            />
-                                        </View>
+                                    <Text style={[styles.titleText, isWorkoutTitle ? styles.workoutTitleText : null]} numberOfLines={2}>
+                                        {title}
+                                    </Text>
+                                    {shouldShowSubtitle ? (
+                                        <Text style={styles.captionText}>
+                                            {caption}
+                                        </Text>
+                                    ) : null}
+                                </Pressable>
+                            </View>
+
+                            <Pressable
+                                onPress={handlePressWorkoutHeader}
+                                style={styles.metricsRow}
+                            >
+                                <View style={styles.metricsFigures}>
+                                    <View style={[styles.metricsFigureSlot, styles.metricsFigureFront]}>
+                                        <HumanMuscleOutline
+                                            color={BODYGRAPH_OUTLINE_COLOR}
+                                            width="120%"
+                                            height="120%"
+                                            preserveAspectRatio="xMidYMid meet"
+                                            fills={muscleFills}
+                                            style={styles.metricsFigure}
+                                        />
                                     </View>
+                                    <View style={[styles.metricsFigureSlot, styles.metricsFigureBack]}>
+                                        <HumanMuscleBackOutline
+                                            color={BODYGRAPH_OUTLINE_COLOR}
+                                            width="120%"
+                                            height="120%"
+                                            preserveAspectRatio="xMidYMid meet"
+                                            fills={muscleFills}
+                                            style={styles.metricsFigure}
+                                        />
+                                    </View>
+                                </View>
 
-                                    <View style={styles.metricsColumnStack}>
-                                        <View style={styles.metricTopStack}>
-                                            <View style={styles.metricStackRow}>
-                                                <View style={styles.metricLabelRow}>
-                                                    {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
-                                                    <Text style={[styles.metricLabel, styles.metricLabelRight]}>Duration</Text>
-                                                </View>
-                                                <Text style={[styles.metricValue, styles.metricValueRight]}>{durationLabel}</Text>
-                                            </View>
-
-                                            <View style={styles.metricStackRow}>
-                                                <View style={styles.metricLabelRow}>
-                                                    {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
-                                                    <Text style={[styles.metricLabel, styles.metricLabelRight]}>Volume</Text>
-                                                </View>
-                                                <Text style={[styles.metricValue, styles.metricValueRight]}>
-                                                    {volumeLabel} {weightUnit}
-                                                </Text>
-                                            </View>
-
-                                            <View style={styles.metricStackRow}>
-                                                <View style={styles.metricLabelRow}>
-                                                    {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
-                                                    <Text style={[styles.metricLabel, styles.metricLabelRight]}>Calories</Text>
-                                                </View>
-                                                <View style={[styles.metricValueRow, styles.metricValueRowRight]}>
-                                                    <Text style={[styles.metricValue, styles.metricValueRight]}>
-                                                        {caloriesLabel}
-                                                        {hasCalories ? " kcal" : ""}
-                                                    </Text>
-                                                    {!hasCalories ? (
-                                                        <Pressable
-                                                            onPress={showCaloriesInfo}
-                                                            hitSlop={8}
-                                                            style={styles.metricInfoIcon}
-                                                            accessibilityRole="button"
-                                                            accessibilityLabel="How are calories estimated?"
-                                                        >
-                                                            <MaterialCommunityIcons
-                                                                name="information-outline"
-                                                                size={scaleSize(15)}
-                                                                color="#9aa6bf"
-                                                            />
-                                                        </Pressable>
-                                                    ) : null}
-                                                </View>
-                                            </View>
-                                        </View>
-
-                                        <View style={[styles.metricStackRow, styles.metricStackRowLast]}>
+                                <View style={styles.metricsColumnStack}>
+                                    <View style={styles.metricTopStack}>
+                                        <View style={styles.metricStackRow}>
                                             <View style={styles.metricLabelRow}>
                                                 {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
-                                                <Text style={[styles.metricLabel, styles.metricLabelRight]}>Records</Text>
+                                                <Text style={[styles.metricLabel, styles.metricLabelRight]}>Duration</Text>
                                             </View>
-                                            <View style={styles.recordsValueRow}>
-                                                <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" />
-                                                <Text style={[styles.metricValue, styles.metricValueRight, styles.recordsValueText]}>{recordsLabel}</Text>
+                                            <Text style={[styles.metricValue, styles.metricValueRight]}>{durationLabel}</Text>
+                                        </View>
+
+                                        <View style={styles.metricStackRow}>
+                                            <View style={styles.metricLabelRow}>
+                                                {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
+                                                <Text style={[styles.metricLabel, styles.metricLabelRight]}>Volume</Text>
+                                            </View>
+                                            <Text style={[styles.metricValue, styles.metricValueRight]}>
+                                                {volumeLabel} {weightUnit}
+                                            </Text>
+                                        </View>
+
+                                        <View style={styles.metricStackRow}>
+                                            <View style={styles.metricLabelRow}>
+                                                {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
+                                                <Text style={[styles.metricLabel, styles.metricLabelRight]}>Calories</Text>
+                                            </View>
+                                            <View style={[styles.metricValueRow, styles.metricValueRowRight]}>
+                                                <Text style={[styles.metricValue, styles.metricValueRight]}>
+                                                    {caloriesLabel}
+                                                    {hasCalories ? " kcal" : ""}
+                                                </Text>
+                                                {!hasCalories ? (
+                                                    <Pressable
+                                                        onPress={showCaloriesInfo}
+                                                        hitSlop={8}
+                                                        style={styles.metricInfoIcon}
+                                                        accessibilityRole="button"
+                                                        accessibilityLabel="How are calories estimated?"
+                                                    >
+                                                        <MaterialCommunityIcons
+                                                            name="information-outline"
+                                                            size={scaleSize(15)}
+                                                            color="#9aa6bf"
+                                                        />
+                                                    </Pressable>
+                                                ) : null}
                                             </View>
                                         </View>
                                     </View>
-                                </Pressable>
-                            ) : null}
+
+                                    <View style={[styles.metricStackRow, styles.metricStackRowLast]}>
+                                        <View style={styles.metricLabelRow}>
+                                            {isLiveWorkout ? <View style={styles.metricLiveDot} /> : null}
+                                            <Text style={[styles.metricLabel, styles.metricLabelRight]}>Records</Text>
+                                        </View>
+                                        <View style={styles.recordsValueRow}>
+                                            <MaterialCommunityIcons name="medal" size={scaleSize(16)} color="#FFD700" />
+                                            <Text style={[styles.metricValue, styles.metricValueRight, styles.recordsValueText]}>{recordsLabel}</Text>
+                                        </View>
+                                    </View>
+                                </View>
+                            </Pressable>
                         </View>
 
                         {exercises.length > 0 ? (
@@ -1202,293 +771,5 @@ const PastWorkoutScreen = () => {
         </SafeAreaView>
     );
 };
-
-const styles = StyleSheet.create({
-    safeArea: {
-        flex: 1,
-        backgroundColor: theme.bg,
-    },
-    safeAreaLive: {
-        backgroundColor: theme.bg,
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingHorizontal: scaleSize(18),
-        paddingVertical: scaleSize(12),
-    },
-    headerLive: {
-        backgroundColor: theme.bg,
-    },
-    headerBackButton: {
-        padding: scaleSize(4),
-    },
-    headerTitle: {
-        flex: 1,
-        textAlign: "center",
-        color: theme.textPrimary,
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(17),
-    },
-    headerRight: {
-        width: HEADER_ICON_SIZE + scaleSize(12),
-        alignItems: "flex-end",
-    },
-    headerIconButton: {
-        padding: scaleSize(4),
-    },
-    content: {
-        paddingBottom: scaleSize(28),
-    },
-    contentLive: {
-        backgroundColor: "transparent",
-    },
-    detailSection: {
-        paddingVertical: scaleSize(14),
-        backgroundColor: theme.surface,
-    },
-    detailSectionLive: {
-        backgroundColor: theme.surface,
-    },
-    sectionHeader: {
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: theme.hairline,
-        paddingBottom: scaleSize(12),
-        marginBottom: scaleSize(6),
-    },
-    sectionHeaderLive: {
-        borderBottomColor: theme.hairline,
-    },
-    sectionTop: {
-        paddingHorizontal: scaleSize(18),
-    },
-    headerRow: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    headerActions: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginLeft: scaleSize(8),
-    },
-    avatarWrap: {
-        width: scaleSize(34),
-        aspectRatio: 1,
-        borderRadius: scaleSize(23),
-        overflow: "hidden",
-        marginRight: scaleSize(10),
-    },
-    avatar: {
-        width: "100%",
-        height: "100%",
-        borderRadius: scaleSize(23),
-        backgroundColor: theme.field,
-    },
-    avatarFallback: {
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    avatarInitials: {
-        color: theme.textPrimary,
-        fontFamily: "Poppins_600SemiBold",
-        fontSize: scaleSize(15),
-    },
-    headerTextCol: {
-        flex: 1,
-        minWidth: 0,
-    },
-    namePressable: {
-        flexShrink: 1,
-    },
-    nameHandle: {
-        flexDirection: "row",
-        alignItems: "center",
-        flexShrink: 1,
-    },
-    nameText: {
-        color: theme.textPrimary,
-        fontFamily: "Poppins_700Bold",
-        fontSize: scaleSize(13),
-    },
-    timestampText: {
-        color: theme.textSecondary,
-        fontFamily: "Outfit_400Regular",
-        fontSize: scaleSize(11.5),
-        marginTop: scaleSize(2),
-    },
-    timestampLiveText: {
-        color: "#FF8596",
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(11.5),
-        marginTop: scaleSize(2),
-    },
-    moreButton: {
-        paddingHorizontal: scaleSize(4),
-        paddingVertical: scaleSize(4),
-    },
-    cheerButton: {
-        paddingHorizontal: scaleSize(12),
-        paddingVertical: scaleSize(4),
-        borderRadius: scaleSize(12),
-        backgroundColor: "rgba(255,77,103,0.18)",
-        marginRight: scaleSize(8),
-    },
-    cheerButtonText: {
-        color: "#FF8596",
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(10.5),
-        letterSpacing: 0.4,
-        textTransform: "uppercase",
-    },
-    titleBlock: {
-        marginTop: scaleSize(12),
-        paddingBottom: scaleSize(5),
-    },
-    titleText: {
-        color: theme.textPrimary,
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(13),
-    },
-    workoutTitleText: {
-        color: "#74abf7ff",
-    },
-    captionText: {
-        color: theme.textPrimary,
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(13),
-        marginTop: scaleSize(4),
-    },
-    metricsRow: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        paddingVertical: scaleSize(10),
-        marginLeft: scaleSize(30),
-        marginRight: scaleSize(20),
-        alignItems: "center",
-    },
-    metricsFigures: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "flex-start",
-        flex: 1.8,
-        paddingLeft: 0,
-    },
-    metricsFigureSlot: {
-        flex: 1,
-        maxWidth: "94%",
-        height: scaleSize(240),
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    metricsFigureFront: {
-        marginRight: scaleSize(20),
-    },
-    metricsFigureBack: {
-        marginLeft: scaleSize(20),
-    },
-    metricsFigure: {
-        width: "125%",
-        height: "125%",
-    },
-    metricsColumnStack: {
-        flex: 0.65,
-        alignSelf: "stretch",
-        justifyContent: "space-between",
-        paddingBottom: scaleSize(10),
-    },
-    metricTopStack: {
-        width: "100%",
-        gap: scaleSize(10),
-    },
-    metricStackRow: {
-        alignSelf: "stretch",
-        marginBottom: scaleSize(10),
-        alignItems: "flex-end",
-    },
-    metricStackRowLast: {
-        marginBottom: 0,
-    },
-    metricLabel: {
-        color: "rgba(255,255,255,0.58)",
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(11),
-        letterSpacing: 0.2,
-        paddingBottom: scaleSize(1.5),
-        textAlign: "right",
-    },
-    metricLabelRight: {
-        textAlign: "right",
-    },
-    metricLabelRow: {
-        flexDirection: "row",
-        alignItems: "center",
-        paddingBottom: scaleSize(1.5),
-        alignSelf: "stretch",
-        justifyContent: "flex-end",
-    },
-    metricLiveDot: {
-        width: scaleSize(6.5),
-        height: scaleSize(6.5),
-        borderRadius: scaleSize(3.25),
-        backgroundColor: "#FF4D67",
-        marginRight: scaleSize(6),
-        shadowColor: "#FF4D67",
-        shadowOpacity: 0.35,
-        shadowRadius: scaleSize(6),
-        shadowOffset: { width: 0, height: 0 },
-    },
-    metricValue: {
-        color: theme.textPrimary,
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(14),
-        textAlign: "right",
-    },
-    metricValueRight: {
-        textAlign: "right",
-    },
-    metricValueRow: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    metricValueRowRight: {
-        justifyContent: "flex-end",
-    },
-    metricInfoIcon: {
-        marginLeft: scaleSize(6),
-        padding: scaleSize(2),
-    },
-    recordsValueRow: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    recordsValueText: {
-        marginLeft: scaleSize(6),
-    },
-    noExercisesText: {
-        paddingHorizontal: scaleSize(18),
-        paddingVertical: scaleSize(14),
-        color: theme.textSecondary,
-        fontFamily: "Outfit_500Medium",
-        fontSize: scaleSize(12.5),
-    },
-    emptyState: {
-        marginHorizontal: scaleSize(16),
-        marginVertical: scaleSize(24),
-        padding: scaleSize(18),
-        borderRadius: scaleSize(14),
-        backgroundColor: theme.surface,
-    },
-    emptyStateTitle: {
-        color: theme.textPrimary,
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(17),
-        marginBottom: scaleSize(8),
-    },
-    emptyStateSubtitle: {
-        color: theme.textSecondary,
-        fontFamily: "Outfit_400Regular",
-        fontSize: scaleSize(14),
-    },
-});
 
 export default PastWorkoutScreen;

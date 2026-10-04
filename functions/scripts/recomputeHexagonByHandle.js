@@ -4,7 +4,7 @@ import {
   computeHexagonFromUserData,
   rebuildStatsFromWorkouts,
   combineStatsExercises,
-} from "../../shared/rebuildHexagonStats.js";
+} from "../shared/rebuildHexagonStats.js";
 
 try {
   initializeApp();

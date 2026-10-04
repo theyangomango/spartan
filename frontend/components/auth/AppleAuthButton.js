@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Alert, Platform, StyleSheet } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 import useAppleAuth from '../../auth/useAppleAuth';
 import { signInWithAppleCredential } from '../../auth/appleAccount';
 import scaleSize from '../../helper/scaleSize';
@@ -13,7 +13,6 @@ const AppleAuthButton = ({
   busyText = DEFAULT_BUSY_LABEL,
   onSuccess,
   onError,
-  disabled,
   style,
 }) => {
   const { signIn, isAvailable } = useAppleAuth();
@@ -36,15 +35,6 @@ const AppleAuthButton = ({
   const onPress = useCallback(async () => {
     if (busy) return;
 
-    if (!isAvailable) {
-      handleError(
-        Platform.OS === 'ios'
-          ? 'Sign in with Apple is not available on this device.'
-          : 'Sign in with Apple is only available on iOS devices.'
-      );
-      return;
-    }
-
     setBusy(true);
     try {
       const response = await signIn();
@@ -58,7 +48,7 @@ const AppleAuthButton = ({
     } finally {
       setBusy(false);
     }
-  }, [busy, handleError, handleSuccess, isAvailable, signIn]);
+  }, [busy, handleError, handleSuccess, signIn]);
 
   if (!isAvailable) {
     return null;
@@ -72,7 +62,7 @@ const AppleAuthButton = ({
       iconColor="#f5f6f9"
       text={buttonText}
       onPress={onPress}
-      disabled={disabled || busy}
+      disabled={busy}
       style={[styles.button, style]}
       textStyle={styles.buttonText}
     />

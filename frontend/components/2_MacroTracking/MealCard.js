@@ -1,17 +1,15 @@
 // components/2_MacroTracking/MealCard.js
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
 import scaleSize from "../../helper/scaleSize";
 
 export default function MealCard({
     item,
-    PlusIcon,
     COLORS,
-    onAddPress,
     totalCalories = 0,
 }) {
-    const styles = makeStyles(COLORS);
+    const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
 
     return (
         <View style={styles.card}>

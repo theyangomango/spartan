@@ -75,10 +75,3 @@ export const subscribeCompetitionTabRequests = (listener) => {
         current.delete(listener);
     };
 };
-
-export default {
-    requestCompetitionTabFocus,
-    consumePendingCompetitionTab,
-    clearPendingCompetitionTab,
-    subscribeCompetitionTabRequests,
-};

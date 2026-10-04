@@ -33,10 +33,3 @@ export function refreshAuthStatus() {
   }
   return Promise.resolve();
 }
-
-export function getPendingHandle() {
-  if (controller?.getPendingHandle) {
-    return controller.getPendingHandle();
-  }
-  return pendingCache;
-}

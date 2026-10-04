@@ -1,10 +1,10 @@
 // hooks/useRestTimer.js
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Vibration } from "react-native";
+import * as Haptics from "expo-haptics";
 // Lazy import expo-notifications to avoid native crashes on simulators/dev clients
 let ExpoNotifications = null;
 try { ExpoNotifications = require('expo-notifications'); } catch {}
-import * as Haptics from "expo-haptics";
 
 export default function useRestTimer() {
   const [restModalVisible, setRestModalVisible] = useState(false);
@@ -172,6 +172,5 @@ export default function useRestTimer() {
     startCountdown,
     addCountdown,
     resetCountdown,
-    setCountdown, // expose raw setter if needed
   };
 }

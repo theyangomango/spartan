@@ -1,17 +1,12 @@
-export const SET_TYPE_KEYS = ["warmup", "dropset", "failure", "left", "right"];
-export const ALLOWED_SET_TYPES = new Set(SET_TYPE_KEYS);
+const SET_TYPE_KEYS = ["warmup", "dropset", "failure", "left", "right"];
+const ALLOWED_SET_TYPES = new Set(SET_TYPE_KEYS);
 
 export const normalizeSetType = (value) => {
   const raw = typeof value === "string" ? value.toLowerCase() : "";
   return ALLOWED_SET_TYPES.has(raw) ? raw : null;
 };
 
-export const isUnilateralType = (type) => {
-  const normalized = normalizeSetType(type);
-  return normalized === "left" || normalized === "right";
-};
-
-export const typeLetter = (type) => {
+const typeLetter = (type) => {
   switch (normalizeSetType(type)) {
     case "warmup":
       return "W";

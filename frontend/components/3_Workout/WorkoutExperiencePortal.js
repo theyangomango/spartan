@@ -40,7 +40,6 @@ export default function WorkoutExperiencePortal({ uid, enabled }) {
 
     const {
         timerRef,
-        isNewWorkoutVisible,
         setIsNewWorkoutVisible,
         isSummaryModalVisible,
         setIsSummaryModalVisible,
@@ -52,7 +51,6 @@ export default function WorkoutExperiencePortal({ uid, enabled }) {
         persistCurrentWorkout,
     } = useWorkoutManager({
         uid,
-        navigation,
         millisToHMS: millisToHoursMinutesSeconds,
     });
 

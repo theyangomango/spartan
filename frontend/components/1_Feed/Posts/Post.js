@@ -28,10 +28,6 @@ const { width: W } = Dimensions.get("window");
 const AR = 1;
 const BORDER = 35;
 
-const B_IN = 1.02;
-const B_OUT = 1;
-const B_FRICTION = 60;
-
 const DEBUG_SHOW_TONE_OVERLAY = false;
 
 // Fractional rectangle (normalized 0..1) covering the header handle text region.
@@ -464,21 +460,6 @@ const Post = forwardRef(function Post({
         return () => clearTimeout(id);
     }, [programFocusSignal, programFocusPid, resolvedIsSomePostFocused, data?.pid]);
 
-    // Bounce animation (kept if you use it elsewhere)
-    const bounce = useCallback(() => {
-        Animated.sequence([
-            Animated.spring(scale, {
-                toValue: B_IN,
-                useNativeDriver: true,
-            }),
-            Animated.spring(scale, {
-                toValue: B_OUT,
-                friction: B_FRICTION,
-                useNativeDriver: true,
-            }),
-        ]).start();
-    }, [scale]);
-
     // Focus handler
     const focusMe = useCallback((preferWaitForHeader = false) => {
         if (resolvedIsFocused) return;
@@ -601,8 +582,6 @@ const Post = forwardRef(function Post({
         handleFooterTap: handleFooterTapFromOverlay,
     }), [carouselRef, viewRef, handleFooterTapFromOverlay]);
 
-    // (external swipe state removed; handled via imperative hSwipe* methods)
-
     // During interactive unfocus (bottom->top pan), gradually fade other posts into view.
     // We override the RN Animated opacity only while a post is focused and this post is NOT the focused one.
     const interactiveFadeStyle = useAnimatedStyle(() => {
@@ -615,10 +594,6 @@ const Post = forwardRef(function Post({
         } catch {}
         return {};
     }, [resolvedIsFocused, resolvedFocusModeSV, resolvedInteractiveUnfocusSV]);
-
-    // useEffect(() => {
-    //     console.log(resolvedIsFocused, resolvedIsSomePostFocused, index);
-    // }, [resolvedIsFocused, resolvedIsSomePostFocused])
 
     return (
         <Reanimated.View

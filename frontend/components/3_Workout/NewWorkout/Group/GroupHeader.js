@@ -1,4 +1,3 @@
-// components/Tracking/Group/GroupHeader.jsx
 import React, { useEffect, useRef, memo } from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import scaleSize, { ts } from "../../../../helper/scaleSize";
@@ -11,13 +10,14 @@ import TimerDisplay from "../TimerDisplay";
 import theme from "../../../../theme/mfpDark";
 import { activeWorkoutHighlight } from "../activeWorkoutColors";
 
-const scaledSize = (size) => scaleSize(size);
-
 // Small helper so "", "  ", null, undefined are treated as no-URI
 const normalizeUri = (u) => {
     const s = (u ?? "").toString().trim();
     return s.length ? s : null;
 };
+
+// Wrap press handlers with haptics
+const withHaptics = (fn) => () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {} finally { try { fn?.(); } catch {} } };
 
 const GroupHeader = ({
     viewingSelf,
@@ -25,7 +25,6 @@ const GroupHeader = ({
     pfpIdentity = null,
     onOpenMenu,
     onLongPressInvite,
-    onFinish,
     onCheer,
     onCopyTemplate,
     countdown,
@@ -80,9 +79,6 @@ const GroupHeader = ({
     const showTimerLeft = !!selfLayout;
     const normalizedPfpOnLeft = !selfLayout && pfpOnLeft;
 
-    // Wrap press handlers with haptics
-    const withHaptics = (fn) => () => { try { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy); } catch {} finally { try { fn?.(); } catch {} } };
-
     return (
         <View style={[styles.container, headerStyle]}>
             {/* Left: timer (self/participating) OR back chevron + optional PFP */}
@@ -90,7 +86,7 @@ const GroupHeader = ({
                 {showTimerLeft ? (
                     <RNBounceable style={styles.rest_timer_ctnr} onPress={onAddTime ? withHaptics(onAddTime) : undefined}>
                         <View style={styles.iconWrapper}>
-                            <MaterialCommunityIcons name="timer-outline" size={scaledSize(24)} color="#FFFFFF" />
+                            <MaterialCommunityIcons name="timer-outline" size={scaleSize(24)} color="#FFFFFF" />
                             {countdown > 0 && (
                                 <Text style={styles.countdownText}>
                                     {Math.floor(countdown / 60)}:{String(countdown % 60).padStart(2, "0")}
@@ -101,7 +97,7 @@ const GroupHeader = ({
                 ) : (
                     <>
                         <Pressable onPress={onBack ? withHaptics(onBack) : undefined} style={styles.backBtn} hitSlop={8}>
-                            <MaterialCommunityIcons name="chevron-left" size={scaledSize(26)} color={theme.textPrimary} />
+                            <MaterialCommunityIcons name="chevron-left" size={scaleSize(26)} color={theme.textPrimary} />
                         </Pressable>
                         {normalizedPfpOnLeft && (
                             <Pressable onPress={onPressPfp ? withHaptics(onPressPfp) : undefined} hitSlop={8}>
@@ -149,20 +145,16 @@ const GroupHeader = ({
                 )}
 
                 {selfLayout ? (
-                    onFinish ? (
-                        <RNBounceable onPress={withHaptics(onFinish)} style={styles.finish_btn}>
-                            <Text style={styles.finish_btn_text}>Finish</Text>
-                        </RNBounceable>
-                    ) : null
+                    null
                 ) : (
                     onCheer ? (
                         <RNBounceable onPress={withHaptics(onCheer)} style={styles.cheer_btn}>
-                            <MaterialCommunityIcons name="arm-flex" size={scaledSize(18)} color="#ffffff" />
+                            <MaterialCommunityIcons name="arm-flex" size={scaleSize(18)} color="#ffffff" />
                             <Text style={styles.cheer_btn_text}>Cheer</Text>
                         </RNBounceable>
                     ) : (
                         <RNBounceable onPress={onCopyTemplate ? withHaptics(onCopyTemplate) : undefined} style={styles.copy_btn}>
-                            <Copy size={scaledSize(20)} color="#ffffff" variant='Linear' />
+                            <Copy size={scaleSize(20)} color="#ffffff" variant='Linear' />
                             <Text style={styles.copy_btn_text}>Copy Template</Text>
                         </RNBounceable>
                     )
@@ -180,20 +172,20 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     leftWrap: { alignItems: "center", justifyContent: "center", flexShrink: 0 },
-    leftRow: { flexDirection: "row", alignItems: "center", gap: scaledSize(10) },
+    leftRow: { flexDirection: "row", alignItems: "center", gap: scaleSize(10) },
     backBtn: {
-        width: scaledSize(36),
-        height: scaledSize(36),
-        borderRadius: scaledSize(12),
+        width: scaleSize(36),
+        height: scaleSize(36),
+        borderRadius: scaleSize(12),
         backgroundColor: theme.field,
         alignItems: "center",
         justifyContent: "center",
     },
     rest_timer_ctnr: {
         alignItems: "center",
-        paddingVertical: scaledSize(6),
-        paddingHorizontal: scaledSize(12),
-        borderRadius: scaledSize(12),
+        paddingVertical: scaleSize(6),
+        paddingHorizontal: scaleSize(12),
+        borderRadius: scaleSize(12),
         backgroundColor: theme.restPillBg,
     },
     iconWrapper: { flexDirection: "row", alignItems: "center" },
@@ -201,7 +193,7 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(13.5),
         color: '#FFFFFF',
         fontFamily: "Outfit_700Bold",
-        marginLeft: scaledSize(10),
+        marginLeft: scaleSize(10),
     },
 
     // Center timer
@@ -211,9 +203,9 @@ const styles = StyleSheet.create({
 
     invite_btn: {
         flexShrink: 0,
-        paddingVertical: scaledSize(7),
-        paddingHorizontal: scaledSize(20),
-        borderRadius: scaledSize(24),
+        paddingVertical: scaleSize(7),
+        paddingHorizontal: scaleSize(20),
+        borderRadius: scaleSize(24),
         backgroundColor: activeWorkoutHighlight(),
         justifyContent: "center",
         alignItems: "center",
@@ -234,9 +226,9 @@ const styles = StyleSheet.create({
     },
 
     pfpWrap: {
-        width: scaledSize(23),
+        width: scaleSize(23),
         aspectRatio: 1,
-        borderRadius: scaledSize(16),
+        borderRadius: scaleSize(16),
         backgroundColor: theme.surface,
         justifyContent: "center",
         alignItems: "center",
@@ -247,36 +239,21 @@ const styles = StyleSheet.create({
         elevation: 2,
         borderWidth: scaleSize(1),
         borderColor: theme.hairline,
-        marginLeft: scaledSize(8),
+        marginLeft: scaleSize(8),
     },
-    pfpLeftWrap: { width: scaledSize(28), height: scaledSize(28) },
+    pfpLeftWrap: { width: scaleSize(28), height: scaleSize(28) },
     pfpFriendRing: { borderColor: theme.primary },
-    pfp: { width: "100%", height: "100%", borderRadius: scaledSize(20) },
-
-    // Self: Finish
-    finish_btn: {
-        width: scaledSize(83),
-        height: scaledSize(34),
-        borderRadius: scaledSize(10),
-        backgroundColor: theme.successButton,
-        justifyContent: "center",
-        alignItems: "center",
-    },
-    finish_btn_text: {
-        fontFamily: "Mulish_800ExtraBold",
-        fontSize: scaleSize(12),
-        color: "#ffffff",
-    },
+    pfp: { width: "100%", height: "100%", borderRadius: scaleSize(20) },
 
     // Viewing: sleeker Cheer pill
     cheer_btn: {
-        height: scaledSize(34),
-        paddingHorizontal: scaledSize(12),
-        borderRadius: scaledSize(10),
+        height: scaleSize(34),
+        paddingHorizontal: scaleSize(12),
+        borderRadius: scaleSize(10),
         backgroundColor: theme.primary,
         flexDirection: "row",
         alignItems: "center",
-        gap: scaledSize(6),
+        gap: scaleSize(6),
         shadowColor: theme.primary,
         shadowOpacity: 0.25,
         shadowRadius: scaleSize(8),
@@ -291,14 +268,14 @@ const styles = StyleSheet.create({
     },
     // Copy template button – slightly darker blue than primary for better balance
     copy_btn: {
-        height: scaledSize(34),
-        paddingHorizontal: scaledSize(12),
-        borderRadius: scaledSize(12),
+        height: scaleSize(34),
+        paddingHorizontal: scaleSize(12),
+        borderRadius: scaleSize(12),
         // Darken brand blue further per feedback
         backgroundColor: '#166CC9',
         flexDirection: "row",
         alignItems: "center",
-        gap: scaledSize(6),
+        gap: scaleSize(6),
         shadowColor: '#166CC9',
         shadowOpacity: 0.2,
         shadowRadius: scaleSize(6),

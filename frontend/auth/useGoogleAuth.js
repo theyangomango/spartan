@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import * as AuthSession from 'expo-auth-session';
@@ -96,11 +96,6 @@ export default function useGoogleAuth() {
       ? { androidClientId: baseConfig.androidClientId || fallbackClientId }
       : {}),
   });
-  const [loading, setLoading] = useState(false);
-
-  const activeClientId = useMemo(() => {
-    return effectiveClientId;
-  }, [effectiveClientId]);
 
   const signIn = useCallback(async () => {
     if (!hasAnyClientId) {
@@ -113,7 +108,6 @@ export default function useGoogleAuth() {
       throw new Error('Google Sign-In requires EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID (or EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID) when running inside Expo Go.');
     }
 
-    setLoading(true);
     try {
       const useProxy = useProxyDefault;
       const redirectUri = request?.redirectUri || resolvedRedirectUri;
@@ -142,7 +136,7 @@ export default function useGoogleAuth() {
       const tokenResponse = await AuthSession.exchangeCodeAsync(
         {
           code: authorizationCode,
-          clientId: request?.clientId || activeClientId,
+          clientId: request?.clientId || effectiveClientId,
           redirectUri,
           extraParams: {
             code_verifier: request.codeVerifier,
@@ -176,17 +170,13 @@ export default function useGoogleAuth() {
         tokens: {
           accessToken,
           idToken,
-          scope: tokenResponse?.scope || '',
-          expiresIn: tokenResponse?.expiresIn || 0,
         },
       };
     } catch (err) {
       if (err instanceof Error) throw err;
       throw new Error('Google Sign-In failed.');
-    } finally {
-      setLoading(false);
     }
-  }, [activeClientId, hasAnyClientId, promptAsync, request, resolvedRedirectUri, useProxyDefault]);
+  }, [effectiveClientId, hasAnyClientId, promptAsync, request, resolvedRedirectUri, useProxyDefault]);
 
-  return { signIn, loading, isConfigured: hasAnyClientId };
+  return { signIn, isConfigured: hasAnyClientId };
 }

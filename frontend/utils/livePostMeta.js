@@ -26,7 +26,7 @@ const toMillisSafe = (value) => {
     return null;
 };
 
-export const deriveWorkoutIdentityKey = (workout, uidHint = "") => {
+const deriveWorkoutIdentityKey = (workout, uidHint = "") => {
     if (!workout || typeof workout !== "object") return "";
     const createdMs = toMillisSafe(
         workout?.created ??
@@ -119,7 +119,4 @@ export const buildLivePostMetadata = (postData = {}, viewer = {}) => {
     return meta;
 };
 
-export default {
-    deriveWorkoutIdentityKey,
-    buildLivePostMetadata,
-};
+export const isLivePostData = (post) => Boolean(post?.isLive || post?.liveWorkout || (typeof post?.pid === "string" && post.pid.startsWith("workout:live")));

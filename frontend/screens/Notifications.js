@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, StatusBar, Pressable } from 'react-native';
+import { View, Text, StyleSheet, StatusBar, Pressable, TouchableOpacity } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -13,7 +13,6 @@ import {
     markAllNotificationsReadLocal,
     useNotificationsStore,
 } from '../state/notificationsStore';
-import { TouchableOpacity } from 'react-native';
 
 export default function Notifications({ navigation }) {
     const [selectedFilter, setSelectedFilter] = useState(NOTIFICATION_FILTERS[0]);
@@ -185,10 +184,6 @@ const styles = StyleSheet.create({
         fontFamily: 'Outfit_700Bold',
         fontSize: ts(14),
         textAlign: 'right',
-    },
-    headerSpacer: {
-        width: scaleSize(36),
-        height: scaleSize(36),
     },
     content: {
         flex: 1,

@@ -223,7 +223,6 @@ const mixRankedFeeds = ({
 };
 
 module.exports = {
-    toMillisSafe,
     extractPostTopics,
     buildViewerTopicVector,
     scoreFeedCandidate,

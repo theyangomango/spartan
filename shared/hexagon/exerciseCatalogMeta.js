@@ -53,16 +53,12 @@ EXERCISES_LIST.forEach((exercise) => {
   register(name, meta);
 });
 
-export const lookupCatalogMeta = (name) => {
+const lookupCatalogMeta = (name) => {
   const key = toKey(name);
   const loose = toLooseKey(name);
   if (!key && !loose) return null;
   return catalogMetaByName.get(key) || catalogMetaByName.get(loose) || null;
 };
-
-export const hasCatalogMeta = (name) => lookupCatalogMeta(name) != null;
-
-export const catalogEntryCount = catalogMetaByName.size;
 
 export const resolveMetaUsingCatalog = (name, fallbackResolver) => {
   const fallback = typeof fallbackResolver === "function" ? fallbackResolver(name) : { group: null, equipment: "" };

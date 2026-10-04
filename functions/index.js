@@ -29,7 +29,7 @@ const FATSECRET_SECRET = defineSecret("FATSECRET_SECRET");
 // Simple in-memory cache per scope per function instance
 const tokenCacheByScope = new Map(); // scope -> { accessToken, expiresAt }
 const SEARCH_CACHE_TTL_MS = 5 * 60 * 1000;
-const fatsecretSearchCache = new Map(); // normalizedQuery|max|page -> { value, expiresAt }
+const fatsecretSearchCache = new Map(); // normalizedQuery|pageSize -> { value, expiresAt }
 
 const HANDLE_REGEX = /^[a-z0-9_.]{6,20}$/;
 
@@ -1907,7 +1907,7 @@ async function fatSecretRequest(methodName, params = {}, scope = "basic") {
         format: "json",
         ...Object.fromEntries(
             Object.entries(params)
-                .filter(([_, v]) => v !== undefined && v !== null)
+                .filter(([, v]) => v !== undefined && v !== null)
                 .map(([k, v]) => [k, String(v)])
         ),
     }).toString();
@@ -2841,46 +2841,6 @@ function normalizeTimestamp(value) {
     return 0;
 }
 
-function pickFirstWeightFromObject(obj, depth = 0, inheritedUnit = null) {
-    if (!obj || typeof obj !== "object" || depth > 3) return 0;
-    let unitHint = inheritedUnit;
-    if (typeof obj.weightUnit === "string") unitHint = obj.weightUnit;
-    else if (typeof obj.unit === "string") unitHint = obj.unit;
-    else if (typeof obj.units === "string") unitHint = obj.units;
-
-    for (const [key, rawValue] of Object.entries(obj)) {
-        if (rawValue === null || rawValue === undefined) continue;
-        const lower = key.toLowerCase();
-
-        let unit = unitHint;
-        if (lower.includes("kg")) unit = "kg";
-        else if (lower.includes("lb") || lower.includes("pound")) unit = "lb";
-
-        const isWeightKey =
-            lower.includes("weight") ||
-            lower === "bw" ||
-            lower === "bodyweight" ||
-            lower === "bodyweightlbs" ||
-            lower === "currentweight" ||
-            lower === "latestweight" ||
-            lower === "targetweight" ||
-            lower === "goalweight" ||
-            lower === "startingweight";
-
-        if (isWeightKey) {
-            const numeric = toNumeric(rawValue);
-            const pounds = toPounds(numeric, unit);
-            if (pounds > 0) return pounds;
-        }
-
-        if (typeof rawValue === "object") {
-            const nested = pickFirstWeightFromObject(rawValue, depth + 1, unit);
-            if (nested > 0) return nested;
-        }
-    }
-    return 0;
-}
-
 function extractLatestWeight(entries) {
     if (!entries) return 0;
     let list = entries;
@@ -2957,29 +2917,6 @@ function resolveBodyweightForNormalization(privateData = {}, publicData = {}, us
     }
 
     return 0;
-}
-
-function computeGlobalRanks(valueMap) {
-    const entries = Array.from(valueMap.entries()).map(([uid, value]) => ({
-        uid,
-        value: safeNumber(value),
-    }));
-    entries.sort((a, b) => b.value - a.value);
-
-    const ranks = new Map();
-    let lastRank = 0;
-    let lastValue = null;
-    entries.forEach((entry, index) => {
-        if (index === 0) {
-            lastRank = 1;
-            lastValue = entry.value;
-        } else if (Math.abs(entry.value - lastValue) > EPSILON) {
-            lastRank = index + 1;
-            lastValue = entry.value;
-        }
-        ranks.set(entry.uid, lastRank);
-    });
-    return ranks;
 }
 
 export const refreshLeaderboardLastRanks = onSchedule(
@@ -3123,8 +3060,7 @@ export const refreshLeaderboardLastRanks = onSchedule(
                 const value = safeNumber(exStats?.['1RM']);
                 valueMap.set(uid, value);
             });
-            const ranks = computeGlobalRanks(valueMap);
-            exerciseMaps.set(exercise, { valueMap, ranks });
+            exerciseMaps.set(exercise, { valueMap });
         }
 
         const hexMaps = new Map();
@@ -3136,8 +3072,7 @@ export const refreshLeaderboardLastRanks = onSchedule(
                 const value = safeNumber(raw);
                 valueMap.set(uid, value);
             });
-            const ranks = computeGlobalRanks(valueMap);
-            hexMaps.set(key, { valueMap, ranks });
+            hexMaps.set(key, { valueMap });
         }
 
         const globalMemberIds = users.map(({ uid }) => uid);
@@ -3765,21 +3700,10 @@ export const onCompletedWorkoutAutoPost = onDocumentWritten(
             const liveDocId = `workout:live:${uid}`;
             const liveDocRef = adminDb.collection("posts").doc(liveDocId);
             let livePostMeta = null;
-            let liveWorkoutKey = null;
             try {
                 const liveSnap = await liveDocRef.get();
                 if (liveSnap.exists) {
                     livePostMeta = liveSnap.data() || {};
-                    liveWorkoutKey = livePostMeta?.workoutKey || workoutIdentityKey(
-                        livePostMeta?.workout ??
-                        livePostMeta?.liveWorkout ??
-                        {
-                            wid: livePostMeta?.workoutWid ?? livePostMeta?.wid ?? livePostMeta?.workoutId ?? null,
-                            created: toMillisSafe(livePostMeta?.workoutCreated ?? livePostMeta?.created),
-                            creatorUID: uid,
-                            name: livePostMeta?.caption ?? livePostMeta?.workoutName ?? "",
-                        }
-                    );
                 }
             } catch (error) {
                 logger.warn("onCompletedWorkoutAutoPost: failed to read live post meta", {
@@ -3914,7 +3838,6 @@ export const onCompletedWorkoutAutoPost = onDocumentWritten(
 
                 if (liveMatchesWorkout) {
                     livePostMeta = null;
-                    liveWorkoutKey = null;
                 }
             });
 
@@ -4289,7 +4212,7 @@ export const appendWorkoutSets = onCall({ region: "us-central1" }, async (reques
         logger.warn("appendWorkoutSets: hexagon recompute skipped", e?.message || e);
     }
 
-    return { ok: true, appended: Object.keys(patch.statsExercises).length };
+    return { ok: true, appended: Object.keys(updatePayload).length };
 });
 
 export const submitModerationReport = onCall({ region: "us-central1" }, async (request) => {

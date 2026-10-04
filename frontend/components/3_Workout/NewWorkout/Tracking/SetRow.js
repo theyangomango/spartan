@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, StyleSheet, Text, Pressable, LayoutAnimation, Platform, UIManager, Keyboard } from "react-native";
+import { View, StyleSheet, Text, Pressable, Platform, UIManager, Keyboard } from "react-native";
 import * as Haptics from "expo-haptics";
 import scaleSize from "../../../../helper/scaleSize";
 import EditableStat from "./EditableStat";
@@ -10,14 +10,8 @@ import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import theme from "../../../../theme/mfpDark";
 import workoutTypography from "../../shared/workoutTypography";
 import { formatSetLabel, normalizeSetType } from "../../shared/setTypeUtils";
-
-const normalizePrev = (value) => {
-    if (!value || typeof value !== "object") return null;
-    const weight = Number(value?.weight) || 0;
-    const reps = Number(value?.reps) || 0;
-    if (!weight && !reps) return null;
-    return { weight, reps };
-};
+import { typePillBg, typePillText } from "../../shared/setTypePillStyles";
+import { normalizePrevOrNull } from "../../shared/workoutSetUtils";
 
 const formatCount = (value) => {
     const num = Number(value);
@@ -27,7 +21,7 @@ const formatCount = (value) => {
 };
 
 const buildPreviousDisplay = (value, weighting) => {
-    const normalized = normalizePrev(value);
+    const normalized = normalizePrevOrNull(value);
     if (!normalized) return null;
 
     const reps = Number(normalized.reps) || 0;
@@ -49,8 +43,6 @@ const buildPreviousDisplay = (value, weighting) => {
     return { repsLabel, weightLabel };
 };
 
-const ENABLE_LAYOUT_ANIM = false;
-
 // Enable LayoutAnimation on Android once
 if (Platform.OS === "android" && UIManager.setLayoutAnimationEnabledExperimental) {
     try { UIManager.setLayoutAnimationEnabledExperimental(true); } catch {}
@@ -60,15 +52,12 @@ function SetRow({
     previousSet,
     set,
     sid,
-    updateSet,
     onUpdateSetById,
     index,
-    handleDelete,
     onDeleteSetById,
     isDone,
     onToggleIsDoneById,
     readOnly = false,
-    itemKey,
     onFocusInput, // optional: notify parent when an input is focused
     displayNumber,
     weighting,
@@ -90,19 +79,12 @@ function SetRow({
 
     const handleDeleteSwipe = useCallback(() => {
         if (readOnly) return;
-        if (ENABLE_LAYOUT_ANIM) { try { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); } catch {} }
-        if (onDeleteSetById && sid) onDeleteSetById(sid);
-        else handleDelete(index);
+        onDeleteSetById(sid);
         try { Haptics.impactAsync?.(Haptics.ImpactFeedbackStyle.Light); } catch {}
-    }, [readOnly, onDeleteSetById, sid, handleDelete, index]);
+    }, [readOnly, onDeleteSetById, sid, index]);
 
-    const renderUnderlayLeft = useCallback((swipeRef) => (
-        <UnderlayLeft
-            onDelete={() => {
-                try { swipeRef?.current?.close?.(); } catch {}
-                handleDeleteSwipe();
-            }}
-        />
+    const renderUnderlayLeft = useCallback(() => (
+        <UnderlayLeft onDelete={handleDeleteSwipe} />
     ), [handleDeleteSwipe]);
 
     const [typePanelOpen, setTypePanelOpen] = useState(false);
@@ -144,8 +126,7 @@ function SetRow({
     }, [readOnly]);
     const onSelectType = (type) => {
         const nextType = set?.type === type ? null : type;
-        if (onUpdateSetById && sid) onUpdateSetById(sid, { ...set, type: nextType });
-        else updateSet(index, { ...set, type: nextType });
+        onUpdateSetById(sid, { ...set, type: nextType });
     };
 
     const normalizedType = normalizeSetType(set?.type);
@@ -156,14 +137,12 @@ function SetRow({
         <View style={styles.container}>
             <SwipeableItem
                 item={set}
-                itemKey={itemKey || (set && (set.id || String(index))) }
                 overSwipe={scaleSize(36)}
                 // Lower threshold so a light horizontal swipe wins over vertical scroll
                 activationThreshold={8}
-                renderUnderlayLeft={readOnly ? undefined : (params) => renderUnderlayLeft(params?.ref)}
+                renderUnderlayLeft={readOnly ? undefined : renderUnderlayLeft}
                 // Open a bit wider so the trash hit target is generous
                 snapPointsLeft={readOnly ? [] : [scaleSize(96)]}
-                onSwipeableLeftOpen={readOnly ? undefined : handleDeleteSwipe}
             >
                 <View style={[styles.stat_row, doneLocal && styles.done]}>
                     <Pressable
@@ -211,7 +190,7 @@ function SetRow({
                         <EditableStat
                             isFinished={doneLocal}                          // ← do NOT tie visuals to readOnly
                             value={displayWeight == null ? "" : String(displayWeight)}
-                            setValue={(value) => (onUpdateSetById ? onUpdateSetById(sid, { ...set, weight: value }) : updateSet(index, { ...set, weight: value }))}
+                            setValue={(value) => onUpdateSetById(sid, { ...set, weight: value })}
                             onFocus={() => { try { onFocusInput?.(index); } catch {} }}
                             previousValue={previousSet ? previousSet.weight : null}
                             step={2.5}
@@ -222,7 +201,7 @@ function SetRow({
                         <EditableStat
                             isFinished={doneLocal}                          // ← same here
                             value={displayReps == null ? "" : String(displayReps)}
-                            setValue={(value) => (onUpdateSetById ? onUpdateSetById(sid, { ...set, reps: value }) : updateSet(index, { ...set, reps: value }))}
+                            setValue={(value) => onUpdateSetById(sid, { ...set, reps: value })}
                             onFocus={() => { try { onFocusInput?.(index); } catch {} }}
                             previousValue={previousSet ? previousSet.reps : null}
                             step={1}
@@ -255,7 +234,6 @@ function SetRow({
                 visible={typePanelOpen}
                 onClose={() => setTypePanelOpen(false)}
                 position={panelPos}
-                current={set?.type || null}
                 onSelect={onSelectType}
             />
         </View>
@@ -363,33 +341,3 @@ const styles = StyleSheet.create({
         paddingHorizontal: scaleSize(10),
     },
 });
-
-function typePillBg(type) {
-    switch (normalizeSetType(type)) {
-        case "warmup":
-            return { backgroundColor: "rgba(251,146,60,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(251,146,60,0.7)" };
-        case "dropset":
-            return { backgroundColor: "rgba(168,85,247,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(168,85,247,0.7)" };
-        case "failure":
-            return { backgroundColor: "rgba(244,63,94,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(244,63,94,0.7)" };
-        case "left":
-            return { backgroundColor: "rgba(14,165,233,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(14,165,233,0.7)" };
-        case "right":
-            return { backgroundColor: "rgba(52,211,153,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(52,211,153,0.7)" };
-        default:
-            return { backgroundColor: theme.field };
-    }
-}
-
-function typePillText(type) {
-    switch (normalizeSetType(type)) {
-        case "warmup":
-        case "dropset":
-        case "failure":
-        case "left":
-        case "right":
-            return { color: "#FFFFFF" };
-        default:
-            return { color: theme.textPrimary };
-    }
-}

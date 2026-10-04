@@ -1,6 +1,5 @@
-// usePfp.js (JS)
 import { useEffect, useState } from "react";
-import { getPfpUrl } from "../pfpCache"; // ← adjust path
+import { getPfpUrl } from "../pfpCache";
 
 /**
  * Resolve the photo URL for a user.
@@ -28,7 +27,7 @@ export function usePfp(uid, version = 0, fallbackUri) {
             try {
                 const resolved = await getPfpUrl(uid, version);
                 if (alive) setUri(resolved);
-            } catch (e) {
+            } catch {
                 if (alive) setUri(normalisedFallback);
             }
         })();

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Dimensions, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import PreviewPhotosModal from "./PreviewPhotosModal";
@@ -8,8 +8,7 @@ import scaleSize from "../../../helper/scaleSize";
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
-const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, isLimited, onRequestMoreAccess, collapsedHeight }) => {
-    const bottomSheetRef = useRef(null);
+const PreviewPhotosBottomSheet = ({ assets, selectedOrderMap, toggleSelect, loadMoreAssets, loading, hasNextPage, isLimited, onRequestMoreAccess, collapsedHeight }) => {
     const expandedHeight = useMemo(() => Math.round(SCREEN_HEIGHT * 0.94), []);
     const snapPoints = useMemo(() => {
         const defaultCollapsed = Math.round(SCREEN_HEIGHT * 0.45);
@@ -49,14 +48,11 @@ const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSele
 
     return (
         <BottomSheet
-            ref={bottomSheetRef}
             index={0}
             backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
             enablePanDownToClose={false}
             onChange={handleSheetChanges}
-            onClose={() => {
-            }}
             backgroundStyle={styles.background}
             style={styles.sheet}
             handleStyle={styles.handle}
@@ -64,7 +60,6 @@ const PreviewPhotosBottomSheet = ({ assets, images, selectedOrderMap, toggleSele
         >
             <PreviewPhotosModal
                 assets={assets}
-                images={images}
                 selectedOrderMap={selectedOrderMap}
                 toggleSelect={toggleSelect}
                 loadMoreAssets={loadMoreAssets}

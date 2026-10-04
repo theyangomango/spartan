@@ -9,19 +9,16 @@ import {
     FlatList,
     Animated,
     Dimensions,
-    Text,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import UserCard from './UserCard'; // Ensure this path is correct
-import { debounce } from 'lodash'; // Install lodash if not already installed
+import UserCard from './UserCard';
+import { debounce } from 'lodash';
 import RNBounceable from '@freakycoder/react-native-bounceable';
 import scaleSize from '../../helper/scaleSize';
 import { strong as hapticStrong } from '../../utils/haptics';
 import isThisUser from '../../helper/isThisUser';
 
 const { width: screenWidth } = Dimensions.get('window');
-// Centralized scaling utility
-const scaledSize = (size) => scaleSize(size);
 
 const SearchBarComponent = ({ navigation, allUsers, onSearchExpandChange }) => {
     const [searchString, setSearchString] = useState('');
@@ -117,7 +114,7 @@ const SearchBarComponent = ({ navigation, allUsers, onSearchExpandChange }) => {
                 accessibilityLabel="Expand search bar"
                 accessibilityRole="button"
             >
-                <Ionicons name="search" size={scaledSize(20)} color="#555" />
+                <Ionicons name="search" size={scaleSize(20)} color="#555" />
             </RNBounceable>
             {/* Animated Search Input */}
             <Animated.View
@@ -126,11 +123,11 @@ const SearchBarComponent = ({ navigation, allUsers, onSearchExpandChange }) => {
                     {
                         width: scaleSize(animation.interpolate({
                             inputRange: [0, 1],
-                            outputRange: [0, screenWidth - scaledSize(24) - scaledSize(16) - scaledSize(32)], // Adjust based on icon size and margins
+                            outputRange: [0, screenWidth - scaleSize(24) - scaleSize(16) - scaleSize(32)], // Adjust based on icon size and margins
                         })),
                         marginLeft: scaleSize(animation.interpolate({
                             inputRange: [0, 1],
-                            outputRange: [0, scaledSize(8)],
+                            outputRange: [0, scaleSize(8)],
                         })),
                         opacity: animation,
                     },
@@ -155,7 +152,7 @@ const SearchBarComponent = ({ navigation, allUsers, onSearchExpandChange }) => {
                                 accessibilityLabel={searchString.length > 0 ? "Clear search" : "Close search bar"}
                                 accessibilityRole="button"
                             >
-                                <Ionicons name="close" size={scaledSize(18)} color="#555" />
+                                <Ionicons name="close" size={scaleSize(18)} color="#555" />
                             </TouchableOpacity>
                         </View>
                     </TouchableWithoutFeedback>
@@ -183,23 +180,23 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
-        height: scaledSize(40),
+        height: scaleSize(40),
         backgroundColor: '#fff',
-        borderRadius: scaledSize(20),
-        paddingHorizontal: scaledSize(8),
+        borderRadius: scaleSize(20),
+        paddingHorizontal: scaleSize(8),
         shadowColor: '#999',
-        shadowOffset: { width: 0, height: scaledSize(1) },
+        shadowOffset: { width: 0, height: scaleSize(1) },
         shadowOpacity: 0.3,
-        shadowRadius: scaledSize(1.5),
+        shadowRadius: scaleSize(1.5),
         elevation: 3,
         position: 'relative', // Ensure positioning context for dropdown
     },
     iconButton: {
         justifyContent: 'center',
         alignItems: 'center',
-        width: scaledSize(24), // Fixed width to prevent shifting
-        height: scaledSize(24), // Set height equal to width for a perfect circle
-        borderRadius: scaledSize(12), // Half of width/height to make it circular
+        width: scaleSize(24), // Fixed width to prevent shifting
+        height: scaleSize(24), // Set height equal to width for a perfect circle
+        borderRadius: scaleSize(12), // Half of width/height to make it circular
     },
     animatedContainer: {
         overflow: 'hidden',
@@ -219,25 +216,24 @@ const styles = StyleSheet.create({
         fontWeight: '700', // Make text bold
     },
     actionButton: {
-        padding: scaledSize(4),
+        padding: scaleSize(4),
     },
     userCardsContainer: {
         position: 'absolute',
-        top: scaledSize(50), // Adjust based on your layout
+        top: scaleSize(50), // Adjust based on your layout
         left: 0,
         right: 0,
         backgroundColor: '#fff',
-        maxHeight: scaledSize(300),
-        borderRadius: scaledSize(10),
+        maxHeight: scaleSize(300),
+        borderRadius: scaleSize(10),
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: scaledSize(2) },
+        shadowOffset: { width: 0, height: scaleSize(2) },
         shadowOpacity: 0.2,
-        shadowRadius: scaledSize(4),
+        shadowRadius: scaleSize(4),
         elevation: 5,
         zIndex: 10,
-        marginTop: scaledSize(8),
+        marginTop: scaleSize(8),
     },
-    // Removed noResults and noResultsText styles as they are no longer used
 });
 
 export default SearchBarComponent;

@@ -1,5 +1,5 @@
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Keyboard,
   StyleSheet,
@@ -24,7 +24,6 @@ const NewUserCreation = ({ navigation }) => {
   const [handle, setHandle] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const emailInputRef = useRef(null);
 
   const goBack = () => navigation.goBack();
 
@@ -83,7 +82,7 @@ const NewUserCreation = ({ navigation }) => {
       const user = credential.user;
 
       await updateProfile(user, { displayName: trimmedName });
-      const ensure = await finalizeUserProfile({
+      await finalizeUserProfile({
         handle: sanitizedHandle,
         profile: {
           displayName: trimmedName,
@@ -135,7 +134,6 @@ const NewUserCreation = ({ navigation }) => {
 
             <Text style={styles.title}>Email or phone</Text>
             <TextInput
-              ref={emailInputRef}
               style={styles.input}
               placeholder="Enter your email or phone"
               placeholderTextColor={theme.textSecondary}

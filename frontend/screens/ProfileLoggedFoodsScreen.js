@@ -22,6 +22,7 @@ import { withStrongPress } from "../utils/haptics";
 import { groupLoggedFoodsByDay } from "../utils/loggedFoods";
 import MealItemCard from "../components/2_MacroTracking/MealItemCard";
 import { summarizeFood } from "../utils/nutrition";
+import { subscribeUserData } from "../utils/userDataEvents";
 
 const LockedView = ({ title = "This account is private", subtitle }) => (
     <View style={styles.lockedContainer}>
@@ -34,6 +35,8 @@ const LockedView = ({ title = "This account is private", subtitle }) => (
         </Text>
     </View>
 );
+
+const SectionSeparator = () => <View style={styles.sectionSeparator} />;
 
 const formatDayLabel = (dayKey) => {
     if (!dayKey || typeof dayKey !== "string") return "Unknown Day";
@@ -54,13 +57,10 @@ const formatDayLabel = (dayKey) => {
 };
 
 const COLORS = {
-    bg: theme.bg,
     card: theme.surface,
     text: "#F8FAFC",
     subtext: "rgba(203, 213, 225, 0.85)",
     hairline: "rgba(148, 163, 184, 0.18)",
-    ringTint: theme.primary,
-    accent: theme.primary,
 };
 
 const MACRO_COLORS = {
@@ -139,7 +139,6 @@ export default function ProfileLoggedFoodsScreen({ navigation, route }) {
     useEffect(() => {
         if (!isViewingSelf) return undefined;
         try {
-            const { subscribeUserData } = require("../utils/userDataEvents");
             const unsubscribe = subscribeUserData((nextUser) => {
                 if (nextUser && nextUser.uid) setUserData(nextUser);
             });
@@ -264,7 +263,7 @@ export default function ProfileLoggedFoodsScreen({ navigation, route }) {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.listContent}
                 ListHeaderComponent={<View style={styles.listTopSpacer} />}
-                ItemSeparatorComponent={() => <View style={styles.sectionSeparator} />}
+                ItemSeparatorComponent={SectionSeparator}
             />
         );
     }

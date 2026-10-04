@@ -5,7 +5,6 @@ import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
 
 const { width: SW, height: SH } = Dimensions.get("window");
-const ACCENT = theme.primary;
 const HAIRLINE = theme.hairline;
 
 export default function ReactionPopover({

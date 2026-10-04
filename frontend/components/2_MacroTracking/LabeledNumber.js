@@ -9,7 +9,6 @@ export default function LabeledNumber({
     onChangeText,
     suffix,
     styles,
-    onFocus,
     placeholder = '0',
     placeholderTextColor,
     selectionColor,
@@ -29,7 +28,6 @@ export default function LabeledNumber({
                     placeholder={String(placeholder)}
                     placeholderTextColor={placeholderTextColor}
                     selectionColor={selectionColor}
-                    onFocus={onFocus}
                 />
                 {suffix ? <Text style={styles.inputSuffix}>{suffix}</Text> : null}
             </View>

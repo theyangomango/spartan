@@ -6,15 +6,9 @@ import scaleSize from "../../helper/scaleSize";
 import workoutTypography from "../3_Workout/shared/workoutTypography";
 import ExerciseAvatar from "../common/ExerciseAvatar";
 import { computeDisplayNumbers, formatSetLabel, normalizeSetType } from "../3_Workout/shared/setTypeUtils";
+import { typePillBg, typePillText } from "../3_Workout/shared/setTypePillStyles";
+import { normalizePrevOrNull } from "../3_Workout/shared/workoutSetUtils";
 import { resolveExerciseWeighting } from "../../utils/bodyweight";
-
-const normalizePrev = (value) => {
-  if (!value || typeof value !== "object") return null;
-  const weight = Number(value?.weight) || 0;
-  const reps = Number(value?.reps) || 0;
-  if (!weight && !reps) return null;
-  return { weight, reps };
-};
 
 const formatNumber = (value, fallback = "0") => {
   const num = Number(value);
@@ -52,7 +46,7 @@ const formatReps = (set) => {
 };
 
 const buildPreviousDisplay = (value, weighting) => {
-  const normalized = normalizePrev(value);
+  const normalized = normalizePrevOrNull(value);
   if (!normalized) return null;
 
   const reps = Number(normalized.reps) || 0;
@@ -76,7 +70,6 @@ const buildPreviousDisplay = (value, weighting) => {
 
 const PastWorkoutExerciseLog = ({ exercise, index = 0, onPress }) => {
   const name = exercise?.name || `Exercise ${index + 1}`;
-  const muscle = exercise?.muscle || "";
   const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
   const previousSets = useMemo(() => {
     if (Array.isArray(exercise?.previousSets)) return exercise.previousSets;
@@ -359,34 +352,5 @@ const styles = StyleSheet.create({
     backgroundColor: theme.success,
   },
 });
-
-function typePillBg(type) {
-  switch (normalizeSetType(type)) {
-    case "warmup":
-      return { backgroundColor: "rgba(251,146,60,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(251,146,60,0.7)" };
-    case "dropset":
-      return { backgroundColor: "rgba(168,85,247,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(168,85,247,0.7)" };
-    case "failure":
-      return { backgroundColor: "rgba(244,63,94,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(244,63,94,0.7)" };
-    case "left":
-      return { backgroundColor: "rgba(14,165,233,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(14,165,233,0.7)" };
-    case "right":
-      return { backgroundColor: "rgba(52,211,153,0.45)", borderWidth: StyleSheet.hairlineWidth, borderColor: "rgba(52,211,153,0.7)" };
-    default:
-      return { backgroundColor: theme.field, borderWidth: scaleSize(1), borderColor: "rgba(255,255,255,0.30)" };
-  }
-}
-function typePillText(type) {
-  switch (normalizeSetType(type)) {
-    case "warmup":
-    case "dropset":
-    case "failure":
-    case "left":
-    case "right":
-      return { color: "#FFFFFF" };
-    default:
-      return { color: theme.textPrimary };
-  }
-}
 
 export default PastWorkoutExerciseLog;

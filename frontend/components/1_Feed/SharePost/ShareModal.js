@@ -1,6 +1,5 @@
-import { BlurView } from 'expo-blur';
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import ProfileCard from '../../ProfileCard';
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -78,7 +77,6 @@ export default function ShareModal({ closeBottomSheet }) {
                 renderItem={renderItem}
                 keyExtractor={(item) => item.uid}
                 numColumns={1} // Set to 1 for vertical list
-                contentContainerStyle={styles.flatlistContainer}
             />
             <RNBounceable
                 activeOpacity={0.5}
@@ -122,8 +120,6 @@ const styles = StyleSheet.create({
         flex: 1,
         padding: scaleSize(8),
         color: '#E5E7EB'
-    },
-    flatlistContainer: {
     },
     sendButton: {
         position: 'absolute',

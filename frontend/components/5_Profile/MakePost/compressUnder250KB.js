@@ -119,10 +119,6 @@ export async function compressUnder250KB(uri, opts = {}) {
               { compress: Math.max(0.5, fallbackQuality - 0.1), format }
             );
             if (emergency?.uri) {
-              const emergencyInfo = await FileSystem.getInfoAsync(emergency.uri).catch(() => null);
-              if (!emergencyInfo?.size || emergencyInfo.size <= targetBytes) {
-                return emergency.uri;
-              }
               return emergency.uri;
             }
           } catch {}

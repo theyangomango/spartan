@@ -1,9 +1,9 @@
 // shared/hexagon/computeHexagonCore.js
 // Canonical hexagon computation used across client and backend environments.
 
-export const GROUP_KEYS = ["shoulders", "chest", "arms", "legs", "back", "abs"];
+const GROUP_KEYS = ["shoulders", "chest", "arms", "legs", "back", "abs"];
 
-export const FULL_BODY_DIST = {
+const FULL_BODY_DIST = {
   legs: 0.35,
   back: 0.3,
   shoulders: 0.2,
@@ -12,7 +12,7 @@ export const FULL_BODY_DIST = {
   chest: 0,
 };
 
-export const FAMILY_ANCHORS = [
+const FAMILY_ANCHORS = [
   // Chest
   { fam: "bench_barbell", group: "chest", rx: /bench.*barbell|bench press \(barbell\)/i, anchor: 350 },
   { fam: "bench_incline", group: "chest", rx: /incline.*bench/i, anchor: 300 },
@@ -64,7 +64,7 @@ export const FAMILY_ANCHORS = [
   { fam: "bodyweight_abs", group: "abs", rx: /sit-?up|crunch|leg raise|v-?up|russian twist|plank|side plank|ab wheel|rollout|twist/i, anchor: 160 },
 ];
 
-export const GROUP_WR = { chest: 350, shoulders: 235, back: 501, legs: 500, arms: 120, abs: 200 };
+const GROUP_WR = { chest: 350, shoulders: 235, back: 501, legs: 500, arms: 120, abs: 200 };
 
 const NORM_VOL_30D = { chest: 22000, shoulders: 15000, back: 28000, legs: 34000, arms: 12000, abs: 10000 };
 const CONSIST_TARGET_30D = 8;
@@ -78,7 +78,7 @@ const defaultCalculate1RM = (weight, reps) => {
   return w / (1.0278 - 0.0278 * r);
 };
 
-export function normalizeEquipment(name, equipment, weight) {
+function normalizeEquipment(name, equipment, weight) {
   const n = String(name || "").toLowerCase();
   const eq = String(equipment || "");
   let w = Number(weight) || 0;
@@ -98,7 +98,7 @@ export function normalizeEquipment(name, equipment, weight) {
   return [w * mult, mult];
 }
 
-export function familyAnchorFor(name, group) {
+function familyAnchorFor(name, group) {
   const normalized = String(name || "");
   for (const f of FAMILY_ANCHORS) {
     if (f.rx.test(normalized)) return { anchor: f.anchor, fam: f.fam, group: f.group || group };
@@ -202,7 +202,7 @@ const looksLegacy = (hex) => {
 
 const emptyMap = () => GROUP_KEYS.reduce((acc, key) => ({ ...acc, [key]: 0 }), {});
 
-export function computeHexagonCore(
+function computeHexagonCore(
   { statsExercises = {}, prevStatsHexagon = {}, trainedExerciseNames = [] } = {},
   {
     resolveMeta = defaultResolveMeta,

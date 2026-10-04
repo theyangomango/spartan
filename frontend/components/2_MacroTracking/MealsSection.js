@@ -13,14 +13,11 @@ function MealsSection({
     title = 'Daily meals',
     mealsMeta,
     meals,
-    collapsed,
-    toggleMeal,
     onAddPress,
     onDelete,
     COLORS,
     PlusIcon,
     dayKey,
-    compact = false,
     caloriesBurned = 0,
     calorieOffsetEnabled = false,
     onToggleCalorieOffset,
@@ -32,7 +29,6 @@ function MealsSection({
             <View style={styles.sectionHeaderRow}>
                 <Text style={styles.sectionTitle}>{title}</Text>
                 <MacroStreakBadge
-                    dayKey={dayKey}
                     caloriesBurned={caloriesBurned}
                     COLORS={COLORS}
                     offsetEnabled={calorieOffsetEnabled}
@@ -46,9 +42,7 @@ function MealsSection({
                     <View key={m.name} style={styles.mealGroup}>
                         <MealCard
                             item={m}
-                            PlusIcon={PlusIcon}
                             COLORS={COLORS}
-                            onAddPress={onAddPress}
                             totalCalories={mealCalories}
                         />
                         <UnderMealList
@@ -60,7 +54,6 @@ function MealsSection({
                             onItemPress={(entry) => navigation.navigate('FoodDetail', { entry, mealName: m.name, dayKey })}
                             renderSummary={(entry) => summarizeFood(entry.desc, entry.brand, (entry.quantity ?? entry.qty ?? 1))}
                             onDelete={(entry) => onDelete(m.name, entry)}
-                            compact={compact}
                         />
                         <TouchableOpacity
                             activeOpacity={0.7}
@@ -86,7 +79,6 @@ function MealsSection({
 const propsEqual = (prev, next) => {
     return (
         prev.meals === next.meals &&
-        prev.collapsed === next.collapsed &&
         prev.mealsMeta === next.mealsMeta &&
         prev.COLORS === next.COLORS &&
         prev.title === next.title &&

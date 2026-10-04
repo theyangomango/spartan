@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Text, StyleSheet, Dimensions } from 'react-native';
+import { Text, StyleSheet } from 'react-native';
 import scaleSize from '../../../helper/scaleSize';
 import theme from '../../../theme/mfpDark';
-
-const { height: screenHeight } = Dimensions.get('window');
-const scaledSize = (size) => scaleSize(size);
 
 const TimerDisplay = ({ timerRef }) => {
     const [timer, setTimer] = useState(timerRef.current);

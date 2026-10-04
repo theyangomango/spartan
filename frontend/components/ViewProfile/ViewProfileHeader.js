@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { ArrowDown2, Send2 } from "iconsax-react-native";
+import { Send2 } from "iconsax-react-native";
 import { Ionicons } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../theme/mfpDark";
@@ -41,12 +41,6 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
                         iconSize={scaleSize(18)}
                         iconStyle={{ marginTop: -Math.round((Number(styles.handle_text.fontSize) || scaleSize(17)) * 0.14) }}
                     />
-                    {/* <ArrowDown2
-                        size={scaleSize(18)}
-                        color={theme.textSecondary}
-                        strokeWidth={ICON_STROKE_WIDTH}
-                        style={styles.centerChevron}
-                    /> */}
                 </View>
             </RNBounceable>
 
@@ -99,9 +93,6 @@ const styles = StyleSheet.create({
         maxWidth: "100%",
         flexShrink: 1,
         includeFontPadding: false,
-    },
-    centerChevron: {
-        marginLeft: scaleSize(6),
     },
     side: {
         width: SIDE_SLOT_WIDTH,

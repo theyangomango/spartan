@@ -1,6 +1,5 @@
 export default function getDisplayTime(dateMiliseconds) {
     const d = new Date(dateMiliseconds);
-    // const d_year = d.getFullYear();
     const d_month = d.getMonth();
     const d_weekDay = d.getDay();
     const d_date = d.getDate();

@@ -3,7 +3,7 @@ import { View, Text, FlatList, StyleSheet, Pressable, TextInput, ScrollView, Dim
 import Icon from 'react-native-vector-icons/Ionicons';
 import ProfileCard from '../ProfileCard';
 import RNBounceable from '@freakycoder/react-native-bounceable';
-import scaleSize, { ts } from "../../helper/scaleSize";
+import scaleSize from "../../helper/scaleSize";
 import { LinearGradient } from 'expo-linear-gradient';
 import theme from "../../theme/mfpDark";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

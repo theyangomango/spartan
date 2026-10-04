@@ -114,21 +114,3 @@ export const joinWorkoutFromPayload = (payload) => {
         return false;
     }
 };
-
-export const ensureWorkoutSheetVisible = () => {
-    const store = getStore();
-    if (!store) return;
-    try {
-        store.setSheetState?.(WORKOUT_SHEET_STATES.EXPANDED);
-    } catch {
-        // ignore
-    }
-    ensureVisibleFlag();
-};
-
-export default {
-    openActiveWorkout,
-    startFreshWorkout,
-    joinWorkoutFromPayload,
-    ensureWorkoutSheetVisible,
-};

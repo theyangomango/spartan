@@ -27,7 +27,6 @@ export default function usePersonalizedFeed(followingUsers) {
     const followingPosts = Array.isArray(filteredFeed?.posts) ? filteredFeed.posts : [];
     const [manualTrendingEntries, setManualTrendingEntries] = useState([]);
     const [explorePosts, setExplorePosts] = useState(() => getExplorePosts());
-    const [trendingLoading, setTrendingLoading] = useState(false);
     const [viewerTopics, setViewerTopics] = useState(() => buildViewerTopicVector(global?.userData || {}));
 
     const signalStats = useFeedSignalStats();
@@ -57,14 +56,11 @@ export default function usePersonalizedFeed(followingUsers) {
     }, [refreshExplore]);
 
     const fetchTrending = useCallback(async () => {
-        setTrendingLoading(true);
         try {
             const entries = await retrieveTrendingPosts(60);
             setManualTrendingEntries(entries);
         } catch (error) {
             console.warn?.("usePersonalizedFeed: trending fetch failed", error?.message || error);
-        } finally {
-            setTrendingLoading(false);
         }
     }, []);
 
@@ -178,8 +174,5 @@ export default function usePersonalizedFeed(followingUsers) {
         posts: personalizedPosts,
         followingPosts,
         personalPosts,
-        suggestedPosts: suggestedCandidates.map((entry) => entry.post),
-        trendingLoading,
-        refreshTrending: fetchTrending,
     };
 }

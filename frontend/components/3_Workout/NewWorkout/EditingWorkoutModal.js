@@ -23,16 +23,7 @@ import ExerciseLog from "./Tracking/ExerciseLog";
 import useWorkoutEditing from "./hooks/useWorkoutEditing";
 import SelectExerciseModal from "./SelectExercise/SelectExerciseModal";
 import { strong as haptic, withStrongPress } from "../../../utils/haptics";
-
-const genId = () => `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-
-const sanitizePrev = (input) => {
-    if (!input || typeof input !== "object") return null;
-    return {
-        weight: Number(input.weight) || 0,
-        reps: Number(input.reps) || 0,
-    };
-};
+import { genId, normalizePrevKeepZero } from "../shared/workoutSetUtils";
 
 const sanitizeSet = (set) => ({
     id: (set && set.id) ? String(set.id) : genId(),
@@ -40,7 +31,7 @@ const sanitizeSet = (set) => ({
     reps: Number(set?.reps ?? set?.rep ?? set?.r ?? 0) || 0,
     isDone: !!set?.isDone,
     type: Object.prototype.hasOwnProperty.call(set || {}, "type") ? (set?.type ?? null) : null,
-    prev: Object.prototype.hasOwnProperty.call(set || {}, "prev") ? sanitizePrev(set?.prev) : null,
+    prev: Object.prototype.hasOwnProperty.call(set || {}, "prev") ? normalizePrevKeepZero(set?.prev) : null,
 });
 
 const cloneWorkout = (workout) => {
@@ -187,10 +178,6 @@ const EditingWorkoutModal = ({
         setSelectExerciseVisible(true);
     }, [setReplaceIndex]);
 
-    const handleDeleteExercise = useCallback((index) => {
-        deleteExercise(index);
-    }, [deleteExercise]);
-
     const isDirty = useMemo(() => {
         if (!visible) return false;
         const baseline = initialWorkoutRef.current;
@@ -256,14 +243,12 @@ const EditingWorkoutModal = ({
             <ExerciseLog
                 key={`${exercise?.name || "exercise"}-${index}`}
                 name={exercise?.name}
-                muscle={exercise?.muscle}
                 exerciseIndex={index}
                 sets={exercise?.sets}
                 updateSets={updateSets}
                 replaceExercise={handleReplaceExercise}
-                deleteExercise={handleDeleteExercise}
+                deleteExercise={deleteExercise}
                 readOnly={false}
-                showOptionsTriggerIcon
                 syncColumnOnEdit
             />
         ));
@@ -332,12 +317,7 @@ const EditingWorkoutModal = ({
                                 <RNBounceable onPress={withStrongPress(handleAddExercise)} style={styles.add_exercise_btn}>
                                     <Text style={styles.add_exercise_text}>Add Exercises</Text>
                                 </RNBounceable>
-                                <View
-                                    style={[
-                                        styles.bottomSpacer,
-                                        { height: scaleSize(250) + Math.max(0, keyboardHeight - scaleSize(40)) },
-                                    ]}
-                                />
+                                <View style={{ height: scaleSize(250) + Math.max(0, keyboardHeight - scaleSize(40)) }} />
                             </ScrollView>
                         </View>
                     </KeyboardAvoidingView>
@@ -462,7 +442,6 @@ const styles = StyleSheet.create({
         color: theme.textSecondary,
         textAlign: "center",
     },
-    bottomSpacer: {},
 });
 
 export default EditingWorkoutModal;

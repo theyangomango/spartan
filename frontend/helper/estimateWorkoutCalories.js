@@ -1,4 +1,4 @@
-import { resolveUserBodyweight, resolveExerciseWeighting, BODYWEIGHT_DEFAULT_LB } from "../utils/bodyweight";
+import { resolveUserBodyweight, resolveExerciseWeighting } from "../utils/bodyweight";
 import { normalizeSetType } from "../components/3_Workout/shared/setTypeUtils";
 import { exercises as EXERCISE_DEFS } from "../components/3_Workout/NewWorkout/SelectExercise/EXERCISES";
 
@@ -124,9 +124,6 @@ const resolveExerciseCategory = (name, equipment) => {
   if (equipLower.includes("body weight") || equipLower.includes("bodyweight")) {
     return "bodyweight_skill";
   }
-  if (equipLower.includes("band") || equipLower.includes("dumbbell") || equipLower.includes("cable")) {
-    return "accessory_strength";
-  }
   return "accessory_strength";
 };
 
@@ -145,9 +142,6 @@ const deriveSetWeightKg = (set, weighting, userWeightKg) => {
   if (weighting === "assisted bodyweight") {
     const assist = normalizeNumber(set?.assist ?? set?.weightDelta ?? set?.resistance);
     return Math.max(userWeightKg - assist * KG_PER_LB, userWeightKg * 0.25);
-  }
-  if (weighting === "standard" && normalizeNumber(set?.reps) > 0) {
-    return 0;
   }
   return 0;
 };
@@ -289,53 +283,5 @@ export const estimateWorkoutCalories = (workout, options = {}) => {
       restSeconds: Math.round(restSeconds),
       restCalories: Math.round(restCalories),
     },
-  };
-};
-
-export const evaluateCalorieEstimates = (samples = []) => {
-  if (!Array.isArray(samples) || samples.length === 0) {
-    return {
-      mae: 0,
-      mape: 0,
-      bias: 0,
-      perCategory: {},
-    };
-  }
-  let totalAbsError = 0;
-  let totalPercError = 0;
-  let percCount = 0;
-  let bias = 0;
-  const perCategory = {};
-
-  samples.forEach((sample) => {
-    const est = normalizeNumber(sample?.estimated);
-    const observed = normalizeNumber(sample?.observed);
-    const error = est - observed;
-    const absError = Math.abs(error);
-    totalAbsError += absError;
-    bias += error;
-    if (observed > 0) {
-      totalPercError += absError / observed;
-      percCount += 1;
-    }
-    const category = sample?.category || "unknown";
-    if (!perCategory[category]) {
-      perCategory[category] = { count: 0, mae: 0, bias: 0 };
-    }
-    perCategory[category].count += 1;
-    perCategory[category].mae += absError;
-    perCategory[category].bias += error;
-  });
-
-  Object.values(perCategory).forEach((entry) => {
-    entry.mae = Number((entry.mae / entry.count).toFixed(1));
-    entry.bias = Number((entry.bias / entry.count).toFixed(1));
-  });
-
-  return {
-    mae: Number((totalAbsError / samples.length).toFixed(1)),
-    mape: percCount ? Number(((totalPercError / percCount) * 100).toFixed(1)) : 0,
-    bias: Number((bias / samples.length).toFixed(1)),
-    perCategory,
   };
 };

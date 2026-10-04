@@ -34,14 +34,11 @@ const MFP_DARK = {
     // Misc UI tints
     muted: '#96A1B2',
     ringBg: '#CFD7E4',        // progress tracks
-    chipBg: '#606C88',
     addBtnBg: '#5D6A86',      // neutral pill backgrounds
     // High-contrast yet on-brand utility tints
     // Add a subtle blue-tinted background for the rest timer chip
     restPillBg: 'rgba(45, 158, 255, 0.22)',
     addSetBg:  'rgba(46, 47, 47, 1)',
-    // Previously an amber used for light theme; switch to subtle blue-tinted pill for dark
-    groupAmber: 'rgba(45, 158, 255, 0.22)',
 };
 
 export default MFP_DARK;

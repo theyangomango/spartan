@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Pressable } from 'react-native';
 import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import FastImage from 'react-native-fast-image';
 import theme from '../theme/mfpDark';
@@ -12,10 +12,6 @@ import { resolvePhotoURL } from '../utils/profilePhoto';
 import scaleSize from "../helper/scaleSize";
 import VerifiedHandle from "./common/VerifiedHandle";
 import useUserVerified from "../hooks/useUserVerified";
-
-const { height: SCREEN_H } = Dimensions.get('window');
-const scale = SCREEN_H / 844;
-const s = (v) => Math.round(v * scale);
 
 // Normalize possibly mixed user ref shapes into a friendly display object
 function normalizeUser(u) {
@@ -33,6 +29,40 @@ function normalizeUser(u) {
         isVerified: Boolean(u?.isVerified ?? u?.verified ?? false),
     };
 }
+
+const keyExtractor = (item) => String(item.uid || Math.random());
+
+const FollowRow = ({ item, onPress }) => {
+    const fallbackPfp = resolvePhotoURL(item, item?.pfp || '');
+    const pfpUri = usePfp(String(item?.uid || ''), item?.pfpVersion || 0, fallbackPfp) || fallbackPfp;
+    const isVerified = useUserVerified(item?.uid, Boolean(item?.isVerified));
+    const handleColor = theme.textPrimary;
+
+    return (
+        <Pressable style={styles.item} onPress={() => onPress(item)}>
+            <View style={styles.pfpC}>
+                {pfpUri ? (
+                    <FastImage source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} style={styles.pfp} />
+                ) : (
+                    <View style={[styles.pfp, { backgroundColor: theme.surface }]} />
+                )}
+            </View>
+            <View style={styles.textC}>
+                <VerifiedHandle
+                    handle={item?.handle || item?.uid}
+                    isVerified={isVerified}
+                    textStyle={[styles.handle, { color: handleColor }]}
+                    iconSize={scaleSize(13.5)}
+                    numberOfLines={1}
+                    containerStyle={styles.handleRow}
+                />
+                {!!item?.name && <Text numberOfLines={1} style={styles.name}>{item.name}</Text>}
+            </View>
+        </Pressable>
+    );
+};
+
+const ItemSeparator = () => <View style={styles.sep} />;
 
 export default function FollowListBottomSheet({ isVisible, setIsVisible, title = 'Followers', users = [], navigation }) {
     const bottomSheetRef = useRef(null);
@@ -95,38 +125,6 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
         } catch { }
     };
 
-    const keyExtractor = (item) => String(item.uid || Math.random());
-
-    const FollowRow = ({ item }) => {
-        const fallbackPfp = resolvePhotoURL(item, item?.pfp || '');
-        const pfpUri = usePfp(String(item?.uid || ''), item?.pfpVersion || 0, fallbackPfp) || fallbackPfp;
-        const isVerified = useUserVerified(item?.uid, Boolean(item?.isVerified));
-        const handleColor = theme.textPrimary;
-
-        return (
-            <Pressable style={styles.item} onPress={() => onPressUser(item)}>
-                <View style={styles.pfpC}>
-                    {pfpUri ? (
-                        <FastImage source={{ uri: pfpUri, priority: FastImage.priority.normal, cache: FastImage.cacheControl.immutable }} style={styles.pfp} />
-                    ) : (
-                        <View style={[styles.pfp, { backgroundColor: theme.surface }]} />
-                    )}
-                </View>
-                <View style={styles.textC}>
-                    <VerifiedHandle
-                        handle={item?.handle || item?.uid}
-                        isVerified={isVerified}
-                        textStyle={[styles.handle, { color: handleColor }]}
-                        iconSize={scaleSize(13.5)}
-                        numberOfLines={1}
-                        containerStyle={styles.handleRow}
-                    />
-                    {!!item?.name && <Text numberOfLines={1} style={styles.name}>{item.name}</Text>}
-                </View>
-            </Pressable>
-        );
-    };
-
     const renderEmpty = useCallback(() => (
         <View style={styles.emptyState}>
             <Text style={styles.emptyStateText}>{emptyMessage}</Text>
@@ -156,8 +154,8 @@ export default function FollowListBottomSheet({ isVisible, setIsVisible, title =
                 <FlatList
                     data={list}
                     keyExtractor={keyExtractor}
-                    renderItem={({ item }) => <FollowRow item={item} />}
-                    ItemSeparatorComponent={() => <View style={styles.sep} />}
+                    renderItem={({ item }) => <FollowRow item={item} onPress={onPressUser} />}
+                    ItemSeparatorComponent={ItemSeparator}
                     ListEmptyComponent={renderEmpty}
                     contentContainerStyle={styles.listContent}
                 />
@@ -182,9 +180,6 @@ const styles = StyleSheet.create({
         backgroundColor: theme.bg,
         borderTopLeftRadius: scaleSize(26),
         borderTopRightRadius: scaleSize(26),
-    },
-    handle: {
-        paddingVertical: scaleSize(12),
     },
     handleIndicator: {
         width: scaleSize(36),

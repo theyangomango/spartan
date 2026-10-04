@@ -3,12 +3,12 @@ import {
     View,
     Text,
     StyleSheet,
-    Dimensions,
     TouchableOpacity,
     ImageBackground,
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import theme from '../theme/mfpDark';
+import { scaleWidth375 } from '../helper/scaleSize';
 
 import AuthButton from '../components/auth/AuthButton';
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
@@ -17,17 +17,9 @@ import authBackground from '../assets/AUTH_BACKGROUND.jpg';
 import useAuthBackgroundSource from '../hooks/useAuthBackgroundSource';
 import useAuthProviderFlow from '../hooks/useAuthProviderFlow';
 
-const { width: screenWidth } = Dimensions.get('window');
-
-const scale = screenWidth / 375; // Base screen width assumed as 375
-
-function scaleSize(size) {
-    return Math.round(size * scale);
-}
-
-const HERO_MARGIN_BOTTOM = scaleSize(40);
-const ACTIONS_MARGIN_TOP = scaleSize(16);
-const CONTENT_OFFSET = scaleSize(18);
+const HERO_MARGIN_BOTTOM = scaleWidth375(40);
+const ACTIONS_MARGIN_TOP = scaleWidth375(16);
+const CONTENT_OFFSET = scaleWidth375(18);
 
 const SignUp = ({ navigation }) => {
     const insets = useSafeAreaInsets();
@@ -59,8 +51,8 @@ const SignUp = ({ navigation }) => {
             resizeMode="cover"
         >
             <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
-                <View style={[styles.inner, { paddingBottom: scaleSize(120) + insets.bottom }]}>
-                    <View style={[styles.heroSection, { marginBottom: HERO_MARGIN_BOTTOM, marginTop: CONTENT_OFFSET }]}>
+                <View style={[styles.inner, { paddingBottom: scaleWidth375(120) + insets.bottom }]}>
+                    <View style={styles.heroSection}>
                         <Text style={styles.heroTitle}>Welcome to Spartan</Text>
                         <Text style={styles.heroSubtitle}>
                             Find your tribe. Lift with purpose. Unlock relentless performance.
@@ -105,7 +97,7 @@ const SignUp = ({ navigation }) => {
                     </View>
                 </View>
 
-                <View style={[styles.footer, { bottom: insets.bottom + scaleSize(20) }]}>
+                <View style={[styles.footer, { bottom: insets.bottom + scaleWidth375(20) }]}>
                     <Text style={styles.footer_regular_text}>Already have an account?</Text>
                     <TouchableOpacity activeOpacity={0.5} onPress={toLogInScreen}>
                         <Text style={styles.log_in_text}>Log in</Text>
@@ -130,27 +122,28 @@ const styles = StyleSheet.create({
     inner: {
         flex: 1,
         justifyContent: 'center',
-        paddingHorizontal: scaleSize(26),
-        paddingTop: scaleSize(92),
+        paddingHorizontal: scaleWidth375(26),
+        paddingTop: scaleWidth375(92),
     },
     heroSection: {
         alignItems: 'center',
-        paddingHorizontal: scaleSize(10),
+        paddingHorizontal: scaleWidth375(10),
         marginBottom: HERO_MARGIN_BOTTOM,
+        marginTop: CONTENT_OFFSET,
     },
     heroTitle: {
-        fontSize: scaleSize(25),
+        fontSize: scaleWidth375(25),
         fontFamily: 'Poppins_700Bold',
         color: theme.textPrimary,
-        marginBottom: scaleSize(20),
+        marginBottom: scaleWidth375(20),
     },
     heroSubtitle: {
-        fontSize: scaleSize(13.5),
+        fontSize: scaleWidth375(13.5),
         textAlign: 'center',
         fontFamily: 'Nunito_700Bold',
         color: '#ffffffd2',
-        lineHeight: scaleSize(21),
-        marginHorizontal: scaleSize(20),
+        lineHeight: scaleWidth375(21),
+        marginHorizontal: scaleWidth375(20),
     },
     actions: {
         width: '100%',
@@ -158,75 +151,75 @@ const styles = StyleSheet.create({
     },
     agreementContainer: {
         alignItems: 'center',
-        marginTop: scaleSize(12),
+        marginTop: scaleWidth375(12),
     },
     agreementText: {
         fontFamily: 'Outfit_400Regular',
-        fontSize: scaleSize(12),
+        fontSize: scaleWidth375(12),
         color: theme.textSecondary,
         textAlign: 'center',
     },
     agreementRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: scaleSize(3),
+        marginTop: scaleWidth375(3),
     },
     agreementLink: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(12),
+        fontSize: scaleWidth375(12),
         color: theme.primary,
     },
     errorText: {
         color: '#F87171',
         fontFamily: 'Outfit_600SemiBold',
-        marginBottom: scaleSize(8),
+        marginBottom: scaleWidth375(8),
         textAlign: 'center',
     },
     googleButton: {
         backgroundColor: '#fff',
-        borderRadius: scaleSize(14),
-        marginBottom: scaleSize(12),
+        borderRadius: scaleWidth375(14),
+        marginBottom: scaleWidth375(12),
         width: '100%',
     },
     appleButton: {
-        marginBottom: scaleSize(12),
+        marginBottom: scaleWidth375(12),
         width: '100%',
     },
     primaryButton: {
         backgroundColor: theme.primary,
         borderColor: theme.primary,
-        borderRadius: scaleSize(12),
+        borderRadius: scaleWidth375(12),
         width: '100%',
     },
     primaryButtonText: {
         color: '#FFFFFF',
         fontFamily: 'Nunito_800ExtraBold',
-        fontSize: scaleSize(13),
-        letterSpacing: scaleSize(0.4)
+        fontSize: scaleWidth375(13),
+        letterSpacing: scaleWidth375(0.4)
     },
     footer: {
         position: 'absolute',
         flexDirection: 'row',
-        left: scaleSize(28),
-        right: scaleSize(28),
-        height: scaleSize(56),
+        left: scaleWidth375(28),
+        right: scaleWidth375(28),
+        height: scaleWidth375(56),
         backgroundColor: theme.surface,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: scaleSize(16),
+        borderRadius: scaleWidth375(16),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        paddingHorizontal: scaleSize(18),
+        paddingHorizontal: scaleWidth375(18),
     },
     footer_regular_text: {
         fontFamily: 'Outfit_400Regular',
-        fontSize: scaleSize(14.5),
+        fontSize: scaleWidth375(14.5),
         color: theme.textSecondary,
-        marginRight: scaleSize(4),
+        marginRight: scaleWidth375(4),
     },
     log_in_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(14.5),
+        fontSize: scaleWidth375(14.5),
         color: theme.primary,
     },
 });

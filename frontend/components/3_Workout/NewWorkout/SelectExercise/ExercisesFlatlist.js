@@ -19,9 +19,7 @@ const ExercisesFlatlist = React.memo(
         savedLookup = {},
         animatedPress = false,
         bottomPadding = 120,
-        scrollEnabled = true,
         listHeaderComponent = null,
-        onScroll = undefined,
     }) => {
         const rows = useMemo(() => {
             if (!Array.isArray(exercises)) return [];
@@ -86,22 +84,18 @@ const ExercisesFlatlist = React.memo(
             [bottomPadding]
         );
 
-        const containerStyle = scrollEnabled ? styles.flex : null;
-
         return (
-            <View style={containerStyle}>
+            <View style={styles.flex}>
                 <FlashList
                     data={rows}
                     keyExtractor={keyExtractor}
                     renderItem={renderRow}
                     estimatedItemSize={ESTIMATED_ROW_HEIGHT}
-                    onScroll={onScroll}
                     scrollEventThrottle={16}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                     contentContainerStyle={contentPadding}
                     extraData={{ selectedLookup, savedLookup }}
-                    scrollEnabled={scrollEnabled}
                     ListHeaderComponent={listHeaderComponent}
                 />
             </View>

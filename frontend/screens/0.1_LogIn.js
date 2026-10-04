@@ -3,13 +3,13 @@ import {
     View,
     Text,
     StyleSheet,
-    Dimensions,
     TouchableOpacity,
     ImageBackground,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import theme from '../theme/mfpDark';
+import { scaleWidth375 } from '../helper/scaleSize';
 import useAuthProviderFlow from '../hooks/useAuthProviderFlow';
 import AuthButton from '../components/auth/AuthButton';
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
@@ -17,24 +17,16 @@ import AppleAuthButton from '../components/auth/AppleAuthButton';
 import authBackground from '../assets/AUTH_BACKGROUND.jpg';
 import useAuthBackgroundSource from '../hooks/useAuthBackgroundSource';
 
-const { width: screenWidth } = Dimensions.get('window');
-
-const scale = screenWidth / 375; // Base screen width assumed as 375
-
-function scaleSize(size) {
-    return Math.round(size * scale);
-}
-
-const HERO_TARGET_GAP = scaleSize(125);
-const USERNAME_APPROX_HEIGHT = scaleSize(70); // mirrors SignUp username block height
-const USERNAME_CONTAINER_MARGIN = scaleSize(16);
-const MIN_HERO_MARGIN = scaleSize(20);
+const HERO_TARGET_GAP = scaleWidth375(125);
+const USERNAME_APPROX_HEIGHT = scaleWidth375(70); // mirrors SignUp username block height
+const USERNAME_CONTAINER_MARGIN = scaleWidth375(16);
+const MIN_HERO_MARGIN = scaleWidth375(20);
 const HERO_MARGIN_BOTTOM = Math.max(
     MIN_HERO_MARGIN,
     HERO_TARGET_GAP - (USERNAME_APPROX_HEIGHT + USERNAME_CONTAINER_MARGIN)
 );
 
-const ACTIONS_MARGIN_TOP = scaleSize(12);
+const ACTIONS_MARGIN_TOP = scaleWidth375(12);
 
 const LogIn = ({ navigation }) => {
     const insets = useSafeAreaInsets();
@@ -67,14 +59,14 @@ const LogIn = ({ navigation }) => {
         >
             <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
                 <TouchableOpacity
-                    style={[styles.backButton, { top: insets.top + scaleSize(6) }]}
+                    style={[styles.backButton, { top: insets.top + scaleWidth375(6) }]}
                     onPress={toSignUpScreen}
                     activeOpacity={0.6}
                 >
-                    <Ionicons name="chevron-back" size={scaleSize(24)} color={theme.textSecondary} />
+                    <Ionicons name="chevron-back" size={scaleWidth375(24)} color={theme.textSecondary} />
                 </TouchableOpacity>
 
-                <View style={[styles.inner, { paddingBottom: scaleSize(120) + insets.bottom }]}>
+                <View style={[styles.inner, { paddingBottom: scaleWidth375(120) + insets.bottom }]}>
                     <View style={styles.heroSection}>
                         <Text style={styles.heroTitle}>Log in to Spartan</Text>
                         <Text style={styles.heroSubtitle}>
@@ -107,7 +99,7 @@ const LogIn = ({ navigation }) => {
                     </View>
                 </View>
 
-                <View style={[styles.footer, { bottom: insets.bottom + scaleSize(20) }]}>
+                <View style={[styles.footer, { bottom: insets.bottom + scaleWidth375(20) }]}>
                     <Text style={styles.footer_regular_text}>Don't have an account?</Text>
                     <TouchableOpacity activeOpacity={0.5} onPress={toSignUpScreen}>
                         <Text style={styles.sign_up_text}> Sign Up</Text>
@@ -131,34 +123,34 @@ const styles = StyleSheet.create({
     },
     backButton: {
         position: 'absolute',
-        left: scaleSize(16),
-        padding: scaleSize(8),
+        left: scaleWidth375(16),
+        padding: scaleWidth375(8),
         zIndex: 1,
     },
     inner: {
         flex: 1,
         justifyContent: 'center',
-        paddingHorizontal: scaleSize(26),
-        paddingTop: scaleSize(70),
+        paddingHorizontal: scaleWidth375(26),
+        paddingTop: scaleWidth375(70),
     },
     heroSection: {
         alignItems: 'center',
-        paddingHorizontal: scaleSize(10),
+        paddingHorizontal: scaleWidth375(10),
         marginBottom: HERO_MARGIN_BOTTOM,
     },
     heroTitle: {
-        fontSize: scaleSize(25),
+        fontSize: scaleWidth375(25),
         fontFamily: 'Poppins_700Bold',
         color: theme.textPrimary,
-        marginBottom: scaleSize(20),
+        marginBottom: scaleWidth375(20),
     },
     heroSubtitle: {
-        fontSize: scaleSize(13.5),
+        fontSize: scaleWidth375(13.5),
         textAlign: 'center',
         fontFamily: 'Nunito_700Bold',
         color: '#ffffffd2',
-        lineHeight: scaleSize(21),
-        marginHorizontal: scaleSize(20),
+        lineHeight: scaleWidth375(21),
+        marginHorizontal: scaleWidth375(20),
     },
     actions: {
         width: '100%',
@@ -167,54 +159,54 @@ const styles = StyleSheet.create({
     errorText: {
         color: '#F87171',
         fontFamily: 'Outfit_600SemiBold',
-        marginBottom: scaleSize(8),
+        marginBottom: scaleWidth375(8),
         textAlign: 'center',
     },
     primaryButton: {
         backgroundColor: theme.primary,
         borderColor: theme.primary,
-        borderRadius: scaleSize(12),
+        borderRadius: scaleWidth375(12),
         width: '100%',
     },
     primaryButtonText: {
         color: '#FFFFFF',
         fontFamily: 'Nunito_800ExtraBold',
-        fontSize: scaleSize(13),
-        letterSpacing: scaleSize(0.4),
+        fontSize: scaleWidth375(13),
+        letterSpacing: scaleWidth375(0.4),
     },
     googleButton: {
         backgroundColor: '#fff',
-        borderRadius: scaleSize(14),
-        marginBottom: scaleSize(12),
+        borderRadius: scaleWidth375(14),
+        marginBottom: scaleWidth375(12),
         width: '100%',
     },
     appleButton: {
-        marginBottom: scaleSize(12),
+        marginBottom: scaleWidth375(12),
         width: '100%',
     },
     footer: {
         position: 'absolute',
         flexDirection: 'row',
-        left: scaleSize(28),
-        right: scaleSize(28),
-        height: scaleSize(56),
+        left: scaleWidth375(28),
+        right: scaleWidth375(28),
+        height: scaleWidth375(56),
         backgroundColor: theme.surface,
         alignItems: 'center',
         justifyContent: 'center',
-        borderRadius: scaleSize(16),
+        borderRadius: scaleWidth375(16),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
-        paddingHorizontal: scaleSize(18),
+        paddingHorizontal: scaleWidth375(18),
     },
     footer_regular_text: {
         fontFamily: 'Outfit_400Regular',
-        fontSize: scaleSize(14.5),
+        fontSize: scaleWidth375(14.5),
         color: theme.textSecondary,
-        marginRight: scaleSize(4),
+        marginRight: scaleWidth375(4),
     },
     sign_up_text: {
         fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(14.5),
+        fontSize: scaleWidth375(14.5),
         color: theme.primary,
     },
 });

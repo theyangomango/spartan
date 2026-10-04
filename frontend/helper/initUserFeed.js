@@ -4,8 +4,6 @@ import readDoc from '../../backend/helper/firebase/readDoc';
 import FastImage from 'react-native-fast-image';
 import { getMessagesCache, getMessagesPreloadState, hydrateMessagesCache } from '../state/messagesCache';
 
-let userDataRef = { current: null };
-
 let setMessagesFn, setFooterKeyFn;
 
 export function registerFeedSetters({ setMessages, setFooterKey }) {
@@ -27,7 +25,6 @@ export async function initUserFeed(UID) {
         ]);
 
         if (!publicDoc && !privateDoc && !legacyDoc) {
-            console.log('[initUserFeed] profile docs missing; waiting for username completion');
             return;
         }
 
@@ -84,7 +81,6 @@ export async function initUserFeed(UID) {
                     ? legacyData.blockedByUidList
                     : [],
         };
-        userDataRef.current = saneUser;
         try { global.userData = { ...(global.userData || {}), ...saneUser }; } catch {}
 
         // ✅ Load the rest in parallel (no posts here!)
@@ -94,8 +90,6 @@ export async function initUserFeed(UID) {
         ]);
 
         initWorkoutState(saneUser);
-
-        console.log("✅ Feed data and images initialized (excluding posts).");
     } catch (error) {
         console.error("❌ Error initializing feed:", error);
     }

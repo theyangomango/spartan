@@ -1,7 +1,6 @@
 import React, { memo, useCallback, useMemo, useRef, useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView, InteractionManager } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
@@ -102,16 +101,11 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
     markedDayKeys,
     title = "Calendar",
 }) {
-    const insets = useSafeAreaInsets();
     const sheetRef = useRef(null);
     const scrollViewRef = useRef(null);
     const scrolledRef = useRef(false);
     const [mounted, setMounted] = useState(visible);
     const sheetSnapPoints = useMemo(() => ["94%"], []);
-    const contentPaddingBottom = useMemo(
-        () => Math.max(scaleSize(28), insets.bottom + scaleSize(18)),
-        [insets.bottom]
-    );
 
     useEffect(() => {
         if (visible) {
@@ -243,8 +237,6 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
                 handleComponent={renderHandle}
                 backdropComponent={renderBackdrop}
                 backgroundStyle={styles.sheetBackground}
-                style={styles.sheetContainer}
-                contentContainerStyle={[styles.sheetContent, { paddingBottom: contentPaddingBottom }]}
             >
                     <View style={styles.weekHeader}>
                         {WEEKDAY_LABELS.map((label) => (
@@ -295,7 +287,6 @@ const HistoryCalendarModal = memo(function HistoryCalendarModal({
                                                         style={[
                                                         styles.dayCircle,
                                                         cell.isToday && styles.dayToday,
-                                                        cell.isMarked && styles.dayLogged,
                                                     ]}
                                                 >
                                                     <Text
@@ -328,15 +319,10 @@ const styles = StyleSheet.create({
         ...StyleSheet.absoluteFillObject,
         zIndex: 6,
     },
-    sheetContainer: { },
     sheetBackground: {
         backgroundColor: theme.bg,
         borderTopLeftRadius: scaleSize(26),
         borderTopRightRadius: scaleSize(26),
-    },
-    sheetContent: {
-        paddingHorizontal: scaleSize(20),
-        paddingTop: scaleSize(12),
     },
     sheetHandleWrap: {
         alignItems: "center",
@@ -379,7 +365,6 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         backgroundColor: "transparent",
     },
-    dayLogged: {},
     dayToday: { borderWidth: scaleSize(2), borderColor: "#3b82f6", borderRadius: scaleSize(19) },
     dayText: { fontFamily: "Outfit_600SemiBold", fontSize: scaleSize(14), color: theme.textSecondary },
     dayTextActive: { color: theme.textPrimary },

@@ -6,7 +6,7 @@
  * Usage:
  *   GOOGLE_APPLICATION_CREDENTIALS=serviceAccount.json \
  *   FIREBASE_PROJECT=spartan-8a55f \
- *   node scripts/bootstrap/seedAccounts.js --config docs/bootstrap/accounts.json
+ *   node scripts/bootstrap/seedAccounts.js --config=docs/bootstrap/accounts.json
  */
 const fs = require('fs');
 const path = require('path');

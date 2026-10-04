@@ -1,8 +1,9 @@
 import { doc, increment, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase.config';
 
+const skipCreateCollections = new Set(['users', 'usersPublic', 'usersPrivate']);
+
 export default async function incrementDocValue(col, did, key, diff = 1, options = {}) {
-    const skipCreateCollections = new Set(['users', 'usersPublic', 'usersPrivate']);
     const { allowCreate = !skipCreateCollections.has(col) } = options;
     const ref = doc(db, col, did);
     try {

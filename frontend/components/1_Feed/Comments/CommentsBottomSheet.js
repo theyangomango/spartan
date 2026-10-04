@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, StyleSheet, View, Keyboard, Dimensions } from "react-native";
+import { StyleSheet, View, Keyboard, Dimensions } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -15,7 +15,7 @@ import { buildLivePostMetadata } from "../../../utils/livePostMeta";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("screen");
 const dynamicStylesDefault = getCommentsBottomSheetStyles(SCREEN_WIDTH, SCREEN_HEIGHT);
-export const COMMENTS_BOTTOM_SHEET_TOP_OFFSET = scaleSize(85);
+const COMMENTS_BOTTOM_SHEET_TOP_OFFSET = scaleSize(85);
 const INPUT_MIN_HEIGHT = scaleSize(76);
 
 const CommentsBottomSheet = ({
@@ -34,8 +34,6 @@ const CommentsBottomSheet = ({
     const textInputRef = useRef(null);
     const insets = useSafeAreaInsets();
     const postPid = postData?.pid ?? null;
-
-    const dynamicStyles = useMemo(() => dynamicStylesDefault, []);
 
     const renderBackdrop = useCallback((props) => (
         <BottomSheetBackdrop
@@ -164,7 +162,7 @@ const CommentsBottomSheet = ({
     ), [replyingToIndex, postData?.comments]);
 
     const inputSafeMargin = Math.max(scaleSize(12), insets.bottom);
-    const commentsListBottomPadding = dynamicStyles.inputHeight + scaleSize(36) + inputSafeMargin;
+    const commentsListBottomPadding = dynamicStylesDefault.inputHeight + scaleSize(36) + inputSafeMargin;
 
     return (
         <View
@@ -204,13 +202,11 @@ const CommentsBottomSheet = ({
                                 inputRef={textInputRef}
                                 value={inputText}
                                 onChangeText={setInputText}
-                                onFocus={() => { }}
-                                onBlur={() => { }}
                                 onPressSend={handleSend}
                                 editable={!!postPid}
                                 canSend={!!inputText.trim()}
                                 replyingToHandle={replyingHandle}
-                                dynamicStyles={dynamicStyles}
+                                dynamicStyles={dynamicStylesDefault}
                             />
                         </View>
                     </View>

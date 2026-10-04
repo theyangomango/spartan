@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { View, Text, StyleSheet, Pressable, Animated, Dimensions, Easing } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated, Dimensions } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { Heart, Messages1 } from 'iconsax-react-native';
 import RNBounceable from '@freakycoder/react-native-bounceable';
@@ -98,7 +98,7 @@ const PostFooter = forwardRef(function PostFooter({
     return (
         <View style={styles.mainContainer} collapsable={false}>
             <View style={styles.top}>
-                {/* Left portion: like, comment, share */}
+                {/* Left portion: like, comment */}
                 <View style={styles.left}>
                     <View ref={(node) => assignButtonRef('like', node)} collapsable={false}>
                         <RNBounceable

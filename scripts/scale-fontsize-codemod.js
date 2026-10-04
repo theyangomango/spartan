@@ -70,20 +70,18 @@ function hasTopLevelBinding(ast, name) {
 function getExistingScaleImport(ast, fileDir) {
   let decl = null;
   let defaultLocal = null;
-  let hasNamedTS = false;
   recast.types.visit(ast, {
     visitImportDeclaration(p) {
       if (isImportingScaleSizeFrom(p.node, fileDir)) {
         decl = p.node;
         for (const s of p.node.specifiers || []) {
           if (s.type === 'ImportDefaultSpecifier') defaultLocal = s.local && s.local.name;
-          if (s.type === 'ImportSpecifier' && s.imported && s.imported.name === 'ts') hasNamedTS = true;
         }
       }
       this.traverse(p);
     }
   });
-  return { decl, defaultLocal, hasNamedTS };
+  return { decl, defaultLocal };
 }
 
 function insertScaleImport(ast, fileDir, desiredName) {
@@ -154,7 +152,6 @@ function transformFile(absPath) {
   const fileDir = path.dirname(absPath);
   const { defaultLocal } = getExistingScaleImport(ast, fileDir);
   let scaleIdent = defaultLocal || null;
-  let willNeedImport = false;
   let changed = false;
 
   const b = recast.types.builders;
@@ -194,7 +191,6 @@ function transformFile(absPath) {
         const callee = value.callee;
         // ts(expr) → scaleSize(expr)
         if (callee.type === 'Identifier' && callee.name === 'ts') {
-          if (!scaleIdent) { willNeedImport = true; }
           node.value = b.callExpression(b.identifier(scaleIdent || 'scaleSize'), value.arguments);
           changed = true;
           return this.traverse(p);
@@ -203,7 +199,6 @@ function transformFile(absPath) {
         if (callee.type === 'MemberExpression') {
           const propName = callee.property && (callee.property.name || callee.property.value);
           if (propName === 'ts') {
-            if (!scaleIdent) { willNeedImport = true; }
             node.value = b.callExpression(b.identifier(scaleIdent || 'scaleSize'), value.arguments);
             changed = true;
             return this.traverse(p);
@@ -211,7 +206,6 @@ function transformFile(absPath) {
         }
         // Any other scale-like function name (scaledSize, rs, ss etc.) → scaleSize(expr)
         if (callee.type === 'Identifier' && /scale|rs|ss|vs|ms/.test(callee.name) && !/scaleSize/.test(callee.name)) {
-          if (!scaleIdent) { willNeedImport = true; }
           node.value = b.callExpression(b.identifier(scaleIdent || 'scaleSize'), value.arguments);
           changed = true;
           return this.traverse(p);
@@ -219,7 +213,6 @@ function transformFile(absPath) {
       }
 
       // Wrap the entire value: scaleIdent(value)
-      if (!scaleIdent) { willNeedImport = true; }
       let call = b.callExpression(b.identifier(scaleIdent || 'scaleSize'), [value]);
       // If double-wrapped (scale(scale(x))), collapse to single
       if (value && value.type === 'CallExpression' && value.callee && value.callee.type === 'Identifier') {

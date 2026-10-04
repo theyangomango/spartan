@@ -9,7 +9,7 @@ export { default as CreateUsername } from './0.4_CreateUsername';
 export { default as ChangeUsername } from './ChangeUsername';
 export { default as ChangeName } from './ChangeName';
 
-export { default as Feed } from './FeedScreen';
+export { default as Feed } from './1_Feed';
 export { default as Messages } from './1.1_Messages';
 export { default as Chat } from './1.2_Chat';
 export { default as Competition } from './2_Competition';

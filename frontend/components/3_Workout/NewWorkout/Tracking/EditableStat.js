@@ -227,8 +227,6 @@ export default function EditableStat({
                 forcingBlurRef.current = true;
                 try { inputRef.current?.blur?.(); } catch { }
             },
-            enableNativeKeyboard: () => {},
-            enableCustomKeyboard: () => {},
         });
         return unregister;
     }, [keyboard, inputId, sanitizedPrevious, hasCustomKeyboard, commitValue, adjustByStep]);
@@ -247,7 +245,6 @@ export default function EditableStat({
     }, [hasCustomKeyboard, keyboard, inputId]);
 
     const handleFocus = useCallback(() => {
-        console.log("[EditableStat] onFocus", inputId);
         setIsSelected(true);
         replaceOnNextInputRef.current = !!(valueRef.current && valueRef.current.length);
         if (hasCustomKeyboard) {
@@ -257,7 +254,6 @@ export default function EditableStat({
     }, [hasCustomKeyboard, keyboard, inputId, onFocus]);
 
     const handleBlur = useCallback(() => {
-        console.log("[EditableStat] onBlur", inputId);
         setIsSelected(false);
         if (forcingBlurRef.current) {
             forcingBlurRef.current = false;

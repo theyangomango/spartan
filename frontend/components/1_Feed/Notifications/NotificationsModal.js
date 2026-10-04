@@ -7,7 +7,6 @@ import scaleSize, { ts } from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
 import acceptWorkoutInvite from "../../../helper/workoutInvites";
 import acceptFollowRequest from "../../../../backend/user/acceptFollowRequest";
-import declineFollowRequest from "../../../../backend/user/declineFollowRequest";
 import {
     useNotificationsStore,
     ensureNotificationsListener,
@@ -17,8 +16,67 @@ import {
 import { shallow } from "zustand/shallow";
 import { joinWorkoutFromPayload } from "../../../workout/workoutActions";
 import { strong as hapticStrong } from "../../../utils/haptics";
+import { navigateRoot, navigationRef, jumpToTab } from "../../../../navigationRef";
 
 export const NOTIFICATION_FILTERS = ["All", "Likes", "Comments", "Follows", "Workouts"];
+
+// --- time grouping helpers ---
+const toMillis = (ts) => {
+    if (typeof ts === "number") return ts;
+    if (ts?.toMillis) return ts.toMillis();
+    if (typeof ts?.seconds === "number") return ts.seconds * 1000;
+    const n = Date.parse(ts);
+    return Number.isFinite(n) ? n : 0;
+};
+const startOfToday = (now = new Date()) => { const d = new Date(now); d.setHours(0, 0, 0, 0); return d; };
+const startOfYesterday = (now = new Date()) => { const d = startOfToday(now); d.setDate(d.getDate() - 1); return d; };
+const startOfWeekSunday = (now = new Date()) => { const d = startOfToday(now); d.setDate(d.getDate() - d.getDay()); return d; };
+const startOfLastWeek = (now = new Date()) => { const d = startOfWeekSunday(now); d.setDate(d.getDate() - 7); return d; };
+const minusMonths = (now, months) => { const d = startOfToday(now); d.setMonth(d.getMonth() - months); return d; };
+const minusYears = (now, years) => { const d = startOfToday(now); d.setFullYear(d.getFullYear() - years); return d; };
+
+const groupByTime = (items, nowMs) => {
+    const now = new Date(nowMs || Date.now());
+    const T0 = startOfToday(now).getTime();
+    const Y0 = startOfYesterday(now).getTime();
+    const W0 = startOfWeekSunday(now).getTime();
+    const LW0 = startOfLastWeek(now).getTime();
+    const M1 = minusMonths(now, 1).getTime();
+    const M3 = minusMonths(now, 3).getTime();
+    const Y1 = minusYears(now, 1).getTime();
+
+    const buckets = {
+        Today: [],
+        Yesterday: [],
+        "This Week": [],
+        "Last Week": [],
+        "Last Month": [],
+        "Last Three Months": [],
+        "Last Year": [],
+        Older: [],
+    };
+
+    for (const it of items) {
+        const ts = toMillis(it?.timestamp);
+        if (!ts) { buckets["Older"].push(it); continue; }
+        if (ts >= T0) buckets["Today"].push(it);
+        else if (ts >= Y0) buckets["Yesterday"].push(it);
+        else if (ts >= W0) buckets["This Week"].push(it);
+        else if (ts >= LW0) buckets["Last Week"].push(it);
+        else if (ts >= M1) buckets["Last Month"].push(it);
+        else if (ts >= M3) buckets["Last Three Months"].push(it);
+        else if (ts >= Y1) buckets["Last Year"].push(it);
+        else buckets["Older"].push(it);
+    }
+
+    const order = ["Today", "Yesterday", "This Week", "Last Week", "Last Month", "Last Three Months", "Last Year", "Older"];
+    const sections = [];
+    for (const key of order) {
+        const data = buckets[key];
+        if (data.length) sections.push({ title: key, data: data.sort((a, b) => toMillis(b.timestamp) - toMillis(a.timestamp)) });
+    }
+    return sections;
+};
 
 export default function NotificationsModal({ uid, navigation, filter = NOTIFICATION_FILTERS[0] }) {
     const listRef = useRef(null);
@@ -137,49 +195,6 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
         }
     }, [uid]);
 
-    const handleDeclineFollowRequest = useCallback(async (item) => {
-        const effUid = uid || global?.userData?.uid;
-        const requesterUid = String(item?.uid || "");
-        if (!effUid || !requesterUid) return false;
-
-        const currentUser = (() => { try { return global?.userData || {}; } catch { return {}; } })();
-        const requester = {
-            uid: requesterUid,
-            handle: item?.handle || '',
-            name: item?.name || '',
-            pfp: item?.pfp || '',
-        };
-
-        try {
-            await declineFollowRequest(currentUser, requester);
-            try {
-                await setDoc(
-                    doc(db, "usersPrivate", effUid, "notifications", String(item.id)),
-                    { requestStatus: 'declined', read: true },
-                    { merge: true }
-                );
-            } catch {}
-
-            updateNotificationEvent(item?.id, (evt) => ({
-                ...(evt || {}),
-                requestStatus: 'declined',
-                read: true,
-            }));
-
-            try {
-                if (!global.userData || typeof global.userData !== 'object') global.userData = {};
-                const removeByUid = (list = []) => list.filter((entry) => String(entry?.uid || entry?.id || entry) !== requesterUid);
-                const pending = Array.isArray(global.userData.followRequestsIn) ? removeByUid(global.userData.followRequestsIn) : [];
-                global.userData.followRequestsIn = pending;
-            } catch {}
-
-            return true;
-        } catch (err) {
-            console.log('handleDeclineFollowRequest error', err);
-            return false;
-        }
-    }, [uid]);
-
     const handlePressNotification = useCallback((item) => {
         try { navigation?.goBack?.(); } catch {}
 
@@ -196,12 +211,10 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
 
             hapticStrong();
             try {
-                const { navigateRoot } = require('../../../../navigationRef');
                 if (navigateRoot('ViewProfile', payload)) return;
             } catch {}
 
             try {
-                const { navigationRef } = require('../../../../navigationRef');
                 navigationRef?.navigate?.('ViewProfile', payload);
             } catch {}
 
@@ -209,74 +222,10 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
         }
 
         try {
-            const { jumpToTab } = require('../../../../navigationRef');
             if (item?.pid) jumpToTab('Feed', { scrollPid: String(item.pid), _t: Date.now() });
             else jumpToTab('Feed');
         } catch {}
     }, [navigation]);
-
-    // Load older pages when the user scrolls near the bottom
-    const loadMore = useCallback(() => {
-        loadMoreNotifications();
-    }, []);
-
-    // --- time grouping helpers (reference FriendsActivitySheet) ---
-    const toMillis = (ts) => {
-        if (typeof ts === "number") return ts;
-        if (ts?.toMillis) return ts.toMillis();
-        if (typeof ts?.seconds === "number") return ts.seconds * 1000;
-        const n = Date.parse(ts);
-        return Number.isFinite(n) ? n : 0;
-    };
-    const startOfToday = (now = new Date()) => { const d = new Date(now); d.setHours(0, 0, 0, 0); return d; };
-    const startOfYesterday = (now = new Date()) => { const d = startOfToday(now); d.setDate(d.getDate() - 1); return d; };
-    const startOfWeekSunday = (now = new Date()) => { const d = startOfToday(now); d.setDate(d.getDate() - d.getDay()); return d; };
-    const startOfLastWeek = (now = new Date()) => { const d = startOfWeekSunday(now); d.setDate(d.getDate() - 7); return d; };
-    const minusMonths = (now, months) => { const d = startOfToday(now); d.setMonth(d.getMonth() - months); return d; };
-    const minusYears = (now, years) => { const d = startOfToday(now); d.setFullYear(d.getFullYear() - years); return d; };
-
-    const groupByTime = (items, nowMs) => {
-        const now = new Date(nowMs || Date.now());
-        const T0 = startOfToday(now).getTime();
-        const Y0 = startOfYesterday(now).getTime();
-        const W0 = startOfWeekSunday(now).getTime();
-        const LW0 = startOfLastWeek(now).getTime();
-        const M1 = minusMonths(now, 1).getTime();
-        const M3 = minusMonths(now, 3).getTime();
-        const Y1 = minusYears(now, 1).getTime();
-
-        const buckets = {
-            Today: [],
-            Yesterday: [],
-            "This Week": [],
-            "Last Week": [],
-            "Last Month": [],
-            "Last Three Months": [],
-            "Last Year": [],
-            Older: [],
-        };
-
-        for (const it of items) {
-            const ts = toMillis(it?.timestamp);
-            if (!ts) { buckets["Older"].push(it); continue; }
-            if (ts >= T0) buckets["Today"].push(it);
-            else if (ts >= Y0) buckets["Yesterday"].push(it);
-            else if (ts >= W0) buckets["This Week"].push(it);
-            else if (ts >= LW0) buckets["Last Week"].push(it);
-            else if (ts >= M1) buckets["Last Month"].push(it);
-            else if (ts >= M3) buckets["Last Three Months"].push(it);
-            else if (ts >= Y1) buckets["Last Year"].push(it);
-            else buckets["Older"].push(it);
-        }
-
-        const order = ["Today", "Yesterday", "This Week", "Last Week", "Last Month", "Last Three Months", "Last Year", "Older"];
-        const sections = [];
-        for (const key of order) {
-            const data = buckets[key];
-            if (data.length) sections.push({ title: key, data: data.sort((a, b) => toMillis(b.timestamp) - toMillis(a.timestamp)) });
-        }
-        return sections;
-    };
 
     // Precompute sections for all filters when events change; switch is then instant
     const groupedByFilter = useMemo(() => {
@@ -309,7 +258,6 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
                         onPressCard={() => handlePressNotification(item)}
                         onAcceptWorkoutInvite={item?.type === 'workout-invite' ? (() => handleAcceptInvite(item)) : undefined}
                         onAcceptFollowRequest={item?.type === 'follow-request' ? (() => handleAcceptFollowRequest(item)) : undefined}
-                        onDeclineFollowRequest={item?.type === 'follow-request' ? (() => handleDeclineFollowRequest(item)) : undefined}
                         isFirst={index === 0}
                         isLast={index === (section?.data?.length ?? 0) - 1}
                     />
@@ -328,7 +276,7 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
                 removeClippedSubviews={false}
                 stickySectionHeadersEnabled={false}
                 onEndReachedThreshold={0.3}
-                onEndReached={loadMore}
+                onEndReached={loadMoreNotifications}
                 ListFooterComponent={
                     loadingMore ? (
                         <View style={styles.footerWrap}><ActivityIndicator color={theme.textSecondary} /></View>

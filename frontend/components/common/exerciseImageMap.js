@@ -1,6 +1,6 @@
 // Auto-generated list of exercise illustration assets.
 
-export const exerciseImageMap = {
+const exerciseImageMap = {
     '45-degree-leg-press-machine': require('../../../exercises copy/45-degree-leg-press-machine/large.png'),
     't-bar-row-machine': require('../../../exercises copy/T-bar-row-machine/large.png'),
     'ab-wheel-rollout': require('../../../exercises copy/ab-wheel-rollout/large.png'),
@@ -293,6 +293,3 @@ export const toExerciseSlug = (name) => {
 };
 
 export const getExerciseImageSource = (slug) => exerciseImageMap[slug] || null;
-
-export const resolveExerciseImageByName = (name) =>
-    getExerciseImageSource(toExerciseSlug(name));

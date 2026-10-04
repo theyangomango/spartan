@@ -3,7 +3,6 @@ import React, { useMemo, useCallback, useEffect, useRef, useState } from 'react'
 import {
     View,
     Text,
-    StyleSheet,
     ScrollView,
     KeyboardAvoidingView,
     Platform,
@@ -16,30 +15,13 @@ import BottomSheet, { BottomSheetBackdrop } from '@gorhom/bottom-sheet';
 import { Ionicons } from '@expo/vector-icons';
 import { PersonalInfoContent } from './PersonalInfoSheet'; // reuse content-only component
 import LabeledNumber from './LabeledNumber';
+import makeStyles from './MacroGoalsSheet.styles';
+import { getMacroCalories, sanitizeDecimalInput, roundDisplayMacro, caloriesFromMacros } from './macroGoalsUtils';
 
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
-import theme from '../../theme/mfpDark'
 import { setFooterSuppressed } from '../../state/footerSuppressionStore';
 import { computeRecommendedMacrosFromPersonalInfo } from '../../utils/macroRecommendations';
-
-const parseMacroNumber = (value) => {
-    const numeric = Number(value);
-    if (!Number.isFinite(numeric) || numeric < 0) return 0;
-    return numeric;
-};
-
-const getMacroCalories = (protein, carbs, fat) => {
-    const proteinCalories = Math.round(parseMacroNumber(protein) * 4);
-    const carbCalories = Math.round(parseMacroNumber(carbs) * 4);
-    const fatCalories = Math.round(parseMacroNumber(fat) * 9);
-    return {
-        protein: proteinCalories,
-        carbs: carbCalories,
-        fat: fatCalories,
-        total: proteinCalories + carbCalories + fatCalories,
-    };
-};
 
 export default function MacroGoalsSheet({
     index,
@@ -112,8 +94,6 @@ export default function MacroGoalsSheet({
         if (index === -1) {
             setShowInfo(false);
             modeAnim.setValue(0);
-            setUsePlaceholderMacros(false);
-            setPlaceholderMacros(null);
         }
     }, [index, modeAnim]);
 
@@ -143,13 +123,8 @@ export default function MacroGoalsSheet({
         }
     }, [openSignal]);
 
-    // ----------------- Recommended macros (placeholders) -----------------
-    const [usePlaceholderMacros, setUsePlaceholderMacros] = useState(false);
-    const [placeholderMacros, setPlaceholderMacros] = useState(null);
-
-    // Effective placeholders: recommended (if set) else current macro values
+    // Effective placeholders: current macro values
     const effectivePlaceholders = useMemo(() => {
-        if (usePlaceholderMacros && placeholderMacros) return placeholderMacros;
         return {
             calories: String(goalForm?.calories ?? '0'),
             protein: String(goalForm?.protein ?? '0'),
@@ -157,8 +132,6 @@ export default function MacroGoalsSheet({
             fat: String(goalForm?.fat ?? '0'),
         };
     }, [
-        usePlaceholderMacros,
-        placeholderMacros,
         goalForm?.calories,
         goalForm?.protein,
         goalForm?.carbs,
@@ -170,39 +143,9 @@ export default function MacroGoalsSheet({
         []
     );
 
-    // ----------------- AUTO CALC (existing) with placeholder mode -----------------
+    // ----------------- AUTO CALC -----------------
     const manualRef = useRef({ calories: false, protein: false, carbs: false, fat: false });
-    const sanitizeDecimalInput = (s) => {
-        if (!s) return '';
-        const filtered = s.replace(/[^0-9.]/g, '');
-        if (!filtered) return '';
-        const firstDot = filtered.indexOf('.');
-        if (firstDot === -1) {
-            return filtered.replace(/^0+(\d)/, '$1');
-        }
-        const beforeDot = filtered.slice(0, firstDot).replace(/^0+(\d)/, '$1');
-        const afterDot = filtered.slice(firstDot + 1).replace(/\./g, '');
-        return `${beforeDot || '0'}.${afterDot}`;
-    };
-    const markManual = (k) => { manualRef.current[k] = true; setUsePlaceholderMacros(false); };
-    const trimTrailingZeros = (value) => value.replace(/(\.\d*?[1-9])0+$/u, '$1').replace(/\.0+$/u, '').replace(/^0+(?=\d)/u, '');
-    const formatMacroValue = (value) => {
-        if (!Number.isFinite(value) || value < 0) return '0';
-        if (value === 0) return '0';
-        const str = value.toFixed(6);
-        const trimmed = trimTrailingZeros(str);
-        return trimmed.length ? trimmed : '0';
-    };
-    const roundDisplayMacro = (value) => {
-        if (value == null) return '';
-        if (typeof value === 'string' && value.trim() === '') return '';
-        const numeric = Number(value);
-        if (!Number.isFinite(numeric)) return '';
-        return String(Math.max(0, Math.round(numeric)));
-    };
-    const caloriesFromMacros = (protein, carbs, fat) => {
-        return String(getMacroCalories(protein, carbs, fat).total);
-    };
+    const markManual = (k) => { manualRef.current[k] = true; };
     const handleMacroChange = (macroKey) => (text) => {
         const cleaned = sanitizeDecimalInput(text);
         markManual(macroKey);
@@ -227,21 +170,12 @@ export default function MacroGoalsSheet({
 
     useEffect(() => {
         manualRef.current = { calories: false, protein: false, carbs: false, fat: false };
-        if (usePlaceholderMacros) {
-            const rec = computeRecommendedMacros(goalForm);
-            if (rec) setPlaceholderMacros(rec);
-        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [gender, weight, heightFt, heightIn, age, activity, goal]);
 
     useEffect(() => {
         const rec = computeRecommendedMacros(goalForm);
         if (!rec) return;
-
-        if (usePlaceholderMacros) {
-            setPlaceholderMacros(rec);
-            return; // don't write into values while showing placeholders
-        }
 
         // original behavior: write into values unless manually edited
         const next = {
@@ -254,13 +188,10 @@ export default function MacroGoalsSheet({
             setGoalForm((s) => ({ ...s, ...next }));
         }
     }, [
-        usePlaceholderMacros,
         computeRecommendedMacros,
         goalForm.calories, goalForm.protein, goalForm.carbs, goalForm.fat,
         gender, weight, heightFt, heightIn, age, activity, goal, setGoalForm,
     ]);
-
-    // ---------------------------------------------------
 
     const closeSheet = useCallback(() => {
         onChangeIndex?.(-1);
@@ -275,7 +206,7 @@ export default function MacroGoalsSheet({
         sheetRef.current?.close?.();
     }, [onSave, onChangeIndex]);
 
-    // CTA press animation (unchanged)
+    // CTA press animation
     const ctaScale = useRef(new Animated.Value(1)).current;
     const chevron = useRef(new Animated.Value(0)).current;
     const onCtaPressIn = () => Animated.spring(ctaScale, { toValue: 0.97, useNativeDriver: true, friction: 5, tension: 120 }).start();
@@ -341,7 +272,7 @@ export default function MacroGoalsSheet({
             backgroundStyle={styles.sheetBackground}
             handleIndicatorStyle={styles.sheetHandle}
             handleStyle={styles.sheetHandleContainer}
-            backdropComponent={(props) => <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} pressBehavior="close" />}
+            backdropComponent={renderBackdrop}
             keyboardBehavior="interactive"
             keyboardBlurBehavior="restore"
         >
@@ -471,9 +402,6 @@ export default function MacroGoalsSheet({
                                         carbs: rec.carbs,
                                         fat: rec.fat,
                                     }));
-                                    // Ensure we are not in placeholder mode
-                                    setUsePlaceholderMacros(false);
-                                    setPlaceholderMacros(null);
                                 }
                                 fadeToGoals();
                             }}
@@ -485,126 +413,3 @@ export default function MacroGoalsSheet({
         </BottomSheet>
     );
 }
-
-const makeStyles = (COLORS) => {
-    // Slightly lift contrasts so inputs/buttons stand out better on dark
-    const text = COLORS?.text ?? COLORS?.textPrimary ?? '#E5E7EB';
-    const subtext = COLORS?.subtext ?? COLORS?.textSecondary ?? '#A1A7B3';
-    const card = COLORS?.card ?? '#252733';
-    // Brighter hairline for clearer edges in dark mode
-    // Use a locally tuned hairline/field shade for stronger separation in sheets
-    const hairline = 'rgba(255,255,255,0.14)';
-    const accent = COLORS?.accentBlue ?? '#6FB8FF';
-    const streakColor = COLORS?.streak ?? '#FF6C1A';
-    // Lift field background slightly from the sheet background
-    const fieldBg = '#2B2F3A';
-
-    return StyleSheet.create({
-        sheetBackground: { backgroundColor: theme.bg, borderTopLeftRadius: scaleSize(24), borderTopRightRadius: scaleSize(24), borderWidth: StyleSheet.hairlineWidth, borderColor: hairline },
-        sheetHandleContainer: { paddingVertical: scaleSize(14), alignItems: 'center' },
-        sheetHandle: { backgroundColor: 'rgba(255,255,255,0.9)', width: scaleSize(44), height: scaleSize(4), borderRadius: scaleSize(2) },
-
-        modeWrap: { ...StyleSheet.absoluteFillObject },
-
-        scrollContent: { paddingHorizontal: scaleSize(18), paddingTop: scaleSize(18), paddingBottom: scaleSize(32) },
-
-        headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: scaleSize(12) },
-        sheetTitle: { fontSize: scaleSize(18), fontFamily: 'Outfit_700Bold', color: text },
-        sheetDescription: { fontSize: scaleSize(12.5), fontFamily: 'Outfit_400Regular', color: subtext, lineHeight: scaleSize(18) },
-
-        smallLinkPill: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            paddingHorizontal: scaleSize(12),
-            paddingVertical: scaleSize(7),
-            borderRadius: scaleSize(999),
-            backgroundColor: theme.surface,
-            borderWidth: scaleSize(1),
-            borderColor: hairline,
-        },
-        smallLinkText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12.5), color: text },
-
-        row: { flexDirection: 'row', alignItems: 'flex-start' },
-        macroInputsRow: { marginTop: scaleSize(18), paddingVertical: scaleSize(6) },
-        totalCaloriesRow: { flexDirection: 'row', alignItems: 'baseline', gap: scaleSize(6), marginTop: scaleSize(22) },
-        totalCaloriesInline: { fontSize: scaleSize(15), fontFamily: 'Outfit_500Medium', color: subtext },
-
-        inputLabel: { fontSize: scaleSize(13), color: subtext, marginBottom: scaleSize(6), fontFamily: 'Outfit_400Regular' },
-        inputBox: {
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: theme.surface,
-            borderRadius: scaleSize(14),
-            borderWidth: scaleSize(1),
-            borderColor: hairline,
-            paddingHorizontal: scaleSize(12),
-            paddingVertical: scaleSize(12),
-            shadowColor: '#000',
-            shadowOpacity: 0.05,
-            shadowOffset: { width: 0, height: scaleSize(1) },
-            shadowRadius: scaleSize(4),
-        },
-        editableInputBox: {
-            borderColor: accent,
-            backgroundColor: 'rgba(111,184,255,0.08)',
-            borderWidth: scaleSize(1.2),
-        },
-        input: { flex: 1, fontSize: scaleSize(16), fontFamily: 'Outfit_400Regular', color: text, paddingVertical: 0 },
-        totalCaloriesValue: { fontSize: scaleSize(18), fontFamily: 'Outfit_600SemiBold', color: streakColor },
-        totalCaloriesUnit: { fontSize: scaleSize(15), fontFamily: 'Outfit_400Regular', color: streakColor },
-        // Make placeholder slightly brighter for readability
-        placeholder: { color: '#BAC3D2' },
-        accent: { color: accent },
-        inputSuffix: { marginLeft: scaleSize(8), color: subtext, fontFamily: 'Outfit_400Regular', fontSize: scaleSize(13) },
-        macroColumn: { flex: 1, paddingVertical: scaleSize(4) },
-        macroCaloriesText: { marginTop: scaleSize(8), fontSize: scaleSize(12), color: subtext, fontFamily: 'Outfit_500Medium' },
-
-        autoCalcRow: {
-            marginTop: scaleSize(24),
-            paddingHorizontal: scaleSize(14),
-            paddingVertical: scaleSize(18),
-            borderRadius: scaleSize(14),
-            backgroundColor: theme.surface,
-            borderWidth: scaleSize(1),
-            borderColor: hairline,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-        },
-        autoCalcLeft: { flexDirection: 'row', alignItems: 'center' },
-        autoCalcIconWrap: {
-            width: scaleSize(28),
-            height: scaleSize(28),
-            borderRadius: scaleSize(14),
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.surface,
-            borderWidth: scaleSize(1),
-            borderColor: hairline,
-            marginRight: scaleSize(10),
-        },
-        autoCalcText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(13), color: text },
-
-        sheetButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: scaleSize(10), marginTop: scaleSize(28) },
-        btn: { paddingVertical: scaleSize(12), paddingHorizontal: scaleSize(16), borderRadius: scaleSize(12) },
-        // Give ghost button a clearer outline against the sheet
-        btnGhost: { backgroundColor: theme.surface, borderWidth: scaleSize(1), borderColor: hairline },
-        btnPrimary: { backgroundColor: accent },
-        btnText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(15) },
-        btnGhostText: { color: text },
-        btnPrimaryText: { color: '#fff' },
-
-        infoHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: scaleSize(10) },
-        backPill: { paddingHorizontal: scaleSize(10), paddingVertical: scaleSize(6), borderRadius: scaleSize(999), backgroundColor: fieldBg, borderWidth: scaleSize(1), borderColor: hairline },
-        backPillText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(12.5), color: text },
-
-        toggleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: scaleSize(8), marginBottom: scaleSize(8) },
-        // Slightly clearer toggle outlines
-        toggleButton: { paddingVertical: scaleSize(8), paddingHorizontal: scaleSize(14), borderRadius: scaleSize(999), borderWidth: scaleSize(1), borderColor: hairline, backgroundColor: card },
-        toggleButtonActive: { backgroundColor: accent, borderColor: 'transparent' },
-        toggleButtonText: { fontFamily: 'Outfit_500Medium', fontSize: scaleSize(14), color: text },
-        toggleButtonTextActive: { color: '#fff' },
-
-        inlineHint: { marginTop: scaleSize(14), fontFamily: 'Outfit_400Regular', fontSize: scaleSize(12.5), color: subtext },
-    });
-};

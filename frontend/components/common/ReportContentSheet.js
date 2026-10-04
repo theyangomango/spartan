@@ -40,7 +40,6 @@ export default function ReportContentSheet({
   visible,
   onClose,
   context = {},
-  onSubmit,
 }) {
   const [reason, setReason] = useState('');
   const [details, setDetails] = useState('');
@@ -90,13 +89,12 @@ export default function ReportContentSheet({
     setError('');
     setSubmitting(true);
     try {
-      const fn = typeof onSubmit === 'function' ? onSubmit : reportContentHelper;
       const payload = {
         context,
         reason,
         details: details.trim(),
       };
-      const result = await fn(payload);
+      const result = await reportContentHelper(payload);
       if (result?.ok !== false) {
         Alert.alert('Report sent', 'Thanks for letting us know. Our team will review it shortly.');
         onClose?.();
@@ -111,7 +109,7 @@ export default function ReportContentSheet({
     } finally {
       setSubmitting(false);
     }
-  }, [context, details, onClose, onSubmit, reason]);
+  }, [context, details, onClose, reason]);
 
   const handleDismiss = useCallback(() => {
     setReason('');

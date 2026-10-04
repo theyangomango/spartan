@@ -223,7 +223,6 @@ const cleanGlobalExplorePosts = async (pidList) => {
 const scrubPostReferences = async (pidList, excludeUid) => {
   if (!pidList.length) return 0;
   const pidSet = new Set(pidList.map((id) => String(id)));
-  let processed = 0;
   let lastDoc = null;
   let updated = 0;
 
@@ -306,7 +305,6 @@ const scrubPostReferences = async (pidList, excludeUid) => {
       await sleep(50);
     }
 
-    processed += snapshot.size;
     lastDoc = snapshot.docs[snapshot.docs.length - 1];
   }
 

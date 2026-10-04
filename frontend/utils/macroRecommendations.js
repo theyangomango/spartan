@@ -235,5 +235,3 @@ export const computeRecommendedMacrosFromPersonalInfo = (form) => {
         fat: String(roundedFat),
     };
 };
-
-export default computeRecommendedMacrosFromPersonalInfo;

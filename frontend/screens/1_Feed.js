@@ -10,18 +10,13 @@ import React, {
     useState,
 } from "react";
 import {
-    StyleSheet,
     FlatList,
     RefreshControl,
     View,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
     Alert,
     Text,
     ActivityIndicator,
     Animated,
-    Easing,
-    Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
@@ -31,6 +26,7 @@ import useStableSafeAreaInsets from "../hooks/useStableSafeAreaInsets";
 
 import PostListItem from "../components/1_Feed/PostListItem";
 import FeedHeader from "../components/1_Feed/FeedHeader";
+import FeedCreatePostMenu from "../components/1_Feed/FeedCreatePostMenu";
 import useHeaderSearchUsers from "../hooks/useHeaderSearchUsers";
 import CommentsBottomSheet from "../components/1_Feed/Comments/CommentsBottomSheet";
 import ShareBottomSheet from "../components/1_Feed/SharePost/ShareBottomSheet";
@@ -41,7 +37,11 @@ import scaleSize from "../helper/scaleSize";
 import isThisUser from "../helper/isThisUser";
 import usePersonalizedFeed from "./feed/hooks/usePersonalizedFeed";
 import useFeedUserData from "./feed/hooks/useFeedUserData";
-import { toMillis as toMillisSafe } from "../utils/friends";
+import useCollapsibleFeedHeader from "./feed/hooks/useCollapsibleFeedHeader";
+import { buildWorkoutDaySet, dayKeyToTimestamp, getWorkoutDayKeyFromPost, toDayKeyString } from "./feed/feedDayKeys";
+import { buildRankSnapshot, deriveRankFromUserData, getInitialStatsHex } from "./feed/feedRankUtils";
+import styles from "./feed/Feed.styles";
+import { toMillis } from "../utils/date";
 import deletePost from "../../backend/posts/deletePost";
 import deleteCompletedWorkout from "../../backend/workouts/deleteCompletedWorkout";
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
@@ -51,8 +51,7 @@ import {
     subscribeRankPromotions,
     subscribeUserData,
 } from "../utils/userDataEvents";
-import { LADDER_SCROLL_TARGET_KEY } from "../utils/competitionTabEvents";
-import { requestCompetitionTabFocus } from "../utils/competitionTabEvents";
+import { LADDER_SCROLL_TARGET_KEY, requestCompetitionTabFocus } from "../utils/competitionTabEvents";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import { strong as hapticStrong } from "../utils/haptics";
 import FeedSnapshotCard from "../components/1_Feed/FeedSnapshotCard";
@@ -61,263 +60,17 @@ import HistoryCalendarModal from "../components/common/HistoryCalendarModal";
 import FeedLoadingSkeleton from "../components/1_Feed/FeedLoadingSkeleton";
 import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import { logFeedSignal } from "../helper/feedSignals";
+import { invalidateFeedCacheForUser } from "../helper/feedCache";
 import { isClipPost } from "../utils/postTypes";
+import { buildEditPostPayload, ensureAtHandle, toNumber } from "../utils/feedItemUtils";
+import { isLivePostData } from "../utils/livePostMeta";
+import { sanitizeEntry, sanitizeWorkoutForRoute } from "../utils/workoutRouteParams";
 import { primeAllUsers } from "../helper/getAllUsers";
 import { computeRankProgressFromData } from "../../shared/rankProgress.js";
 import LevelUpTransition from "../components/2_Competition/LevelUpTransition";
 
 const HEADER_TOP_TRIM = scaleSize(4);
 const LIST_BOTTOM_INSET = scaleSize(120);
-const MIN_HEADER_MEASURE = scaleSize(24);
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-// Clamp floating create menu width so share option subtext consistently stays on two lines.
-const CREATE_POST_MENU_WIDTH = Math.max(
-    0,
-    Math.min(210, Math.round(SCREEN_WIDTH - scaleSize(48))),
-);
-
-const getInitialStatsHex = () => {
-    try {
-        return global?.userData?.statsHexagon || null;
-    } catch {
-        return null;
-    }
-};
-
-const dateToDayKey = (date) => {
-    if (!(date instanceof Date)) return null;
-    const ms = date.getTime();
-    if (!Number.isFinite(ms)) return null;
-    const normalized = new Date(ms);
-    normalized.setHours(0, 0, 0, 0);
-    return `${normalized.getFullYear()}-${String(normalized.getMonth() + 1).padStart(2, "0")}-${String(normalized.getDate()).padStart(2, "0")}`;
-};
-
-const dayKeyToTimestamp = (key) => {
-    if (typeof key !== "string" || !key) return null;
-    const parts = key.split("-");
-    if (parts.length !== 3) return null;
-    const [yearStr, monthStr, dayStr] = parts;
-    const year = Number(yearStr);
-    const month = Number(monthStr);
-    const day = Number(dayStr);
-    if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
-    const date = new Date(year, month - 1, day);
-    if (Number.isNaN(date.getTime())) return null;
-    date.setHours(0, 0, 0, 0);
-    return date.getTime();
-};
-
-const toDayKeyString = (value) => {
-    if (value === undefined || value === null) return null;
-    if (typeof value === "string") {
-        const trimmed = value.trim();
-        if (!trimmed) return null;
-        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-        const parsed = new Date(trimmed);
-        return dateToDayKey(parsed);
-    }
-    if (value instanceof Date) {
-        return dateToDayKey(value);
-    }
-    if (typeof value === "number" && Number.isFinite(value)) {
-        return dateToDayKey(new Date(value));
-    }
-    if (typeof value?.toDate === "function") {
-        try {
-            const parsed = value.toDate();
-            return dateToDayKey(parsed);
-        } catch {
-            return null;
-        }
-    }
-    if (typeof value?.toMillis === "function") {
-        try {
-            const millis = value.toMillis();
-            if (Number.isFinite(millis)) {
-                return dateToDayKey(new Date(millis));
-            }
-        } catch {
-            return null;
-        }
-    }
-    if (typeof value === "object") {
-        const seconds = Number(value?.seconds);
-        if (Number.isFinite(seconds)) {
-            const millis = (seconds * 1000) + (Number(value?.nanoseconds) / 1000000 || 0);
-            return dateToDayKey(new Date(millis));
-        }
-    }
-    return null;
-};
-
-const deriveWorkoutDayKey = (workout) => {
-    if (!workout || typeof workout !== "object") return null;
-
-    const explicit = [
-        workout.dayKey,
-        workout.logDay,
-        workout.logDate,
-        workout.date,
-        workout.day,
-        workout.completedDay,
-        workout.finishedDay,
-    ];
-    for (const entry of explicit) {
-        const key = toDayKeyString(entry);
-        if (key) return key;
-    }
-
-    const timestamps = [
-        workout.startedAt,
-        workout.createdAt,
-        workout.created,
-        workout.finishedAt,
-        workout.completedAt,
-        workout.updatedAt,
-    ];
-    for (const entry of timestamps) {
-        const key = toDayKeyString(entry);
-        if (key) return key;
-    }
-    return null;
-};
-
-const buildWorkoutDaySet = (user) => {
-    const set = new Set();
-    if (!user) return set;
-
-    const workouts = Array.isArray(user?.completedWorkouts) ? user.completedWorkouts : [];
-    workouts.forEach((wk) => {
-        const key = deriveWorkoutDayKey(wk);
-        if (key) set.add(key);
-    });
-
-    if (set.size > 0) return set;
-
-    const workoutsByDate = user?.workoutsByDate;
-    if (workoutsByDate && typeof workoutsByDate === "object") {
-        Object.keys(workoutsByDate).forEach((key) => {
-            const normalized = toDayKeyString(key);
-            if (normalized) set.add(normalized);
-        });
-    }
-
-    return set;
-};
-
-const getWorkoutDayKeyFromPost = (post) => {
-    if (!post) return null;
-    const workout = post?.workout || null;
-    const workoutKey = deriveWorkoutDayKey(workout);
-    if (workoutKey) return workoutKey;
-
-    const postCandidates = [
-        post.dayKey,
-        post.date,
-        post.createdAt,
-        post.created,
-    ];
-
-    for (const entry of postCandidates) {
-        const key = toDayKeyString(entry);
-        if (key) return key;
-    }
-
-    return null;
-};
-
-const toNumber = (value, fallback = 0) => {
-    const num = Number(value);
-    return Number.isFinite(num) ? num : fallback;
-};
-
-const deriveRankFromUserData = (user) => {
-    try {
-        const completedWorkouts = Array.isArray(user?.completedWorkouts)
-            ? user.completedWorkouts.filter(Boolean)
-            : [];
-        const statsHexagon = user?.statsHexagon;
-        const progress = computeRankProgressFromData({ completedWorkouts, statsHexagon });
-        const entry = progress?.currentRankEntry;
-        if (entry) {
-            return {
-                ...entry,
-                tier: entry.rankTier,
-                label: entry.rankLabel,
-                level: entry.rankLevel,
-            };
-        }
-    } catch {
-        // fall back to stored rank if computation fails
-    }
-    return user?.currentRank || null;
-};
-
-const buildRankSnapshot = (user) => {
-    try {
-        const completedWorkouts = Array.isArray(user?.completedWorkouts)
-            ? user.completedWorkouts.filter(Boolean)
-            : [];
-        const statsHexagon = user?.statsHexagon;
-        const progress = computeRankProgressFromData({ completedWorkouts, statsHexagon });
-        const entry = progress?.currentRankEntry || null;
-        const index = Number.isFinite(progress?.currentRankIndexDesc)
-            ? progress.currentRankIndexDesc
-            : null;
-        return { entry, index, progress };
-    } catch {
-        return { entry: null, index: null, progress: null };
-    }
-};
-
-const sanitizeWorkoutForRoute = (workout) => {
-    if (!workout || typeof workout !== "object") return null;
-
-    const replacer = (_key, value) => (typeof value === "function" ? undefined : value);
-
-    try {
-        return JSON.parse(JSON.stringify(workout, replacer));
-    } catch {
-        const clone = { ...workout };
-        clone.exercises = Array.isArray(workout.exercises)
-            ? workout.exercises.map((exercise) => {
-                if (!exercise || typeof exercise !== "object") return {};
-                const sets = Array.isArray(exercise.sets)
-                    ? exercise.sets.map((set) => {
-                        if (!set || typeof set !== "object") return {};
-                        const { weight, reps, unit, units, weightUnit, kg, lbs, ...rest } = set;
-                        const normalized = {
-                            ...rest,
-                            weight: Number(weight ?? kg ?? lbs ?? 0) || 0,
-                            reps: Number(reps ?? set?.rep ?? set?.r ?? 0) || 0,
-                        };
-                        const resolvedUnit = unit || units || weightUnit || (kg != null ? "kg" : undefined);
-                        if (resolvedUnit) normalized.unit = resolvedUnit;
-                        normalized.prev = Object.prototype.hasOwnProperty.call(set, "prev")
-                            ? (set?.prev && typeof set.prev === "object"
-                                ? {
-                                    weight: Number(set.prev?.weight) || 0,
-                                    reps: Number(set.prev?.reps) || 0,
-                                }
-                                : null)
-                            : null;
-                        return normalized;
-                    })
-                    : [];
-                return { ...exercise, sets };
-            })
-            : [];
-        return clone;
-    }
-};
-
-const ensureAtHandle = (value) => {
-    if (!value) return "";
-    const str = String(value).trim();
-    if (!str) return "";
-    return str.startsWith("@") ? str : `@${str}`;
-};
 
 export default function Feed({ navigation, route }) {
     const insets = useStableSafeAreaInsets();
@@ -355,11 +108,9 @@ export default function Feed({ navigation, route }) {
     } = usePersonalizedFeed(followingList);
 
     const {
-        activeWorkout,
         footerKey,
-        headerTimerRef,
         toMessagesScreen,
-    } = useFeedUserData({ UID, navigation, route, isScreenFocused });
+    } = useFeedUserData({ UID, navigation, route });
 
     const { allUsersRef, mergeUsersIntoRef } = useHeaderSearchUsers({
         following: global.userData?.following,
@@ -442,15 +193,12 @@ export default function Feed({ navigation, route }) {
     const [activeSheet, setActiveSheet] = useState(null); // 'comments' | 'share' | null
     const [commentsBottomSheetExpandFlag, setCommentsBottomSheetExpandFlag] = useState(false);
     const [shareBottomSheetExpandFlag, setShareBottomSheetExpandFlag] = useState(false);
-    const [shareBottomSheetCloseFlag, setShareBottomSheetCloseFlag] = useState(false);
     const [likesSheetVisible, setLikesSheetVisible] = useState(false);
     const [likesSheetUsers, setLikesSheetUsers] = useState([]);
     const [likesSheetTitle, setLikesSheetTitle] = useState("Liked by");
     const [deletingPostPid, setDeletingPostPid] = useState(null);
     const [isUserStatsBottomSheetVisible, setIsUserStatsBottomSheetVisible] = useState(false);
     const [activeVideoPostKey, setActiveVideoPostKey] = useState(null);
-    const [isCreateMenuVisible, setCreateMenuVisible] = useState(false);
-    const [isCreateMenuMounted, setCreateMenuMounted] = useState(false);
     const [areFeedVideosMuted, setFeedVideosMuted] = useState(() => {
         try {
             const stored = globalThis?.__SPARTAN_FEED_GLOBAL_MUTE__;
@@ -458,7 +206,6 @@ export default function Feed({ navigation, route }) {
         } catch { }
         return true;
     });
-    const createMenuAnim = useRef(new Animated.Value(0)).current;
 
     const highlightPidRef = useRef(null);
     const [highlightSignal, setHighlightSignal] = useState(0);
@@ -492,37 +239,16 @@ const [pendingQuestsCount, setPendingQuestsCount] = useState(() => {
 });
 const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
 
-    const headerVisibility = useRef(new Animated.Value(1)).current;
-    const [headerPointerEvents, setHeaderPointerEvents] = useState("auto");
-    const [headerMeasuredHeight, setHeaderMeasuredHeight] = useState(0);
+    const {
+        headerAnimatedStyle,
+        headerPointerEvents,
+        handleHeaderLayout,
+        showHeader,
+        hideHeader,
+    } = useCollapsibleFeedHeader();
     const lastScrollOffsetRef = useRef(0);
     const lastScrollTimeRef = useRef(Date.now());
-    const isHeaderHiddenRef = useRef(false);
-    const isAnimatingHeaderRef = useRef(false);
     const viewabilityConfigRef = useRef({ itemVisiblePercentThreshold: 65 });
-    useEffect(() => {
-        if (isCreateMenuVisible) {
-            setCreateMenuMounted(true);
-            Animated.spring(createMenuAnim, {
-                toValue: 1,
-                tension: 120,
-                friction: 14,
-                useNativeDriver: true,
-            }).start();
-            return;
-        }
-        Animated.timing(createMenuAnim, {
-            toValue: 0,
-            duration: 160,
-            easing: Easing.out(Easing.quad),
-            useNativeDriver: true,
-        }).start(({ finished }) => {
-            if (finished) {
-                setCreateMenuMounted(false);
-            }
-        });
-    }, [createMenuAnim, isCreateMenuVisible]);
-
 
     const listData = useMemo(() => {
         if (feedScope === "following") {
@@ -563,76 +289,6 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
         }
         setActiveVideoPostKey(null);
     }, [listData]);
-
-    const animateHeaderVisibility = useCallback(
-        (toValue) => {
-            if (isAnimatingHeaderRef.current) {
-                headerVisibility.stopAnimation?.();
-            }
-            isAnimatingHeaderRef.current = true;
-            if (toValue === 1) {
-                setHeaderPointerEvents("auto");
-            }
-            Animated.timing(headerVisibility, {
-                toValue,
-                duration: 220,
-                easing: Easing.out(Easing.cubic),
-                useNativeDriver: false,
-            }).start(() => {
-                isAnimatingHeaderRef.current = false;
-                if (toValue === 0) {
-                    setHeaderPointerEvents("none");
-                }
-            });
-        },
-        [headerVisibility]
-    );
-
-    const showHeader = useCallback(() => {
-        if (!isHeaderHiddenRef.current) return;
-        isHeaderHiddenRef.current = false;
-        animateHeaderVisibility(1);
-    }, [animateHeaderVisibility]);
-
-    const hideHeader = useCallback(() => {
-        if (isHeaderHiddenRef.current) return;
-        isHeaderHiddenRef.current = true;
-        animateHeaderVisibility(0);
-    }, [animateHeaderVisibility]);
-
-    const handleHeaderLayout = useCallback(
-        (event) => {
-            const height = event?.nativeEvent?.layout?.height || 0;
-            if (
-                (headerMeasuredHeight === 0 && height > 0) ||
-                (height > MIN_HEADER_MEASURE && Math.abs(height - headerMeasuredHeight) > 1)
-            ) {
-                setHeaderMeasuredHeight(height);
-            }
-        },
-        [headerMeasuredHeight]
-    );
-
-    const headerHeightForAnimation = headerMeasuredHeight > 0 ? headerMeasuredHeight : scaleSize(88);
-
-    const headerAnimatedStyle = useMemo(
-        () => ({
-            opacity: headerVisibility,
-            marginBottom: headerVisibility.interpolate({
-                inputRange: [0, 1],
-                outputRange: [-headerHeightForAnimation, scaleSize(2)],
-            }),
-            transform: [
-                {
-                    translateY: headerVisibility.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [-(headerHeightForAnimation + scaleSize(12)), 0],
-                    }),
-                },
-            ],
-        }),
-        [headerHeightForAnimation, headerVisibility]
-    );
 
     const handleListScroll = useCallback(
         (event) => {
@@ -853,7 +509,7 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
             ];
             let created = 0;
             for (const value of createdCandidates) {
-                const ms = toMillisSafe(value);
+                const ms = toMillis(value);
                 if (ms) {
                     created = ms;
                     break;
@@ -878,12 +534,10 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
             setDeletingPostPid(pid);
             let postError = null;
             let workoutError = null;
-            let workoutResult = null;
 
             if (canDeleteLinkedWorkout && safeUid) {
                 try {
                     const res = await deleteCompletedWorkout(safeUid, workoutDeleteIdentifier);
-                    workoutResult = res;
                     invalidateFeedCacheForUser(safeUid);
                     if (res?.ok && global?.userData && String(global.userData.uid) === safeUid) {
                         try {
@@ -959,7 +613,7 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
         );
     }, [listData, deletingPostPid, deletePost, deleteCompletedWorkout, emitHexagonUpdate, emitUserDataUpdate]);
 
-    const handleEditPost = useCallback(async (index, directPost, _options = {}) => {
+    const handleEditPost = useCallback(async (index, directPost) => {
         const sourcePost = directPost || (Array.isArray(listData) ? listData[index] : null);
         if (!sourcePost) return;
 
@@ -974,86 +628,7 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
             console.warn("handleEditPost: failed to fetch latest post", error);
         }
 
-        const resolvedCaption = (() => {
-            if (typeof latest.caption === "string" && latest.caption.trim()) {
-                return latest.caption;
-            }
-            const captionComment = Array.isArray(latest.comments)
-                ? latest.comments.find((comment) => comment?.isCaption && typeof comment?.content === "string")
-                : null;
-            return captionComment?.content || "";
-        })();
-
-        const mediaEntries = [];
-        const seen = new Set();
-
-        if (Array.isArray(latest.media)) {
-            latest.media.forEach((entry) => {
-                const uri = typeof entry === "string" ? entry : entry?.uri;
-                if (!uri || seen.has(uri)) return;
-                seen.add(uri);
-                const entryTypeRaw = typeof entry === "string" ? undefined : entry?.type;
-                const type = entryTypeRaw === "clip" ? "video" : entryTypeRaw;
-                const cropRect = typeof entry === "string" ? null : entry?.cropRect || null;
-                const duration =
-                    typeof entry === "string"
-                        ? 0
-                        : Number(
-                              entry?.duration ??
-                              entry?.videoDuration ??
-                              entry?.length ??
-                              entry?.seconds ??
-                              0
-                          ) || 0;
-                const width = typeof entry?.width === "number" ? entry.width : (typeof entry?.naturalWidth === "number" ? entry.naturalWidth : 0);
-                const height = typeof entry?.height === "number" ? entry.height : (typeof entry?.naturalHeight === "number" ? entry.naturalHeight : 0);
-                const aspectRatio = typeof entry?.aspectRatio === "number"
-                    ? entry.aspectRatio
-                    : (width && height ? width / height : null);
-
-                mediaEntries.push({
-                    uri,
-                    type: type === "video" ? "video" : "image",
-                    duration,
-                    cropRect,
-                    width,
-                    height,
-                    aspectRatio,
-                    isClip: Boolean(entry?.isClip || entryTypeRaw === "clip" || latest?.type === "clip"),
-                });
-            });
-        }
-        if (Array.isArray(latest.images)) {
-            latest.images.forEach((entry) => {
-                const uri = typeof entry === "string" ? entry : entry?.uri;
-                if (!uri || seen.has(uri)) return;
-                seen.add(uri);
-                mediaEntries.push({
-                    uri,
-                    type: "image",
-                    duration: 0,
-                    cropRect: typeof entry === "string" ? null : entry?.cropRect || null,
-                    width: typeof entry?.width === "number" ? entry.width : 0,
-                    height: typeof entry?.height === "number" ? entry.height : 0,
-                    aspectRatio: typeof entry?.aspectRatio === "number" ? entry.aspectRatio : null,
-                    isClip: false,
-                });
-            });
-        }
-
-        const workoutName = (() => {
-            const source = latest.workout || sourcePost.workout || null;
-            if (!source || typeof source !== "object") return "";
-            const candidate = source.templateName || source.template?.name || source.name || source.workoutName || "";
-            return candidate ? String(candidate).trim() : "";
-        })();
-
-        const editingPayload = {
-            pid,
-            caption: resolvedCaption,
-            mediaEntries,
-            workoutName,
-        };
+        const { resolvedCaption, mediaEntries, editingPayload } = buildEditPostPayload(latest, sourcePost.workout, pid);
 
         if (isClipPost(latest)) {
             const clipEntry = mediaEntries.find((entry) => entry?.type === "video");
@@ -1157,15 +732,6 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
             ? Math.max(0, post.comments.length - 1)
             : toNumber(post?.commentCount);
 
-        const sanitizeEntry = (entry) => {
-            if (!entry || typeof entry !== "object") return entry;
-            try {
-                return JSON.parse(JSON.stringify(entry, (_key, value) => (typeof value === "function" ? undefined : value)));
-            } catch {
-                return { ...entry };
-            }
-        };
-
         const likesForRoute = Array.isArray(post?.likes)
             ? post.likes.map(sanitizeEntry)
             : [];
@@ -1181,11 +747,7 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
         const tagsForRoute = Array.isArray(post?.tags) ? [...post.tags] : [];
         const taggedForRoute = Array.isArray(post?.tagged) ? [...post.tagged] : [];
 
-        const isLiveWorkoutPost = Boolean(
-            post?.isLive ||
-            post?.liveWorkout ||
-            (typeof post?.pid === "string" && post.pid.startsWith("workout:live"))
-        );
+        const isLiveWorkoutPost = isLivePostData(post);
 
         const params = {
             workout: sanitizedWorkout,
@@ -1405,8 +967,6 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
             onOpenNotifications={handleOpenNotifications}
             scrollToTop={scrollToTop}
             allUsersRef={allUsersRef}
-            workout={activeWorkout}
-            timerRef={headerTimerRef}
             heightAdjust={-2}
             topAdjust={-HEADER_TOP_TRIM}
             centerVariant="text"
@@ -1416,7 +976,7 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
             onChangeFeedScope={setFeedScope}
             onOpenCalendar={openCalendar}
         />
-    ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, activeWorkout, headerTimerRef, feedScope, openCalendar]);
+    ), [navigation, toMessagesScreen, handleOpenNotifications, scrollToTop, allUsersRef, feedScope, openCalendar]);
 
     const renderLoadingList = useCallback(() => (
         <FeedLoadingSkeleton />
@@ -1455,57 +1015,11 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
         );
     };
 
-    const closeCreateMenu = useCallback(() => {
-        setCreateMenuVisible(false);
-    }, []);
-
-    const toggleCreateMenu = useCallback(() => {
-        setCreateMenuVisible((prev) => !prev);
-    }, []);
-
-    const handleSharePost = useCallback(() => {
-        closeCreateMenu();
-        try {
-            navigation?.navigate('PostOptions', { images: [] });
-        } catch {
-            navigation?.navigate('PostOptions');
-        }
-    }, [closeCreateMenu, navigation]);
-
-    const handleShareClip = useCallback(() => {
-        closeCreateMenu();
-        try {
-            navigation?.navigate('NewClip');
-        } catch {
-            navigation?.navigate('NewClip');
-        }
-    }, [closeCreateMenu, navigation]);
-
     const commentsVisible = activeSheet === "comments" && activePostIndex >= 0;
     const shareSheetVisible = activeSheet === "share";
     const activePost = commentsVisible || shareSheetVisible
         ? listData[activePostIndex] || null
         : null;
-
-    const handleOpenUserStats = useCallback(() => {
-        if (!global?.userData) return;
-        try { hapticStrong(); } catch { }
-        try { setIsUserStatsBottomSheetVisible(true); } catch { setIsUserStatsBottomSheetVisible(true); }
-    }, []);
-
-    const handleOpenProgress = useCallback(() => {
-        try { hapticStrong(); } catch { }
-        try {
-            requestCompetitionTabFocus("progress");
-        } catch {
-            requestCompetitionTabFocus("progress");
-        }
-        try {
-            navigation?.navigate("Competition", { focusTab: "progress" });
-        } catch {
-            navigation?.navigate?.("Competition");
-        }
-    }, [navigation]);
 
     const handleOpenLadder = useCallback(() => {
         try { hapticStrong(); } catch { }
@@ -1540,7 +1054,6 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
         () => (
             <View style={styles.snapshotCardContainer}>
                 <FeedSnapshotCard
-                    onPressOverall={handleOpenUserStats}
                     onPressCard={handleOpenLadder}
                     rankTier={snapshotRankTier}
                     rankLabel={snapshotRankLabel}
@@ -1561,8 +1074,6 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
             userOverallScore,
             pendingQuestsCount,
             handleOpenLadder,
-            handleOpenProgress,
-            handleOpenUserStats,
         ]
     );
 
@@ -1625,133 +1136,7 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
                 removeClippedSubviews
             />
 
-            {isCreateMenuMounted && (
-                <TouchableWithoutFeedback onPress={closeCreateMenu}>
-                    <Animated.View
-                        style={[
-                            styles.createPostBackdrop,
-                            { opacity: createMenuAnim },
-                        ]}
-                    />
-                </TouchableWithoutFeedback>
-            )}
-
-            <View
-                pointerEvents="box-none"
-                style={[
-                    styles.createPostActionsWrapper,
-                    { bottom: (insets.bottom || 0) + scaleSize(110) },
-                ]}
-            >
-                {isCreateMenuMounted && (
-                    <Animated.View
-                        style={[
-                            styles.createPostMenu,
-                            {
-                                opacity: createMenuAnim,
-                                transform: [
-                                    {
-                                        translateY: createMenuAnim.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [scaleSize(18), 0],
-                                        }),
-                                    },
-                                    {
-                                        scale: createMenuAnim.interpolate({
-                                            inputRange: [0, 1],
-                                            outputRange: [0.94, 1],
-                                        }),
-                                    },
-                                ],
-                            },
-                        ]}
-                    >
-                        <TouchableOpacity
-                            style={[
-                                styles.createPostMenuButton,
-                                styles.createPostMenuButtonPost,
-                            ]}
-                            activeOpacity={0.85}
-                            onPress={handleSharePost}
-                            accessibilityRole="button"
-                            accessibilityLabel="Share a post"
-                        >
-                            <View style={styles.createPostMenuRow}>
-                                <View style={styles.createPostMenuLabelWrap}>
-                                    <Text style={[styles.createPostMenuText, styles.createPostMenuTextDark]}>
-                                        Share Post
-                                    </Text>
-                                    <Text style={[styles.createPostMenuSubtext, styles.createPostMenuSubtextDark]}>
-                                        Quick notes, can add photos/videos
-                                    </Text>
-                                </View>
-                                <View style={styles.createPostMenuIconBadgeDark}>
-                                    <Feather
-                                        name="edit-3"
-                                        size={scaleSize(15)}
-                                        color="#FFFFFF"
-                                    />
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[
-                                styles.createPostMenuButton,
-                                styles.createPostMenuButtonPost,
-                            ]}
-                            activeOpacity={0.85}
-                            onPress={handleShareClip}
-                            accessibilityRole="button"
-                            accessibilityLabel="Share a clip"
-                        >
-                            <View style={styles.createPostMenuRow}>
-                                <View style={styles.createPostMenuLabelWrap}>
-                                    <Text style={[styles.createPostMenuText, styles.createPostMenuTextDark]}>
-                                        Share Clip
-                                    </Text>
-                                    <Text style={[styles.createPostMenuSubtext, styles.createPostMenuSubtextDark]}>
-                                        Short-form video content
-                                    </Text>
-                                </View>
-                                <View style={styles.createPostMenuIconBadgeDark}>
-                                    <Feather
-                                        name="video"
-                                        size={scaleSize(15)}
-                                        color="#FFFFFF"
-                                    />
-                                </View>
-                            </View>
-                        </TouchableOpacity>
-                    </Animated.View>
-                )}
-                <TouchableOpacity
-                    style={[
-                        styles.createPostButton,
-                        isCreateMenuVisible && styles.createPostButtonActive,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={toggleCreateMenu}
-                    accessibilityRole="button"
-                    accessibilityLabel="Open share options"
-                >
-                    <Animated.View
-                        style={{
-                            transform: [{
-                                rotate: createMenuAnim.interpolate({
-                                    inputRange: [0, 1],
-                                    outputRange: ["0deg", "45deg"],
-                                }),
-                            }],
-                        }}
-                    >
-                        <Feather
-                            name="plus"
-                            size={scaleSize(24)}
-                            color={isCreateMenuVisible ? '#FFFFFF' : '#000'}
-                        />
-                    </Animated.View>
-                </TouchableOpacity>
-            </View>
+            <FeedCreatePostMenu navigation={navigation} bottomInset={insets.bottom} />
 
             <HistoryCalendarModal
                 visible={calendarVisible}
@@ -1780,7 +1165,6 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
             />
 
             <ShareBottomSheet
-                shareBottomSheetCloseFlag={shareBottomSheetCloseFlag}
                 shareBottomSheetExpandFlag={shareSheetVisible ? shareBottomSheetExpandFlag : false}
                 onDismiss={() => {
                     setActiveSheet((current) => {
@@ -1806,144 +1190,3 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
         </>
     );
 }
-
-const styles = StyleSheet.create({
-    screen: {
-        flex: 1,
-        backgroundColor: theme.bg,
-    },
-    headerWrap: {
-        backgroundColor: theme.bg,
-        zIndex: 2,
-        elevation: 2,
-    },
-    list: {
-        flex: 1,
-    },
-    listContent: {
-        flexGrow: 1,
-    },
-    listFooter: {
-        paddingVertical: scaleSize(24),
-    },
-    snapshotCardContainer: {
-        marginTop: scaleSize(6),
-        marginBottom: scaleSize(18),
-    },
-    createPostButton: {
-        width: scaleSize(56),
-        height: scaleSize(56),
-        borderRadius: scaleSize(28),
-        backgroundColor: "#FFFFFF",
-        alignItems: "center",
-        justifyContent: "center",
-        shadowColor: "#000",
-        shadowOpacity: 0.2,
-        shadowRadius: 6,
-        shadowOffset: { width: 0, height: 3 },
-        elevation: 3,
-    },
-    createPostButtonActive: {
-        backgroundColor: theme.primary,
-    },
-    createPostActionsWrapper: {
-        position: "absolute",
-        right: scaleSize(24),
-        alignItems: "flex-end",
-        zIndex: 3,
-    },
-    createPostBackdrop: {
-        ...StyleSheet.absoluteFillObject,
-        zIndex: 2,
-        backgroundColor: "rgba(0, 0, 0, 0.35)",
-    },
-    createPostMenu: {
-        marginBottom: scaleSize(16),
-        width: CREATE_POST_MENU_WIDTH,
-    },
-    createPostMenuButton: {
-        borderRadius: scaleSize(14),
-        paddingVertical: scaleSize(14),
-        paddingHorizontal: scaleSize(20),
-        alignItems: "flex-start",
-        justifyContent: "center",
-        marginBottom: scaleSize(12),
-        shadowColor: "#000",
-        shadowOpacity: 0.18,
-        shadowRadius: 7,
-        shadowOffset: { width: 0, height: 3 },
-        elevation: 3,
-    },
-    createPostMenuButtonPost: {
-        backgroundColor: "#1B1F29",
-    },
-    createPostMenuRow: {
-        flexDirection: "row",
-        alignItems: "center",
-    },
-    createPostMenuLabelWrap: {
-        flex: 1,
-    },
-    createPostMenuText: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(15),
-        color: "#0A0E14",
-    },
-    createPostMenuTextDark: {
-        color: "#E7ECF5",
-    },
-    createPostMenuSubtext: {
-        fontFamily: "Outfit_400Regular",
-        fontSize: scaleSize(13),
-        marginTop: scaleSize(4),
-        color: "#A0A8BA",
-    },
-    createPostMenuSubtextDark: {
-        color: "#CCD1DE",
-    },
-    createPostMenuIconBadge: {
-        padding: scaleSize(8),
-        borderRadius: scaleSize(999),
-        backgroundColor: "rgba(255,255,255,0.9)",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    createPostMenuIconBadgeDark: {
-        backgroundColor: "rgba(255, 255, 255, 0.12)",
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: "rgba(255,255,255,0.25)",
-        marginLeft: scaleSize(12),
-        padding: scaleSize(8),
-        borderRadius: scaleSize(999),
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    emptyState: {
-        alignItems: "center",
-        paddingHorizontal: scaleSize(28),
-        paddingTop: scaleSize(36),
-    },
-    emptyIcon: {
-        width: scaleSize(60),
-        height: scaleSize(60),
-        borderRadius: scaleSize(30),
-        backgroundColor: theme.primaryDeep,
-        alignItems: "center",
-        justifyContent: "center",
-        marginBottom: scaleSize(18),
-    },
-    emptyTitle: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(16),
-        color: theme.textPrimary,
-        marginBottom: scaleSize(6),
-    },
-    emptySubtitle: {
-        fontFamily: "Outfit_400Regular",
-        fontSize: scaleSize(13),
-        color: theme.textSecondary,
-        textAlign: "center",
-        lineHeight: scaleSize(18),
-    },
-});
-import { invalidateFeedCacheForUser } from "../helper/feedCache";

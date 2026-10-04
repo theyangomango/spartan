@@ -1,4 +1,3 @@
-// components/UnderMealList.js
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import MealItemCard from './2_MacroTracking/MealItemCard';
@@ -14,7 +13,6 @@ export default function UnderMealList({
     onItemPress,
     renderSummary,
     showCaloriesRight = false,
-    compact = false,
 }) {
     return (
         <View style={[styles.list, listStyle]}>
@@ -28,7 +26,6 @@ export default function UnderMealList({
                     onPress={onItemPress}
                     renderSummary={renderSummary}
                     showCaloriesRight={showCaloriesRight}
-                    compact={compact}
                 />
             ))}
         </View>

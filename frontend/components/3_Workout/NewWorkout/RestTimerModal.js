@@ -1,12 +1,10 @@
-// components/Tracking/RestTimerModal.jsx
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useCallback } from "react";
 import {
     Modal,
     Pressable,
     View,
     Text,
     StyleSheet,
-    Dimensions,
     Animated,
     Easing,
 } from "react-native";
@@ -17,14 +15,9 @@ import * as Haptics from "expo-haptics";
 import scaleSize from "../../../helper/scaleSize";
 import { activeWorkoutHighlight } from "./activeWorkoutColors";
 
-const { height: screenHeight } = Dimensions.get("window");
-const scaledSize = (size) => scaleSize(size);
-
 const PRESETS = [30, 60, 90, 120];
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-const CARD_BG = "#1E2536";
-const CARD_BORDER = "rgba(135, 185, 255, 0.22)";
 const RING_TRACK = "rgba(255,255,255,0.12)";
 const RING_GLOW = "#4C9BFF";
 const CHIP_BG = "rgba(148, 163, 184, 0.16)";
@@ -251,7 +244,7 @@ export default function RestTimerModal({
                     <Text style={styles.caption}>Timer keeps running if you close</Text>
 
                     <View style={styles.ringWrap}>
-                        <CountdownRing size={scaledSize(190)} stroke={scaledSize(10)} progress={ring} pulse={pulse} />
+                        <CountdownRing size={scaleSize(190)} stroke={scaleSize(10)} progress={ring} pulse={pulse} />
                         <View style={styles.centerWrap}>
                             <Animated.Text
                                 style={[
@@ -316,13 +309,13 @@ const styles = StyleSheet.create({
         backgroundColor: "rgba(8,12,23,0.65)",
         alignItems: "center",
         justifyContent: "center",
-        paddingHorizontal: scaledSize(20),
+        paddingHorizontal: scaleSize(20),
     },
     card: {
         width: "100%",
         backgroundColor: theme.surface,
-        borderRadius: scaledSize(20),
-        padding: scaledSize(18),
+        borderRadius: scaleSize(20),
+        padding: scaleSize(18),
         alignItems: "center",
         borderWidth: scaleSize(1),
         shadowOpacity: 0.12,
@@ -332,28 +325,28 @@ const styles = StyleSheet.create({
     },
     closeBtn: {
         position: "absolute",
-        top: scaledSize(10),
-        right: scaledSize(10),
-        width: scaledSize(28),
-        height: scaledSize(28),
-        borderRadius: scaledSize(14),
+        top: scaleSize(10),
+        right: scaleSize(10),
+        width: scaleSize(28),
+        height: scaleSize(28),
+        borderRadius: scaleSize(14),
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "rgba(255,255,255,0.08)",
     },
     closeTxt: {
         fontSize: scaleSize(22),
-        lineHeight: scaledSize(22),
+        lineHeight: scaleSize(22),
         color: "rgba(199, 210, 229, 0.85)",
     },
     title: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(18),
         color: theme.textPrimary,
-        marginTop: scaledSize(2),
+        marginTop: scaleSize(2),
     },
     caption: {
-        marginTop: scaledSize(4),
+        marginTop: scaleSize(4),
         fontFamily: "Outfit_500Medium",
         fontSize: scaleSize(11.5),
         color: "rgba(202,213,229,0.78)",
@@ -362,8 +355,8 @@ const styles = StyleSheet.create({
         width: "100%",
         alignItems: "center",
         justifyContent: "center",
-        marginTop: scaledSize(12),
-        marginBottom: scaledSize(14),
+        marginTop: scaleSize(12),
+        marginBottom: scaleSize(14),
     },
     centerWrap: {
         position: "absolute",
@@ -377,7 +370,7 @@ const styles = StyleSheet.create({
         includeFontPadding: false,
     },
     sub: {
-        marginTop: scaledSize(4),
+        marginTop: scaleSize(4),
         fontFamily: "Outfit_600SemiBold",
         fontSize: scaleSize(12),
         color: "rgba(198, 210, 229, 0.85)",
@@ -386,14 +379,14 @@ const styles = StyleSheet.create({
         width: "100%",
         flexDirection: "row",
         justifyContent: "space-between",
-        gap: scaledSize(8),
-        marginTop: scaledSize(6),
-        marginBottom: scaledSize(10),
+        gap: scaleSize(8),
+        marginTop: scaleSize(6),
+        marginBottom: scaleSize(10),
     },
     chip: {
         flex: 1,
-        paddingVertical: scaledSize(10),
-        borderRadius: scaledSize(12),
+        paddingVertical: scaleSize(10),
+        borderRadius: scaleSize(12),
         backgroundColor: CHIP_BG,
         alignItems: "center",
         justifyContent: "center",
@@ -420,13 +413,13 @@ const styles = StyleSheet.create({
     controls: {
         flexDirection: "row",
         width: "100%",
-        marginTop: scaledSize(2),
-        gap: scaledSize(8),
+        marginTop: scaleSize(2),
+        gap: scaleSize(8),
     },
     ghostBtn: {
         flex: 1,
-        paddingVertical: scaledSize(11),
-        borderRadius: scaledSize(12),
+        paddingVertical: scaleSize(11),
+        borderRadius: scaleSize(12),
         backgroundColor: GHOST_BG,
         alignItems: "center",
         justifyContent: "center",
@@ -441,8 +434,8 @@ const styles = StyleSheet.create({
     },
     primaryBtn: {
         flex: 1,
-        paddingVertical: scaledSize(11),
-        borderRadius: scaledSize(12),
+        paddingVertical: scaleSize(11),
+        borderRadius: scaleSize(12),
         backgroundColor: PRIMARY_BG,
         alignItems: "center",
         justifyContent: "center",

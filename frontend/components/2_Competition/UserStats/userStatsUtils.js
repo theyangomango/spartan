@@ -182,13 +182,11 @@ const formatJoinDate = (raw) => {
 };
 
 export {
-    safeNumber,
     fmtK,
     estimate1RM,
     computeVolume,
     computeTotalReps,
     extractWid,
-    toMillis,
     workoutSortTimestamp,
     ensureWorkoutPrivacy,
     bestTopSet,

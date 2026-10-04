@@ -3,8 +3,6 @@ import { StyleSheet, Text, Animated } from "react-native";
 import scaleSize from "../../../../helper/scaleSize";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
-const scaledSize = (size) => scaleSize(size);
-
 const AnimatedButton = ({ opacity, selectedExercisesLength, handleFinish }) => {
     useEffect(() => {
         Animated.timing(opacity, {
@@ -35,14 +33,14 @@ const styles = StyleSheet.create({
     },
     addButton: {
         backgroundColor: "#57B9FF",
-        paddingVertical: scaledSize(14),
-        borderRadius: scaledSize(16),
+        paddingVertical: scaleSize(14),
+        borderRadius: scaleSize(16),
         justifyContent: "center",
         alignItems: "center",
         shadowColor: "#57B9FF",
-        shadowOffset: { width: 0, height: scaledSize(10) },
+        shadowOffset: { width: 0, height: scaleSize(10) },
         shadowOpacity: 0.25,
-        shadowRadius: scaledSize(16),
+        shadowRadius: scaleSize(16),
     },
     addButtonDisabled: {
         backgroundColor: "rgba(90, 108, 146, 0.6)",

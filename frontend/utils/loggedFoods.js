@@ -66,7 +66,7 @@ const deriveTimestamp = (entry) => {
     return Number.isFinite(fallback) ? fallback : 0;
 };
 
-export const flattenLoggedFoods = (source) => {
+const flattenLoggedFoods = (source) => {
     const rows = [];
     if (!source || typeof source !== "object") return rows;
     try {

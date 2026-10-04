@@ -56,12 +56,6 @@ export const ensureUidArray = (list) => {
     return out;
 };
 
-export const mergeUidSets = (base = [], incoming = []) => {
-    const set = new Set(ensureUidArray(base));
-    ensureUidArray(incoming).forEach((uid) => set.add(uid));
-    return Array.from(set);
-};
-
 export const getViewerUid = () => {
     try {
         const direct = global?.userData?.uid || global?.userData?.id;
@@ -92,12 +86,4 @@ export const getViewerUid = () => {
     }
 
     return "";
-};
-
-export default {
-    coerceUid,
-    normalizeUserRef,
-    ensureUidArray,
-    mergeUidSets,
-    getViewerUid,
 };

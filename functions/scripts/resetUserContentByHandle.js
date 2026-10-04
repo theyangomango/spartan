@@ -357,7 +357,6 @@ function filterUidMap(map, targetUid) {
 
 async function scrubUserReferences(uid, removedPostIds) {
   const pidSet = new Set((removedPostIds || []).map(toStringSafe));
-  let processed = 0;
   let lastDoc = null;
   let updatedDocs = 0;
 
@@ -481,7 +480,6 @@ async function scrubUserReferences(uid, removedPostIds) {
       await sleep(50);
     }
 
-    processed += snapshot.size;
     lastDoc = snapshot.docs[snapshot.docs.length - 1];
   }
 

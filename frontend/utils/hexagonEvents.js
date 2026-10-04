@@ -11,6 +11,3 @@ export function emitHexagonUpdate() {
     try { fn(); } catch {}
   });
 }
-
-export default { onHexagonUpdate, emitHexagonUpdate };
-

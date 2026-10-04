@@ -19,9 +19,24 @@ import { strong as haptic } from '../../utils/haptics';
 import DismissableTextInput from '../common/DismissableTextInput';
 import theme from '../../theme/mfpDark'
 
+const onlyDigits = (s) => s.replace(/[^\d]/g, '');
+
+const ACTIVITY_OPTIONS = [
+    { label: 'Sedentary (little/no exercise)', value: 'sedentary' },
+    { label: 'Light (2–3 hrs light)', value: 'light' },
+    { label: 'Moderate (3–4 days)', value: 'moderate' },
+    { label: 'Active (5–7 days)', value: 'active' },
+    { label: 'Athlete (intense 2x/day)', value: 'athlete' },
+];
+
+const GOAL_OPTIONS = [
+    { label: 'Gain Muscle', value: 'gain' },
+    { label: 'Lose Fat', value: 'lose' },
+    { label: 'Maintain', value: 'maintain' },
+];
+
 export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
-    const onlyDigits = (s) => s.replace(/[^\d]/g, '');
 
     const gender = goalForm?.gender ?? 'male';
     const weight = goalForm?.weight ?? '';
@@ -161,13 +176,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                 {/* Activity */}
                 <Text style={[styles.inputLabel, { marginTop: scaleSize(20) }]}>Weekly Activity Level</Text>
                 <View style={styles.toggleRow}>
-                    {[
-                        { label: 'Sedentary (little/no exercise)', value: 'sedentary' },
-                        { label: 'Light (2–3 hrs light)', value: 'light' },
-                        { label: 'Moderate (3–4 days)', value: 'moderate' },
-                        { label: 'Active (5–7 days)', value: 'active' },
-                        { label: 'Athlete (intense 2x/day)', value: 'athlete' },
-                    ].map((a) => {
+                    {ACTIVITY_OPTIONS.map((a) => {
                         const active = activity === a.value;
                         return (
                             <Pressable
@@ -184,11 +193,7 @@ export function PersonalInfoContent({ goalForm, setGoalForm, onBack, onSave, COL
                 {/* Goal */}
                 <Text style={[styles.inputLabel, { marginTop: scaleSize(18) }]}>Goal</Text>
                 <View style={styles.toggleRow}>
-                    {[
-                        { label: 'Gain Muscle', value: 'gain' },
-                        { label: 'Lose Fat', value: 'lose' },
-                        { label: 'Maintain', value: 'maintain' },
-                    ].map((g) => {
+                    {GOAL_OPTIONS.map((g) => {
                         const active = goal === g.value;
                         return (
                             <Pressable
@@ -277,7 +282,6 @@ const makeStyles = (COLORS) => {
     // Locally tuned for clearer separation in this sheet
     const hairline = 'rgba(255,255,255,0.14)';
     const accent = COLORS?.accentBlue ?? '#6FB8FF';
-    const fieldBg = '#2B2F3A';
 
     return StyleSheet.create({
         sheetBackground: { backgroundColor: card, borderTopLeftRadius: scaleSize(24), borderTopRightRadius: scaleSize(24), borderWidth: StyleSheet.hairlineWidth, borderColor: hairline },

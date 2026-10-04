@@ -1,25 +1,15 @@
 // hooks/useWorkoutEditing.js
 import { useCallback, useEffect, useRef, useState } from "react";
-import useWorkoutStore from "../../../../state/workoutStore";
+import { genId, normalizePrevKeepZero } from "../../shared/workoutSetUtils";
 
 /* ------------------------------ utils ------------------------------ */
-const genId = () => `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-
-const normalizePrev = (prev) => {
-    if (!prev || typeof prev !== "object") return null;
-    return {
-        weight: Number(prev?.weight) || 0,
-        reps: Number(prev?.reps) || 0,
-    };
-};
-
 const normalizeSet = (s) => ({
     id: s?.id || genId(),
     weight: Number(s?.weight) || 0,
     reps: Number(s?.reps) || 0,
     isDone: !!s?.isDone,
     type: s?.type ?? null,
-    prev: normalizePrev(s?.prev),
+    prev: normalizePrevKeepZero(s?.prev),
 });
 
 const sameLength = (a = [], b = []) => a.length === b.length;
@@ -36,8 +26,8 @@ const setsEqualByValue = (a, b) => {
     if (Number(a.weight) !== Number(b.weight)) return false;
     if (Number(a.reps) !== Number(b.reps)) return false;
     if (!!a.isDone !== !!b.isDone) return false;
-    const aPrev = normalizePrev(a.prev);
-    const bPrev = normalizePrev(b.prev);
+    const aPrev = normalizePrevKeepZero(a.prev);
+    const bPrev = normalizePrevKeepZero(b.prev);
     const prevWeightA = Number(aPrev?.weight) || 0;
     const prevWeightB = Number(bPrev?.weight) || 0;
     const prevRepsA = Number(aPrev?.reps) || 0;
@@ -111,8 +101,8 @@ export default function useWorkoutEditing({ workout, updateWorkout, viewingSelf 
                     ? s.type
                     : (prevRow?.type ?? null);
                 const prevPayload = Object.prototype.hasOwnProperty.call(s || {}, "prev")
-                    ? normalizePrev(s?.prev)
-                    : (prevRow?.prev ? normalizePrev(prevRow.prev) : null);
+                    ? normalizePrevKeepZero(s?.prev)
+                    : (prevRow?.prev ? normalizePrevKeepZero(prevRow.prev) : null);
 
                 // preserve object identity if *all* fields are equal
                 if (prevRow &&
@@ -155,34 +145,6 @@ export default function useWorkoutEditing({ workout, updateWorkout, viewingSelf 
         });
     }, [commit]);
 
-    const toggleIsDone = useCallback((exerciseIndex, setIndex) => {
-        commit((w) => {
-            if (!w) return w;
-            const exs = w.exercises || [];
-            if (exerciseIndex < 0 || exerciseIndex >= exs.length) return w;
-
-            const sets = exs[exerciseIndex]?.sets || [];
-            if (setIndex < 0 || setIndex >= sets.length) return w;
-
-            const curr = sets[setIndex];
-            if (!curr) return w;
-            // guard against toggling incomplete rows (your original rule)
-            if (!curr.isDone && (isNaN(curr.weight) || isNaN(curr.reps))) return w;
-
-            const nextSet = { ...curr, isDone: !curr.isDone };
-            if (nextSet.isDone === curr.isDone) return w; // no-op safety
-
-            const nextSets = sets.map((s, i) => (i === setIndex ? nextSet : s));
-            if (refEqualArray(nextSets, sets)) return w;
-
-            const nextExercises = exs.map((ex, i) =>
-                i === exerciseIndex ? { ...ex, sets: nextSets } : ex
-            );
-
-            return { ...w, exercises: nextExercises };
-        });
-    }, [commit]);
-
     /* ------------------------------ helpers ------------------------------ */
 
     const makeBlankSetsLike = useCallback(
@@ -200,7 +162,6 @@ export default function useWorkoutEditing({ workout, updateWorkout, viewingSelf 
         appendExercises,
         updateSets,
         deleteExercise,
-        toggleIsDone,
 
         // helpers
         normalizeSet,

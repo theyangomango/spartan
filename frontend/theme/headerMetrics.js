@@ -17,16 +17,6 @@ const buildMetrics = () => {
     const centerH = s(40);
     const marginTop = 0;
     const icon = dynamicStyles.iconSize;
-    const iconTop = Math.round((centerH - icon) / 2);
-    const iconBox = icon + 6;
-    const logoPadTop = Math.max(0, s(0.5));
-
-    const baseHeaderHeight = scaleSize(centerH + paddingTop + paddingBottom);
-    const focusedHeaderOffset = scaleSize(6);
-    const focusedHeaderHeight = Math.max(
-        baseHeaderHeight - focusedHeaderOffset,
-        scaleSize(centerH + paddingTop),
-    );
 
     return {
         paddingH,
@@ -34,13 +24,7 @@ const buildMetrics = () => {
         paddingBottom,
         centerH,
         marginTop,
-        iconTop,
-        iconBox,
-        logoPadTop,
         iconSize: icon,
-        baseHeaderHeight,
-        focusedHeaderOffset,
-        focusedHeaderHeight,
         safeAreaOffset: marginTop + paddingTop,
     };
 };

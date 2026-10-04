@@ -131,7 +131,6 @@ const buildResizeAction = (width, height) => {
     if (!shouldResizeImage(width, height)) return null;
     const w = Number(width);
     const h = Number(height);
-    if (!Number.isFinite(w) || !Number.isFinite(h)) return null;
     if (w >= h) {
         return { width: MAX_IMAGE_DIMENSION };
     }
@@ -180,7 +179,7 @@ const readAssetBytes = async (uri) => {
         }
         const buffer = await res.arrayBuffer();
         return new Uint8Array(buffer);
-    } catch (error) {
+    } catch {
         try {
             const base64 = await FileSystem.readAsStringAsync(uri, {
                 encoding: FileSystem.EncodingType.Base64,
@@ -280,7 +279,7 @@ async function uploadSingleAsset({ asset, cid, uid, index, timestamp, allowVideo
  * Upload an array of expo-image-picker assets to Firebase Storage.
  * Returns array of media objects:
  *  {
- *    url, storagePath, mimeType, width, height, duration?, type: 'image'|'video', thumbnailUrl?
+ *    url, storagePath, mimeType, width, height, duration?, type: 'image'|'video'
  *  }
  */
 export default async function uploadMediaAssets({ cid, uid, assets, allowVideos = false }) {

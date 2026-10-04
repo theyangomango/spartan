@@ -1,4 +1,3 @@
-// components/Tracking/Group/GroupModal.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, StyleSheet, TextInput, Pressable, FlatList } from "react-native";
 import scaleSize from "../../../../helper/scaleSize";
@@ -11,31 +10,29 @@ import theme from "../../../../theme/mfpDark";
 import useCommunityActivity from "../../../../hooks/useCommunityActivity";
 import useLiveFollowing from "../../../../hooks/useLiveFollowing";
 
-const scaledSize = (size) => scaleSize(size);
+// --- Recency helper derived from FriendsActivitySheet ---
+const toMillis = (v) => {
+    if (!v && v !== 0) return undefined;
+    if (typeof v === "number") return v;
+    if (v?.toMillis) return v.toMillis();
+    const t = new Date(v).getTime();
+    return Number.isFinite(t) ? t : undefined;
+};
+const bestTimestamp = (it) =>
+    Math.max(
+        toMillis(it?.created) ?? 0,
+        toMillis(it?.startedAt) ?? 0,
+        toMillis(it?.finishedAt) ?? 0
+    );
 
-const GroupModal = ({ closeGroupModal, onInvite }) => {
+const GroupModal = ({ onInvite }) => {
     const followingUsers = Array.isArray(global?.userData?.following) ? global.userData.following : [];
     const [filteredUsers, setFilteredUsers] = useState(followingUsers);
     const [selectedUsers, setSelectedUsers] = useState([]);
     const [searchQuery, setSearchQuery] = useState("");
     const insets = useSafeAreaInsets();
 
-    // --- Recency helper derived from FriendsActivitySheet ---
-    const toMillis = (v) => {
-        if (!v && v !== 0) return undefined;
-        if (typeof v === "number") return v;
-        if (v?.toMillis) return v.toMillis();
-        const t = new Date(v).getTime();
-        return Number.isFinite(t) ? t : undefined;
-    };
-    const bestTimestamp = (it) =>
-        Math.max(
-            toMillis(it?.created) ?? 0,
-            toMillis(it?.startedAt) ?? 0,
-            toMillis(it?.finishedAt) ?? 0
-        );
     useEffect(() => {
-        const key = JSON.stringify((Array.isArray(followingUsers) ? followingUsers : []).map((u) => u?.uid || u));
         if (!searchQuery) {
             setFilteredUsers(followingUsers);
         } else {
@@ -122,7 +119,7 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
             </View>
             {/* Sleek search */}
             <View style={styles.searchContainer}>
-                <Icon name="search" size={scaledSize(16)} color={theme.primary} style={styles.searchIcon} />
+                <Icon name="search" size={scaleSize(16)} color={theme.primary} style={styles.searchIcon} />
                 <TextInput
                     style={styles.searchBar}
                     placeholder="Search by handle or name"
@@ -133,7 +130,7 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
                 />
                 {searchQuery.length > 0 && (
                     <Pressable onPress={clearSearch} hitSlop={8}>
-                        <Icon name="close-circle" size={scaledSize(16)} color={theme.muted} />
+                        <Icon name="close-circle" size={scaleSize(16)} color={theme.muted} />
                     </Pressable>
                 )}
             </View>
@@ -156,7 +153,7 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
                     </View>
                 }
                 style={styles.list}
-                contentContainerStyle={{ paddingBottom: scaleSize(Math.max(insets.bottom, scaledSize(24)) + scaledSize(96)) }}
+                contentContainerStyle={{ paddingBottom: scaleSize(Math.max(insets.bottom, scaleSize(24)) + scaleSize(96)) }}
                 initialNumToRender={15}
                 windowSize={15}
                 showsVerticalScrollIndicator={false}
@@ -164,7 +161,7 @@ const GroupModal = ({ closeGroupModal, onInvite }) => {
             <RNBounceable
                 style={[
                     styles.sendButtonWrap,
-                    { bottom: scaleSize(insets.bottom + scaledSize(24)), opacity: selectedUsers.length < 1 ? 0.5 : 1 },
+                    { bottom: scaleSize(insets.bottom + scaleSize(24)), opacity: selectedUsers.length < 1 ? 0.5 : 1 },
                 ]}
                 disabled={selectedUsers.length === 0}
                 onPress={() => onInvite?.(selectedUsers)}
@@ -190,10 +187,10 @@ const styles = StyleSheet.create({
     modalOverlay: { flex: 1, alignItems: "center" },
 
     header: {
-        paddingTop: scaledSize(16),
+        paddingTop: scaleSize(16),
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: scaledSize(14),
+        marginBottom: scaleSize(14),
         gap: scaleSize(6),
     },
     modalText: {
@@ -217,19 +214,19 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         backgroundColor: theme.fieldDeep,
-        borderRadius: scaledSize(12),
+        borderRadius: scaleSize(12),
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.hairline,
         width: "90%",
-        paddingHorizontal: scaledSize(10),
-        paddingVertical: scaledSize(6),
-        marginBottom: scaledSize(10),
+        paddingHorizontal: scaleSize(10),
+        paddingVertical: scaleSize(6),
+        marginBottom: scaleSize(10),
     },
-    searchIcon: { marginRight: scaledSize(8) },
+    searchIcon: { marginRight: scaleSize(8) },
     searchBar: {
         flex: 1,
-        paddingHorizontal: scaledSize(8),
-        paddingVertical: scaledSize(6),
+        paddingHorizontal: scaleSize(8),
+        paddingVertical: scaleSize(6),
         fontSize: scaleSize(13),
         color: theme.textPrimary,
         fontFamily: "Outfit_600SemiBold",
@@ -240,9 +237,9 @@ const styles = StyleSheet.create({
 
     sendButtonWrap: {
         position: "absolute",
-        left: scaledSize(22),
-        right: scaledSize(22),
-        borderRadius: scaledSize(18),
+        left: scaleSize(22),
+        right: scaleSize(22),
+        borderRadius: scaleSize(18),
         // Give the shadow a base color for iOS' shadow renderer
         backgroundColor: theme.bg,
         shadowColor: "#000",
@@ -255,9 +252,9 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        borderRadius: scaledSize(18),
-        paddingVertical: scaledSize(14),
-        paddingHorizontal: scaledSize(30),
+        borderRadius: scaleSize(18),
+        paddingVertical: scaleSize(14),
+        paddingHorizontal: scaleSize(30),
     },
     sendButtonText: {
         color: "#fff",

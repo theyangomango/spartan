@@ -5,14 +5,13 @@ import scaleSize from "../../helper/scaleSize";
 import theme from "../../theme/mfpDark";
 import { getExerciseImageSource, toExerciseSlug } from "./exerciseImageMap";
 
-export { getExerciseImageSource, toExerciseSlug, resolveExerciseImageByName } from "./exerciseImageMap";
+export { toExerciseSlug } from "./exerciseImageMap";
 
 const DEFAULT_SIZE = scaleSize(38);
 
 const getInitials = (rawName) => {
     if (!rawName || typeof rawName !== "string") return "?";
     const parts = rawName.trim().split(/\s+/).slice(0, 2);
-    if (!parts.length) return "?";
     const initials = parts
         .map((part) => part.charAt(0))
         .join("")

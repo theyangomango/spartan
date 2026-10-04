@@ -70,7 +70,7 @@ const sanitizeReplyPreview = (preview) => {
  *   cid,
  *   sender: { uid, handle, pfp, name },
  *   text: string,
- *   media: [{ type: 'image'|'video', url, thumbnailUrl? }],
+ *   media: [{ type: 'image', url, thumbnailUrl? }],
  *   replyTo?: messageId | null,
  *   replyPreview?: { senderHandle, text, hasMedia }
  * }

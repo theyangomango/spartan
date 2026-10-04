@@ -79,26 +79,6 @@ const normalizeSet = (set, { defaultDate = "", defaultWid } = {}) => {
   };
 };
 
-const mergeProgressIntoTimeline = (timelineMap, progress) => {
-  let bestFound = 0;
-  (Array.isArray(progress) ? progress : []).forEach((row) => {
-    const day = row?.date || row?.day || row?.dayKey || "";
-    const ts = parseDayKey(day);
-    if (!ts) return;
-    const vol = toNumber(row?.volume ?? row?.Volume);
-    const best = toNumber(row?.["1RM"] ?? row?.best ?? row?.oneRepMax);
-    if (!timelineMap.has(day)) {
-      timelineMap.set(day, { volume: Math.max(0, vol), best });
-    } else {
-      const bucket = timelineMap.get(day);
-      if (vol > bucket.volume) bucket.volume = vol;
-      if (best > bucket.best) bucket.best = best;
-    }
-    if (best > bestFound) bestFound = best;
-  });
-  return bestFound;
-};
-
 const inferGroup = (name) => {
   const n = String(name || "").toLowerCase();
   if (!n) return null;

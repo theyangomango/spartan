@@ -4,15 +4,52 @@ import scaleSize from "../../../helper/scaleSize";
 import { Svg, Polygon, Text as SvgText, Defs, LinearGradient, Stop, Circle, TSpan, Line } from "react-native-svg";
 import formatHexStat from "../../../utils/formatHexStat";
 
-const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
-
-// Centralized scaling
-const scaledSize = (size) => scaleSize(size);
+const { width: screenWidth } = Dimensions.get("window");
 
 // Default chart size; can be overridden via prop
 const defaultChartSize = Math.min(screenWidth * 0.7, 360);
 const categories = ["SHOULDERS", "CHEST", "ARMS", "LEGS", "BACK", "ABS"];
 const maxValue = 100;
+
+const approxTextWidth = (text, fontSize) => {
+    if (text === null || text === undefined) return 0;
+    const str = String(text);
+    if (!str) return 0;
+    return str.length * fontSize * 0.58;
+};
+
+const renderStrikeLine = ({ x, y, fontSize, textAnchor, text, color }) => {
+    const width = approxTextWidth(text, fontSize);
+    if (!width) return null;
+    let x1 = x;
+    let x2 = x;
+    if (textAnchor === "middle") {
+        x1 = x - width / 2;
+        x2 = x + width / 2;
+    } else if (textAnchor === "end") {
+        x1 = x - width;
+        x2 = x;
+    } else {
+        x1 = x;
+        x2 = x + width;
+    }
+    return (
+        <Line
+            x1={x1}
+            y1={y}
+            x2={x2}
+            y2={y}
+            stroke={color}
+            strokeWidth={Math.max(2, fontSize * 0.16)}
+            strokeLinecap="round"
+        />
+    );
+};
+const toRoundedStat = (value) => {
+    const num = Number(value);
+    if (!Number.isFinite(num)) return 0;
+    return Math.round(num * 10) / 10;
+};
 
 const HexagonalStats = ({
     statsHexagon,
@@ -31,46 +68,6 @@ const HexagonalStats = ({
     polygonFillOpacityEnd = 0.18,
     dotColor,
 }) => {
-    const approxTextWidth = (text, fontSize) => {
-        if (text === null || text === undefined) return 0;
-        const str = String(text);
-        if (!str) return 0;
-        return str.length * fontSize * 0.58;
-    };
-
-    const renderStrikeLine = ({ x, y, fontSize, textAnchor, text, color }) => {
-        const width = approxTextWidth(text, fontSize);
-        if (!width) return null;
-        let x1 = x;
-        let x2 = x;
-        if (textAnchor === "middle") {
-            x1 = x - width / 2;
-            x2 = x + width / 2;
-        } else if (textAnchor === "end") {
-            x1 = x - width;
-            x2 = x;
-        } else {
-            x1 = x;
-            x2 = x + width;
-        }
-        return (
-            <Line
-                x1={x1}
-                y1={y}
-                x2={x2}
-                y2={y}
-                stroke={color}
-                strokeWidth={Math.max(2, fontSize * 0.16)}
-                strokeLinecap="round"
-            />
-        );
-    };
-    const toRoundedStat = (value) => {
-        const num = Number(value);
-        if (!Number.isFinite(num)) return 0;
-        return Math.round(num * 10) / 10;
-    };
-
     // only the selected user's stats (rounded exactly how we display them)
     const data = [
         toRoundedStat(statsHexagon?.shoulders),
@@ -92,23 +89,23 @@ const HexagonalStats = ({
     // Geometry
     const chartSize = Math.max(120, Number(size) || defaultChartSize);
     const radius = chartSize / 2;
-    const padX = showLabels ? scaledSize(32) : 0; // match labelRadiusOffset
+    const padX = showLabels ? scaleSize(32) : 0; // match labelRadiusOffset
     const svgW = chartSize + (showLabels ? padX * 2 : 0);
-    const svgH = showLabels ? (chartSize + scaledSize(110)) : chartSize;
+    const svgH = showLabels ? (chartSize + scaleSize(110)) : chartSize;
     const centerX = svgW / 2;
-    const centerY = showLabels ? (chartSize / 2 + scaledSize(50)) : (chartSize / 2);
+    const centerY = showLabels ? (chartSize / 2 + scaleSize(50)) : (chartSize / 2);
     const angle = (2 * Math.PI) / categories.length;
 
     // Scaled styling
-    const labelFont = Number(labelFontPx) || scaledSize(13);
-    const valueFont = Number(valueFontPx) || scaledSize(14);
+    const labelFont = Number(labelFontPx) || scaleSize(13);
+    const valueFont = Number(valueFontPx) || scaleSize(14);
     const valueFontBig = Number(valueFontBigPx) || Math.round(valueFont * 1.25);
-    const labelRadiusOffset = Number(labelOffsetPx) || scaledSize(26);
-    const valueOffset = scaledSize(12);
+    const labelRadiusOffset = Number(labelOffsetPx) || scaleSize(26);
+    const valueOffset = scaleSize(12);
 
-    const ringStroke = Math.max(1, scaledSize(1));       // keep grid crisp
-    const outlineStroke = Math.max(2, scaledSize(2));    // data polygon outline
-    const dotRadius = Math.max(3, scaledSize(3));        // vertex dots
+    const ringStroke = Math.max(1, scaleSize(1));       // keep grid crisp
+    const outlineStroke = Math.max(2, scaleSize(2));    // data polygon outline
+    const dotRadius = Math.max(3, scaleSize(3));        // vertex dots
     const zeroBumpRatio = 0.06;                          // subtle bump for zero values
 
     const levels = 5; // subtle rings
@@ -130,8 +127,6 @@ const HexagonalStats = ({
         const normalized = Math.max(0, Math.min(val, maxValue)) / maxValue;
         const t = normalized === 0 ? zeroBumpRatio : normalized;
         const r = radius * t;
-        const x = centerX + r * Math.cos(angle * i - Math.PI / 2);
-        const y = centerY + r * Math.sin(angle * i - Math.PI / 2);
         return {
             x: centerX + r * Math.cos(angle * i - Math.PI / 2),
             y: centerY + r * Math.sin(angle * i - Math.PI / 2),
@@ -220,12 +215,12 @@ const HexagonalStats = ({
                     // we anchor to the left so text flows rightwards. Top/bottom remain centered.
                     const isRightSide = (i === 1 || i === 2);
                     const sideAnchor = isRightSide ? 'end' : 'start';
-                    const lineGap = scaledSize(16);
+                    const lineGap = scaleSize(16);
                     return (
                         <React.Fragment key={`lbl-${i}`}>
                             <SvgText
                                 x={x}
-                                y={y - scaledSize(6)}
+                                y={y - scaleSize(6)}
                                 textAnchor="middle"
                                 alignmentBaseline="middle"
                                 // Brighter label color so muscle types are readable in the modal
@@ -255,7 +250,7 @@ const HexagonalStats = ({
                                 }
 
                                 if (!isSide) {
-                                    const gap = scaledSize(10);
+                                    const gap = scaleSize(10);
                                     const prevWidth = approxTextWidth(formattedPrev, valueFont);
                                     const currWidth = approxTextWidth(formattedCurr, valueFontBig);
                                     const totalWidth = prevWidth + gap + currWidth;

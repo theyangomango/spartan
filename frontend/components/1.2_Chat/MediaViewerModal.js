@@ -1,4 +1,3 @@
-// components/1.2_Chat/MediaViewerModal.jsx
 import React, { useEffect, useRef, useState } from "react";
 import { Modal, View, Pressable, Animated, StyleSheet, Dimensions, Image } from "react-native";
 import FastImage from "react-native-fast-image";

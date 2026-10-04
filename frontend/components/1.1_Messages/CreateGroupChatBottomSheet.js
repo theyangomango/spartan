@@ -10,10 +10,6 @@ const CreateGroupChatBottomSheet = ({ isVisible, setIsVisible, initChat }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
 
-    const handleSheetChanges = useCallback((index) => {
-        console.log("handleSheetChanges", index);
-    }, []);
-
     const renderBackdrop = useCallback(
         (props) => (
             <BottomSheetBackdrop
@@ -38,7 +34,6 @@ const CreateGroupChatBottomSheet = ({ isVisible, setIsVisible, initChat }) => {
             index={-1}
             backdropComponent={renderBackdrop}
             snapPoints={snapPoints}
-            onChange={handleSheetChanges}
             enablePanDownToClose
             onClose={() => setIsVisible(false)}
             backgroundStyle={styles.sheetBackground}

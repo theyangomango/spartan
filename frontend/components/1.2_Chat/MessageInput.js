@@ -27,11 +27,6 @@ export default function MessageInput({
         onSend?.();
     };
 
-    const handleSubmit = () => {
-        if (disabled) return;
-        onSend?.();
-    };
-
     return (
         <View style={[styles.wrap, { marginBottom: isFocused ? 4 : 22 }]}>
             {isBlocked && (
@@ -110,7 +105,7 @@ export default function MessageInput({
                     onFocus={onFocus}
                     onBlur={onBlur}
                     returnKeyType="send"
-                    onSubmitEditing={handleSubmit}
+                    onSubmitEditing={handleSend}
                     editable={!isSending && !isBlocked}
                     hitSlop={{ top: scaleSize(10), bottom: scaleSize(10) }}
                 />

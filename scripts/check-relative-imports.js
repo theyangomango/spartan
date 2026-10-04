@@ -12,7 +12,7 @@ const PROJECT_ROOT = process.cwd();
 const ENTRY_FILE = path.join(PROJECT_ROOT, 'App.js');
 const EXTS = ['.js', '.jsx', '.ts', '.tsx'];
 
-const IMPORT_RE = /(?:import\s+[^'"\n]+?from\s+['"]([^'"\n]+)['"])|(?:export\s+[^'"\n]*?from\s+['"]([^'"\n]+)['"])|(?:require\(\s*['"]([^'"\n]+)['"]\s*\))/g;
+const IMPORT_RE = /(?:import\s+[^'";]*?\sfrom\s+['"]([^'"\n]+)['"])|(?:export\s+[^'";]*?\sfrom\s+['"]([^'"\n]+)['"])|(?:require\(\s*['"]([^'"\n]+)['"]\s*\))/g;
 
 function readFileSafe(filePath) {
   try {

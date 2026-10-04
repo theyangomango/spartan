@@ -1,7 +1,5 @@
 import { db } from "../firebase.config";
 import readDoc from "./helper/firebase/readDoc";
-import getReverse from "./helper/getReverse";
-import retrievePosts from "./posts/retrievePosts";
 import { collection, getDocs, limit, orderBy, query, where } from "firebase/firestore";
 import { ensureUidArray, coerceUid } from "./helper/userRefs";
 import updateDoc from "./helper/firebase/updateDoc";
@@ -108,18 +106,7 @@ const backfillMissingChatDoc = async (cid, entry, userData, myUid) => {
     }
 };
 
-// 1. 🔹 Get posts from global.post list (reversed)
-export async function getUserPosts() {
-    const postsDoc = await readDoc('global', 'posts').catch(() => null);
-    const pids = Array.isArray(postsDoc?.PIDs) ? postsDoc.PIDs : [];
-    if (!pids.length) {
-        return [];
-    }
-    const db_posts = await retrievePosts(getReverse(pids));
-    return db_posts;
-}
-
-// 2. 🔹 Get user's message threads
+// Get user's message threads
 export async function getUserMessages(userData) {
     const db_messages = [];
     if (!userData || typeof userData !== 'object') return db_messages;
@@ -235,12 +222,4 @@ export async function getUserMessages(userData) {
     db_messages.sort((a, b) => getEpoch(b) - getEpoch(a));
 
     return db_messages;
-}
-
-// 🔄 Main orchestrator
-export default async function getUserFeed(userData) {
-    const posts = await getUserPosts();
-    const messages = await getUserMessages(userData);
-
-    return [posts, messages];
 }

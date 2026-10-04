@@ -1,15 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
-import { StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
 import EditProfileModal from "./EditProfileModal";
+import THEME from "../../../theme/mfpDark";
 
 const EditProfileBottomSheet = ({ isVisible, setIsVisible, setPFP }) => {
     const bottomSheetRef = useRef(null);
     const snapPoints = useMemo(() => ["94%"], []);
-
-    const handleSheetChanges = useCallback((index) => {
-        console.log("handleSheetChanges", index);
-    }, []);
 
     const renderBackdrop = useCallback(
         (props) => (
@@ -35,8 +31,7 @@ const EditProfileBottomSheet = ({ isVisible, setIsVisible, setPFP }) => {
             index={-1}
             snapPoints={snapPoints}
             backdropComponent={renderBackdrop}
-            onChange={handleSheetChanges}
-            backgroundStyle={{ backgroundColor: require("../../../theme/mfpDark").default.bg }}
+            backgroundStyle={{ backgroundColor: THEME.bg }}
             handleIndicatorStyle={{backgroundColor: '#fff'}}
             enablePanDownToClose
             onClose={() => {

@@ -8,7 +8,6 @@ const PostListItem = memo(function PostListItem({
   highlightPid,
   highlightSignal,
   openCommentsModal,
-  openShareModal,
   openLikesSheet,
   toViewProfilePosts,
   openViewWorkoutModal,
@@ -39,12 +38,6 @@ const PostListItem = memo(function PostListItem({
       openCommentsModal(index);
     }
   }, [openCommentsModal, index]);
-
-  const handleShare = useCallback(() => {
-    if (typeof openShareModal === "function") {
-      openShareModal(index);
-    }
-  }, [openShareModal, index]);
 
   const handleLikes = useCallback(() => {
     if (typeof openLikesSheet === "function") {
@@ -80,7 +73,6 @@ const PostListItem = memo(function PostListItem({
       onPressProfile={handleProfile}
       onPressWorkout={handleWorkout}
       onPressComments={handleComments}
-      onPressShare={handleShare}
       onPressLikes={handleLikes}
       onPressDeletePost={handleDeletePost}
       onPressEditPost={typeof onEditPost === "function" ? handleEditPost : undefined}

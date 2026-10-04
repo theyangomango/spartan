@@ -3,9 +3,8 @@
 import * as FileSystem from 'expo-file-system';
 import { getAuth } from 'firebase/auth';
 import { getDownloadURL, ref } from 'firebase/storage';
-import { storage } from '../../firebase.config';
+import { storage, app } from '../../firebase.config';
 
-const app = require('../../firebase.config').app;
 const BUCKET = (app?.options?.storageBucket || '').replace('gs://', '') || 'spartan-8a55f.appspot.com';
 
 async function getIdToken() {

@@ -45,21 +45,3 @@ export const registerRankPromotionKey = (key) => {
         return true;
     }
 };
-
-export const getLastRankPromotionKey = () => {
-    try {
-        const userKey = resolveCurrentUserKey();
-        if (userKey && global[LAST_PROMOTION_MAP]) {
-            return global[LAST_PROMOTION_MAP][userKey] || null;
-        }
-        return global[LAST_PROMOTION_KEY] || null;
-    } catch {
-        return null;
-    }
-};
-
-export default {
-    buildRankPromotionKey,
-    registerRankPromotionKey,
-    getLastRankPromotionKey,
-};

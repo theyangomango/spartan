@@ -478,10 +478,3 @@ export async function propagateHandleChange({ uid, oldHandle, newHandle }) {
   console.log("propagateHandleChange: completed handle migration.");
   replaceConfig = null;
 }
-
-export default {
-  normaliseHandle,
-  findUserByHandle,
-  ensureHandleAvailable,
-  propagateHandleChange,
-};

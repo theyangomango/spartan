@@ -2,7 +2,7 @@ import React from "react";
 import { View } from "react-native";
 
 import resolveRankTierKey, { resolveRankLabel } from "../../../utils/resolveRankTierKey";
-import { RANK_TIER_THEMES } from "../../1_Feed/FeedSnapshotCard";
+import { RANK_TIER_THEMES } from "../../1_Feed/rankTierThemes";
 import RankBadgeEmblem from "../../2_Competition/RankBadgeEmblem";
 import { resolveLevelStage } from "../../2_Competition/rankBadgeLevelHelpers";
 

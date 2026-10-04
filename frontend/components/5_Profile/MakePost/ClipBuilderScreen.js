@@ -1,37 +1,28 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert, Dimensions, Pressable, ScrollView } from "react-native";
+import { View, Text, TouchableOpacity, Alert, Pressable, ScrollView } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather, FontAwesome6, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import * as MediaLibrary from "expo-media-library";
-import * as FileSystem from "expo-file-system";
 import Slider from "@react-native-community/slider";
+import FastImage from "react-native-fast-image";
 import DismissableTextInput from "../../common/DismissableTextInput";
 import CroppedVideo from "../../common/CroppedVideo";
 import theme from "../../../theme/mfpDark";
 import { withStrongPress } from "../../../utils/haptics";
-import FastImage from "react-native-fast-image";
 import { resolvePhotoURL } from "../../../utils/profilePhoto";
 import { addOptimisticFeedPost, removeOptimisticFeedPost } from "../../../utils/optimisticFeedPosts";
 import makeID from "../../../../backend/helper/makeID";
 import uploadResumableNative from "../../../../backend/storage/uploadResumableNative";
 import createPost from "../../../../backend/posts/createPost";
 import arrayAppend from "../../../../backend/helper/firebase/arrayAppend";
+import { jumpToTab } from "../../../../navigationRef";
+import { scaleWidth375 } from "../../../helper/scaleSize";
+import { formatClockTime } from "../../../utils/date";
 import { getViewerUid } from "../../../utils/userRefs";
+import { ensureClipVideoAsset } from "./videoUploadAsset";
+import styles from "./ClipBuilderScreen.styles";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const scale = SCREEN_WIDTH / 375;
-const scaleSize = (value) => Math.round(value * scale);
 const MAX_DURATION = 90;
-const composeHorizontalPadding = scaleSize(18);
-const avatarSize = scaleSize(36);
-
-const formatClockTime = (seconds) => {
-    const total = Math.max(0, Math.floor(Number(seconds) || 0));
-    const mins = Math.floor(total / 60);
-    const secs = total % 60;
-    return `${mins}:${String(secs).padStart(2, "0")}`;
-};
 
 const normalizeClipEntry = (entry) => {
     if (!entry) return null;
@@ -132,7 +123,6 @@ export default function ClipBuilderScreen({ navigation, route }) {
 
     const exitToFeed = useCallback(() => {
         try {
-            const { jumpToTab } = require('../../../../navigationRef');
             if (!jumpToTab('Feed')) {
                 navigation.navigate('Tabs', { screen: 'Feed' });
             }
@@ -220,85 +210,6 @@ export default function ClipBuilderScreen({ navigation, route }) {
         setVideoProgress(seconds);
     }, []);
 
-    const ensureClipVideoAsset = useCallback(async (entry) => {
-        if (!entry) return null;
-
-        const ensureFileScheme = (uri) => (uri && uri.startsWith('file://') ? uri : null);
-        let assetInfo = null;
-        const loadAssetInfo = async () => {
-            if (assetInfo || !entry.assetId) return assetInfo;
-            try {
-                assetInfo = await MediaLibrary.getAssetInfoAsync(entry.assetId);
-            } catch (error) {
-                console.warn('[ClipBuilder] getAssetInfoAsync failed', error);
-                assetInfo = null;
-            }
-            return assetInfo;
-        };
-
-        let sourceUri = entry.localUri || entry.uri || null;
-        let fileUri = ensureFileScheme(sourceUri);
-
-        if (!fileUri && entry.assetId) {
-            const info = await loadAssetInfo();
-            if (info?.localUri) {
-                fileUri = ensureFileScheme(info.localUri);
-                if (!fileUri) {
-                    sourceUri = info.localUri;
-                }
-            }
-        }
-
-        let fallbackUri = fileUri ? null : sourceUri;
-
-        const withoutQuery = (sourceUri || '').split('?')[0];
-        let ext = (withoutQuery.match(/\.([a-zA-Z0-9]+)$/)?.[1] || '').toLowerCase();
-        if (!ext && entry.assetId) {
-            const info = await loadAssetInfo();
-            if (info?.filename) {
-                const parts = info.filename.split('.');
-                const candidate = parts[parts.length - 1];
-                if (candidate) ext = candidate.toLowerCase();
-            }
-        }
-        if (!ext) ext = 'mp4';
-        const normalizedExt = ['mp4', 'mov', 'm4v'].includes(ext) ? ext : 'mp4';
-
-        if (!fileUri && fallbackUri) {
-            const cacheDir = FileSystem.cacheDirectory || FileSystem.documentDirectory || FileSystem.temporaryDirectory;
-            if (!cacheDir) throw new Error('No cache directory available for video upload');
-            const tempTarget = `${cacheDir}upload-video-${makeID()}.${normalizedExt}`;
-            const isRemote = /^https?:\/\//i.test(fallbackUri);
-            try {
-                if (isRemote) {
-                    const download = await FileSystem.downloadAsync(fallbackUri, tempTarget);
-                    fileUri = download?.uri || tempTarget;
-                } else {
-                    await FileSystem.copyAsync({ from: fallbackUri, to: tempTarget });
-                    fileUri = tempTarget;
-                }
-            } catch (error) {
-                console.warn('[ClipBuilder] copyAsync failed for video', error);
-                fileUri = ensureFileScheme(fallbackUri);
-            }
-        }
-
-        if (!fileUri) {
-            throw new Error('Unable to resolve video file for upload');
-        }
-
-        const info = await FileSystem.getInfoAsync(fileUri).catch(() => null);
-        const size = info?.size && Number.isFinite(info.size) ? info.size : null;
-        const mime = normalizedExt === 'mov' ? 'video/quicktime' : 'video/mp4';
-
-        return {
-            fileUri,
-            ext: normalizedExt,
-            mime,
-            size,
-        };
-    }, []);
-
     const beginScrub = useCallback(() => {
         scrubStateRef.current = !isPaused;
         setIsPaused(true);
@@ -345,12 +256,10 @@ export default function ClipBuilderScreen({ navigation, route }) {
         const previousPosts = global?.userData && Array.isArray(global.userData.posts)
             ? [...global.userData.posts]
             : null;
-        let appendedOptimistically = false;
         if (global?.userData) {
             const existing = Array.isArray(global.userData.posts) ? global.userData.posts : [];
             if (!existing.includes(pid)) {
                 global.userData.posts = [...existing, pid];
-                appendedOptimistically = true;
             }
         }
         let optimisticPostAdded = false;
@@ -488,14 +397,14 @@ export default function ClipBuilderScreen({ navigation, route }) {
         : (isPosting ? "Posting..." : "Post");
     const headerActionDisabled = !selectedClip || isPosting;
 
-    const headerTopPadding = insets.top + scaleSize(4);
-    const headerBottomPadding = scaleSize(12);
+    const headerTopPadding = insets.top + scaleWidth375(4);
+    const headerBottomPadding = scaleWidth375(12);
 
     return (
         <View style={styles.main}>
             <View style={[styles.header, { paddingTop: headerTopPadding, paddingBottom: headerBottomPadding }]}>
                 <TouchableOpacity onPress={withStrongPress(() => navigation.goBack())} style={styles.header_btn}>
-                    <Feather name="chevron-left" size={scaleSize(22)} color={theme.textSecondary} />
+                    <Feather name="chevron-left" size={scaleWidth375(22)} color={theme.textSecondary} />
                 </TouchableOpacity>
                 <View
                     style={[
@@ -546,7 +455,7 @@ export default function ClipBuilderScreen({ navigation, route }) {
                                     />
                                 ) : (
                                     <View style={styles.avatar_placeholder}>
-                                        <Feather name="user" size={scaleSize(20)} color={theme.textSecondary} />
+                                        <Feather name="user" size={scaleWidth375(20)} color={theme.textSecondary} />
                                     </View>
                                 )}
                             </View>
@@ -590,7 +499,7 @@ export default function ClipBuilderScreen({ navigation, route }) {
                                 />
                                 {resolvedPaused && (
                                     <View style={styles.video_play_icon_wrap} pointerEvents="none">
-                                        <FontAwesome6 name="circle-play" size={scaleSize(56)} color="#fff" />
+                                        <FontAwesome6 name="circle-play" size={scaleWidth375(56)} color="#fff" />
                                     </View>
                                 )}
                             </Pressable>
@@ -625,7 +534,7 @@ export default function ClipBuilderScreen({ navigation, route }) {
                                 >
                                     <MaterialCommunityIcons
                                         name={areVideosMuted ? "volume-off" : "volume-high"}
-                                        size={scaleSize(18)}
+                                        size={scaleWidth375(18)}
                                         color="#fff"
                                     />
                                 </Pressable>
@@ -638,7 +547,7 @@ export default function ClipBuilderScreen({ navigation, route }) {
                             style={styles.clear_btn}
                             onPress={withStrongPress(clearSelection)}
                         >
-                            <Feather name="trash-2" size={scaleSize(16)} color={theme.error || "#EF4444"} />
+                            <Feather name="trash-2" size={scaleWidth375(16)} color={theme.error || "#EF4444"} />
                             <Text style={styles.clear_btn_text}>Remove video</Text>
                         </TouchableOpacity>
                             </View>
@@ -648,7 +557,7 @@ export default function ClipBuilderScreen({ navigation, route }) {
                                 onPress={withStrongPress(pickVideo)}
                                 activeOpacity={0.82}
                             >
-                                <Feather name="video" size={scaleSize(22)} color={theme.primary} />
+                                <Feather name="video" size={scaleWidth375(22)} color={theme.primary} />
                                 <Text style={styles.placeholder_title}>Add a video</Text>
                                 <Text style={styles.placeholder_text}>
                                     Share a single clip under 90 seconds.
@@ -662,221 +571,3 @@ export default function ClipBuilderScreen({ navigation, route }) {
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    main: {
-        flex: 1,
-        backgroundColor: theme.surface,
-    },
-    header: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: scaleSize(18),
-        paddingBottom: scaleSize(12),
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: theme.hairline,
-        backgroundColor: theme.bg,
-        position: "relative",
-    },
-    header_btn: {
-        width: scaleSize(40),
-        height: scaleSize(32),
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    header_title_ctnr: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        top: scaleSize(4),
-        bottom: 0,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    header_title: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(16),
-        color: theme.textPrimary,
-        textAlign: "center",
-    },
-    header_action_btn: {
-        minWidth: scaleSize(48),
-        alignItems: "flex-end",
-        justifyContent: "center",
-        paddingVertical: scaleSize(6),
-    },
-    header_action_text: {
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(16),
-        color: theme.primary,
-    },
-    header_action_text_disabled: {
-        color: "rgba(148,163,184,0.6)",
-    },
-    body: {
-        flex: 1,
-    },
-    body_content: {
-        paddingHorizontal: composeHorizontalPadding,
-        paddingTop: scaleSize(18),
-        paddingBottom: scaleSize(48),
-        flexGrow: 1,
-    },
-    media_block: {
-        marginTop: scaleSize(18),
-        marginHorizontal: -composeHorizontalPadding,
-    },
-    previewWrapper: {
-        marginBottom: scaleSize(12),
-    },
-    videoStage: {
-        width: "100%",
-        aspectRatio: 9 / 16,
-        backgroundColor: "#000",
-        position: "relative",
-        borderRadius: 0,
-        overflow: "hidden",
-    },
-    video_pressable: {
-        width: "100%",
-        height: "100%",
-    },
-    previewVideo: {
-        width: "100%",
-        height: "100%",
-        backgroundColor: "#000",
-    },
-    video_play_icon_wrap: {
-        position: "absolute",
-        top: 0,
-        bottom: 0,
-        left: 0,
-        right: 0,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    video_slider_overlay: {
-        position: "absolute",
-        left: 0,
-        right: 0,
-        bottom: 0,
-        paddingHorizontal: scaleSize(12),
-        paddingBottom: scaleSize(10),
-        paddingTop: scaleSize(6),
-        backgroundColor: "rgba(0,0,0,0.35)",
-    },
-    video_slider: {
-        height: scaleSize(30),
-    },
-    video_time_row: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        marginBottom: scaleSize(6),
-    },
-    video_time_text: {
-        fontSize: scaleSize(11),
-        color: "#fff",
-        fontFamily: "Outfit_600SemiBold",
-    },
-    video_controls_overlay: {
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        justifyContent: "flex-start",
-        alignItems: "flex-end",
-        padding: scaleSize(12),
-    },
-    video_mute_button: {
-        width: scaleSize(36),
-        height: scaleSize(36),
-        borderRadius: scaleSize(18),
-        backgroundColor: "rgba(0,0,0,0.45)",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    previewMeta: {
-        paddingVertical: scaleSize(12),
-        paddingHorizontal: composeHorizontalPadding,
-        fontFamily: "Outfit_600SemiBold",
-        color: theme.textPrimary,
-    },
-    clear_btn: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "center",
-        paddingBottom: scaleSize(12),
-        paddingHorizontal: composeHorizontalPadding,
-    },
-    clear_btn_text: {
-        fontFamily: "Outfit_600SemiBold",
-        color: theme.error || "#EF4444",
-        fontSize: scaleSize(14),
-        marginLeft: scaleSize(6),
-    },
-    placeholder: {
-        borderRadius: scaleSize(16),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
-        paddingVertical: scaleSize(32),
-        paddingHorizontal: composeHorizontalPadding,
-        alignItems: "center",
-        marginBottom: scaleSize(16),
-        backgroundColor: theme.surface,
-    },
-    placeholder_full: {
-        marginHorizontal: 0,
-        alignSelf: "stretch",
-    },
-    placeholder_title: {
-        marginTop: scaleSize(12),
-        fontFamily: "Outfit_600SemiBold",
-        fontSize: scaleSize(16),
-        color: theme.textPrimary,
-    },
-    placeholder_text: {
-        marginTop: scaleSize(6),
-        fontFamily: "Outfit_500Medium",
-        color: theme.textSecondary,
-        fontSize: scaleSize(13),
-        textAlign: "center",
-    },
-    caption_block: {
-        marginTop: 0,
-        paddingHorizontal: 0,
-    },
-    caption_row: {
-        flexDirection: "row",
-    },
-    avatar_ctnr: {
-        width: avatarSize,
-    },
-    avatar: {
-        width: avatarSize,
-        height: avatarSize,
-        borderRadius: avatarSize / 2,
-        backgroundColor: theme.surface,
-    },
-    avatar_placeholder: {
-        width: avatarSize,
-        height: avatarSize,
-        borderRadius: avatarSize / 2,
-        backgroundColor: theme.hairline,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    caption_ctnr: {
-        flex: 1,
-        marginLeft: scaleSize(12),
-    },
-    caption_text: {
-        fontSize: scaleSize(17),
-        fontFamily: "Outfit_500Medium",
-        color: theme.textPrimary,
-        minHeight: avatarSize,
-        paddingVertical: 0,
-        paddingHorizontal: 0,
-    },
-});

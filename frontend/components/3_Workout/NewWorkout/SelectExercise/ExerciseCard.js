@@ -7,8 +7,6 @@ import { strong as haptic } from "../../../../utils/haptics";
 import countCompletedWorkoutsWithExercise, { getLastExerciseVolume } from "../../../../helper/countCompletedWorkoutsWithExercise";
 import theme from "../../../../theme/mfpDark";
 
-const scaledSize = (size) => scaleSize(size);
-
 const formatNumericWithMaxChars = (value, maxChars = 3) => {
     const normalized = Number(value);
     if (!Number.isFinite(normalized)) return null;
@@ -88,7 +86,7 @@ const COLORS = {
 };
 
 const CARD_WIDTH = "100%";
-const CARD_HEIGHT = scaledSize(220);
+const CARD_HEIGHT = scaleSize(220);
 
 const ExerciseCard = memo(
     ({
@@ -171,7 +169,7 @@ const ExerciseCard = memo(
                         >
                             <Ionicons
                                 name={isSaved ? "bookmark" : "bookmark-outline"}
-                                size={scaledSize(16)}
+                                size={scaleSize(16)}
                                 color={isSaved ? COLORS.accent : COLORS.subtext}
                             />
                         </Pressable>
@@ -179,7 +177,7 @@ const ExerciseCard = memo(
                             <View style={styles.lastVolumeContainer}>
                                 <Ionicons
                                     name="arrow-up"
-                                    size={scaledSize(13)}
+                                    size={scaleSize(13)}
                                     color={COLORS.success}
                                     style={styles.lastVolumeIcon}
                                 />
@@ -197,7 +195,7 @@ const ExerciseCard = memo(
                 </View>
 
                 <View style={styles.previewWrapper}>
-                    <ExerciseImagePreview exercise={name} size={scaledSize(110)} />
+                    <ExerciseImagePreview exercise={name} size={scaleSize(110)} />
                 </View>
 
                 <View style={styles.infoSection}>
@@ -222,10 +220,10 @@ const styles = StyleSheet.create({
         flexGrow: 0,
         flexShrink: 0,
         backgroundColor: COLORS.cardBg,
-        borderRadius: scaledSize(14),
-        paddingTop: scaledSize(6),
+        borderRadius: scaleSize(14),
+        paddingTop: scaleSize(6),
         paddingBottom: scaleSize(10),
-        paddingHorizontal: scaledSize(12),
+        paddingHorizontal: scaleSize(12),
         borderWidth: 1.5,
         borderColor: COLORS.border,
         overflow: "hidden",
@@ -249,11 +247,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
     },
     usageBadge: {
-        minWidth: scaledSize(20),
-        paddingHorizontal: scaledSize(6),
-        paddingVertical: scaledSize(2),
-        borderRadius: scaledSize(10),
-        // backgroundColor: "rgba(87, 185, 255, 0.16)",
+        minWidth: scaleSize(20),
+        paddingHorizontal: scaleSize(6),
+        paddingVertical: scaleSize(2),
+        borderRadius: scaleSize(10),
         alignItems: "center",
         justifyContent: "center",
         marginRight: 0,
@@ -264,7 +261,7 @@ const styles = StyleSheet.create({
         color: COLORS.text,
     },
     bookmarkButton: {
-        paddingVertical: scaledSize(4),
+        paddingVertical: scaleSize(4),
     },
     lastVolumeContainer: {
         flexDirection: "row",
@@ -280,19 +277,19 @@ const styles = StyleSheet.create({
     previewWrapper: {
         flexGrow: 1,
         width: "100%",
-        marginTop: scaledSize(6),
-        marginBottom: scaledSize(4),
+        marginTop: scaleSize(6),
+        marginBottom: scaleSize(4),
         alignItems: "center",
         justifyContent: "center",
     },
     infoSection: {
-        marginTop: scaledSize(4),
+        marginTop: scaleSize(4),
     },
     exerciseName: {
         fontFamily: "Outfit_700Bold",
         fontSize: scaleSize(12),
         color: COLORS.text,
-        marginBottom: scaledSize(4),
+        marginBottom: scaleSize(4),
     },
     muscleGroupText: {
         fontFamily: "Outfit_500Medium",

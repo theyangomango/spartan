@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const FEED_CACHE_PREFIX = 'feed-cache:v2:';
+export const FEED_CACHE_PREFIX = 'feed-cache:v2:';
 
 export async function invalidateFeedCacheForUser(uid) {
     if (!uid) return;
@@ -12,7 +12,3 @@ export async function invalidateFeedCacheForUser(uid) {
         console.warn?.('feedCache: failed to invalidate cache', { key, error });
     }
 }
-
-export default {
-    invalidateFeedCacheForUser,
-};

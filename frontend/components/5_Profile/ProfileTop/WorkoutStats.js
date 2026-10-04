@@ -3,8 +3,6 @@ import theme from '../../../theme/mfpDark';
 import { StyleSheet, View, Text } from "react-native";
 import scaleSize from "../../../helper/scaleSize";
 
-const scaledSize = (size) => scaleSize(size);
-
 const safeNumber = (value) => {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
@@ -55,15 +53,15 @@ export default function WorkoutStats({ userData }) {
 const styles = StyleSheet.create({
     main_ctnr: {
         flexDirection: 'row',
-        gap: scaledSize(8),
+        gap: scaleSize(8),
     },
     workout_stat: {
         flex: 1,
-        height: scaledSize(68),
-        borderRadius: scaledSize(16),
+        height: scaleSize(68),
+        borderRadius: scaleSize(16),
         borderWidth: 1,
         backgroundColor: theme.surface,
-        marginTop: scaledSize(8),
+        marginTop: scaleSize(8),
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -76,7 +74,7 @@ const styles = StyleSheet.create({
         fontSize: scaleSize(12.5),
         color: theme.textSecondary,
         letterSpacing: 0.15,
-        marginTop: scaledSize(1),
+        marginTop: scaleSize(1),
     },
     workout_stat_number: {
         fontFamily: 'Outfit_700Bold',

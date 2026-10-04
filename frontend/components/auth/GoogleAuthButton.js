@@ -13,7 +13,6 @@ const GoogleAuthButton = ({
   busyText = DEFAULT_BUSY_LABEL,
   onSuccess,
   onError,
-  disabled,
   style,
 }) => {
   const { signIn, isConfigured } = useGoogleAuth();
@@ -69,7 +68,7 @@ const GoogleAuthButton = ({
       )}
       text={buttonText}
       onPress={onPress}
-      disabled={disabled || busy || !isConfigured}
+      disabled={busy || !isConfigured}
       style={[styles.button, style]}
       textStyle={styles.buttonText}
     />

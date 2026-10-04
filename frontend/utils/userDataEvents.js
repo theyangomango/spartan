@@ -198,10 +198,3 @@ export const subscribeUserData = (listener) => {
         collection.delete(listener);
     };
 };
-
-export default {
-    emitUserDataUpdate,
-    subscribeUserData,
-    subscribeRankPromotions,
-    dequeueRankPromotion,
-};

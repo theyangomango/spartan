@@ -5,6 +5,7 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
 import DismissableTextInput from '../common/DismissableTextInput';
+import { parsePortion, PORTION_QUICK_CHOICES } from './portionInput';
 
 export default function PortionPickerModal({ visible, onCancel, onConfirm, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -14,18 +15,6 @@ export default function PortionPickerModal({ visible, onCancel, onConfirm, COLOR
     useEffect(() => {
         if (visible) setInput('1');
     }, [visible]);
-
-    const parsePortion = (s) => {
-        const t = String(s || '').trim();
-        if (!t) return 1;
-        if (t.includes('/')) {
-            const [a, b] = t.split('/').map((x) => parseFloat(x));
-            const v = (a && b) ? (a / b) : NaN;
-            return Number.isFinite(v) && v > 0 ? v : 1;
-        }
-        const v = parseFloat(t);
-        return Number.isFinite(v) && v > 0 ? v : 1;
-    };
 
     const quickSet = (v) => { try { haptic(); } catch {} setInput(v); };
     const confirm = () => { try { haptic(); } catch {} onConfirm?.(parsePortion(input)); };
@@ -37,7 +26,7 @@ export default function PortionPickerModal({ visible, onCancel, onConfirm, COLOR
                     <Text style={styles.modalTitle}>How much did you eat?</Text>
 
                     <View style={styles.quickRow}>
-                        {['1/4', '1/3', '1/2', '2/3', '3/4', '1'].map((v) => (
+                        {PORTION_QUICK_CHOICES.map((v) => (
                         <RNBounceable key={v} style={[styles.chip, input === v && styles.chipActive]} onPress={() => quickSet(v)}>
                             <Text style={[styles.chipText, input === v && styles.chipTextActive]}>{v}</Text>
                         </RNBounceable>

@@ -51,9 +51,6 @@ export default function ProfileHeader({ userData, onPressSettings }) {
                         iconSize={scaleSize(18)}
                         iconStyle={{ marginTop: -Math.round((Number(styles.handle_text.fontSize) || scaleSize(17)) * 0.14) }}
                     />
-                    {/* <View style={styles.down_arrow_ctnr}>
-                        <Entypo name="chevron-down" size={scaleSize(18)} color="#A3A7B0" />
-                    </View> */}
                 </View>
             </RNBounceable>
             <View style={[styles.side, styles.sideRight]}>
@@ -103,9 +100,6 @@ const styles = StyleSheet.create({
         flexGrow: 1,
         minWidth: 0,
         includeFontPadding: false,
-    },
-    down_arrow_ctnr: {
-        justifyContent: 'center',
     },
     side: {
         width: SIDE_SLOT_WIDTH,

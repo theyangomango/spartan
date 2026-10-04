@@ -1,7 +1,7 @@
 // utils/nutrition.js
 
 /** Turn "0.5" or "1/3" (or number) into a positive number; defaults to 1 */
-export const coercePortion = (q) => {
+const coercePortion = (q) => {
     if (q == null) return 1;
     if (typeof q === 'number') return Number.isFinite(q) && q > 0 ? q : 1;
     const s = String(q).trim();
@@ -195,7 +195,7 @@ export const summarizeFood = (desc = '', brand = '', quantity = 1) => {
     // Prefer fraction units: "Per 1/4 cup"
     const perFraction = text.match(/\bper\b\s*(\d+\s*\/\s*\d+)\s*([a-zA-Z]+(?:\s+[a-zA-Z]+){0,2})/i);
     if (perFraction) {
-        const [_, frac, unitRaw] = perFraction;
+        const [, frac, unitRaw] = perFraction;
         const [num, den] = frac.replace(/\s*/g, '').split('/').map(Number);
         const baseQty = (num && den) ? (num / den) : 1;
         const scaledQty = baseQty * q;

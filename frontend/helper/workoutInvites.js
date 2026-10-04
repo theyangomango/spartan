@@ -4,7 +4,7 @@ import { db } from "../../firebase.config";
 /**
  * Accept a workout invite by adding the user to the workout, marking the invite, and returning the latest workout seed.
  */
-export async function acceptWorkoutInvite({ inviteId, wid, toUid }) {
+async function acceptWorkoutInvite({ inviteId, wid, toUid }) {
     const inviteDocId = String(inviteId || "");
     const widStr = String(wid || "");
     const me = String(toUid || "");
@@ -21,7 +21,7 @@ export async function acceptWorkoutInvite({ inviteId, wid, toUid }) {
             updatedAt: serverTimestamp(),
             active: true,
         });
-    } catch (err) {
+    } catch {
         try {
             await setDoc(
                 workoutRef,
@@ -39,7 +39,7 @@ export async function acceptWorkoutInvite({ inviteId, wid, toUid }) {
 
     try {
         await updateDoc(inviteRef, { status: "accepted", actedAt: serverTimestamp() });
-    } catch (err) {
+    } catch {
         try { await setDoc(inviteRef, { status: "accepted", actedAt: serverTimestamp() }, { merge: true }); } catch {}
     }
 

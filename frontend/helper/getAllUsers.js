@@ -46,7 +46,6 @@ export default async function getAllUsers({ forceRefresh = false } = {}) {
     inflightPromise = fetchAllUsers()
         .catch((err) => {
             inflightPromise = null;
-            if (forceRefresh) throw err;
             throw err;
         })
         .then((res) => {

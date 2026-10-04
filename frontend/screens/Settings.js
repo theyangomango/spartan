@@ -1,20 +1,17 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { SafeAreaView, View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
-import scaleSize, { ts } from '../helper/scaleSize';
+import React, { useCallback, useRef } from 'react';
+import { SafeAreaView, View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking } from 'react-native';
+import scaleSize from '../helper/scaleSize';
 import { Ionicons } from '@expo/vector-icons';
-import { doc, updateDoc as fsUpdateDoc } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
-import { auth, db, functions } from '../../firebase.config';
+import { auth, functions } from '../../firebase.config';
 import useUserDoc from '../hooks/useUserDoc';
 import theme from '../theme/mfpDark';
 
 export default function Settings({ navigation }) {
   const uid = global?.userData?.uid || null;
-  const user = useUserDoc(uid, { ignoreKeys: [] });
-  const [unitsLbs, setUnitsLbs] = useState(true);
-  const [pushEnabled, setPushEnabled] = useState(true);
-  // Removed sound effects toggle
+  // Called for its subscription only: it keeps global.userData in sync with usersPublic while this screen is open.
+  useUserDoc(uid, { ignoreKeys: [] });
 
   const goBack = useCallback(() => navigation.goBack(), [navigation]);
 
@@ -38,45 +35,8 @@ export default function Settings({ navigation }) {
     ]);
   }, [navigation]);
 
-  // Hydrate from user doc when available/changes
-  useEffect(() => {
-    try {
-      const s = user?.settings || {};
-      if (typeof s?.units === 'string') setUnitsLbs(String(s.units).toLowerCase() !== 'kg');
-      if (typeof s?.push === 'boolean') setPushEnabled(s.push);
-      // sounds setting is still respected app-wide, but toggle removed from UI
-    } catch {}
-  }, [user?.settings]);
-
   const deleteCallableRef = useRef(null);
   const deleteInFlightRef = useRef(false);
-
-  const persistSetting = useCallback(async (path, value) => {
-    try {
-      if (!uid) return;
-      const ref = doc(db, 'usersPrivate', uid);
-      await fsUpdateDoc(ref, { [path]: value });
-      // keep global in sync for immediate UX
-      try {
-        global.userData = {
-          ...(global.userData || {}),
-          settings: { ...(global.userData?.settings || {}), [path.split('.').pop()]: value },
-        };
-      } catch {}
-    } catch (e) {
-      console.warn('Failed to update setting', path, e?.message || e);
-    }
-  }, [uid]);
-
-  const toggleUnits = useCallback((next) => {
-    setUnitsLbs(next);
-    persistSetting('settings.units', next ? 'lb' : 'kg');
-  }, [persistSetting]);
-
-  const togglePush = useCallback((next) => {
-    setPushEnabled(next);
-    persistSetting('settings.push', next);
-  }, [persistSetting]);
 
   const logoutAndReset = useCallback(() => {
     Promise.resolve()
@@ -155,8 +115,6 @@ export default function Settings({ navigation }) {
     );
   }, [triggerDeletion]);
 
-  // sound toggle removed from UI
-
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.header}>
@@ -168,7 +126,6 @@ export default function Settings({ navigation }) {
       </View>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <Text style={styles.section}>Account & Privacy</Text>
-        {/* <Row label={`Units: ${unitsLbs ? 'lb' : 'kg'}`} value={unitsLbs} onValueChange={toggleUnits} /> */}
         <View style={styles.group}>
         <TouchableOpacity style={styles.link} onPress={() => navigation.navigate('PrivateProfileInfo', { transition: 'slide-from-right' })}>
           <Text style={styles.linkText}>Private profile</Text>
@@ -179,11 +136,6 @@ export default function Settings({ navigation }) {
           <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
         </TouchableOpacity>
         </View>
-
-        {/* <Text style={styles.section}>Notifications</Text>
-        <Row label="Push notifications" value={pushEnabled} onValueChange={togglePush} /> */}
-
-        {/* Privacy section removed; food/macros privacy toggle removed */}
 
         <Text style={styles.section}>Support</Text>
         <View style={styles.group}>
@@ -215,18 +167,6 @@ export default function Settings({ navigation }) {
   );
 }
 
-const Row = ({ label, value, onValueChange }) => (
-  <View style={styles.row}>
-    <Text style={styles.rowLabel}>{label}</Text>
-    <Switch
-      value={value}
-      onValueChange={onValueChange}
-      trackColor={{ false: 'rgba(255,255,255,0.25)', true: 'rgba(45,158,255,0.45)' }}
-      thumbColor={value ? theme.primary : Platform.select({ ios: '#fff', android: '#f3f4f6' })}
-    />
-  </View>
-);
-
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: theme.bg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: scaleSize(14), paddingTop: scaleSize(8), paddingBottom: scaleSize(6) },
@@ -251,8 +191,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   linkLast: { borderBottomWidth: 0 },
-  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: scaleSize(12), borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline },
-  rowLabel: { fontFamily: 'Outfit_500Medium', fontSize: scaleSize(14), color: theme.textPrimary },
   link: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: scaleSize(14), paddingHorizontal: scaleSize(16), borderBottomWidth: StyleSheet.hairlineWidth, borderColor: theme.hairline },
   linkText: { fontFamily: 'Outfit_500Medium', fontSize: scaleSize(14), color: theme.textPrimary },
   logoutBtn: { marginTop: scaleSize(10), backgroundColor: 'rgba(185,28,28,0.18)', borderRadius: scaleSize(16), borderWidth: 1, borderColor: 'rgba(252,165,165,0.22)', alignItems: 'center', justifyContent: 'center', paddingVertical: scaleSize(13) },

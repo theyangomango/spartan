@@ -4,7 +4,7 @@
  * @return scaled size - number 
  */
 
-import { Dimensions, PixelRatio } from "react-native";
+import { Dimensions } from "react-native";
 
 // iPhone 13 baseline (390 x 844)
 export const BASE_WIDTH = 390;
@@ -16,27 +16,20 @@ const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const SCALE_W = SCREEN_WIDTH / BASE_WIDTH;
 const SCALE_H = SCREEN_HEIGHT / BASE_HEIGHT;
 const SCALE_MIN = Math.min(SCALE_W, SCALE_H);
+const SCALE_W375 = SCREEN_WIDTH / 375;
 
 // Legacy default: uniform rounded scale based on the smaller axis
 export default function scaleSize(n) {
   return Math.round(n * SCALE_MIN);
 }
 
+export const scaleWidth375 = (n) => Math.round(n * SCALE_W375);
+
 // Named helpers for explicit intent
 export const ss = (n) => { 'worklet'; return Math.round(n * SCALE_MIN); }; // symmetric scale (min of width/height)
 export const rs = ss; // alias used in some files
-export const hs = (n) => { 'worklet'; return Math.round(n * SCALE_W); };  // horizontal scale
-export const vs = (n) => { 'worklet'; return Math.round(n * SCALE_H); };  // vertical scale
-
-// Moderate scale to avoid extremes on very tall/short devices
-export const ms = (n, factor = 0.5) => {
-  'worklet';
-  const scaled = n * SCALE_MIN;
-  return Math.round(n + (scaled - n) * factor);
-};
 
 // Typography scale: bolder scaling by device class.
-// - Uses the larger of width/height as a base, clamped to never shrink below 1.0
 // - Adds a bump on larger devices for better readability
 // - Still respects user accessibility font scaling (we don't divide by fontScale)
 function computeTextScale() {
@@ -56,12 +49,3 @@ export const ts = (n, overrideScale) => {
   const s = typeof overrideScale === 'number' ? overrideScale : TEXT_SCALE;
   return Math.round(n * s);
 };
-
-// Worklet-named helper for clarity in animated styles (alias of default)
-export const scaleSizeWorklet = (n) => {
-  'worklet';
-  return Math.round(n * SCALE_MIN);
-};
-
-// Expose raw factors if needed by charts/animations
-export const scaleFactors = { width: SCALE_W, height: SCALE_H, min: SCALE_MIN };

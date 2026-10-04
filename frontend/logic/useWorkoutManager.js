@@ -20,121 +20,22 @@ import {
 import { db } from "../../firebase.config";
 import updateDoc from "../../backend/helper/firebase/updateDoc";
 import sendNotification from "../../backend/sendNotification";
-// removed per consolidation: incrementDocValue, arrayAppend
 import useWorkoutStore, { WORKOUT_SHEET_STATES } from "../state/workoutStore";
 import makeID from "../../backend/helper/makeID";
 import calculate1RM from "../helper/calculate1RM";
-import computeHexagonStats from "./computeHexagonStats"; // retained for local fallback only
-// Cloud Functions disabled: compute hex locally and write directly
 import { emitHexagonUpdate } from "../utils/hexagonEvents";
 import { coercePrivacyMode } from "../utils/workoutPrivacy";
 import { emitUserDataUpdate } from "../utils/userDataEvents";
 import { resolvePhotoURL } from "../utils/profilePhoto";
 import { estimateWorkoutCalories } from "../helper/estimateWorkoutCalories";
 import { resolveUserBodyweight } from "../utils/bodyweight";
+import { toMillis } from "../utils/date";
+import { normalizePrevKeepZero } from "../components/3_Workout/shared/workoutSetUtils";
+import { normalizeCalories, toDayKeySafe, sanitizeWorkout, stripUndefined, normalizeExerciseName, getTodayKey } from "./workoutSanitize";
+import { cloneHexagon, buildExerciseStatDeltas, runHexagonCompute, captureHexSnapshot, getPreviousOneRm } from "./workoutFinishStats";
+import { extractFollowerUids, filterOutUid } from "./workoutGroupUtils";
 
 /* ---------------- helpers ---------------- */
-const toMillis = (v) => {
-    if (typeof v === "number") return v;
-    if (v instanceof Date) return v.getTime();
-    if (v?.toMillis) return v.toMillis();
-    if (typeof v?.seconds === "number") return v.seconds * 1000;
-    const n = new Date(v).getTime();
-    return Number.isFinite(n) ? n : 0;
-};
-const normalizePrevPayload = (prev) => {
-    if (!prev || typeof prev !== "object") return null;
-    return {
-        weight: Number(prev?.weight) || 0,
-        reps: Number(prev?.reps) || 0,
-    };
-};
-const extractFollowerUids = () => {
-    try {
-        const followers = Array.isArray(global?.userData?.followers) ? global.userData.followers : [];
-        const deduped = new Set();
-        const uids = [];
-        followers.forEach((entry) => {
-            let uid = "";
-            if (typeof entry === "string" || typeof entry === "number") {
-                uid = String(entry).trim();
-            } else if (entry && typeof entry === "object") {
-                uid = String(entry.uid || entry.id || entry.userUid || entry.followerUid || "").trim();
-            }
-            if (!uid) return;
-            if (deduped.has(uid)) return;
-            deduped.add(uid);
-            uids.push(uid);
-        });
-        return uids;
-    } catch {
-        return [];
-    }
-};
-const normalizeCalories = (value) => {
-    if (value === null || value === undefined) return null;
-    const num = Number(value);
-    return Number.isFinite(num) ? num : null;
-};
-
-const toDayKeySafe = (value) => {
-    const msRaw = toMillis(value ?? Date.now());
-    const ms = Number.isFinite(msRaw) && msRaw > 0 ? msRaw : Date.now();
-    const d = new Date(ms);
-    if (Number.isNaN(d.getTime())) return null;
-    d.setHours(0, 0, 0, 0);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-};
-
-const sanitizeWorkout = (w) => {
-    if (!w) return null;
-    const created = toMillis(w.created ?? w.createdAt);
-    const cleanObj = (obj) => Object.fromEntries(Object.entries(obj || {}).filter(([_, v]) => v !== undefined));
-    const normalizeSets = (sets) =>
-        Array.isArray(sets)
-            ? sets.map((s) => ({
-                // Never write undefined to Firestore
-                id: (s?.id != null && s?.id !== undefined) ? String(s.id) : null,
-                weight: Number(s?.weight) || 0,
-                reps: Number(s?.reps) || 0,
-                isDone: !!s?.isDone,
-                type: (s?.type != null && s?.type !== undefined) ? s.type : null,
-                prev: normalizePrevPayload(s?.prev),
-            }))
-            : [];
-    const exercises = Array.isArray(w.exercises)
-        ? w.exercises.map((ex) => cleanObj({ ...ex, sets: normalizeSets(ex?.sets) }))
-        : [];
-    // Strip ephemeral local-only flags
-    const { __justStarted, __focusTitle, ...rest } = w;
-    // Enforce a valid privacy mode and remove undefined values before persisting
-    const enforced = { ...rest, privacyMode: coercePrivacyMode(rest?.privacyMode) };
-    const restClean = cleanObj(enforced);
-    return {
-        ...restClean,
-        created,
-        exercises,
-        volume: Number(w?.volume) || 0,
-        reps: Number(w?.reps) || 0,
-        PBs: Number(w?.PBs) || 0,
-        calories: normalizeCalories(w?.calories),
-    };
-};
-
-// robust equality against array elements that could be string/number/object
-const asUid = (x) => {
-    if (typeof x === "string" || typeof x === "number") return String(x);
-    if (x && typeof x === "object") return String(x.uid || x.id || "");
-    return "";
-};
-const filterOutUid = (arr, uidStr) =>
-    (Array.isArray(arr) ? arr : []).filter((v) => asUid(v) !== uidStr);
-
-const stripUndefined = (obj) =>
-    Object.fromEntries(
-        Object.entries(obj || {}).filter(([, value]) => value !== undefined)
-    );
-
 const perfNow = () => {
     const { performance: perfGlobal } = typeof global !== "undefined" ? global : {};
     const perf = perfGlobal || (typeof performance !== "undefined" ? performance : null);
@@ -143,18 +44,6 @@ const perfNow = () => {
     }
     return Date.now();
 };
-
-const normalizeExerciseName = (value) => (typeof value === "string" ? value.trim() : "");
-
-const cloneHexagon = (hex = {}) => ({
-    shoulders: Number(hex.shoulders || 0),
-    chest: Number(hex.chest || 0),
-    arms: Number(hex.arms || 0),
-    legs: Number(hex.legs || 0),
-    back: Number(hex.back || 0),
-    abs: Number(hex.abs || 0),
-    overall: Number(hex.overall || 0),
-});
 
 const buildRankPayload = (completedWorkouts, statsHexagon) => {
     try {
@@ -183,112 +72,10 @@ const buildRankPayload = (completedWorkouts, statsHexagon) => {
     }
 };
 
-const getTodayKey = () => {
-    return toDayKeySafe(Date.now());
-};
+const HEAVY_DELAY_MS = 900; // allow summary modal to animate and settle
+const PERSIST_DEBOUNCE_MS = 900;
 
-const buildExerciseStatDeltas = ({ exercises, prevStats, todayKey }) => {
-    const namesTouched = new Set();
-    const atomicUpdates = {};
-    const localPatch = {};
-
-    (Array.isArray(exercises) ? exercises : []).forEach((exercise) => {
-        const name = normalizeExerciseName(exercise?.name);
-        if (!name) return;
-        namesTouched.add(name);
-
-        const prev = prevStats?.[name] || {};
-        const sets = Array.isArray(exercise?.sets) ? exercise.sets : [];
-        const repsInc = sets.reduce((acc, s) => acc + (Number(s?.reps) || 0), 0);
-        const volInc = sets.reduce((acc, s) => acc + (Number(s?.reps) || 0) * (Number(s?.weight) || 0), 0);
-        const nextReps = (Number(prev["Reps"]) || 0) + repsInc;
-        const nextVol = (Number(prev["Volume"]) || 0) + volInc;
-
-        let best1RM = Number(prev["1RM"] || 0);
-        let bestSet = prev?.bestSet || null;
-        sets.forEach((set) => {
-            const reps = Number(set?.reps) || 0;
-            const weight = Number(set?.weight) || 0;
-            if (reps > 0 && weight > 0) {
-                const est = calculate1RM(weight, reps);
-                if (est > best1RM) {
-                    best1RM = est;
-                    bestSet = { weight, reps };
-                }
-            }
-        });
-
-        const progress = Array.isArray(prev?.progress1RM) ? prev.progress1RM.slice() : [];
-        const lastEntry = progress.length ? progress[progress.length - 1] : null;
-        if (lastEntry && lastEntry.date === todayKey) {
-            lastEntry["1RM"] = Math.max(Number(lastEntry["1RM"] || 0), best1RM);
-            lastEntry["volume"] = (Number(lastEntry["volume"] || 0) + volInc);
-            progress[progress.length - 1] = lastEntry;
-        } else {
-            progress.push({ date: todayKey, "1RM": best1RM || (Number(prev["1RM"]) || 0), volume: volInc });
-        }
-
-        atomicUpdates[`statsExercises.${name}.Reps`] = nextReps;
-        atomicUpdates[`statsExercises.${name}.Volume`] = nextVol;
-        if (best1RM > Number(prev["1RM"] || 0)) {
-            atomicUpdates[`statsExercises.${name}.1RM`] = best1RM;
-            if (bestSet) atomicUpdates[`statsExercises.${name}.bestSet`] = bestSet;
-        }
-        atomicUpdates[`statsExercises.${name}.progress1RM`] = progress;
-
-        const updatedEntry = { ...(prev || {}), Reps: nextReps, Volume: nextVol, progress1RM: progress };
-        if (best1RM > Number(prev["1RM"] || 0)) {
-            updatedEntry["1RM"] = best1RM;
-            if (bestSet) updatedEntry.bestSet = bestSet;
-        }
-        localPatch[name] = updatedEntry;
-    });
-
-    return { namesTouched, atomicUpdates, localPatch };
-};
-
-const runHexagonCompute = async ({ namesTouched, statsExercises, prevHexagon }) => {
-    if (!namesTouched || namesTouched.size === 0) return null;
-    return computeHexagonStats({
-        statsExercises,
-        prevStatsHexagon: prevHexagon,
-        trainedExerciseNames: Array.from(namesTouched),
-    });
-};
-
-const captureHexSnapshot = (fromHex, toHex = null) => {
-    try {
-        const fromClone = cloneHexagon(fromHex || {});
-        const toClone = toHex == null ? null : cloneHexagon(toHex);
-        global.__hexChangeFrom = fromClone;
-        global.__hexChangeTo = toClone;
-        global.__hexSnapshot = { from: fromClone, to: toClone };
-    } catch { }
-};
-
-const findStatsEntryForExercise = (statsMap, rawName) => {
-    if (!statsMap || typeof statsMap !== "object") return null;
-    const name = normalizeExerciseName(rawName);
-    if (!name) return null;
-    if (statsMap[name]) return statsMap[name];
-    const lowered = name.toLowerCase();
-    const matchKey = Object.keys(statsMap).find(
-        (key) => typeof key === "string" && key.trim().toLowerCase() === lowered
-    );
-    return matchKey ? statsMap[matchKey] : null;
-};
-
-const getPreviousOneRm = (statsMap, rawName) => {
-    const entry = findStatsEntryForExercise(statsMap, rawName);
-    if (!entry || typeof entry !== "object") return 0;
-    const direct = Number(entry?.["1RM"]);
-    if (Number.isFinite(direct) && direct > 0) return direct;
-    const fallback = Number(entry?.oneRM ?? entry?.oneRm ?? entry?.max ?? 0);
-    return Number.isFinite(fallback) && fallback > 0 ? fallback : 0;
-};
-
-export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
-    const [completedWorkout, setCompletedWorkout] = useState(null);
+export default function useWorkoutManager({ uid, millisToHMS }) {
     const [isSummaryModalVisible, setIsSummaryModalVisible] = useState(false);
     const pendingHeavyRef = useRef(null);
     const [isNewWorkoutVisible, setInternalSheetVisible] = useState(false);
@@ -362,8 +149,6 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         }
     }, []);
 
-    const HEAVY_DELAY_MS = 900; // allow summary modal to animate and settle
-
     // When the summary modal closes, run any pending heavy task
     useEffect(() => {
         if (!isSummaryModalVisible && pendingHeavyRef.current) {
@@ -381,11 +166,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
     /* ------------ persist currentWorkout (debounced) ------------ */
     const saveCurrentWorkoutDebouncedRef = useRef(null);
     const pendingPersistValueRef = useRef(null);
-    const lastPersistSentAtRef = useRef(0);
     const lastPersistSentHashRef = useRef("");
-    const prevSetsCacheRef = useRef({ timestamp: 0, map: new Map() });
-    const PERSIST_DEBOUNCE_MS = 900;
-    const PREV_CACHE_TTL_MS = 30000;
     const clearPersistDebounce = useCallback((resetPending = true) => {
         if (saveCurrentWorkoutDebouncedRef.current) {
             clearTimeout(saveCurrentWorkoutDebouncedRef.current);
@@ -394,71 +175,6 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         if (resetPending) {
             pendingPersistValueRef.current = null;
         }
-    }, []);
-    const ensurePrevSetsCache = useCallback(() => {
-        const t0 = perfNow();
-        const now = Date.now();
-        const cache = prevSetsCacheRef.current;
-        if (cache && cache.map instanceof Map && (now - (cache.timestamp || 0) < PREV_CACHE_TTL_MS)) {
-            return cache.map;
-        }
-
-        const nextMap = new Map();
-
-        try {
-            const stats = (global?.userData?.statsExercises || {});
-            Object.keys(stats).forEach((name) => {
-                const entry = stats[name] || {};
-                const sets = Array.isArray(entry.sets) ? entry.sets : [];
-                if (!sets.length) return;
-                const lastWid = sets[sets.length - 1]?.wid;
-                if (!lastWid) return;
-                const collected = [];
-                for (let i = sets.length - 1; i >= 0; i--) {
-                    const row = sets[i];
-                    if (row?.wid !== lastWid) break;
-                    collected.push({
-                        weight: Number(row?.weight) || 0,
-                        reps: Number(row?.reps) || 0,
-                    });
-                }
-                collected.reverse();
-                if (collected.length) nextMap.set(name, collected);
-            });
-        } catch { }
-
-        try {
-            if (nextMap.size === 0) {
-                const completed = Array.isArray(global?.userData?.completedWorkouts) ? global.userData.completedWorkouts : [];
-                for (let i = completed.length - 1; i >= 0 && i >= completed.length - 12; i--) {
-                    const wk = completed[i];
-                    const exs = Array.isArray(wk?.exercises) ? wk.exercises : [];
-                    for (const ex of exs) {
-                        const name = normalizeExerciseName(ex?.name);
-                        if (!name || nextMap.has(name)) continue;
-                        const sets = Array.isArray(ex?.sets) ? ex.sets : [];
-                        if (!sets.length) continue;
-                        const sanitized = sets.map((row) => ({
-                            weight: Number(row?.weight) || 0,
-                            reps: Number(row?.reps) || 0,
-                        }));
-                        if (sanitized.length) nextMap.set(name, sanitized);
-                    }
-                    if (nextMap.size > 24) break;
-                }
-            }
-        } catch { }
-
-        prevSetsCacheRef.current = { timestamp: now, map: nextMap };
-        if (__DEV__) {
-            const duration = perfNow() - t0;
-            try {
-                console.log(
-                    `[perf] ensurePrevSetsCache took ${duration.toFixed(1)} ms (mapSize=${nextMap.size})`
-                );
-            } catch { }
-        }
-        return nextMap;
     }, []);
     const upsertWorkoutDoc = useCallback(
         async (workoutLike, { active = true, sanitized = false, markCompleted = false } = {}) => {
@@ -517,6 +233,25 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         },
         [db]
     );
+    const syncCurrentWorkoutRemote = useCallback(async (value) => {
+        if (!uid) return;
+        const payload = { currentWorkout: value ?? null };
+        const targets = ["users", "usersPublic", "usersPrivate"];
+        await Promise.allSettled(
+            targets.map(async (collection) => {
+                try {
+                    await setDoc(doc(db, collection, uid), payload, { merge: true });
+                } catch (error) {
+                    console.log(`setDoc ${collection}.currentWorkout error`, error);
+                    try {
+                        await updateDoc(collection, uid, payload);
+                    } catch (fallbackError) {
+                        console.log(`${collection}.currentWorkout fallback error`, fallbackError);
+                    }
+                }
+            })
+        );
+    }, [uid]);
     const performPersist = useCallback((latest) => {
         if (!uid || !latest) return;
 
@@ -530,7 +265,6 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     const hash = JSON.stringify(payload);
                     if (hash === lastPersistSentHashRef.current) return;
                     lastPersistSentHashRef.current = hash;
-                    lastPersistSentAtRef.current = Date.now();
                     if (__DEV__) {
                         try {
                             console.debug(
@@ -553,7 +287,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 } catch { }
             } catch { /* best effort */ }
         });
-    }, [uid, ensurePrevSetsCache, upsertWorkoutDoc, syncCurrentWorkoutRemote]);
+    }, [uid, upsertWorkoutDoc, syncCurrentWorkoutRemote]);
     const persistCurrentWorkout = useCallback(
         (value, options = {}) => {
             if (!uid) return;
@@ -651,26 +385,6 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         },
         [uid]
     );
-
-    const syncCurrentWorkoutRemote = useCallback(async (value) => {
-        if (!uid) return;
-        const payload = { currentWorkout: value ?? null };
-        const targets = ["users", "usersPublic", "usersPrivate"];
-        await Promise.allSettled(
-            targets.map(async (collection) => {
-                try {
-                    await setDoc(doc(db, collection, uid), payload, { merge: true });
-                } catch (error) {
-                    console.log(`setDoc ${collection}.currentWorkout error`, error);
-                    try {
-                        await updateDoc(collection, uid, payload);
-                    } catch (fallbackError) {
-                        console.log(`${collection}.currentWorkout fallback error`, fallbackError);
-                    }
-                }
-            })
-        );
-    }, [uid]);
 
     const appendCompletedWorkoutRemote = useCallback(async (workout, incVolume = 0, incHours = 0) => {
         if (!uid || !workout) return;
@@ -826,7 +540,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                             reps: Number(s?.reps) || 0,
                             isDone: !!s?.isDone,
                             type: s?.type || null,
-                            prev: normalizePrevPayload(s?.prev),
+                            prev: normalizePrevKeepZero(s?.prev),
                         }))
                         : [{
                             id: `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,6)}`,
@@ -876,15 +590,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                 };
 
                 const localWorkout = { ...newWorkout, __justStarted: true, __focusTitle: true };
-                try {
-                    console.log?.("[WorkoutManager] setWorkoutInStore start");
-                    console.time?.("useWorkoutManager::setWorkoutInStore");
-                } catch {}
                 setWorkoutInStore(localWorkout);
-                try {
-                    console.timeEnd?.("useWorkoutManager::setWorkoutInStore");
-                    console.log?.("[WorkoutManager] setWorkoutInStore done");
-                } catch {}
                 setSheetState(skipUI ? WORKOUT_SHEET_STATES.COLLAPSED : WORKOUT_SHEET_STATES.EXPANDED);
                 if (!skipUI) {
                     try { global.openCurrentWorkoutSignal = Date.now(); } catch {}
@@ -1094,7 +800,6 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                         }
                     } catch { }
 
-                    setCompletedWorkout(completed);
                     setIsSummaryModalVisible(true);
                     // Clear local immediately so header/footer and store reset without waiting
                     clearCurrentWorkoutLocally();
@@ -1165,7 +870,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                             }
                             try { if (global?.userData) global.userData.statsExercises = { ...(global?.userData?.statsExercises || {}), ...localPatch }; } catch {}
 
-                            // Compute hexagon stats via Cloud Function (with local fallback) and persist the result
+                            // Compute hexagon stats and persist the result
                             try {
                                 const prevHex = global?.__hexChangeFrom || (global?.userData?.statsHexagon || {});
                                 const result = await runHexagonCompute({
@@ -1238,7 +943,7 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
                     // Defer heavy stats delta + hexagon until after the summary closes to avoid jank
                     pendingHeavyRef.current = () => { try { scheduleHeavy(); } catch {} };
 
-                    // Locally reflect raw set history immediately for UI; persist via CF after
+                    // Locally reflect raw set history immediately for UI
                     const applyLocalSetsHistory = () => {
                         try {
                             const prevStats2 = (global?.userData?.statsExercises || {});
@@ -1315,15 +1020,6 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
             console.log("finishWorkout error", e);
         }
     }, [uid, clearCurrentWorkoutLocally, leaveWorkoutGroup, defaultWorkoutName, upsertWorkoutDoc, appendCompletedWorkoutRemote, syncCurrentWorkoutRemote]);
-
-    const postWorkout = useCallback(async () => {
-        setIsSummaryModalVisible(false);
-        try {
-            const { jumpToTab } = require('../../navigationRef');
-            jumpToTab('Profile');
-            navigation.navigate('PostOptions', { images: [], workout: completedWorkout });
-        } catch { }
-    }, [completedWorkout, navigation]);
 
     /**
      * Join helper: accepts (wid, seed) or ({ wid, seedWorkout })
@@ -1480,12 +1176,10 @@ export default function useWorkoutManager({ uid, navigation, millisToHMS }) {
         timerRef,
         isNewWorkoutVisible, setIsNewWorkoutVisible,
         isSummaryModalVisible, setIsSummaryModalVisible,
-        completedWorkout,
         startNewWorkoutFromTemplate,
         updateNewWorkout,
         cancelWorkout,
         finishWorkout,
-        postWorkout,
         joinExternalWorkout,
         persistCurrentWorkout,
     };

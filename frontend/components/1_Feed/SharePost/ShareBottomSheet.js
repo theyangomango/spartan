@@ -2,20 +2,16 @@
  * Displays a bottom sheet for sharing content.
  */
 
-import React, { useEffect, useMemo, useRef, memo, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, memo } from "react";
 import {
-    View,
     StyleSheet,
     KeyboardAvoidingView,
-    Platform,
-    Dimensions
+    Platform
 } from "react-native";
-import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
+import BottomSheet from "@gorhom/bottom-sheet";
 import ShareModal from "./ShareModal";
-import scaleSize from "../../../helper/scaleSize"; // Import the scaleSize utility
+import scaleSize from "../../../helper/scaleSize";
 import theme from "../../../theme/mfpDark";
-
-const { width, height } = Dimensions.get("screen");
 
 const ShareBottomSheet = ({
     shareBottomSheetCloseFlag,
@@ -26,19 +22,6 @@ const ShareBottomSheet = ({
 
     // Define snap points with scaling
     const snapPoints = useMemo(() => ['92%'], []); // Adjust based on design
-
-    // // Render a custom backdrop with adjusted opacity
-    // const renderBackdrop = useCallback(
-    //     (props) => (
-    //         <BottomSheetBackdrop
-    //             {...props}
-    //             disappearsOnIndex={-1}
-    //             appearsOnIndex={0}
-    //             opacity={0.6}
-    //         />
-    //     ),
-    //     []
-    // );
 
     // Close the bottom sheet when the close flag changes
     useEffect(() => {
@@ -65,7 +48,6 @@ const ShareBottomSheet = ({
                 ref={bottomSheetRef}
                 index={-1} // Initially closed
                 snapPoints={snapPoints}
-                // backdropComponent={renderBackdrop}
                 enablePanDownToClose
                 handleStyle={styles.hiddenHandle}
                 backgroundStyle={styles.bottomSheetBackground}

@@ -2,26 +2,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { doc, onSnapshot } from "firebase/firestore";
 
 import { initUserFeed, registerFeedSetters } from "../../../helper/initUserFeed";
-import millisToHoursMinutesSeconds from "../../../helper/millisToHoursMinutesSeconds";
 import { db } from "../../../../firebase.config";
 import { getMessagesCache, subscribeMessagesCache } from "../../../state/messagesCache";
 
-export default function useFeedUserData({ UID, navigation, route, isScreenFocused }) {
+export default function useFeedUserData({ UID, navigation, route }) {
     const [messages, setMessages] = useState(() => getMessagesCache());
     const [footerKey, setFooterKey] = useState(0);
-    const [activeWorkout, setActiveWorkout] = useState(null);
+    // Only the setter is used: the re-render it triggers is what makes the Feed re-read global.userData.
+    const [, setActiveWorkout] = useState(null);
 
     const userDataRef = useRef(null);
-    const headerTimerRef = useRef("");
-    const headerTimerIdRef = useRef(null);
-
-    const toMillis = useCallback((value) => {
-        if (typeof value === "number") return value;
-        if (value?.toMillis) return value.toMillis();
-        if (typeof value?.seconds === "number") return value.seconds * 1000;
-        const parsed = new Date(value).getTime();
-        return Number.isFinite(parsed) ? parsed : 0;
-    }, []);
 
     useEffect(() => {
         registerFeedSetters({
@@ -56,33 +46,6 @@ export default function useFeedUserData({ UID, navigation, route, isScreenFocuse
     }, [UID]);
 
     useEffect(() => {
-        if (headerTimerIdRef.current) {
-            try { clearInterval(headerTimerIdRef.current); } catch { }
-            headerTimerIdRef.current = null;
-        }
-        headerTimerRef.current = "";
-
-        const wid = String(activeWorkout?.wid || "");
-        const createdMs = toMillis(activeWorkout?.created ?? activeWorkout?.createdAt);
-        if (!wid || !createdMs || !isScreenFocused) return undefined;
-
-        const tick = () => {
-            const diff = Math.max(1000, Date.now() - createdMs);
-            headerTimerRef.current = millisToHoursMinutesSeconds(diff);
-        };
-
-        tick();
-        headerTimerIdRef.current = setInterval(tick, 1000);
-
-        return () => {
-            if (headerTimerIdRef.current) {
-                try { clearInterval(headerTimerIdRef.current); } catch { }
-                headerTimerIdRef.current = null;
-            }
-        };
-    }, [activeWorkout?.wid, activeWorkout?.created, activeWorkout?.createdAt, isScreenFocused, toMillis]);
-
-    useEffect(() => {
         if (route?.params?.messages) {
             setMessages(route.params.messages);
         }
@@ -103,9 +66,7 @@ export default function useFeedUserData({ UID, navigation, route, isScreenFocuse
     }, [messages, navigation]);
 
     return {
-        activeWorkout,
         footerKey,
-        headerTimerRef,
         toMessagesScreen,
     };
 }

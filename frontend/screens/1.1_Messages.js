@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { View, StyleSheet, ScrollView, Text, ActivityIndicator, Alert } from "react-native";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { View, ScrollView, Text, ActivityIndicator, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import MessageCard from "../components/1.1_Messages/MessageCard";
 import MessagesHeader from "../components/1.1_Messages/MessagesHeader";
@@ -23,6 +23,27 @@ import {
 import { ensureMessageListener, syncMessageListeners, preloadMessagesForUid } from "../logic/messagesPreloader";
 import { openActiveWorkout } from "../workout/workoutActions";
 import { ensureUidArray, coerceUid } from "../utils/userRefs";
+import styles from "./1.1_Messages.styles";
+
+const getEpoch = (chat) => {
+    const t = chat?.content?.[0]?.timestamp;
+    if (!t) return 0;
+    if (typeof t === "number") return t;
+    if (typeof t === "string") return Date.parse(t) || 0;
+    if (typeof t?.toMillis === "function") return t.toMillis();
+    if (typeof t?.seconds === "number") return t.seconds * 1000;
+    try {
+        return new Date(t).getTime() || 0;
+    } catch {
+        return 0;
+    }
+};
+
+const buildParticipantKey = (uids) => (
+    Array.from(new Set((uids || []).map((id) => String(id || "")).filter(Boolean)))
+        .sort()
+        .join("|")
+);
 
 export default function Messages({ navigation, route }) {
     const userData = global.userData;
@@ -32,7 +53,6 @@ export default function Messages({ navigation, route }) {
     const [scope, setScope] = useState("All");
     const [isCreateGroupChatBottomSheetVisible, setIsCreateGroupChatBottomSheetVisible] = useState(false);
     const [messagesLoading, setMessagesLoading] = useState(false);
-    const hydrationAttemptedRef = useRef(false);
 
     useEffect(() => {
         const unsubscribe = subscribeMessagesCache((messages, latest) => {
@@ -49,7 +69,6 @@ export default function Messages({ navigation, route }) {
                 setMessagesLoading(false);
                 return undefined;
             }
-            hydrationAttemptedRef.current = true;
             let mounted = true;
             const start = Date.now();
             setMessagesLoading(true);
@@ -110,7 +129,6 @@ export default function Messages({ navigation, route }) {
         setLatestByCid(getLatestByCidCache());
     }, [route?.params?.messages]);
 
-    // Live snapshot: Listen for latest message in each chat
     // Live snapshot: listen for latest message per chat, but update by cid (not index) and batch updates
     useEffect(() => {
         if (!Array.isArray(chats) || chats.length === 0) return;
@@ -318,12 +336,6 @@ export default function Messages({ navigation, route }) {
             return;
         }
 
-        const buildParticipantKey = (uids) => (
-            Array.from(new Set((uids || []).map((id) => String(id || "")).filter(Boolean)))
-                .sort()
-                .join("|")
-        );
-
         const targetKey = buildParticipantKey([...dedupedUsers.map((u) => u.uid), selfUser.uid]);
         if (!targetKey) return;
 
@@ -418,23 +430,7 @@ export default function Messages({ navigation, route }) {
         navigation.navigate("Chat", { data: chatObj, usersExcludingSelf: dedupedUsers });
     };
 
-    if (!userData) return null;
-
     // ---- Sort newest first (by latest message timestamp) ----
-    const getEpoch = (chat) => {
-        const t = chat?.content?.[0]?.timestamp;
-        if (!t) return 0;
-        if (typeof t === "number") return t;
-        if (typeof t === "string") return Date.parse(t) || 0;
-        if (typeof t?.toMillis === "function") return t.toMillis();
-        if (typeof t?.seconds === "number") return t.seconds * 1000;
-        try {
-            return new Date(t).getTime() || 0;
-        } catch {
-            return 0;
-        }
-    };
-
     const sortedMessages = useMemo(() => {
         const merged = chats.map((c) => ({ ...c, content: latestByCid[c.cid] ?? c.content ?? [] }));
         merged.sort((a, b) => getEpoch(b) - getEpoch(a));
@@ -448,13 +444,14 @@ export default function Messages({ navigation, route }) {
         return sortedMessages;
     }, [sortedMessages, scope]);
 
+    if (!userData) return null;
+
     const topInset = Math.max(insets?.top || 0, 0);
     const cardsBottomPadding = scaleSize(18) + (insets?.bottom ?? 0);
 
     return (
         <View style={styles.mainContainer}>
             <MessagesHeader
-                handle={userData.handle}
                 toFeedScreen={toFeedScreen}
                 setScope={setScope}
                 openCreateGroupChatBottomSheet={openCreateGroupChatBottomSheet}
@@ -518,44 +515,3 @@ export default function Messages({ navigation, route }) {
         </View>
     );
 }
-
-const styles = StyleSheet.create({
-    mainContainer: {
-        flex: 1,
-        backgroundColor: theme.bg,
-    },
-    cardsContainer: {
-        flex: 1,
-    },
-    cardsScrollView: {
-        marginTop: scaleSize(6),
-    },
-    cardsContent: {
-        paddingBottom: scaleSize(18),
-    },
-    emptyStateContainer: {
-        paddingVertical: scaleSize(60),
-        paddingHorizontal: scaleSize(24),
-        alignItems: "center",
-        gap: scaleSize(10),
-    },
-    emptyStateTitle: {
-        color: theme.textPrimary,
-        fontSize: scaleSize(18),
-        fontFamily: "Outfit_600SemiBold",
-        marginBottom: scaleSize(8),
-        textAlign: "center",
-    },
-    emptyStateSubtitle: {
-        color: theme.textSecondary,
-        fontSize: scaleSize(14),
-        fontFamily: "Outfit_400Regular",
-        textAlign: "center",
-    },
-    emptyStateLoadingLabel: {
-        color: theme.textSecondary,
-        fontSize: scaleSize(13),
-        fontFamily: "Outfit_400Regular",
-        textAlign: "center",
-    },
-});

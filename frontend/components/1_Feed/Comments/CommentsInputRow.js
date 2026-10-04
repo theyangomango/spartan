@@ -46,15 +46,12 @@ const useInputStyles = (dynamicStyles) => useMemo(() => ({
 export default function CommentsInputRow({
     value,
     onChangeText,
-    onFocus,
-    onBlur,
     onPressSend,
     editable,
     canSend,
     replyingToHandle,
     dynamicStyles,
     inputRef,
-    useBottomSheetInput: useBottomSheetInputProp = true,
 }) {
     const styles = useInputStyles(dynamicStyles);
     const placeholder = replyingToHandle ? `Replying to ${replyingToHandle}` : 'Add comment';
@@ -69,14 +66,12 @@ export default function CommentsInputRow({
                 placeholder={placeholder}
                 placeholderTextColor="#C9D2E3"
                 style={styles.textInput}
-                onFocus={onFocus}
-                onBlur={onBlur}
                 value={value}
                 onChangeText={onChangeText}
                 editable={editable}
                 multiline
                 returnKeyType="send"
-                useBottomSheetInput={useBottomSheetInputProp}
+                useBottomSheetInput
             />
             <Pressable style={styles.sendButton} onPress={onPressSend} disabled={!canSend}>
                 <Ionicons name="send" size={dynamicStyles.sendButtonSize} color="#E5E7EB" />

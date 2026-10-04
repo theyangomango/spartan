@@ -39,9 +39,7 @@ export default function useUserVerified(uid, fallback) {
             return;
         }
 
-        if (fallbackBool !== undefined) {
-            setIsVerified(fallbackBool);
-        }
+        setIsVerified(fallbackBool);
 
         const updateState = (value) => {
             VERIFIED_CACHE.set(normalizedUid, value);

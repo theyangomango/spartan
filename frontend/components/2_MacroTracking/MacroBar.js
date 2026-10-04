@@ -4,11 +4,12 @@ import { View, Text } from 'react-native';
 
 import scaleSize from "../../helper/scaleSize";
 
-const MacroBar = ({ label, value, goal, color, textPrimary, textSecondary, trackColor }) => {
+const TRACK_H = 10;
+
+const MacroBar = ({ label, value, goal, color, textPrimary, textSecondary }) => {
     const progress = Math.min(Math.max(value / Math.max(1, goal), 0), 1);
     const pct = progress * 100;
     const widthStyle = pct >= 99.2 ? '100%' : `${pct}%`;
-    const TRACK_H = 10;
 
     return (
         <View style={{ marginBottom: scaleSize(12) }}>

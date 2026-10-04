@@ -6,7 +6,6 @@ import NutritionSummaryCard from './NutritionSummaryCard';
 import MealsSection from './MealsSection';
 import { toDayKey } from '../../utils/date';
 import scaleSize from "../../helper/scaleSize";
-import theme from '../../theme/mfpDark'
 
 function MacroDayPage({
   screenWidth,
@@ -14,15 +13,12 @@ function MacroDayPage({
   macroGoals,
   meals,
   totals,
-  collapsed,
-  toggleMeal,
   openGoalsSheet,
   openSearchForMeal,
   deleteFood,
   PlusIcon,
   date,
   dayKey,
-  isFocused,
   mealsMeta,
   caloriesBurned = 0,
   calorieOffsetEnabled = false,
@@ -58,8 +54,6 @@ function MacroDayPage({
       <MealsSection
         mealsMeta={mealsMeta}
         meals={meals}
-        collapsed={collapsed}
-        toggleMeal={toggleMeal}
         onAddPress={openSearchForMeal}
         onDelete={deleteFood}
         COLORS={COLORS}
@@ -68,7 +62,6 @@ function MacroDayPage({
         calorieOffsetEnabled={calorieOffsetEnabled}
         onToggleCalorieOffset={onToggleCalorieOffset}
         caloriesBurned={caloriesBurned}
-        // compact={!isFocused}
       />
     </ScrollView>
   );
@@ -77,7 +70,6 @@ function MacroDayPage({
 const propsEqual = (prev, next) => (
   prev.screenWidth === next.screenWidth &&
   prev.macroGoals === next.macroGoals &&
-  prev.collapsed === next.collapsed &&
   prev.meals === next.meals &&
   prev.totals === next.totals &&
   toDayKey(prev.date) === toDayKey(next.date) &&

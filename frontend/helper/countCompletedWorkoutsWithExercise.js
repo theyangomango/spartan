@@ -184,7 +184,7 @@ const ensureUsageMetadata = (completedWorkoutsInput) => {
     return cachedUsageMetadata;
 };
 
-export const buildExerciseUsageLookup = (completedWorkoutsInput) =>
+const buildExerciseUsageLookup = (completedWorkoutsInput) =>
     ensureUsageMetadata(completedWorkoutsInput).counts;
 
 export const getLastExerciseVolume = (exerciseName, completedWorkoutsInput) => {
@@ -194,7 +194,7 @@ export const getLastExerciseVolume = (exerciseName, completedWorkoutsInput) => {
     return metadata.lastVolumes[normalized] ?? 0;
 };
 
-export const countCompletedWorkoutsWithExercise = (exerciseName, completedWorkoutsInput) => {
+const countCompletedWorkoutsWithExercise = (exerciseName, completedWorkoutsInput) => {
     const normalized = normalizeExerciseName(exerciseName);
     if (!normalized) return 0;
     const lookup = buildExerciseUsageLookup(completedWorkoutsInput);

@@ -81,7 +81,7 @@ const collectionHasUid = (collection, targetUid) => {
     return false;
 };
 
-export const resolveWorkoutOwnerUid = (workout) => {
+const resolveWorkoutOwnerUid = (workout) => {
     if (!workout || typeof workout !== "object") return "";
     const owner =
         workout.creatorUID ??
@@ -94,7 +94,7 @@ export const resolveWorkoutOwnerUid = (workout) => {
     return owner ? String(owner) : "";
 };
 
-export const isViewerFriend = (viewerData, targetUid) => {
+const isViewerFriend = (viewerData, targetUid) => {
     const normalizedTarget = targetUid ? String(targetUid) : "";
     if (!normalizedTarget) return false;
 
@@ -182,8 +182,6 @@ export const canViewWorkout = (workout, viewerUidInput, viewerDataInput, ownerDa
     return true;
 };
 
-export const PRIVACY = PRIVACY_MODES;
-
 export const filterViewableWorkouts = (workouts, viewerUidInput, viewerDataInput, ownerDataInput = null) => {
     if (!Array.isArray(workouts)) return [];
     return workouts.filter((workout) => canViewWorkout(workout, viewerUidInput, viewerDataInput, ownerDataInput));
@@ -200,15 +198,4 @@ export const sanitizeStatsForViewer = (statsInput, ownerUidInput, viewerUidInput
     }
 
     return {};
-};
-
-export default {
-    PRIVACY,
-    coercePrivacyMode,
-    canViewWorkout,
-    canViewerAccessProfile,
-    isViewerFriend,
-    resolveWorkoutOwnerUid,
-    filterViewableWorkouts,
-    sanitizeStatsForViewer,
 };

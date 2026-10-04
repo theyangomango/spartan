@@ -13,7 +13,7 @@ const FUNCTION_NOT_FOUND = 'functions/not-found';
 const HANDLE_REGEX = /^[a-z0-9_.]{6,20}$/;
 const HANDLE_KEYS = ['handle', 'handleLower', 'handle_lower', 'username', 'usernameLower', 'username_lower', 'tag', 'tagLower', 'tag_lower'];
 
-function resolveHandle(...sources) {
+export function resolveHandle(...sources) {
   for (const source of sources) {
     if (!source || typeof source !== 'object') continue;
     for (const key of HANDLE_KEYS) {
@@ -218,14 +218,6 @@ export async function backfillJoinDate(uid, publicData) {
   if (Number.isNaN(createdAt.getTime())) return false;
   await updateDoc(doc(db, 'usersPublic', uid), { createdAt });
   return true;
-}
-
-export async function ensureUserProfile(options = {}) {
-  throw new Error('ensureUserProfile should not be called until username is confirmed.');
-}
-
-export async function setUserHandle(handle) {
-  throw new Error('setUserHandle should not be called directly.');
 }
 
 export async function prepareProfileForAuth(options = {}) {

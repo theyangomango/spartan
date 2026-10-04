@@ -1,5 +1,5 @@
 // hooks/useWorkoutInvites.js
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
 import { collection, doc, onSnapshot, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
 import { db } from "../../firebase.config";

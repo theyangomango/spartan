@@ -28,29 +28,6 @@ function safeNumber(value) {
   return Number.isFinite(n) ? n : 0;
 }
 
-function computeGlobalRanks(valueMap) {
-  const entries = Array.from(valueMap.entries()).map(([uid, value]) => ({
-    uid,
-    value: safeNumber(value),
-  }));
-  entries.sort((a, b) => b.value - a.value);
-
-  const ranks = new Map();
-  let lastRank = 0;
-  let lastValue = null;
-  entries.forEach((entry, index) => {
-    if (index === 0) {
-      lastRank = 1;
-      lastValue = entry.value;
-    } else if (Math.abs(entry.value - lastValue) > EPSILON) {
-      lastRank = index + 1;
-      lastValue = entry.value;
-    }
-    ranks.set(entry.uid, lastRank);
-  });
-  return ranks;
-}
-
 function ensureMembersInValueMap(valueMap, memberIds) {
   memberIds.forEach((uid) => {
     if (!valueMap.has(uid)) valueMap.set(uid, 0);
@@ -203,8 +180,7 @@ async function simulateRefresh() {
       const exStats = stats?.[exercise] || {};
       valueMap.set(uid, safeNumber(exStats?.["1RM"]));
     });
-    const ranks = computeGlobalRanks(valueMap);
-    exerciseMaps.set(exercise, { valueMap, ranks });
+    exerciseMaps.set(exercise, { valueMap });
   });
 
   const hexMaps = new Map();
@@ -214,8 +190,7 @@ async function simulateRefresh() {
       const stats = hexStatsByUid.get(uid) || {};
       valueMap.set(uid, safeNumber(stats?.[key]));
     });
-    const ranks = computeGlobalRanks(valueMap);
-    hexMaps.set(key, { valueMap, ranks });
+    hexMaps.set(key, { valueMap });
   });
 
   const globalMemberIds = users.map(({ uid }) => uid);

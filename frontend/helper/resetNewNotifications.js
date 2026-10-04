@@ -16,7 +16,6 @@ const resetNewNotifications = async () => {
     });
 
     await batch.commit();
-    console.log(`✅ Marked ${snapshot.size} notifications as read.`);
 };
 
 export default resetNewNotifications;

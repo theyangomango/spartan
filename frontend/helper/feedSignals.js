@@ -38,7 +38,7 @@ export const logFeedSignal = async (event, metadata = {}, uidOverride = null) =>
     }
 };
 
-export const incrementUserSignalCounter = async (fieldPath, amount = 1, uidOverride = null) => {
+const incrementUserSignalCounter = async (fieldPath, amount = 1, uidOverride = null) => {
     if (!fieldPath || !Number.isFinite(amount) || amount === 0) return;
     const uid = uidOverride || getViewerUid();
     if (!uid) return;
@@ -108,11 +108,4 @@ export const useFeedSignalStats = () => {
     }, [viewerUid]);
 
     return useMemo(() => snapshot || global?.__userSignals || null, [snapshot]);
-};
-
-export default {
-    logFeedSignal,
-    incrementUserSignalCounter,
-    bumpAffinityForUser,
-    useFeedSignalStats,
 };

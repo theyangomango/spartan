@@ -43,7 +43,7 @@ const EXERCISE_WEIGHTING_MAP = (() => {
 
 const toKey = (value) => String(value || "").trim().toLowerCase();
 
-export function inferBodyweightMode(name, equipment) {
+function inferBodyweightMode(name, equipment) {
   const nameKey = toKey(name);
   const equipKey = toKey(equipment);
   if (!nameKey && !equipKey) return null;
@@ -166,13 +166,6 @@ export function resolveUserBodyweight(userInput, fallback = BODYWEIGHT_DEFAULT_L
 
   return fallback;
 }
-
-export function getCurrentUserBodyweight(fallback = BODYWEIGHT_DEFAULT_LB, options = {}) {
-  return resolveUserBodyweight(getGlobalUser(), fallback, options);
-}
-
-export const isBodyweightMode = (mode) => mode === "bodyweight";
-export const isBodyweightAssistedMode = (mode) => mode === "assisted";
 
 export function resolveExerciseWeighting(name, equipment) {
   const nameKey = toKey(name);

@@ -13,7 +13,7 @@ const initialState = {
     newComments: 0,
 };
 
-export const useNotificationsStore = createWithEqualityFn((set) => ({
+export const useNotificationsStore = createWithEqualityFn(() => ({
     ...initialState,
 }));
 
@@ -185,7 +185,3 @@ export const markAllNotificationsReadLocal = () => {
         };
     });
 };
-
-export const getNotificationsState = () => useNotificationsStore.getState();
-
-export default useNotificationsStore;

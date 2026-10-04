@@ -16,15 +16,12 @@ export default function UserStatsExerciseCard({
     exercise,
     isFirst,
     onPress,
-    style: containerStyle,
-    chevronSide = 'right',
 }) {
     const oneRM = estimate1RM(exercise);
     const volume = computeVolume(exercise);
     const setsCount = Array.isArray(exercise?.sets) ? exercise.sets.length : 0;
     const totalReps = computeTotalReps(exercise);
     const top = bestTopSet(exercise);
-    const chevronName = chevronSide === 'left' ? 'chevron-left' : 'chevron-right';
 
     const handlePress = typeof onPress === 'function' ? withStrongPress(onPress) : undefined;
 
@@ -35,16 +32,10 @@ export default function UserStatsExerciseCard({
                 isFirst && styles.exerciseCardFirst,
                 { position: 'relative' },
                 pressed && styles.exerciseCardPressed,
-                containerStyle,
             ]}
             onPress={handlePress}
         >
             <View style={styles.cardRow}>
-                {chevronSide === 'left' && (
-                    <View style={[styles.cardChevronColumn, styles.cardChevronColumnLeft]}>
-                        <MaterialCommunityIcons name={chevronName} size={scaledSize(22)} color={COLORS.subtext} />
-                    </View>
-                )}
                 <View style={styles.cardContentColumn}>
                     <View style={styles.cardHeaderRow}>
                         <Text numberOfLines={2} style={styles.exerciseName}>{name}</Text>
@@ -79,11 +70,9 @@ export default function UserStatsExerciseCard({
                     </View>
                 </View>
 
-                {chevronSide === 'right' && (
-                    <View style={styles.cardChevronColumn}>
-                        <MaterialCommunityIcons name={chevronName} size={scaledSize(22)} color={COLORS.subtext} />
-                    </View>
-                )}
+                <View style={styles.cardChevronColumn}>
+                    <MaterialCommunityIcons name="chevron-right" size={scaledSize(22)} color={COLORS.subtext} />
+                </View>
             </View>
         </Pressable>
     );

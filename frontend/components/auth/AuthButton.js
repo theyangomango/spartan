@@ -27,7 +27,7 @@ const AuthButton = ({
         )}
       </View>
     ) : null}
-    <Text style={[styles.text, textStyle]}>{text}</Text>
+    <Text style={textStyle}>{text}</Text>
   </RNBounceable>
 );
 

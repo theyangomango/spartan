@@ -3,28 +3,26 @@ import { View, Text, Pressable, StyleSheet, Animated, Modal, TouchableOpacity, D
 import { Ionicons } from '@expo/vector-icons';
 
 import scaleSize from "../../helper/scaleSize";
-import { scaledSize } from '../2_Competition/UserStats/UserStatsStyles';
 import { strong as haptic } from '../../utils/haptics';
 import { getUnifiedHeaderMetrics } from '../../theme/headerMetrics';
 
 const METRICS = getUnifiedHeaderMetrics();
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
+const withAlpha = (hex, alpha) => {
+    if (typeof hex !== 'string') return null;
+    const trimmed = hex.trim();
+    if (!/^#([0-9a-fA-F]{6})$/.test(trimmed)) return null;
+    return `${trimmed}${alpha}`;
+};
+
 export default function MacroStreakBadge({
-    dayKey,
     caloriesBurned = 0,
     COLORS = {},
-    style,
     offsetEnabled = false,
     onToggleOffset,
 }) {
     const streakColor = COLORS?.streak || '#FF6C1A';
-    const withAlpha = useCallback((hex, alpha) => {
-        if (typeof hex !== 'string') return null;
-        const trimmed = hex.trim();
-        if (!/^#([0-9a-fA-F]{6})$/.test(trimmed)) return null;
-        return `${trimmed}${alpha}`;
-    }, []);
     const streakBgColor = withAlpha(streakColor, '26') || 'rgba(255,108,26,0.18)';
     const streakBorderColor = withAlpha(streakColor, '85') || 'rgba(255,108,26,0.52)';
     const streakActiveBg = withAlpha(streakColor, '40') || 'rgba(255,108,26,0.35)';
@@ -105,11 +103,10 @@ export default function MacroStreakBadge({
                 style={[
                     styles.streakPill,
                     offsetEnabled ? styles.streakPillActive : null,
-                    style,
                     { opacity: pillOpacity },
                 ]}
             >
-                <Ionicons name="flame" size={scaledSize(16)} color={streakColor} />
+                <Ionicons name="flame" size={scaleSize(16)} color={streakColor} />
                 <Text style={[styles.streakText, { color: streakColor }]}>
                     {caloriesLabel}
                 </Text>

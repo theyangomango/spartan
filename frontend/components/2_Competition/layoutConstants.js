@@ -22,26 +22,15 @@ const SIZES = {
     headerPaddingHorizontal: scaleSize(14, "w"),
     headerPaddingTop: scaleSize(4),
     tribeHitSlop: scaleSize(8),
-    tribeLabelFont: scaleSize(15),
-    tribeLabelMaxWidth: scaleSize(160),
-    tribeLabelMarginRight: scaleSize(2),
-    iconMR: scaleSize(6),
-    iconMT: scaleSize(1),
-    chevronML: scaleSize(4),
-    chevronMT: scaleSize(1),
-    selectorOffset: scaleSize(10),
 };
 
-const HEADER_GRADIENT_OVERLAP = scaleSize(120);
 const PODIUM_PULLUP = scaleSize(44);
 
 export {
     scaleSize,
     SIZES,
-    HEADER_GRADIENT_OVERLAP,
     PODIUM_PULLUP,
     width as DEVICE_WIDTH,
     height as DEVICE_HEIGHT,
-    baseScaleSize as scaleFont,
     ts,
 };

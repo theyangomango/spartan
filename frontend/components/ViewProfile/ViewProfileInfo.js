@@ -4,17 +4,7 @@ import { usePfp } from "../../helper/usePFPs";
 import { resolvePhotoURL } from "../../utils/profilePhoto";
 import theme from "../../theme/mfpDark";
 import scaleSize from "../../helper/scaleSize";
-import ProfileIdentity, { PROFILE_AVATAR_SIZE } from "../5_Profile/ProfileTop/ProfileIdentity";
-
-const PFP_RADIUS_FACTOR = 22.5 / 54;
-const PFP_RING_PADDING_FACTOR = 2.25 / 54;
-const PFP_RING_BORDER_FACTOR = 3 / 54;
-const PFP_RING_RADIUS_FACTOR = 26.5 / (54 + 2 * 2.25);
-const PFP_SIZE = PROFILE_AVATAR_SIZE;
-const PFP_RADIUS = Math.round(PFP_SIZE * PFP_RADIUS_FACTOR);
-const PFP_RING_PADDING = Math.round(PFP_SIZE * PFP_RING_PADDING_FACTOR);
-const PFP_RING_BORDER = Math.round(PFP_SIZE * PFP_RING_BORDER_FACTOR);
-const PFP_RING_RADIUS = Math.round((PFP_SIZE + PFP_RING_PADDING * 2) * PFP_RING_RADIUS_FACTOR);
+import ProfileIdentity, { PFP_RADIUS, PFP_RING_BORDER, PFP_RING_PADDING, PFP_RING_RADIUS, PROFILE_AVATAR_SIZE } from "../5_Profile/ProfileTop/ProfileIdentity";
 
 export default function ViewProfileInfo({ userData, onPressFollowers, onPressFollowing }) {
     const fallbackPfp = resolvePhotoURL(userData, userData?.image || '');
@@ -59,7 +49,7 @@ const styles = StyleSheet.create({
         borderColor: theme.hairline,
     },
     pfp: {
-        width: PFP_SIZE,
+        width: PROFILE_AVATAR_SIZE,
         aspectRatio: 1,
         borderRadius: PFP_RADIUS,
     },

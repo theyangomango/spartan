@@ -1,9 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
+import { View, Text, Pressable } from "react-native";
 import FastImage from "react-native-fast-image";
 import RNBounceable from "@freakycoder/react-native-bounceable";
-import { Heart, MessageCircle, AtSign, UserPlus, Activity, Check, Flame } from "lucide-react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { doc, onSnapshot } from "firebase/firestore";
 
 import scaleSize from "../../../helper/scaleSize";
@@ -18,122 +16,14 @@ import { strong as haptic, withStrongPress } from "../../../utils/haptics";
 import { db } from "../../../../firebase.config";
 import VerifiedHandle from "../../common/VerifiedHandle";
 import { resolvePhotoURL } from "../../../utils/profilePhoto";
-
-/* -------- helpers -------- */
-const ellipsize = (str = "", max = 60) => {
-    const s = String(str || "").replace(/\s+/g, " ").trim();
-    if (!s) return "";
-    return s.length > max ? `${s.slice(0, max - 1)}…` : s;
-};
-
-function getDisplayMessage(item) {
-    switch (item.type) {
-        case "follow":
-            return "followed you";
-        case "follow-request":
-            return "requested to follow you";
-        case "follow-accepted":
-            return "accepted your follow request";
-        case "liked-post":
-            return "liked your post";
-        case "liked-comment":
-            return `liked your comment "${ellipsize(item.content, 50)}"`;
-        case "comment":
-            return `commented "${ellipsize(item.content, 50)}"`;
-        case "replied-comment":
-            return `replied to your comment "${ellipsize(item.content, 50)}"`;
-        case "mention":
-            return "mentioned you";
-        case "workout-invite":
-            return "invited you to a workout";
-        case "friend-workout-started":
-            return "just started a workout";
-        default:
-            return "";
-    }
-}
-
-/* -------- color utils -------- */
-const HEX_LENGTHS = new Set([3, 4, 6, 8]);
-
-const clamp = (value, min = 0, max = 1) => {
-    if (Number.isNaN(value)) return min;
-    return Math.min(Math.max(value, min), max);
-};
-
-const normalizeHex = (color) => {
-    if (typeof color !== "string" || !color.startsWith("#")) return null;
-    const hex = color.slice(1);
-    if (!HEX_LENGTHS.has(hex.length)) return null;
-
-    // Expand shorthand forms (#RGB, #RGBA) to full length.
-    if (hex.length === 3 || hex.length === 4) {
-        const chars = hex.split("");
-        const expanded = chars.map((char) => char + char).join("");
-        return expanded.length === 6 ? expanded : expanded.slice(0, 8);
-    }
-
-    return hex;
-};
-
-const hexToRgba = (color) => {
-    const normalized = normalizeHex(color);
-    if (!normalized) return null;
-
-    const hasAlpha = normalized.length === 8;
-    const r = parseInt(normalized.slice(0, 2), 16);
-    const g = parseInt(normalized.slice(2, 4), 16);
-    const b = parseInt(normalized.slice(4, 6), 16);
-    const a = hasAlpha ? parseInt(normalized.slice(6, 8), 16) / 255 : 1;
-
-    return { r, g, b, a };
-};
-
-const componentToHex = (value) => value.toString(16).padStart(2, "0");
-
-const mixHex = (colorA, colorB, weight = 0.5) => {
-    const a = hexToRgba(colorA);
-    const b = hexToRgba(colorB);
-
-    if (!a || !b) return colorA && colorA.startsWith("#") ? colorA : colorB;
-
-    const w = clamp(weight);
-    const r = Math.round(a.r + (b.r - a.r) * w);
-    const g = Math.round(a.g + (b.g - a.g) * w);
-    const bl = Math.round(a.b + (b.b - a.b) * w);
-
-    return `#${componentToHex(r)}${componentToHex(g)}${componentToHex(bl)}`;
-};
-
-const withAlpha = (color, alpha = 1) => {
-    const rgba = hexToRgba(color);
-    if (!rgba) return color;
-
-    const a = clamp(typeof alpha === "number" ? alpha : rgba.a);
-    return `rgba(${rgba.r},${rgba.g},${rgba.b},${a})`;
-};
+import styles from "./NotificationCard.styles";
+import { mixHex, withAlpha } from "./notificationColors";
+import { getDisplayMessage, normalizeUserRef, readUid } from "./notificationCardUtils";
 
 const BRAND_ACCENT = theme.primary;
-const BRAND_ACCENT_LIGHT = mixHex(theme.primary, "#FFFFFF", 0.35);
-
-const readUid = (value) => {
-    if (!value) return '';
-    if (typeof value === 'string' || typeof value === 'number') return String(value);
-    if (typeof value === 'object') return String(value?.uid || '');
-    return '';
-};
-
-const normalizeUserRef = (u = {}) => {
-    const resolved = resolvePhotoURL(u, u?.pfp || '');
-    return {
-        uid: String(u?.uid || ''),
-        handle: u?.handle || '',
-        name: u?.name || '',
-        pfp: resolved,
-        photoURL: resolved,
-        image: resolved,
-    };
-};
+const followingBg = withAlpha('#3CB179', 0.22);
+const followingBorder = withAlpha('#3CB179', 0.5);
+const followingText = mixHex('#3CB179', '#F8FFF6', 0.12);
 
 export default function NotificationCard({
     item,
@@ -364,26 +254,8 @@ export default function NotificationCard({
 
 
     const palette = useMemo(() => {
-        const iconByType = {
-            "liked-post": Heart,
-            "liked-comment": Heart,
-            comment: MessageCircle,
-            "replied-comment": MessageCircle,
-            mention: AtSign,
-            follow: UserPlus,
-            "follow-request": UserPlus,
-            "follow-accepted": Check,
-            "workout-invite": Activity,
-            "friend-workout-started": Flame,
-        };
-
-        const IconCmp = iconByType[item?.type] || MessageCircle;
         const workoutAccent = item?.type === "friend-workout-started";
         const accentHex = workoutAccent ? "#FF6B54" : BRAND_ACCENT;
-        const accent2Hex = workoutAccent ? mixHex("#FF6B54", "#FFB499", 0.4) : BRAND_ACCENT_LIGHT;
-        const badgeBg = withAlpha(accentHex, 0.14);
-
-        const cardBg = theme.surface;
         const buttonBg = withAlpha(accentHex, 0.16);
         const buttonBgActive = withAlpha(accentHex, 0.26);
         const buttonBorder = withAlpha(accentHex, 0.4);
@@ -394,11 +266,7 @@ export default function NotificationCard({
         const solidButtonBgDisabled = withAlpha(accentHex, 0.22);
 
         return {
-            IconCmp,
             accent: accentHex,
-            accent2: accent2Hex,
-            cardBg,
-            badgeBg,
             buttonBg,
             buttonBgActive,
             buttonBorder,
@@ -411,11 +279,7 @@ export default function NotificationCard({
     }, [item?.type]);
 
     const {
-        IconCmp,
         accent,
-        accent2,
-        badgeBg,
-        cardBg,
         buttonBg,
         buttonBgActive,
         buttonBorder,
@@ -426,10 +290,6 @@ export default function NotificationCard({
         solidButtonBgDisabled,
     } = palette;
 
-    const followingBg = withAlpha('#3CB179', 0.22);
-    const followingBorder = withAlpha('#3CB179', 0.5);
-    const followingText = mixHex('#3CB179', '#F8FFF6', 0.12);
-
     const isFollowing = followState === 'following';
     const isRequested = followState === 'requested';
     const requestedButtonBg = withAlpha(accent, 0.12);
@@ -439,7 +299,6 @@ export default function NotificationCard({
     const cardStyles = [styles.card];
     if (isFirst) cardStyles.push(styles.firstCard);
     if (isLast) cardStyles.push(styles.lastCard);
-    cardStyles.push({ backgroundColor: cardBg });
 
     const followAction = item.type === "follow"
         ? (
@@ -516,23 +375,21 @@ export default function NotificationCard({
                         {requestStatus === 'accepted' ? 'Accepted' : 'Declined'}
                     </Text>
                 ) : (
-                    <>
-                        <Pressable
-                            style={[
-                                styles.actionButton,
-                                styles.requestActionBtn,
-                                { backgroundColor: buttonBgActive, borderColor: buttonBorderActive },
-                                respondingRequest && styles.requestActionDisabled,
-                            ]}
-                            onPress={handleAcceptFollowRequest}
-                            disabled={respondingRequest}
-                            hitSlop={10}
-                        >
-                            <Text style={[styles.actionLabel, { color: buttonTextActive }]}>
-                                {respondingRequest ? 'One moment…' : 'Accept'}
-                            </Text>
-                        </Pressable>
-                    </>
+                    <Pressable
+                        style={[
+                            styles.actionButton,
+                            styles.requestActionBtn,
+                            { backgroundColor: buttonBgActive, borderColor: buttonBorderActive },
+                            respondingRequest && styles.requestActionDisabled,
+                        ]}
+                        onPress={handleAcceptFollowRequest}
+                        disabled={respondingRequest}
+                        hitSlop={10}
+                    >
+                        <Text style={[styles.actionLabel, { color: buttonTextActive }]}>
+                            {respondingRequest ? 'One moment…' : 'Accept'}
+                        </Text>
+                    </Pressable>
                 )}
             </View>
         )
@@ -541,7 +398,7 @@ export default function NotificationCard({
     return (
         <Pressable style={({ pressed }) => [styles.pressable, pressed && styles.pressablePressed]} onPress={withStrongPress(onPressCard)}>
             <View style={cardStyles}>
-                {/* avatar + type badge */}
+                {/* avatar */}
                 <View style={styles.pfpWrap}>
                     {pfpUri ? (
                         <FastImage
@@ -556,23 +413,6 @@ export default function NotificationCard({
                     ) : (
                         <View style={[styles.pfp, styles.pfpPlaceholder, unread && { borderColor: accent, borderWidth: scaleSize(2) }]} />
                     )}
-                    {/* <LinearGradient
-                        colors={[accent2, accent]}
-                        start={{ x: 0.2, y: 0 }}
-                        end={{ x: 0.8, y: 1 }}
-                        style={[
-                            styles.pfpIconBadge,
-                            {
-                                borderColor: theme.bg,
-                                shadowColor: accent,
-                                backgroundColor: accent,
-                            },
-                        ]}
-                    >
-                        <View style={[styles.pfpIconBadgeInner, { backgroundColor: badgeBg }]}>
-                            <IconCmp size={scaleSize(13)} color={theme.textPrimary} strokeWidth={2.5} />
-                        </View>
-                    </LinearGradient> */}
                 </View>
 
                 {/* text */}
@@ -603,127 +443,3 @@ export default function NotificationCard({
         </Pressable>
     );
 }
-
-/* -------------- styles -------------- */
-const styles = StyleSheet.create({
-    pressable: {
-        width: '100%',
-        alignSelf: 'stretch',
-    },
-    pressablePressed: { opacity: 0.92 },
-    card: {
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: 'flex-start',
-        paddingHorizontal: scaleSize(24),
-        paddingVertical: scaleSize(12),
-        backgroundColor: theme.surface,
-        borderBottomWidth: 0.75,
-        borderColor: theme.hairline,
-    },
-    firstCard: { borderTopWidth: StyleSheet.hairlineWidth },
-    lastCard: { borderBottomWidth: StyleSheet.hairlineWidth },
-    pfpWrap: { position: "relative", marginRight: scaleSize(14) },
-    pfp: {
-        width: scaleSize(38),
-        aspectRatio: 1,
-        borderRadius: scaleSize(22),
-        borderWidth: StyleSheet.hairlineWidth,
-        borderColor: theme.hairline,
-        backgroundColor: theme.field,
-    },
-    pfpPlaceholder: {
-        backgroundColor: theme.field,
-    },
-    pfpIconBadge: {
-        position: "absolute",
-        right: -scaleSize(8),
-        bottom: -scaleSize(5),
-        width: scaleSize(22),
-        aspectRatio: 1,
-        borderRadius: scaleSize(13),
-        alignItems: "center",
-        justifyContent: "center",
-        borderWidth: scaleSize(2),
-        // Give the pill a base fill so iOS can calculate the drop shadow
-        backgroundColor: theme.surface,
-        shadowColor: "#000",
-        shadowOpacity: 0.18,
-        shadowRadius: scaleSize(3),
-        shadowOffset: { width: 0, height: scaleSize(1) },
-        elevation: 3,
-    },
-    pfpIconBadgeInner: {
-        width: scaleSize(20),
-        aspectRatio: 1,
-        borderRadius: scaleSize(10),
-        backgroundColor: theme.surface,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    textContainer: { flex: 1, minWidth: 0, paddingRight: scaleSize(12) },
-    topRow: { flexDirection: "row", alignItems: "center", marginBottom: scaleSize(1) },
-    handleRow: { flexShrink: 1, maxWidth: '100%' },
-    handle: {
-        fontSize: scaleSize(13),
-        fontFamily: "Outfit_600SemiBold",
-        color: theme.textPrimary,
-        maxWidth: '100%'
-    },
-    message: {
-        fontSize: scaleSize(13),
-        color: theme.textSecondary,
-        fontFamily: "Outfit_400Regular",
-        lineHeight: scaleSize(20),
-    },
-    trailingColumn: {
-        alignItems: 'flex-end',
-        justifyContent: 'center',
-        paddingLeft: scaleSize(12),
-        marginLeft: 'auto',
-    },
-    time: {
-        fontSize: scaleSize(12),
-        color: theme.textSecondary,
-        fontFamily: "Outfit_500Medium",
-    },
-    unreadDot: { width: scaleSize(7), height: scaleSize(7), borderRadius: scaleSize(7) / 2, marginBottom: scaleSize(6) },
-
-    actionButton: {
-        paddingVertical: scaleSize(8),
-        paddingHorizontal: scaleSize(12),
-        borderRadius: scaleSize(14),
-        marginLeft: scaleSize(12),
-        borderWidth: scaleSize(1),
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    actionLabel: {
-        fontFamily: "Outfit_700Bold",
-        fontSize: scaleSize(12),
-    },
-    inviteAcceptBtn: {
-        minWidth: scaleSize(74),
-    },
-    requestActionsWrap: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    requestActionBtn: {
-        minWidth: scaleSize(74),
-    },
-    requestActionDisabled: {
-        opacity: 0.6,
-    },
-    requestHandledText: {
-        fontFamily: 'Outfit_700Bold',
-        fontSize: scaleSize(12),
-        color: theme.muted,
-    },
-    requestHandledAcceptedText: {
-        color: theme.primary,
-    },
-    actionHandledText: {
-        marginLeft: scaleSize(12),
-    },
-});

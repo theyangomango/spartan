@@ -9,7 +9,7 @@ import scaleSize from '../../../../helper/scaleSize';
 import { getViewerUid } from '../../../../utils/userRefs';
 import { subscribeUserData } from '../../../../utils/userDataEvents';
 import { bumpAffinityForUser, logFeedSignal } from '../../../../helper/feedSignals';
-import { buildLivePostMetadata } from '../../../../utils/livePostMeta';
+import { buildLivePostMetadata, isLivePostData } from '../../../../utils/livePostMeta';
 
 const DOUBLE_TAP_GUARD_MS = 300;
 
@@ -27,7 +27,7 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
                 : {};
             const uid = getViewerUid();
             if (uid) base.uid = uid;
-            return base || {};
+            return base;
         } catch {
             const fallbackUid = getViewerUid();
             return fallbackUid ? { uid: fallbackUid } : {};
@@ -128,11 +128,7 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
         try { haptic(); } catch {}
 
         const safePostOwnerUid = data?.uid ? String(data.uid) : data?.creatorUid ? String(data.creatorUid) : "";
-        const isLivePid = Boolean(
-            data?.isLive ||
-            data?.liveWorkout ||
-            (typeof data?.pid === 'string' && data.pid.startsWith('workout:live'))
-        );
+        const isLivePid = isLivePostData(data);
 
         setIsLiked((prev) => {
             const now = Date.now();
@@ -268,19 +264,11 @@ export default function usePostFooterInteractions({ data, onPressCommentButton, 
 
     const pressComment = useCallback(() => {
         if (typeof onPressCommentButton !== 'function') return;
-        if (!interactionsEnabled) {
-            onPressCommentButton();
-            return;
-        }
         onPressCommentButton();
     }, [interactionsEnabled, onPressCommentButton]);
 
     const pressShare = useCallback(() => {
         if (typeof onPressShareButton !== 'function') return;
-        if (!interactionsEnabled) {
-            onPressShareButton();
-            return;
-        }
         onPressShareButton();
     }, [interactionsEnabled, onPressShareButton]);
 

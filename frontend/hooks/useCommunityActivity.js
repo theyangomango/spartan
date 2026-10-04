@@ -1,15 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { collection, getDocs, query, where, documentId, onSnapshot, doc } from "firebase/firestore";
 import { db } from "../../firebase.config";
+import { toMillis } from "../utils/date";
 /* ---------- utils ---------- */
-const toMillis = (v) => {
-  if (typeof v === 'number') return v;
-  if (v instanceof Date) return v.getTime();
-  if (v?.toMillis) return v.toMillis();
-  if (typeof v?.seconds === 'number') return v.seconds * 1000;
-  const n = new Date(v).getTime();
-  return Number.isFinite(n) ? n : 0;
-};
 
 const normalizeList = (arr) => {
   if (!Array.isArray(arr)) return [];

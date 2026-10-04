@@ -5,7 +5,7 @@
  * @return y-value of scroll position
  */
 
-export default getScrollTargetPosition = (width, height) => {
+const getScrollTargetPosition = (width, height) => {
     if (width >= 430 && height >= 932) { // iPhone 14 Pro Max and similar
         return 113; 
     } else if (width >= 390 && height >= 844) { // iPhone 13/14 and similar
@@ -16,3 +16,5 @@ export default getScrollTargetPosition = (width, height) => {
         return 93;
     }
 };
+
+export default getScrollTargetPosition;

@@ -5,10 +5,9 @@
  * TODO standardize component for backend functionality
  */
 
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import {
     View,
-    FlatList,
     StyleSheet,
     Pressable,
     KeyboardAvoidingView,
@@ -17,7 +16,7 @@ import {
 import { BottomSheetFlatList } from "@gorhom/bottom-sheet";
 import CommentCard from "./CommentCard";
 import updateDoc from "../../../../backend/helper/firebase/updateDoc";
-import scaleSize from "../../../helper/scaleSize"; // Import the scaleSize utility
+import scaleSize from "../../../helper/scaleSize";
 import useReportContentSheet from "../../../hooks/useReportContentSheet";
 
 export default function CommentsModal({
@@ -34,15 +33,10 @@ export default function CommentsModal({
     const { openReportSheet, reportSheetNode } = useReportContentSheet();
 
     // Ensure the list is scrolled to top whenever the sheet opens
-    React.useEffect(() => {
+    useEffect(() => {
         try { flatListRef.current?.scrollToOffset?.({ offset: 0, animated: false }); } catch {}
     }, [openSignal, postData?.pid]);
 
-    /**
-     * Handles liking a comment or reply.
-     * @param {number} index - Index of the comment.
-     * @param {number} replyIndex - Index of the reply (-1 if not a reply).
-     */
     const currentUser = global?.userData || {};
 
     const buildLikeEntry = () => ({
@@ -53,6 +47,11 @@ export default function CommentsModal({
         pfpVersion: currentUser.pfpVersion ?? currentUser.pfpVer ?? 0,
     });
 
+    /**
+     * Handles liking a comment or reply.
+     * @param {number} index - Index of the comment.
+     * @param {number} replyIndex - Index of the reply (-1 if not a reply).
+     */
     const handleLikeComment = (index, replyIndex) => {
         const target = replyIndex === -1 ? comments[index] : comments[index].replies[replyIndex];
         if (!target) return;

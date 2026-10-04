@@ -1,4 +1,3 @@
-// components/3_Workout/ui/InviteBanner.js
 import React from "react";
 import { View, Text, StyleSheet, Pressable } from "react-native";
 import FastImage from "react-native-fast-image";
@@ -47,7 +46,6 @@ export default function InviteBanner({ invite, pfpUri, onAccept, onDecline }) {
 }
 
 const styles = StyleSheet.create({
-    // EXACT copy from the 900-line screen
     inviteCard: {
         width: "92%",
         borderRadius: scaleSize(16),

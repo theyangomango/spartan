@@ -55,8 +55,6 @@ export default function ImageCropperModal({
   // Read transform from ZoomCropper
   const cropperRef = useRef(null);
 
-  // ImageZoom handles gestures; we track its transform via onMove
-
   const doCrop = async () => {
     if (!imgSize || !uri) { onCancel?.(); return; }
     // Current display dims
@@ -110,7 +108,7 @@ export default function ImageCropperModal({
         { compress: 1, format: ImageManipulator.SaveFormat.JPEG }
       );
       onDone?.({ uri: result?.uri || uri, cropRect: normalizedRect, mode: 'image' });
-    } catch (e) {
+    } catch {
       onDone?.({ uri, cropRect: normalizedRect, mode: 'image' });
     }
   };
@@ -205,7 +203,6 @@ const styles = StyleSheet.create({
     borderRadius: scaleSize(12),
   },
   headerBtnText: { color: '#fff', marginLeft: scaleSize(6), fontSize: scaleSize(14) },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   cropBox: {
     position: 'absolute',
     overflow: 'hidden',
@@ -218,8 +215,5 @@ const styles = StyleSheet.create({
     left: 0,
     borderColor: '#ffffff',
     borderWidth: scaleSize(1),
-  },
-  image: {
-    // width/height are set dynamically via animated style
   },
 });

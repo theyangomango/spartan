@@ -368,7 +368,6 @@ async function processUsers(uid) {
           const nextKeywords = data.searchKeywords.map((entry) => {
             if (typeof entry !== "string") return entry;
             if (matchesOldName(entry)) return withOriginalWhitespace(entry, newName);
-            if (entry.trim().toLowerCase() === newNameLower) return entry;
             return entry;
           });
           if (JSON.stringify(nextKeywords) !== JSON.stringify(data.searchKeywords)) {
@@ -622,10 +621,3 @@ export async function propagateNameChange({ uid, oldNames, newName }) {
   replaceConfig = null;
   console.log("propagateNameChange: completed name migration.");
 }
-
-export default {
-  normaliseName,
-  resolveUserDoc,
-  buildOldNamesSet,
-  propagateNameChange,
-};

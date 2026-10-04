@@ -1,10 +1,9 @@
-import React, { memo, useMemo } from "react";
+import React, { memo } from "react";
 import { Modal, Pressable, Text, StyleSheet, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 
 import scaleSize from "../../../../helper/scaleSize";
-import { ss as scaledSize } from "../../../../utils/scale";
 import theme from "../../../../theme/mfpDark";
 import { withStrongPress } from "../../../../utils/haptics";
 
@@ -14,23 +13,23 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "rgba(11, 11, 11, 0.82)",
-        paddingHorizontal: scaledSize(24),
+        paddingHorizontal: scaleSize(24),
     },
     modalContainer: {
         width: "100%",
-        maxWidth: scaledSize(360),
-        paddingTop: scaledSize(30),
-        paddingBottom: scaledSize(22),
-        paddingHorizontal: scaledSize(22),
+        maxWidth: scaleSize(360),
+        paddingTop: scaleSize(30),
+        paddingBottom: scaleSize(22),
+        paddingHorizontal: scaleSize(22),
         backgroundColor: theme.surface,
-        borderRadius: scaledSize(20),
-        borderWidth: scaledSize(1),
+        borderRadius: scaleSize(20),
+        borderWidth: scaleSize(1),
         borderColor: "rgba(255, 255, 255, 0.08)",
         alignItems: "center",
         shadowColor: "#000000",
         shadowOpacity: 0.22,
-        shadowRadius: scaledSize(26),
-        shadowOffset: { width: 0, height: scaledSize(14) },
+        shadowRadius: scaleSize(26),
+        shadowOffset: { width: 0, height: scaleSize(14) },
         elevation: 18,
         overflow: "hidden",
     },
@@ -39,57 +38,57 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         top: 0,
-        height: scaledSize(3.5),
-        borderTopLeftRadius: scaledSize(20),
-        borderTopRightRadius: scaledSize(20),
+        height: scaleSize(3.5),
+        borderTopLeftRadius: scaleSize(20),
+        borderTopRightRadius: scaleSize(20),
     },
     modalIconRing: {
-        width: scaledSize(54),
-        height: scaledSize(54),
-        borderRadius: scaledSize(27),
+        width: scaleSize(54),
+        height: scaleSize(54),
+        borderRadius: scaleSize(27),
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: scaledSize(18),
-        borderWidth: scaledSize(1),
+        marginBottom: scaleSize(18),
+        borderWidth: scaleSize(1),
     },
     modalTitle: {
-        fontSize: scaledSize(18.5),
+        fontSize: scaleSize(18.5),
         fontFamily: "Outfit_700Bold",
         color: theme.textPrimary,
         textAlign: "center",
-        marginBottom: scaledSize(8),
+        marginBottom: scaleSize(8),
         letterSpacing: 0.1,
     },
     modalBody: {
-        fontSize: scaledSize(13.4),
+        fontSize: scaleSize(13.4),
         fontFamily: "Outfit_500Medium",
         color: theme.textSecondary,
         textAlign: "center",
-        marginBottom: scaledSize(20),
-        lineHeight: scaledSize(19),
+        marginBottom: scaleSize(20),
+        lineHeight: scaleSize(19),
     },
     modalAction: {
         width: "100%",
-        borderRadius: scaledSize(12),
-        paddingVertical: scaledSize(12),
+        borderRadius: scaleSize(12),
+        paddingVertical: scaleSize(12),
         alignItems: "center",
         justifyContent: "center",
-        marginBottom: scaledSize(12),
+        marginBottom: scaleSize(12),
     },
     modalActionText: {
         fontFamily: "Nunito_800ExtraBold",
-        fontSize: scaledSize(14.3),
+        fontSize: scaleSize(14.3),
         letterSpacing: 0.25,
     },
     modalActionSecondary: {
         backgroundColor: theme.field,
-        borderWidth: scaledSize(1),
+        borderWidth: scaleSize(1),
         borderColor: "rgba(255, 255, 255, 0.08)",
         marginBottom: 0,
     },
     modalActionSecondaryText: {
         fontFamily: "Nunito_800ExtraBold",
-        fontSize: scaledSize(13.4),
+        fontSize: scaleSize(13.4),
         color: theme.textPrimary,
         letterSpacing: 0.2,
     },
@@ -133,22 +132,8 @@ const ConfirmWorkoutModal = ({
     onPrimary,
     onSecondary,
     onRequestClose,
-    iconName,
-    iconColor,
 }) => {
-    const config = useMemo(() => {
-        const base = VARIANT_CONFIG[variant] || VARIANT_CONFIG.finish;
-        return {
-            iconName: iconName || base.iconName,
-            iconColor: iconColor || base.iconColor,
-            accent: base.accent,
-            accentSoft: base.accentSoft,
-            accentBorder: base.accentBorder,
-            primaryBg: base.primaryBg,
-            primaryText: base.primaryText,
-            primaryShadow: base.primaryShadow,
-        };
-    }, [variant, iconName, iconColor]);
+    const config = VARIANT_CONFIG[variant] || VARIANT_CONFIG.finish;
 
     const handleBackdropPress = () => {
         if (onRequestClose) {
@@ -199,8 +184,8 @@ const ConfirmWorkoutModal = ({
                                 backgroundColor: config.primaryBg,
                                 shadowColor: config.primaryShadow,
                                 shadowOpacity: 0.32,
-                                shadowRadius: scaledSize(10),
-                                shadowOffset: { width: 0, height: scaledSize(5) },
+                                shadowRadius: scaleSize(10),
+                                shadowOffset: { width: 0, height: scaleSize(5) },
                                 elevation: 6,
                             },
                             primaryBusy && styles.modalActionDisabled,

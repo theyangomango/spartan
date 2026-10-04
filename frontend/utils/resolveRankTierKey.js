@@ -29,7 +29,7 @@ const RANK_TITLE_MAP = {
  * when the entry refers to the signed-in user (helps override stale
  * snapshots embedded in posts, chats, etc).
  */
-export const resolveRankTierKey = (entry, extraCandidates = []) => {
+const resolveRankTierKey = (entry, extraCandidates = []) => {
     const candidates = [];
 
     // If this entry refers to the current viewer, prioritize the latest global values.

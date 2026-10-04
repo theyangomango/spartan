@@ -63,28 +63,4 @@ const withAlpha = (color, alpha = 1, fallback = { r: 255, g: 255, b: 255 }) => {
     return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${safeAlpha})`;
 };
 
-const deriveBadgeDetailColors = (theme = {}, fallbackTheme = {}) => {
-    const accentPrimary =
-        theme.badgeGemInnerColor ||
-        theme.badgeGemColor ||
-        theme.titleSecondaryColor ||
-        fallbackTheme.badgeGemInnerColor ||
-        "#ffffff";
-    const accentSecondary =
-        theme.badgeGemBorderColor ||
-        theme.titleSecondaryColor ||
-        fallbackTheme.badgeGemBorderColor ||
-        "#ffffff";
-    const accentHighlight =
-        theme.titleColor || theme.badgeGemColor || fallbackTheme.titleColor || "#ffffff";
-    const wingBase = theme.wingGradient?.[0] || fallbackTheme.wingGradient?.[0] || "#ffffff";
-
-    return {
-        ringColor: withAlpha(accentSecondary, 0.65),
-        sparkleColor: withAlpha(accentHighlight, 0.9),
-        wingColor: withAlpha(wingBase, 0.45),
-        accentPrimary,
-    };
-};
-
-export { resolveLevelStage, withAlpha, deriveBadgeDetailColors };
+export { resolveLevelStage, withAlpha };

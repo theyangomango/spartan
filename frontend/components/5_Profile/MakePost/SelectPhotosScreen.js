@@ -1,71 +1,20 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
-import { Text, View, StyleSheet, TouchableOpacity, Image, SafeAreaView, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
+import { Text, View, TouchableOpacity, Image, SafeAreaView, useWindowDimensions, Platform, ActivityIndicator } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FontAwesome6, Ionicons } from '@expo/vector-icons';
 import * as MediaLibrary from 'expo-media-library';
 import Gallery from 'react-native-awesome-gallery';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import PreviewPhotosBottomSheet from './PreviewPhotosBottomSheet';
 import ImageCropperModal from './ImageCropperModal';
+import { normalizeInitialSelection } from './selectPhotosUtils';
+import styles, { FEED_ASPECT_RATIO } from './SelectPhotosScreen.styles';
 import theme from '../../../theme/mfpDark';
 import scaleSize from '../../../helper/scaleSize';
 import { withStrongPress } from "../../../utils/haptics";
-import * as VideoThumbnails from 'expo-video-thumbnails';
 import CroppedVideo from '../../common/CroppedVideo';
 
-const scaledSize = (size) => scaleSize(size);
-const FEED_ASPECT_RATIO = 1; // square crop across selection & preview
 const MEDIA_TYPES = [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video];
-
-const normalizeSelectionEntry = (entry, index = 0) => {
-    if (!entry) return null;
-    if (typeof entry === 'string') {
-        return {
-            assetId: null,
-            originalUri: entry,
-            uri: entry,
-            previewUri: entry,
-            localUri: entry.startsWith('file://') ? entry : null,
-            type: 'image',
-            duration: 0,
-            cropRect: null,
-        };
-    }
-    if (typeof entry === 'object') {
-        const uri = entry.uri || entry.url || entry.image || entry.path || null;
-        if (!uri) return null;
-        const type = entry.type === 'video' ? 'video' : 'image';
-        const originalUri = entry.originalUri || uri;
-        const previewUri = entry.previewUri || uri;
-        const localUri = entry.localUri || (uri.startsWith('file://') ? uri : null);
-        const assetId = entry.assetId || entry.id || `initial-${index}-${originalUri}`;
-        return {
-            assetId,
-            originalUri,
-            uri,
-            previewUri,
-            localUri,
-            type,
-            duration: Number(entry.duration) || 0,
-            cropRect: entry.cropRect || null,
-        };
-    }
-    return null;
-};
-
-const normalizeInitialSelection = (list) => {
-    if (!Array.isArray(list)) return [];
-    const seen = new Set();
-    const normalized = [];
-    list.forEach((entry, idx) => {
-        const item = normalizeSelectionEntry(entry, idx);
-        if (!item) return;
-        const key = item.assetId || item.originalUri || item.uri || `index-${idx}`;
-        if (seen.has(key)) return;
-        seen.add(key);
-        normalized.push(item);
-    });
-    return normalized;
-};
 
 export default function SelectPhotosScreen({ navigation, route }) {
     const initialSelection = useMemo(() => {
@@ -91,8 +40,8 @@ export default function SelectPhotosScreen({ navigation, route }) {
 
     const { height: windowHeight } = useWindowDimensions();
     const insets = useSafeAreaInsets();
-    const headerTopPadding = useMemo(() => scaledSize(12) + (Platform.OS === 'android' ? Math.max(0, insets.top) : 0), [insets.top]);
-    const headerOffset = useMemo(() => insets.top + scaledSize(12), [insets.top]);
+    const headerTopPadding = useMemo(() => scaleSize(12) + (Platform.OS === 'android' ? Math.max(0, insets.top) : 0), [insets.top]);
+    const headerOffset = useMemo(() => insets.top + scaleSize(12), [insets.top]);
 
     useEffect(() => {
         getInitialAssets();
@@ -367,7 +316,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
             <View style={[styles.header_ctnr, { paddingTop: headerTopPadding }]}>
                 <TouchableOpacity onPress={withStrongPress(goBack)}>
                     <View style={styles.close_icon_ctnr}>
-                        <Ionicons name='close' size={scaledSize(23)} color={theme.textSecondary} />
+                        <Ionicons name='close' size={scaleSize(23)} color={theme.textSecondary} />
                     </View>
                 </TouchableOpacity>
                 <View style={styles.header_text_ctnr}>
@@ -375,7 +324,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                 </View>
                 <TouchableOpacity onPress={withStrongPress(next)}>
                     <View style={styles.next_icon_ctnr}>
-                        <FontAwesome6 name='chevron-right' size={scaledSize(17)} color={selectedItems.length > 0 ? theme.primary : theme.textSecondary} />
+                        <FontAwesome6 name='chevron-right' size={scaleSize(17)} color={selectedItems.length > 0 ? theme.primary : theme.textSecondary} />
                     </View>
                 </TouchableOpacity>
             </View>
@@ -410,7 +359,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                                             }}
                                         />
                                         <View style={styles.preview_video_overlay}>
-                                            <Ionicons name='play' size={scaledSize(32)} color={'#fff'} />
+                                            <Ionicons name='play' size={scaleSize(32)} color={'#fff'} />
                                         </View>
                                     </View>
                                 )
@@ -425,8 +374,6 @@ export default function SelectPhotosScreen({ navigation, route }) {
                                     />
                                 )
                         )}
-                        displayName={false}
-                        showThumbs={false}
                         initialIndex={0}
                         onIndexChange={(i) => setActiveIndex(i)}
                         emptySpaceWidth={0}
@@ -435,7 +382,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                     />
                 ) : (
                     <View style={styles.preview_placeholder}>
-                        <Ionicons name='image-outline' size={scaledSize(28)} color={theme.textSecondary} />
+                        <Ionicons name='image-outline' size={scaleSize(28)} color={theme.textSecondary} />
                         <Text style={styles.preview_placeholder_text}>Pick photos or videos below to start your post</Text>
                     </View>
                 )}
@@ -444,7 +391,7 @@ export default function SelectPhotosScreen({ navigation, route }) {
                     <>
                         <View style={styles.preview_action_row}>
                             <TouchableOpacity style={styles.clear_btn} onPress={withStrongPress(clearSelection)}>
-                                <Ionicons name='trash-outline' size={scaledSize(18)} color={'#fff'} />
+                                <Ionicons name='trash-outline' size={scaleSize(18)} color={'#fff'} />
                                 <Text style={styles.clear_btn_text}>Clear</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
@@ -455,11 +402,11 @@ export default function SelectPhotosScreen({ navigation, route }) {
                                 onPress={withStrongPress(openCropper)}
                                 disabled={!canCropActive || isGeneratingCrop}
                             >
-                                <Ionicons name='crop' size={scaledSize(20)} color={'#fff'} />
+                                <Ionicons name='crop' size={scaleSize(20)} color={'#fff'} />
                                 <Text style={styles.crop_btn_text}>Crop</Text>
                             </TouchableOpacity>
                             {isGeneratingCrop && (
-                                <ActivityIndicator style={{ marginLeft: scaledSize(8) }} color="#fff" size="small" />
+                                <ActivityIndicator style={{ marginLeft: scaleSize(8) }} color="#fff" size="small" />
                             )}
                         </View>
                         <View style={styles.preview_footer_info}>
@@ -470,7 +417,6 @@ export default function SelectPhotosScreen({ navigation, route }) {
             </View>
             <PreviewPhotosBottomSheet
                 assets={assets}
-                images={selectedItems}
                 selectedOrderMap={selectedOrderMap}
                 toggleSelect={toggleSelect}
                 loadMoreAssets={loadMoreAssets}
@@ -503,116 +449,3 @@ export default function SelectPhotosScreen({ navigation, route }) {
         </SafeAreaView>
     );
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: theme.bg
-    },
-    header_ctnr: {
-        alignItems: 'center',
-        paddingHorizontal: scaledSize(5),
-        paddingBottom: scaledSize(15),
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        backgroundColor: theme.bg
-    },
-    close_icon_ctnr: {
-        paddingHorizontal: scaledSize(18)
-    },
-    header_text_ctnr: {
-    },
-    next_icon_ctnr: {
-        paddingHorizontal: scaledSize(23)
-    },
-    title_text: {
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(16),
-        color: theme.textPrimary,
-    },
-    preview_ctnr: {
-        width: '100%',
-        aspectRatio: FEED_ASPECT_RATIO,
-        backgroundColor: theme.surface,
-        overflow: 'hidden'
-    },
-    preview_image: {
-        width: '100%',
-        aspectRatio: FEED_ASPECT_RATIO
-    },
-    preview_video_ctnr: {
-        flex: 1,
-    },
-    preview_video_overlay: {
-        ...StyleSheet.absoluteFillObject,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0,0,0,0.2)'
-    },
-    preview_placeholder: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingHorizontal: scaledSize(24),
-    },
-    preview_placeholder_text: {
-        marginTop: scaledSize(10),
-        color: theme.textSecondary,
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(13),
-        textAlign: 'center',
-    },
-    crop_btn: {
-        paddingHorizontal: scaledSize(10),
-        paddingVertical: scaledSize(6),
-        borderRadius: scaledSize(12),
-        backgroundColor: 'rgba(32,133,255,0.85)',
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    crop_btn_disabled: {
-        backgroundColor: 'rgba(110,110,110,0.6)'
-    },
-    crop_btn_text: {
-        color: '#fff',
-        marginLeft: scaledSize(8),
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(12),
-    },
-    clear_btn: {
-        paddingHorizontal: scaledSize(10),
-        paddingVertical: scaledSize(6),
-        borderRadius: scaledSize(12),
-        backgroundColor: 'rgba(239,68,68,0.9)',
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginRight: scaledSize(8),
-    },
-    clear_btn_text: {
-        color: '#fff',
-        marginLeft: scaledSize(6),
-        fontFamily: 'Outfit_500Medium',
-        fontSize: scaleSize(12),
-    },
-    preview_action_row: {
-        position: 'absolute',
-        right: scaledSize(14),
-        top: scaledSize(14),
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    preview_footer_info: {
-        position: 'absolute',
-        right: scaledSize(14),
-        bottom: scaledSize(14),
-        paddingHorizontal: scaledSize(12),
-        paddingVertical: scaledSize(6),
-        borderRadius: scaledSize(12),
-        backgroundColor: 'rgba(0,0,0,0.45)'
-    },
-    preview_footer_text: {
-        color: '#fff',
-        fontFamily: 'Outfit_600SemiBold',
-        fontSize: scaleSize(12),
-    }
-});

@@ -1,3 +1,5 @@
+import makeID from "../../backend/helper/makeID";
+
 const KG_TO_LB = 2.2046226218488;
 
 const roundToTenth = (value) => {
@@ -14,7 +16,7 @@ const normalizeUnit = (unit) => {
     return "lb";
 };
 
-export const selectLatestWeightEntry = (entries) => {
+const selectLatestWeightEntry = (entries) => {
     if (!Array.isArray(entries) || entries.length === 0) return null;
     let latest = null;
     entries.forEach((entry) => {
@@ -57,7 +59,51 @@ export const derivePublicWeightFields = (entries) => {
     };
 };
 
-export default {
-    derivePublicWeightFields,
-    selectLatestWeightEntry,
+export const sanitizeEntries = (rawEntries) => {
+    if (!Array.isArray(rawEntries)) return [];
+    return rawEntries
+        .map((entry) => {
+            if (!entry) return null;
+            const weight = Number(entry.weight);
+            const recordedAt = Number(entry.recordedAt || entry.timestamp || entry.loggedAt);
+            if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(recordedAt)) return null;
+            const unit = (entry.unit || "").toString().toLowerCase().startsWith("k") ? "kg" : "lb";
+            return {
+                id: entry.id || entry.key || makeID(),
+                weight,
+                unit,
+                recordedAt,
+                createdAt: Number(entry.createdAt || recordedAt || Date.now()),
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.recordedAt - b.recordedAt);
+};
+
+const normalizeEntryCollection = (source) => {
+    if (!source) return [];
+    if (Array.isArray(source)) return source;
+    if (typeof source === "object") {
+        return Object.values(source).filter(Boolean);
+    }
+    return [];
+};
+
+export const selectWeightEntrySource = (user) => {
+    if (!user || typeof user !== "object") return [];
+    const candidates = [
+        user?.progress?.weightEntries,
+        user?.weightEntries,
+        user?.bodyweightEntries,
+        user?.bodyweightLog,
+        user?.progress?.bodyweightEntries,
+    ];
+
+    let firstObserved = null;
+    for (const candidate of candidates) {
+        const normalized = normalizeEntryCollection(candidate);
+        if (!firstObserved && normalized.length >= 0) firstObserved = normalized;
+        if (normalized.length > 0) return normalized;
+    }
+    return firstObserved || [];
 };

@@ -1,4 +1,3 @@
-// components/Tracking/Group/GroupModalBottomSheet.jsx
 import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import { View, StyleSheet } from "react-native";
 import BottomSheet, { BottomSheetBackdrop } from "@gorhom/bottom-sheet";
@@ -50,7 +49,7 @@ const GroupModalBottomSheet = ({ groupModalExpandFlag, closeGroupModal, onInvite
                 enablePanDownToClose
                 onClose={closeGroupModal}
             >
-                <GroupModal closeGroupModal={closeGroupModal} onInvite={onInvite} />
+                <GroupModal onInvite={onInvite} />
             </BottomSheet>
         </View>
     );

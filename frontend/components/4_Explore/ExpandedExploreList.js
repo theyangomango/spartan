@@ -14,9 +14,7 @@ import getScrollTargetPosition from '../../helper/getScrollTargetPosition';
 import { getFeedHeaderStyles } from '../../helper/getFeedHeaderStyles';
 import Post from '../1_Feed/Posts/Post';
 
-// Import CommentsBottomSheet
 import CommentsBottomSheet from '../1_Feed/Comments/CommentsBottomSheet';
-// Import ShareBottomSheet
 import ShareBottomSheet from '../1_Feed/SharePost/ShareBottomSheet';
 
 import scaleSize from "../../helper/scaleSize";
@@ -98,7 +96,6 @@ export default function ExpandedExploreList({ posts, onClose }) {
                     isSomePostFocused={isSomePostFocused}
                     onSwipeUnfocus={handleBackPress}
 
-                    // If your Post needs to open modals, pass them down:
                     openCommentsModal={openCommentsModal}
                     openShareModal={openShareModal}
                 />

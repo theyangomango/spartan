@@ -5,6 +5,13 @@ import RNBounceable from '@freakycoder/react-native-bounceable';
 import scaleSize from "../../helper/scaleSize";
 import { strong as haptic } from '../../utils/haptics';
 import DismissableTextInput from '../common/DismissableTextInput';
+import theme from '../../theme/mfpDark';
+import { parsePortion, PORTION_QUICK_CHOICES } from './portionInput';
+
+const num = (s) => {
+    const n = parseFloat(String(s || '').replace(',', '.'));
+    return Number.isFinite(n) ? n : 0;
+};
 
 export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
     const styles = useMemo(() => makeStyles(COLORS), [COLORS]);
@@ -28,23 +35,6 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
             setPortion('1');
         }
     }, [visible]);
-
-    const num = (s) => {
-        const n = parseFloat(String(s || '').replace(',', '.'));
-        return Number.isFinite(n) ? n : 0;
-    };
-
-    const parsePortion = (s) => {
-        const t = String(s || '').trim();
-        if (!t) return 1;
-        if (t.includes('/')) {
-            const [a, b] = t.split('/').map((x) => parseFloat(x));
-            const v = (a && b) ? (a / b) : NaN;
-            return Number.isFinite(v) && v > 0 ? v : 1;
-        }
-        const v = parseFloat(t);
-        return Number.isFinite(v) && v > 0 ? v : 1;
-    };
 
     const canSubmit = useMemo(() => {
         const validName = Boolean(name?.trim());
@@ -74,7 +64,6 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
         onSubmit?.(item);
     };
 
-    const quickSet = (v) => setPortion(v);
     const close = () => { Keyboard.dismiss(); onClose?.(); };
     const renderLabel = (label, required) => (
         <View style={styles.labelRow}>
@@ -167,8 +156,8 @@ export default function QuickAddModal({ visible, onClose, onSubmit, COLORS }) {
                         {renderLabel('Portion', false)}
                     </View>
                     <View style={styles.quickRow}>
-                        {['1/4', '1/3', '1/2', '2/3', '3/4', '1'].map((v) => (
-                            <RNBounceable key={v} style={[styles.chip, portion === v && styles.chipActive]} onPress={() => { try { haptic(); } catch {} quickSet(v); }}>
+                        {PORTION_QUICK_CHOICES.map((v) => (
+                            <RNBounceable key={v} style={[styles.chip, portion === v && styles.chipActive]} onPress={() => { try { haptic(); } catch {} setPortion(v); }}>
                                 <Text style={[styles.chipText, portion === v && styles.chipTextActive]}>{v}</Text>
                             </RNBounceable>
                         ))}
@@ -207,7 +196,7 @@ const makeStyles = (COLORS) =>
         // Slightly lighter modal card + stronger outline and shadow for separation
         modalCard: {
             width: '86%',
-            backgroundColor: require('../../theme/mfpDark').MFP_DARK.surface, // lighter than surface
+            backgroundColor: theme.surface,
             borderRadius: scaleSize(18),
             paddingVertical: scaleSize(18),
             paddingHorizontal: scaleSize(16),
@@ -223,20 +212,20 @@ const makeStyles = (COLORS) =>
         inputLabel: { fontFamily: 'Outfit_600SemiBold', color: COLORS?.subtext || '#A1A7B3', fontSize: scaleSize(12.5) },
         labelRow: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: scaleSize(6), marginTop: scaleSize(4) },
         requiredStar: { color: '#FF5F5F', fontSize: scaleSize(24), top: scaleSize(7.5), fontFamily: 'System', marginLeft: scaleSize(4), marginBottom: scaleSize(-4) },
-        inputField: { backgroundColor: require('../../theme/mfpDark').MFP_DARK.fieldDeep, borderRadius: scaleSize(10), paddingHorizontal: scaleSize(12), paddingVertical: scaleSize(10), fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', marginBottom: scaleSize(10), fontSize: scaleSize(15) },
+        inputField: { backgroundColor: theme.fieldDeep, borderRadius: scaleSize(10), paddingHorizontal: scaleSize(12), paddingVertical: scaleSize(10), fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', marginBottom: scaleSize(10), fontSize: scaleSize(15) },
         row2: { flexDirection: 'row', gap: scaleSize(10) },
         col: { flex: 1 },
         quickRow: { flexDirection: 'row', flexWrap: 'wrap', gap: scaleSize(8), marginBottom: scaleSize(12) },
-        chip: { paddingVertical: scaleSize(8), paddingHorizontal: scaleSize(12), borderRadius: scaleSize(999), backgroundColor: require('../../theme/mfpDark').MFP_DARK.fieldDeep },
+        chip: { paddingVertical: scaleSize(8), paddingHorizontal: scaleSize(12), borderRadius: scaleSize(999), backgroundColor: theme.fieldDeep },
         chipActive: { backgroundColor: '#2D9EFF22', borderWidth: StyleSheet.hairlineWidth, borderColor: '#2D9EFF55' },
         chipText: { fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', fontSize: scaleSize(13) },
         chipTextActive: { color: '#7fb5ff' },
         customRow: { flexDirection: 'row', alignItems: 'center', gap: scaleSize(10), marginBottom: scaleSize(14) },
         customLabel: { fontFamily: 'Outfit_500Medium', color: COLORS?.subtext || '#A1A7B3', fontSize: scaleSize(12.5) },
-        customInput: { flex: 1, paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(12), borderRadius: scaleSize(10), backgroundColor: require('../../theme/mfpDark').MFP_DARK.fieldDeep, fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', fontSize: scaleSize(15) },
+        customInput: { flex: 1, paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(12), borderRadius: scaleSize(10), backgroundColor: theme.fieldDeep, fontFamily: 'Outfit_500Medium', color: COLORS?.text || '#E5E7EB', fontSize: scaleSize(15) },
         modalButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: scaleSize(10) },
         modalBtn: { paddingVertical: scaleSize(10), paddingHorizontal: scaleSize(16), borderRadius: scaleSize(10) },
-        cancelBtn: {backgroundColor: require('../../theme/mfpDark').MFP_DARK.fieldDeep },
+        cancelBtn: {backgroundColor: theme.fieldDeep },
         confirmBtn: { backgroundColor: '#55A8FF' },
         confirmBtnDisabled: { backgroundColor: '#55A8FF55' },
         modalBtnText: { fontFamily: 'Outfit_600SemiBold', fontSize: scaleSize(14) },

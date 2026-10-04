@@ -12,11 +12,8 @@ import VerifiedHandle from '../../common/VerifiedHandle';
 import useUserVerified from '../../../hooks/useUserVerified';
 import { resolvePhotoURL } from '../../../utils/profilePhoto';
 
-const scale = (w) => w / 375;
-
-const ProfileCard = ({ user, query, onPress }) => {
-  const s = (n) => Math.round(n * scale(375));
-  const avatarSize = s(44);
+const ProfileCard = ({ user, onPress }) => {
+  const avatarSize = 44;
   const fallbackPfp = resolvePhotoURL(user, user?.pfp || '');
   const pfpUri = usePfp(String(user?.uid || ''), user?.pfpVersion || 0, fallbackPfp) || fallbackPfp;
   const hasPfp = !!pfpUri;

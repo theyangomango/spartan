@@ -1,14 +1,12 @@
-import { useEffect, useState } from "react";
 import { collection, documentId, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../firebase.config";
+import { toMillis } from "../utils/date";
 import { canViewWorkout, coercePrivacyMode } from "../utils/workoutPrivacy";
 
 const STALE_AFTER_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_FRIEND_BATCH = 10;
 
 const oneDayMs = 24 * 60 * 60 * 1000;
-
-const listeners = new Set();
 
 let lastUid = null;
 let snapshot = {
@@ -22,13 +20,6 @@ let snapshot = {
 
 let initPromise = null;
 let refreshPromise = null;
-
-function emit() {
-    const snap = { ...snapshot, stats: { ...snapshot.stats } };
-    listeners.forEach((fn) => {
-        try { fn(snap); } catch (err) { console.log("communityStats listener error", err?.message || err); }
-    });
-}
 
 function currentWeekKey(now = Date.now()) {
     const d = new Date(now);
@@ -55,15 +46,6 @@ function chunkArray(arr, size = MAX_FRIEND_BATCH) {
     const out = [];
     for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
     return out;
-}
-
-function toMillis(value) {
-    if (typeof value === "number") return value;
-    if (value instanceof Date) return value.getTime();
-    if (value?.toMillis) return value.toMillis();
-    if (typeof value?.seconds === "number") return value.seconds * 1000;
-    const parsed = new Date(value).getTime();
-    return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function workoutTimestamp(workout) {
@@ -126,8 +108,6 @@ async function computeStatsForUser(user) {
 
     const accumulateFrom = (workouts, ownerUid) => {
         if (!Array.isArray(workouts)) return;
-        const ownerId = ownerUid ? String(ownerUid).trim() : "";
-        const isViewerOwner = ownerId && ownerId === uid;
         for (const workout of workouts) {
             if (!isValidCompletedWorkout(workout, ownerUid)) continue;
             const privacyMode = coercePrivacyMode(workout?.privacyMode);
@@ -169,17 +149,6 @@ async function computeStatsForUser(user) {
     return { stats: totals, weekKey, updatedAt: Date.now() };
 }
 
-export function getCommunityStatsSnapshot() {
-    return { ...snapshot, stats: { ...snapshot.stats } };
-}
-
-export function subscribeCommunityStats(listener) {
-    if (typeof listener !== "function") return () => {};
-    listeners.add(listener);
-    try { listener(getCommunityStatsSnapshot()); } catch {}
-    return () => { listeners.delete(listener); };
-}
-
 async function ensureInitPromise() {
     const user = getCurrentUser();
     const uid = String(user?.uid || "").trim();
@@ -195,13 +164,11 @@ async function ensureInitPromise() {
             weekKey: currentWeekKey(),
             stale: true,
         };
-        emit();
     }
     if (initPromise) return initPromise;
     initPromise = (async () => {
         if (!uid) {
             snapshot = { ...snapshot, ready: true, stale: false };
-            emit();
             return;
         }
         await refreshCommunityStats({ force: true, user });
@@ -238,7 +205,6 @@ export async function refreshCommunityStats({ force = false, user } = {}) {
             updatedAt: Date.now(),
             weekKey: currentWeekKey(),
         };
-        emit();
         return;
     }
 
@@ -250,7 +216,6 @@ export async function refreshCommunityStats({ force = false, user } = {}) {
     }
 
     snapshot = { ...snapshot, loading: true };
-    emit();
 
     refreshPromise = (async () => {
         try {
@@ -272,20 +237,9 @@ export async function refreshCommunityStats({ force = false, user } = {}) {
                 stale: true,
             };
         }
-        emit();
     })().finally(() => {
         refreshPromise = null;
     });
 
     return refreshPromise;
-}
-
-export async function forceRefreshCommunityStats() {
-    await refreshCommunityStats({ force: true });
-}
-
-export function useCommunityStats() {
-    const [snap, setSnap] = useState(() => getCommunityStatsSnapshot());
-    useEffect(() => subscribeCommunityStats(setSnap), []);
-    return snap;
 }

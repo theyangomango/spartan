@@ -69,14 +69,6 @@ export function addOptimisticFeedPost(post) {
     return normalized;
 }
 
-export function updateOptimisticFeedPost(pid, updates) {
-    const key = normalizeString(pid);
-    if (!key || !optimisticPosts.has(key)) return;
-    const existing = optimisticPosts.get(key);
-    optimisticPosts.set(key, normalizePost({ ...existing, ...updates }) || existing);
-    emit();
-}
-
 export function removeOptimisticFeedPost(pid) {
     const key = normalizeString(pid);
     if (!key) return;
@@ -101,11 +93,3 @@ export function subscribeOptimisticFeedPosts(listener) {
         listeners.delete(listener);
     };
 }
-
-export default {
-    addOptimisticFeedPost,
-    updateOptimisticFeedPost,
-    removeOptimisticFeedPost,
-    subscribeOptimisticFeedPosts,
-    getOptimisticFeedPostsSnapshot,
-};

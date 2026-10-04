@@ -1,8 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import ReportContentSheet from '../components/common/ReportContentSheet';
 
-export default function useReportContentSheet(options = {}) {
-  const { onSubmit } = options;
+export default function useReportContentSheet() {
   const [context, setContext] = useState(null);
   const [visible, setVisible] = useState(false);
 
@@ -21,14 +20,11 @@ export default function useReportContentSheet(options = {}) {
       visible={visible}
       context={context || {}}
       onClose={closeReportSheet}
-      onSubmit={onSubmit}
     />
-  ), [closeReportSheet, context, onSubmit, visible]);
+  ), [closeReportSheet, context, visible]);
 
   return {
     openReportSheet,
-    closeReportSheet,
     reportSheetNode: sheetNode,
-    isReportSheetVisible: visible,
   };
 }
