@@ -6,25 +6,87 @@ Use this template to keep all information and assets needed for App Store Connec
 
 ### Promotional Text (≤170 characters)
 
-Stay accountable with Spartan - share workouts, climb the leaderboard, and push your crew through real-time stats and challenges.
+Log every set, track your macros, and climb the rank ladder. Share workouts with friends and watch your strength grow, one session at a time.
 
 ### Description (≤4,000 characters)
 
-Spartan is the training clubhouse for lifters who stay motivated by each other. From logging sets to hyping PRs, Spartan keeps every teammate in sync so the whole crew levels up together.
+Welcome to Spartan—the social fitness community built for people who train with purpose.
+Whether you’re chasing your first pull-up, perfecting your form, or working toward your next rank, Spartan gives you the tools—and the community—to push past limits.
 
-We make it effortless to capture your work, rally your squad, and spot what’s working before the next session. Tap into leaderboards, streaks, and real-time updates that turn accountability into daily momentum.
+Join a feed where sweat meets community. Log workouts, share progress, and celebrate wins with people who actually get it. Every rep, every meal, every milestone—it all counts toward building the strongest version of you.
 
-- **Log faster, push harder.** Create workouts with templated flows, plate math, and personal-best callouts that keep you moving instead of menu diving.  
-- **Share the grind in the feed.** Drop videos, photos, and highlights so friends can react, coach, and celebrate in real time.  
-- **Track the metrics that matter.** Follow weekly volume, movement trends, PR streaks, and macro targets in a single connected dashboard.  
-- **Compete with your crew.** Spin up private or team leaderboards, settle challenges, and keep score of every rep that moves you up the ranks.  
-- **Review every set with receipts.** Dive into exercise histories, compare past sessions, and replay the workouts that delivered your biggest wins.
+**Crush Every Workout**
 
-Spartan keeps the reps honest, the stats transparent, and the team energy high—whether you’re peaking for a meet or just keeping the squad accountable.
+• Start and track any routine, with a library of exercises to choose from.
+• Log sets, reps, and weights live with rest timers that keep your session flowing.
+• Invite friends to group workouts and push each other through every round.
+• End strong—your results sync instantly to your feed and progress charts.
+
+**Dial In Your Nutrition**
+
+• Track calories and macros with precision.
+• Search foods or scan barcodes to log meals in seconds.
+• Watch your daily intake update automatically as you eat.
+• Adjust goals anytime to match your training cycle.
+
+**Climb the Ranks**
+
+• Earn your rank from Bronze upward by completing quests for strength, volume, and consistency.
+• See exactly what your next rank requires and how close you are.
+• Get a strength score for every muscle group and for your whole body.
+• Visualize your growth with clean progress graphs for volume, reps, personal records, and body weight.
+
+**Connect & Stay Motivated**
+
+• Scroll your Feed to see friends’ workouts and PRs.
+• Like and comment to cheer each other on—it’s fitness, not filters.
+• Share photos and clips alongside your workouts to keep the hype alive.
+• View any athlete’s stats and lifting history from their profile.
+
+**Privacy That Lifts With You**
+
+• Choose between Public and Private profiles.
+• Approve followers and decide who can view your workouts.
+• Your personal metrics are always protected through secure cloud storage.
+
+**Seamless. Smart. Secure**
+
+• Sign in with Apple, Google, or Email—your data syncs safely across devices.
+• Cloud-backed persistence keeps your sessions and macros ready anytime.
+• No ads. No hidden paywalls. Just pure training focus.
+
+Why Spartan?
+Because fitness is better together. Because progress feels stronger when shared.
+Because your goals deserve a community that cheers louder than the crowd.
+
+Join athletes, lifters, and everyday Spartans logging their grind, earning their rank, and building strength that lasts.
+
+Download Spartan today.
+Your community. Your workouts. Your next level.
+
+Terms of Service—
+https://www.thespartan.app/terms.html
+
+Privacy Policy—
+https://www.thespartan.app/privacy.html
+
+### What's New in This Version (≤4,000 characters)
+
+A fresh look and a lot of fixes.
+
+• Redesigned Ladder, rank cards, and profile with a cleaner dark look.
+• New rank badges that grow with every level.
+• Tap View Stats on any profile to see that athlete’s full stats page.
+• Workouts & Posts now loads every post on long profiles.
+• Edits to logged foods now save, and deleting a food always removes it from the right day.
+• Rank and totals are recorded correctly when you finish a workout.
+• Clearer charts, a rest-timer notification that fires on time, and many smaller fixes.
+
+Leaderboards and direct messages are taking a break in this version while we rework them.
 
 ### Keywords (≤100 characters total, comma-separated)
 
-- fitness,workout,training,strength,gym,weightlifting,leaderboards,community
+- fitness,workout,training,strength,gym,weightlifting,macros,nutrition,ranks,community
 
 ### Support URL
 
@@ -36,7 +98,7 @@ Spartan keeps the reps honest, the stats transparent, and the team energy high�
 
 ### Version Details
 
-- Version number to ship: 1.0.1
+- Version number to ship: 1.1.1
 - Copyright notice: 2025 Yiming Bai
 
 ## Assets Directory Map
@@ -63,6 +125,8 @@ Ensure each asset is clearly named with device/locale/build info as needed.
 - Email: yangcbai@gmail.com
 
 ### Notes to Reviewer (≤4,000 characters)
+
+Version 1.1.1 is a visual refresh and bug-fix release. The leaderboard (Compete) tab and direct messaging from 1.0 are not included in this version; the description and screenshots have been updated to match. Sign in with the demo account above. The barcode scanner needs camera access and a packaged-food barcode; food can also be added by search.
 
 ### Attachments
 
