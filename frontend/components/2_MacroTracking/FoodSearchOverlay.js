@@ -530,7 +530,9 @@ export default function FoodSearchOverlay({
         />
     ), [COLORS, styles, openPortion, goToDetails, handleDeleteRecent, favoriteFoodsMap, handleToggleFavorite]);
 
-    const HistoryFooter = () => {
+    // Called as a function, not rendered as a component: a component defined here would remount the list
+    // (and snap open swipe rows shut) on every keystroke.
+    const renderHistoryFooter = () => {
         if (!visible) return null;
         if (!recentFoodsSorted?.length) return null;
 
@@ -653,7 +655,7 @@ export default function FoodSearchOverlay({
                                             ) : (results.length > 0 && !hasMore && !loading ? (
                                                 <Text style={styles.noMoreText}>No more results</Text>
                                             ) : null)}
-                                            <HistoryFooter />
+                                            {renderHistoryFooter()}
                                         </View>
                                     }
                                 />

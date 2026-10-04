@@ -1103,9 +1103,11 @@ const [rankPromotionQueue, setRankPromotionQueue] = useState([]);
                 keyExtractor={listKeyExtractor}
                 renderItem={renderPost}
                 style={styles.list}
-                ListEmptyComponent={showFeedSkeleton ? renderLoadingList : renderEmptyList}
+                // Elements, not functions: FlatList treats a function as a component type, and a new function identity
+                // remounted the rank card (restarting its animations) on every Feed render.
+                ListEmptyComponent={showFeedSkeleton ? renderLoadingList() : renderEmptyList()}
                 ListFooterComponent={listFooter}
-                ListHeaderComponent={hasPosts ? renderSnapshotCard : null}
+                ListHeaderComponent={hasPosts ? renderSnapshotCard() : null}
                 refreshControl={(
                     <RefreshControl
                         refreshing={refreshing}

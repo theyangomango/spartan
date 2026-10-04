@@ -261,6 +261,14 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, vis
         syncToSheetState(WORKOUT_SHEET_STATES.EXPANDED);
     }, [setSheetState, syncToSheetState]);
 
+    // Stable component identity: an inline function here made the sheet remount its handle on every render.
+    const renderHandle = useCallback((props) => (
+        <AnimatedIndexBridge
+            {...props}
+            sharedIndex={sharedAnimatedIndex}
+        />
+    ), [sharedAnimatedIndex]);
+
     const userWorkoutStats = getUserWorkoutStats() || {};
 
     if (!hasWorkout) {
@@ -298,21 +306,12 @@ const ActiveWorkoutBottomSheet = ({ hideForFocus = false, overlayProgressSV, vis
                 style={sheetStyle}
                 onClose={handleSheetClose}
                 onChange={handleSheetChange}
-                handleComponent={(props) => (
-                    <AnimatedIndexBridge
-                        {...props}
-                        sharedIndex={sharedAnimatedIndex}
-                    />
-                )}
+                handleComponent={renderHandle}
                 handleStyle={{
                     borderTopLeftRadius: SHEET_RADIUS,
                     borderTopRightRadius: SHEET_RADIUS,
                 }}
-                backgroundComponent={(props) => (
-                    <SheetBackground
-                        {...props}
-                    />
-                )}
+                backgroundComponent={SheetBackground}
             >
                 <ActiveWorkoutModal
                     key={`nw-${contentKey}-${String(workout?.wid || "now")}`}
