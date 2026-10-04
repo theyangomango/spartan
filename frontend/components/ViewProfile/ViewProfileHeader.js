@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { Send2 } from "iconsax-react-native";
+// import { Send2 } from "iconsax-react-native"; // messaging is disabled
 import { Ionicons } from "@expo/vector-icons";
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import theme from "../../theme/mfpDark";
@@ -14,14 +14,16 @@ const METRICS = getUnifiedHeaderMetrics();
 const ICON_SIZE = METRICS.iconSize;
 const HEADER_HORIZONTAL_PADDING = Math.max(0, METRICS.paddingH - scaleSize(6));
 const ICON_WRAPPER_SIZE = scaleSize(ICON_SIZE + 2);
-const ICON_COLOR = "#CBD5E1";
-const ICON_STROKE_WIDTH = 2.4;
+// const ICON_COLOR = "#CBD5E1"; // used by the disabled message button
+// const ICON_STROKE_WIDTH = 2.4;
 const RANK_BADGE_SIZE = scaleSize(40);
-const RANK_BADGE_GAP = scaleSize(2);
+// The emblem's box leaves room around the medal for its glow and wings, so it overhangs the
+// icon column to keep the medal itself lined up with the back icon opposite (as in ProfileHeader).
+const RANK_BADGE_OVERHANG = scaleSize(13);
 // Both sides take the same width so the handle stays centred.
-const SIDE_SLOT_WIDTH = RANK_BADGE_SIZE * RANK_BADGE_ASPECT_RATIO + RANK_BADGE_GAP + ICON_WRAPPER_SIZE;
+const SIDE_SLOT_WIDTH = RANK_BADGE_SIZE * RANK_BADGE_ASPECT_RATIO - RANK_BADGE_OVERHANG;
 
-export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOptions, isVerified = false, user = null }) {
+export default function ViewProfileHeader({ handle, goBack, onOpenOptions, isVerified = false, user = null }) {
     return (
         <View style={styles.main_ctnr}>
             <View style={styles.side}>
@@ -46,9 +48,11 @@ export default function ViewProfileHeader({ handle, goBack, toMessages, onOpenOp
 
             <View style={[styles.side, styles.sideRight]}>
                 <ProfileRankBadge user={user} size={RANK_BADGE_SIZE} style={styles.rankBadge} />
+                {/* Messaging is disabled: the message button is commented out.
                 <RNBounceable onPress={withStrongPress(toMessages)} hitSlop={10} style={styles.iconBtn}>
                     <Send2 size={ICON_SIZE} color={ICON_COLOR} strokeWidth={ICON_STROKE_WIDTH} variant="Linear" />
                 </RNBounceable>
+                */}
             </View>
         </View>
     );
@@ -103,7 +107,7 @@ const styles = StyleSheet.create({
         justifyContent: "flex-end",
     },
     rankBadge: {
-        marginRight: RANK_BADGE_GAP,
+        marginRight: -RANK_BADGE_OVERHANG,
     },
     iconBtn: {
         width: ICON_WRAPPER_SIZE,

@@ -39,7 +39,7 @@ import ActiveWorkoutBottomSheet from './frontend/components/3_Workout/NewWorkout
 import WorkoutExperiencePortal from './frontend/components/3_Workout/WorkoutExperiencePortal';
 import Footer from './frontend/components/Footer';
 import useFooterSuppressionStore, { clearFooterSuppression } from './frontend/state/footerSuppressionStore';
-import { preloadMessagesForUid, resetMessagesState } from './frontend/logic/messagesPreloader';
+import { /* preloadMessagesForUid, */ resetMessagesState } from './frontend/logic/messagesPreloader';
 import { ensureNotificationsListener, stopNotificationsListener } from './frontend/state/notificationsStore';
 import WorkoutInviteOverlay from './frontend/components/WorkoutInviteOverlay';
 import { openActiveWorkout } from './frontend/workout/workoutActions';
@@ -702,16 +702,17 @@ export default function App() {
                 const id = resp?.notification?.request?.identifier;
                 if (id && lastHandledNotifIdRef.current === id) return; // dedupe
                 const data = resp?.notification?.request?.content?.data || {};
-                const type = data?.type;
+                // const type = data?.type;
                 let handled = false;
-                if (type === 'chat' && data?.cid) {
-                    const cid = String(data.cid);
-                    pendingChatCidRef.current = cid;
-                    prefetchChatData(cid);
-                    // Try now; if navigation is not ready yet, a separate effect will retry
-                    tryNavigateToPendingChat();
-                    handled = true;
-                }
+                // Messaging is disabled: a tapped chat push no longer opens the chat.
+                // if (type === 'chat' && data?.cid) {
+                //     const cid = String(data.cid);
+                //     pendingChatCidRef.current = cid;
+                //     prefetchChatData(cid);
+                //     // Try now; if navigation is not ready yet, a separate effect will retry
+                //     tryNavigateToPendingChat();
+                //     handled = true;
+                // }
                 const nidType = data?.nidType ? String(data.nidType) : '';
                 if (!handled && (nidType === 'liked-post' || nidType === 'liked-comment') && data?.pid) {
                     processFeedNotificationTarget({ pid: data.pid, nidType });
@@ -836,7 +837,8 @@ export default function App() {
             })();
             if (prevMessagesSigRef.current !== sig) {
                 prevMessagesSigRef.current = sig;
-                preloadMessagesForUid(uid, { userDoc: mergedData }).catch(() => { });
+                // Messaging is disabled: conversations are no longer preloaded.
+                // preloadMessagesForUid(uid, { userDoc: mergedData }).catch(() => { });
             }
 
             // Register for push notifications (EAS project id required)

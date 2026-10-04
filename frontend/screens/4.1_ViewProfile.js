@@ -7,12 +7,12 @@ import ViewProfileRowButtons from "../components/ViewProfile/ViewProfileRowButto
 import { filterViewableWorkouts, canViewerAccessProfile } from "../utils/workoutPrivacy";
 import ViewProfileInfo from "../components/ViewProfile/ViewProfileInfo";
 import ViewProfileHeader from "../components/ViewProfile/ViewProfileHeader";
-import { lookupRemoteDirectChat, upsertLocalMessageEntry } from "../components/ViewProfile/directChat";
+// import { lookupRemoteDirectChat, upsertLocalMessageEntry } from "../components/ViewProfile/directChat"; // messaging is disabled
 import readDoc from "../../backend/helper/firebase/readDoc";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
-import createChat from "../../backend/messages/createChat";
-import makeID from "../../backend/helper/makeID";
-import arrayAppend from "../../backend/helper/firebase/arrayAppend";
+// import createChat from "../../backend/messages/createChat"; // messaging is disabled
+// import makeID from "../../backend/helper/makeID"; // messaging is disabled
+// import arrayAppend from "../../backend/helper/firebase/arrayAppend";
 import theme from "../theme/mfpDark";
 import FollowListBottomSheet from "../components/FollowListBottomSheet";
 import ViewProfileOptionsSheet from "../components/ViewProfile/ViewProfileOptionsSheet";
@@ -33,18 +33,19 @@ export default function ViewProfile({ navigation, route }) {
     const [isOptionsVisible, setIsOptionsVisible] = useState(false);
     const [isBlocked, setIsBlocked] = useState(false);
     const { openReportSheet, reportSheetNode } = useReportContentSheet();
-    const chatTargetRef = useMemo(() => {
-        const primary = normalizeUserRef(profileUserData || user || {});
-        if (primary) return primary;
-        const uid = coerceUid(profileUserData) || coerceUid(user);
-        if (!uid) return null;
-        return {
-            uid,
-            handle: profileUserData?.handle || user?.handle || profileUserData?.username || user?.username || "",
-            name: profileUserData?.name || user?.name || profileUserData?.displayName || user?.displayName || "",
-            pfp: profileUserData?.pfp || user?.pfp || profileUserData?.image || user?.image || profileUserData?.photoURL || user?.photoURL || "",
-        };
-    }, [profileUserData, user]);
+    // Messaging is disabled: the direct-chat lookup and the message action below are commented out.
+    // const chatTargetRef = useMemo(() => {
+    //     const primary = normalizeUserRef(profileUserData || user || {});
+    //     if (primary) return primary;
+    //     const uid = coerceUid(profileUserData) || coerceUid(user);
+    //     if (!uid) return null;
+    //     return {
+    //         uid,
+    //         handle: profileUserData?.handle || user?.handle || profileUserData?.username || user?.username || "",
+    //         name: profileUserData?.name || user?.name || profileUserData?.displayName || user?.displayName || "",
+    //         pfp: profileUserData?.pfp || user?.pfp || profileUserData?.image || user?.image || profileUserData?.photoURL || user?.photoURL || "",
+    //     };
+    // }, [profileUserData, user]);
 
     const reportProfileUid = useMemo(
         () => coerceUid(profileUserData) || coerceUid(user) || '',
@@ -126,63 +127,63 @@ export default function ViewProfile({ navigation, route }) {
         }
     }, [profileUserData, user, (global?.userData?.blockedUidList || global?.userData?.blocked || []).length]);
 
-    useEffect(() => {
-        try {
-            const viewerUid = String(global?.userData?.uid || "");
-            const targetUid = chatTargetRef?.uid || "";
-            if (!viewerUid || !targetUid || viewerUid === targetUid) return;
-            lookupRemoteDirectChat(viewerUid, targetUid, chatTargetRef);
-        } catch {}
-    }, [chatTargetRef]);
-    async function toMessages() {
-        const selfUser = normalizeUserRef(global?.userData || {});
-        const otherUser = chatTargetRef || normalizeUserRef(profileUserData || user || {});
-        const selfUid = selfUser?.uid || "";
-        const otherUid = otherUser?.uid || "";
-        if (!selfUid || !otherUid) return;
+    // useEffect(() => {
+    //     try {
+    //         const viewerUid = String(global?.userData?.uid || "");
+    //         const targetUid = chatTargetRef?.uid || "";
+    //         if (!viewerUid || !targetUid || viewerUid === targetUid) return;
+    //         lookupRemoteDirectChat(viewerUid, targetUid, chatTargetRef);
+    //     } catch {}
+    // }, [chatTargetRef]);
+    // async function toMessages() {
+    //     const selfUser = normalizeUserRef(global?.userData || {});
+    //     const otherUser = chatTargetRef || normalizeUserRef(profileUserData || user || {});
+    //     const selfUid = selfUser?.uid || "";
+    //     const otherUid = otherUser?.uid || "";
+    //     if (!selfUid || !otherUid) return;
 
-        const fallbackParticipants = otherUser ? [otherUser] : [];
-        const navigateToChat = (cid, participants = []) => {
-            if (!cid) return;
-            const others = Array.isArray(participants) && participants.length > 0 ? participants : fallbackParticipants;
-            navigation.navigate("Chat", { data: { cid }, usersExcludingSelf: others });
-        };
+    //     const fallbackParticipants = otherUser ? [otherUser] : [];
+    //     const navigateToChat = (cid, participants = []) => {
+    //         if (!cid) return;
+    //         const others = Array.isArray(participants) && participants.length > 0 ? participants : fallbackParticipants;
+    //         navigation.navigate("Chat", { data: { cid }, usersExcludingSelf: others });
+    //     };
 
-        const list = Array.isArray(global?.userData?.messages) ? global.userData.messages : [];
-        for (const msg of list) {
-            const others = Array.isArray(msg?.otherUsers) ? msg.otherUsers : [];
-            if (others.length === 1 && String(others[0]?.uid) === otherUid && msg?.mid) {
-                navigateToChat(msg.mid, others);
-                return;
-            }
-        }
+    //     const list = Array.isArray(global?.userData?.messages) ? global.userData.messages : [];
+    //     for (const msg of list) {
+    //         const others = Array.isArray(msg?.otherUsers) ? msg.otherUsers : [];
+    //         if (others.length === 1 && String(others[0]?.uid) === otherUid && msg?.mid) {
+    //             navigateToChat(msg.mid, others);
+    //             return;
+    //         }
+    //     }
 
-        const remoteMatch = await lookupRemoteDirectChat(selfUid, otherUid, otherUser);
-        if (remoteMatch?.chatData?.cid) {
-            navigateToChat(remoteMatch.chatData.cid, remoteMatch.participants);
-            return;
-        }
+    //     const remoteMatch = await lookupRemoteDirectChat(selfUid, otherUid, otherUser);
+    //     if (remoteMatch?.chatData?.cid) {
+    //         navigateToChat(remoteMatch.chatData.cid, remoteMatch.participants);
+    //         return;
+    //     }
 
-        const cid = makeID();
-        upsertLocalMessageEntry({ mid: cid, otherUsers: fallbackParticipants });
+    //     const cid = makeID();
+    //     upsertLocalMessageEntry({ mid: cid, otherUsers: fallbackParticipants });
 
-        const appendPromise = arrayAppend("usersPrivate", selfUid, "messages", {
-            mid: cid,
-            otherUsers: fallbackParticipants,
-        }).catch((err) => {
-            console.log("[ViewProfile] failed to append chat entry", err?.message || err);
-        });
+    //     const appendPromise = arrayAppend("usersPrivate", selfUid, "messages", {
+    //         mid: cid,
+    //         otherUsers: fallbackParticipants,
+    //     }).catch((err) => {
+    //         console.log("[ViewProfile] failed to append chat entry", err?.message || err);
+    //     });
 
-        try {
-            const participants = [otherUser, selfUser].filter(Boolean);
-            const newChat = await createChat(selfUid, participants, cid);
-            await appendPromise;
-            navigateToChat(newChat?.cid || cid, fallbackParticipants);
-        } catch (err) {
-            console.log("[ViewProfile] createChat failed", err?.message || err);
-            Alert.alert("Chat unavailable", "We couldn't start this conversation. Please try again.");
-        }
-    }
+    //     try {
+    //         const participants = [otherUser, selfUser].filter(Boolean);
+    //         const newChat = await createChat(selfUid, participants, cid);
+    //         await appendPromise;
+    //         navigateToChat(newChat?.cid || cid, fallbackParticipants);
+    //     } catch (err) {
+    //         console.log("[ViewProfile] createChat failed", err?.message || err);
+    //         Alert.alert("Chat unavailable", "We couldn't start this conversation. Please try again.");
+    //     }
+    // }
 
     async function goBack() {
         navigation.goBack();
@@ -245,7 +246,6 @@ export default function ViewProfile({ navigation, route }) {
                         handle={headerHandle}
                         user={profileUserData || user}
                         goBack={goBack}
-                        toMessages={() => {}}
                         onOpenOptions={() => {}}
                         isVerified={isVerifiedProfile}
                     />
@@ -354,7 +354,6 @@ export default function ViewProfile({ navigation, route }) {
                         handle={headerHandle}
                         user={profileUserData || user}
                         goBack={goBack}
-                        toMessages={toMessages}
                         onOpenOptions={() => setIsOptionsVisible(true)}
                         isVerified={isVerifiedProfile}
                     />

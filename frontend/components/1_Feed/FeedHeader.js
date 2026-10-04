@@ -1,10 +1,10 @@
 import React, { memo, useEffect, useState } from "react";
 import { View, Text } from "react-native";
 import FastImage from "react-native-fast-image";
-import { MaterialIcons } from "@expo/vector-icons";
+// import { MaterialIcons } from "@expo/vector-icons"; // messaging is disabled
 import RNBounceable from "@freakycoder/react-native-bounceable";
 import Svg, { Path } from "react-native-svg";
-import { collection, query, where, onSnapshot, doc } from "firebase/firestore";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../../firebase.config";
 import { withStrongPress } from "../../utils/haptics";
 import FeedScopeSelector from "./FeedHeader/FeedScopeSelector";
@@ -14,7 +14,7 @@ import styles, { METRICS, dynamicStyles } from "./FeedHeader.styles";
 /* ----------------------------- FeedHeader ----------------------------- */
 
 const FeedHeader = ({
-    toMessagesScreen,
+    // toMessagesScreen, // messaging is disabled
     onOpenNotifications,
     scrollToTop,
     navigation,
@@ -29,7 +29,8 @@ const FeedHeader = ({
     onChangeFeedScope,
 }) => {
     const [unreadCount, setUnreadCount] = useState(0);
-    const [unreadMessages, setUnreadMessages] = useState(0);
+    // Messaging is disabled: the unread-messages badge and its listener are commented out.
+    // const [unreadMessages, setUnreadMessages] = useState(0);
 
     useEffect(() => {
         const uid = global?.userData?.uid;
@@ -41,18 +42,18 @@ const FeedHeader = ({
     }, []);
 
     // Messages badge: listen to aggregate count on user doc
-    useEffect(() => {
-        const uid = global?.userData?.uid;
-        if (!uid) return;
-        const userRef = doc(db, 'usersPrivate', uid);
-        const unsub = onSnapshot(userRef, (snap) => {
-            try {
-                const v = Number(snap.data()?.unreadMessagesCount || 0);
-                setUnreadMessages(Number.isFinite(v) ? v : 0);
-            } catch { setUnreadMessages(0); }
-        });
-        return () => { try { unsub(); } catch {} };
-    }, []);
+    // useEffect(() => {
+    //     const uid = global?.userData?.uid;
+    //     if (!uid) return;
+    //     const userRef = doc(db, 'usersPrivate', uid);
+    //     const unsub = onSnapshot(userRef, (snap) => {
+    //         try {
+    //             const v = Number(snap.data()?.unreadMessagesCount || 0);
+    //             setUnreadMessages(Number.isFinite(v) ? v : 0);
+    //         } catch { setUnreadMessages(0); }
+    //     });
+    //     return () => { try { unsub(); } catch {} };
+    // }, []);
 
     const adjustedPaddingTop = topAdjust !== 0 ? Math.max(0, METRICS.paddingTop + topAdjust) : null;
     const adjustedPaddingBottom = heightAdjust !== 0 ? Math.max(0, METRICS.paddingBottom + heightAdjust) : null;
@@ -122,6 +123,8 @@ const FeedHeader = ({
                     )}
                 </RNBounceable>
 
+                {/* Messaging is disabled: the inbox button is commented out. Restore it together with the
+                    Messages and Chat routes in RootNavigator.js.
                 <RNBounceable
                     onPress={withStrongPress(() => {
                         try {
@@ -138,6 +141,7 @@ const FeedHeader = ({
                         </View>
                     )}
                 </RNBounceable>
+                */}
             </View>
         </View>
     );

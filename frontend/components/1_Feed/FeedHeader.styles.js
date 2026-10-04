@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     notificationBadge: { position: "absolute", right: scaleSize(-7.5), top: scaleSize(-5), backgroundColor: "#ef4444", borderRadius: scaleSize(8), width: scaleSize(16), height: scaleSize(16), justifyContent: "center", alignItems: "center" },
     notificationText: { color: "#fff", fontSize: scaleSize(8), fontFamily: "Outfit_600SemiBold" },
     message_button: { padding: scaleSize(1) },
-    notification_button: { marginRight: scaleSize(19), padding: scaleSize(1), position: "relative" },
+    notification_button: { padding: scaleSize(1), position: "relative" },
 
     feedFlameButton: {
         marginLeft: scaleSize(19),

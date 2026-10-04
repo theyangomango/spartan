@@ -18,8 +18,8 @@ import {
     Explore,
     Competition,
     ExerciseDetail,
-    Messages,
-    Chat,
+    // Messages, // messaging is disabled
+    // Chat,
     ViewProfile,
     PastWorkoutScreen,
     MacroTracking,
@@ -222,18 +222,21 @@ export default function RootNavigator({ isAccountReady, uid }) {
             <RootStack.Screen name="Explore" component={Explore} />
 
             {/* Messaging / social */}
+            {/* Messaging is disabled: restore this route and the Chat route below to bring it back.
             <RootStack.Screen name="Messages" component={Messages} />
+            */}
             <RootStack.Screen
                 name="Notifications"
                 component={Notifications}
                 options={{ headerShown: false }}
             />
+            {/* Messaging is disabled.
             <RootStack.Screen
                 name="Chat"
                 component={Chat}
                 options={Platform.select({
                     ios: {
-                        // Disable the native back swipe so Chat's custom gesture can fully control the transition.
+                        Disable the native back swipe so Chat's custom gesture can fully control the transition.
                         gestureEnabled: false,
                         cardStyleInterpolator: CardStyleInterpolators.forHorizontalIOS,
                     },
@@ -245,6 +248,7 @@ export default function RootNavigator({ isAccountReady, uid }) {
                     default: {},
                 })}
             />
+            */}
             <RootStack.Screen name="ViewProfile" component={ViewProfile} />
             <RootStack.Screen name="UserStats" component={UserStatsScreen} />
             <RootStack.Screen
