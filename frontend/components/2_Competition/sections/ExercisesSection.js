@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { scaleSize } from "../layoutConstants";
@@ -209,9 +209,6 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                 onContentSizeChange={handleContentSizeChange}
                 scrollEventThrottle={16}
             >
-                <Text style={[styles.topNoticeText, styles.dimmedCard]}>
-                    More Ranks Coming Soon!
-                </Text>
                 {topSpacerHeight > 0 && <View style={{ height: topSpacerHeight }} />}
                 {LADDER_LEVELS.map((entry, index) => {
                     const entryIsCurrent = entry.key === currentRankKey;
@@ -284,6 +281,7 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
                                     tasksToRender={tasksToRender}
                                     requirementsCompleted={requirementsCompleted}
                                     shouldDimRequirementsBlock={shouldDimRequirementsBlock}
+                                    showHeader={isImmediatePromotionTarget}
                                 />
                             )}
                         </View>

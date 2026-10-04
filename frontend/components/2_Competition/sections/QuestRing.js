@@ -15,8 +15,8 @@ import {
     OVERALL_MUSCLE_SEGMENTS,
 } from "../muscleGroupIconLayout";
 
-const RING_SIZE = scaleSize(38);
-const RING_STROKE = scaleSize(3);
+const RING_SIZE = scaleSize(40);
+const RING_STROKE = scaleSize(2);
 const RING_ICON_SIZE = RING_SIZE - 2 * RING_STROKE - scaleSize(3);
 
 // The same zoomed muscle figure as the Progress tab, sized to sit inside a quest ring.

@@ -51,14 +51,6 @@ const formatRequirementProgressText = (descriptor, currentValue, targetValue, fa
     return fallback;
 };
 
-// Theme colors are 8-digit hex strings; swap the alpha channel for a 0-1 opacity.
-const withAlpha = (hex, opacity) => {
-    const alpha = Math.round(Math.min(1, Math.max(0, opacity)) * 255)
-        .toString(16)
-        .padStart(2, "0");
-    return `${String(hex).slice(0, 7)}${alpha}`;
-};
-
 const clampRatio = (value) => {
     if (!Number.isFinite(value)) return 0;
     return Math.min(1, Math.max(0, value));
@@ -69,13 +61,12 @@ const capitalizeLabel = (value) => {
     return value.charAt(0).toUpperCase() + value.slice(1);
 };
 
-// Splits a quest into what is measured (title), what to hit (goal), and an icon for its kind.
+// Describes a quest: what is measured (title), the unit of its target, and an icon for its kind.
 const describeRequirement = (taskLabel, descriptor) => {
     if (descriptor?.type === "score") {
         const isOverall = descriptor.key === "overall";
         return {
             title: isOverall ? "Overall score" : `${capitalizeLabel(descriptor.key)} score`,
-            goal: `Reach ${formatHexStat(descriptor.target || 0)}`,
             Icon: Target,
             muscleKey: MUSCLE_ICON_SCALES[descriptor.key] ? descriptor.key : null,
         };
@@ -83,18 +74,17 @@ const describeRequirement = (taskLabel, descriptor) => {
     if (descriptor?.type === "volume") {
         return {
             title: "Total volume",
-            goal: `Lift ${formatWeightValue(descriptor.target || 0)} lbs`,
+            unit: " lbs",
             Icon: Dumbbell,
         };
     }
     if (descriptor?.type === "workouts") {
         return {
             title: "Workouts",
-            goal: `Log ${formatCountValue(descriptor.target || 0)}`,
             Icon: CalendarCheck,
         };
     }
-    return { title: taskLabel, goal: "", Icon: Target };
+    return { title: taskLabel, Icon: Target };
 };
 
-export { CARD_THEME_COLORS, formatRequirementProgressText, withAlpha, clampRatio, describeRequirement };
+export { CARD_THEME_COLORS, formatRequirementProgressText, clampRatio, describeRequirement };

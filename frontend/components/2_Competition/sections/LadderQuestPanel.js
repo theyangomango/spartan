@@ -1,7 +1,6 @@
-// Quest panel under a ladder rank card: header, progress segments and one tile per promotion requirement.
+// Quest panel under a ladder rank card: one row per promotion requirement, with a header on the user's next rank.
 import React from "react";
 import { Text, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Check } from "lucide-react-native";
 
 import { scaleSize } from "../layoutConstants";
@@ -11,7 +10,6 @@ import {
     clampRatio,
     describeRequirement,
     formatRequirementProgressText,
-    withAlpha,
 } from "./ladderQuestFormat";
 import QuestRing, { QuestMuscleIcon } from "./QuestRing";
 
@@ -21,55 +19,30 @@ export default function LadderQuestPanel({
     tasksToRender,
     requirementsCompleted,
     shouldDimRequirementsBlock,
+    showHeader,
 }) {
     const themeColors =
         CARD_THEME_COLORS[promotionThemeKey || entry.rankTier] || CARD_THEME_COLORS.gold;
     const completedCount = tasksToRender.filter((task) => task?.complete).length;
     return (
-        <View
-            style={[
-                styles.questPanel,
-                { borderColor: withAlpha(themeColors.accent, 0.22) },
-                shouldDimRequirementsBlock && styles.dimmedCard,
-            ]}
-        >
-            <LinearGradient
-                colors={[withAlpha(themeColors.gradient[1], 0.2), withAlpha(themeColors.gradient[1], 0)]}
-                style={styles.questPanelGlow}
-                pointerEvents="none"
-            />
-            <View style={styles.questPanelHeader}>
-                <View>
-                    <Text style={styles.questPanelEyebrow}>
-                        {requirementsCompleted ? "Unlocked" : "Next rank"}
-                    </Text>
-                    <Text style={styles.questPanelTitle}>
-                        Reach <Text style={{ color: themeColors.accent }}>{entry.rankLabel}</Text>
+        <View style={[styles.questPanel, shouldDimRequirementsBlock && styles.dimmedCard]}>
+            {showHeader && (
+                <View style={styles.questPanelHeader}>
+                    <View>
+                        <Text style={styles.questPanelEyebrow}>
+                            {requirementsCompleted ? "Unlocked" : "Next rank"}
+                        </Text>
+                        <Text style={[styles.questPanelTitle, { color: themeColors.accent }]}>
+                            {entry.rankLabel}
+                        </Text>
+                    </View>
+                    <Text style={styles.questCountText}>
+                        {completedCount}
+                        <Text style={styles.questCountTotal}> / {tasksToRender.length}</Text>
                     </Text>
                 </View>
-                <View
-                    style={[
-                        styles.questCountPill,
-                        { backgroundColor: withAlpha(themeColors.accent, 0.14) },
-                    ]}
-                >
-                    <Text style={[styles.questCountText, { color: themeColors.accent }]}>
-                        {completedCount} of {tasksToRender.length}
-                    </Text>
-                </View>
-            </View>
-            <View style={styles.questSegments}>
-                {tasksToRender.map((taskStatus, segmentIndex) => (
-                    <View
-                        key={`${entry.key}-segment-${segmentIndex}`}
-                        style={[
-                            styles.questSegment,
-                            taskStatus?.complete && { backgroundColor: themeColors.accent },
-                        ]}
-                    />
-                ))}
-            </View>
-            <View style={styles.questList}>
+            )}
+            <View style={[styles.questList, !showHeader && styles.questListBare]}>
                 {tasksToRender.map((taskStatus, requirementIndex) => {
                     const descriptor = taskStatus?.descriptor || null;
                     const taskComplete = !!taskStatus?.complete;
@@ -87,7 +60,7 @@ export default function LadderQuestPanel({
                         ""
                     );
                     const [currentText, targetText] = progressText.split(" / ");
-                    const { title, goal, Icon, muscleKey } = describeRequirement(
+                    const { title, unit, Icon, muscleKey } = describeRequirement(
                         taskStatus?.label || "",
                         descriptor
                     );
@@ -96,37 +69,28 @@ export default function LadderQuestPanel({
                         <View
                             key={`${entry.key}-requirement-${requirementIndex}`}
                             style={[
-                                styles.questTile,
-                                taskComplete && {
-                                    backgroundColor: withAlpha(themeColors.accent, 0.1),
-                                },
+                                styles.questRow,
+                                requirementIndex === 0 && !showHeader && styles.questRowFirst,
                             ]}
                         >
                             <QuestRing
                                 ratio={progressRatio}
                                 color={themeColors.accent}
-                                trackColor={withAlpha(themeColors.accent, 0.16)}
+                                trackColor="rgba(255,255,255,0.08)"
                             >
                                 {muscleKey && !taskComplete ? (
                                     <QuestMuscleIcon muscleKey={muscleKey} />
                                 ) : (
                                     <QuestIcon
-                                        size={scaleSize(17)}
+                                        size={scaleSize(19)}
                                         color={themeColors.accent}
                                         strokeWidth={taskComplete ? 3 : 2}
                                     />
                                 )}
                             </QuestRing>
-                            <View style={styles.questText}>
-                                <Text style={styles.questTitle} numberOfLines={1}>
-                                    {title}
-                                </Text>
-                                {!!goal && (
-                                    <Text style={styles.questGoal} numberOfLines={1}>
-                                        {goal}
-                                    </Text>
-                                )}
-                            </View>
+                            <Text style={styles.questTitle} numberOfLines={1}>
+                                {title}
+                            </Text>
                             <Text
                                 style={[
                                     styles.questValue,
@@ -135,7 +99,10 @@ export default function LadderQuestPanel({
                             >
                                 {taskComplete ? "Done" : currentText}
                                 {!!targetText && !taskComplete && (
-                                    <Text style={styles.questValueTarget}> / {targetText}</Text>
+                                    <Text style={styles.questValueTarget}>
+                                        {" "}/ {targetText}
+                                        {unit}
+                                    </Text>
                                 )}
                             </Text>
                         </View>
