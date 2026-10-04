@@ -442,7 +442,9 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                 toValue: 0,
                 duration: 200,
                 useNativeDriver: true,
-            }).start(() => {
+            }).start(({ finished }) => {
+                // A new tap during the fade-out stops this animation; keep the selection it just made.
+                if (!finished) return;
                 activeIndexRef.current = null;
                 setActiveIndex(null);
             });
@@ -461,7 +463,9 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                 toValue: 0,
                 duration: 200,
                 useNativeDriver: true,
-            }).start(() => {
+            }).start(({ finished }) => {
+                // A new tap during the fade-out stops this animation; keep the selection it just made.
+                if (!finished) return;
                 volumeActiveIndexRef.current = null;
                 setVolumeActiveIndex(null);
             });
@@ -480,7 +484,9 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                 toValue: 0,
                 duration: 200,
                 useNativeDriver: true,
-            }).start(() => {
+            }).start(({ finished }) => {
+                // A new tap during the fade-out stops this animation; keep the selection it just made.
+                if (!finished) return;
                 repsActiveIndexRef.current = null;
                 setRepsActiveIndex(null);
             });
@@ -499,7 +505,9 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                 toValue: 0,
                 duration: 200,
                 useNativeDriver: true,
-            }).start(() => {
+            }).start(({ finished }) => {
+                // A new tap during the fade-out stops this animation; keep the selection it just made.
+                if (!finished) return;
                 personalRecordActiveIndexRef.current = null;
                 setPersonalRecordActiveIndex(null);
             });
@@ -744,7 +752,7 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
             setIsSaving(true);
 
             try {
-                await Promise.all([
+                const [savedPrivate, savedPublic] = await Promise.all([
                     updateDoc("usersPrivate", uid, {
                         "progress.weightEntries": sanitizedEntries,
                         weightEntries: deleteField(),
@@ -753,6 +761,11 @@ function ProgressSection({ scrollSignal = 0, onScroll }) {
                     }),
                     updateDoc("usersPublic", uid, publicWeightFields),
                 ]);
+                // updateDoc resolves false (it does not throw) when the user document is missing or not writable.
+                if (!savedPrivate || !savedPublic) {
+                    Alert.alert("Unable to save measurement", "Your measurement could not be saved. Please try again.");
+                    return false;
+                }
                 return true;
             } catch (error) {
                 const message =

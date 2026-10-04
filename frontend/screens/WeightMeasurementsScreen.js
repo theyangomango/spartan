@@ -154,7 +154,7 @@ export default function WeightMeasurementsScreen() {
             setIsSaving(true);
 
             try {
-                await Promise.all([
+                const [savedPrivate, savedPublic] = await Promise.all([
                     updateDoc("usersPrivate", uid, {
                         "progress.weightEntries": sanitizedEntries,
                         weightEntries: deleteField(),
@@ -163,6 +163,11 @@ export default function WeightMeasurementsScreen() {
                     }),
                     updateDoc("usersPublic", uid, publicWeightFields),
                 ]);
+                // updateDoc resolves false (it does not throw) when the user document is missing or not writable.
+                if (!savedPrivate || !savedPublic) {
+                    Alert.alert("Unable to save measurement", "Your measurement could not be saved. Please try again.");
+                    return false;
+                }
                 return true;
             } catch (error) {
                 const message =

@@ -186,8 +186,8 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
     const activeLevelUp = Array.isArray(levelUpQueue) && levelUpQueue.length ? levelUpQueue[0] : null;
 
     const handleDismissLevelUp = useCallback(() => {
+        // The queue subscription updates local state; slicing here as well would skip a step.
         dequeueRankPromotion();
-        setLevelUpQueue((prev) => (Array.isArray(prev) && prev.length ? prev.slice(1) : prev));
     }, []);
 
     return (

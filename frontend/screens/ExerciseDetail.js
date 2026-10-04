@@ -444,7 +444,9 @@ export default function ExerciseDetail() {
                 toValue: 0,
                 duration: 200,
                 useNativeDriver: true,
-            }).start(() => {
+            }).start(({ finished }) => {
+                // A new tap during the fade-out stops this animation; keep the selection it just made.
+                if (!finished) return;
                 progressVolumeActiveIndexRef.current = null;
                 setProgressVolumeActiveIndex(null);
             });
@@ -461,7 +463,9 @@ export default function ExerciseDetail() {
                 toValue: 0,
                 duration: 200,
                 useNativeDriver: true,
-            }).start(() => {
+            }).start(({ finished }) => {
+                // A new tap during the fade-out stops this animation; keep the selection it just made.
+                if (!finished) return;
                 progressOneRmActiveIndexRef.current = null;
                 setProgressOneRmActiveIndex(null);
             });
@@ -478,7 +482,9 @@ export default function ExerciseDetail() {
                 toValue: 0,
                 duration: 200,
                 useNativeDriver: true,
-            }).start(() => {
+            }).start(({ finished }) => {
+                // A new tap during the fade-out stops this animation; keep the selection it just made.
+                if (!finished) return;
                 progressRepsActiveIndexRef.current = null;
                 setProgressRepsActiveIndex(null);
             });
@@ -495,7 +501,9 @@ export default function ExerciseDetail() {
                 toValue: 0,
                 duration: 200,
                 useNativeDriver: true,
-            }).start(() => {
+            }).start(({ finished }) => {
+                // A new tap during the fade-out stops this animation; keep the selection it just made.
+                if (!finished) return;
                 progressPersonalRecordActiveIndexRef.current = null;
                 setProgressPersonalRecordActiveIndex(null);
             });

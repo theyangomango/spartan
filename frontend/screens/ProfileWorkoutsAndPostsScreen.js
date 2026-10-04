@@ -160,7 +160,8 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         setIsUserLoading(true);
         Promise.all([
             readDoc('usersPublic', targetUid),
-            readDoc('usersPrivate', targetUid),
+            // Another user's private document is not readable; that must not fail the whole refresh.
+            readDoc('usersPrivate', targetUid).catch(() => null),
         ])
             .then(([publicDoc, privateDoc]) => {
                 if (cancelled) return;

@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
         marginBottom: scaleSize(6),
     },
     emptySubtitle: {
-        fontFamily: "Nunito_500Medium",
+        fontFamily: "Outfit_500Medium",
         fontSize: scaleSize(11),
         color: theme.textSecondary,
         textAlign: "center",

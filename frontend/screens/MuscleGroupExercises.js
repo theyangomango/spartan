@@ -183,7 +183,7 @@ export default function MuscleGroupExercises() {
                 </Pressable>
             );
         },
-        [displayPreferredUnit, handlePressExercise]
+        [completedWorkouts, displayPreferredUnit, handlePressExercise]
     );
 
     return (

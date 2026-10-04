@@ -709,7 +709,7 @@ export default function FoodSearchOverlay({
                                 setScanBusy(true);
                                 setScanError('');
                                 try {
-                                    const digits = data.replace(/\\D/g, '');
+                                    const digits = data.replace(/\D/g, '');
                                     if (!digits) {
                                         setScanError('Invalid barcode');
                                         setScanLocked(false);

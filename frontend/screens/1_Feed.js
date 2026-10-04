@@ -176,8 +176,8 @@ export default function Feed({ navigation, route }) {
     }, []);
 
     const handleDismissRankPromotion = useCallback(() => {
+        // The queue subscription updates local state; slicing here as well would skip a step.
         dequeueRankPromotion();
-        setRankPromotionQueue((prev) => (Array.isArray(prev) && prev.length ? prev.slice(1) : prev));
     }, []);
 
     useEffect(() => {

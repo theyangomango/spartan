@@ -80,7 +80,7 @@ const UserLogInCredentials = ({ navigation }) => {
                 setErrorMsg('No account matches that username.');
             } else if (code === 'functions/invalid-argument') {
                 setErrorMsg('Enter a valid email, phone number, or username.');
-            } else if (code === 'auth/user-not-found' || code === 'auth/wrong-password') {
+            } else if (code === 'auth/user-not-found' || code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
                 setErrorMsg('Invalid credentials. Please try again.');
             } else if (code === 'auth/too-many-requests') {
                 setErrorMsg('Too many attempts. Try again later.');
