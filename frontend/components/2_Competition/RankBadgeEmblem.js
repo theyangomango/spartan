@@ -51,6 +51,12 @@ const sparklePath = (x, y, size) =>
  * Level I is a small matte medal; II is polished with an engraved ring; III adds rays;
  * IV adds an outer outline and sparkles; V adds wings and a crown sparkle.
  */
+const clampLevel = (stage) => Math.min(Math.max(Math.round(stage) || 1, 1), 5);
+
+// The `size` at which a stage's medal is as large as the level I medal drawn at `size`,
+// for places that show badges of different levels side by side at one medal size.
+export const getUniformMedalSize = (stage, size) => (size * MEDAL_SCALE[0]) / MEDAL_SCALE[clampLevel(stage) - 1];
+
 function RankBadgeEmblem({ rankTheme, stage = 1, size = 104 }) {
     const colors = useMemo(() => {
         const [rimLight, rimMid] = rankTheme.badgeOuterGradient || [];
@@ -65,7 +71,7 @@ function RankBadgeEmblem({ rankTheme, stage = 1, size = 104 }) {
         };
     }, [rankTheme]);
 
-    const level = Math.min(Math.max(Math.round(stage) || 1, 1), 5);
+    const level = clampLevel(stage);
     const medalScale = MEDAL_SCALE[level - 1];
     const glowOpacity = GLOW_OPACITY[level - 1];
     const gemScale = GEM_SCALE[level - 1];
