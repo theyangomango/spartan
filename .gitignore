@@ -33,3 +33,7 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# App Store metadata (contains the App Review demo password)
+store.config.json
+store/
