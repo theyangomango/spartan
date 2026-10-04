@@ -884,7 +884,8 @@ export default function PostOptionsScreen({ navigation, route }) {
                     const cropRect = item.cropRect || null;
 
                     if (isRemoteUri(uri)) {
-                        return { index, uri, type, duration, cropRect };
+                        // Already uploaded (editing a post): keep its clip flag and aspect ratio.
+                        return { index, uri, type, duration, cropRect, isClip: Boolean(item?.isClip), aspectRatio: item?.aspectRatio || null };
                     }
 
                     if (type === 'video') {

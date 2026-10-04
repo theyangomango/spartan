@@ -150,6 +150,14 @@ function ExercisesSection({ onScroll, scrollSignal = 0 }) {
         [scrollContainerHeight, contentHeight, currentRankKey, insets?.bottom, topSpacerHeight]
     );
 
+    // A scroll target set from the Feed is for the rank the user had then; drop it when the rank changes.
+    const previousRankKeyRef = useRef(currentRankKey);
+    useEffect(() => {
+        if (previousRankKeyRef.current === currentRankKey) return;
+        previousRankKeyRef.current = currentRankKey;
+        try { global[LADDER_SCROLL_TARGET_KEY] = null; } catch { }
+    }, [currentRankKey]);
+
     useEffect(() => {
         attemptCenterCurrentCard({ animated: false, preserveTarget: true });
     }, [attemptCenterCurrentCard]);

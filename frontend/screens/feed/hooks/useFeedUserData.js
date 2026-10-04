@@ -34,7 +34,8 @@ export default function useFeedUserData({ UID, navigation, route }) {
 
         const unsubscribe = onSnapshot(doc(db, "usersPublic", UID), (snap) => {
             userDataRef.current = snap.data();
-            try { global.userData = userDataRef.current; } catch { }
+            // Merge: replacing the record with the public document would drop the private fields App merged in.
+            try { if (userDataRef.current) global.userData = { ...(global.userData || {}), ...userDataRef.current }; } catch { }
 
             const killUntil = Number(global?.__suppressCurrentWorkoutUntil || 0);
             const now = Date.now();

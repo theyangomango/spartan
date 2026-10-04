@@ -357,6 +357,8 @@ export default function App() {
                 emitUserDataUpdate();
             } catch { }
             try { delete global.__lastKnownUid; } catch { }
+            // Invalidate the logged-foods index so the next account does not see this one's meals.
+            try { global.__loggedFoodsSig = (global.__loggedFoodsSig || 0) + 1; } catch { }
             prevMessagesSigRef.current = '';
             resetMessagesState();
             stopNotificationsListener();

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
 import { collection, doc, onSnapshot, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
-import { db } from "../../firebase.config";
+import { auth, db } from "../../firebase.config";
 import acceptWorkoutInvite from "../helper/workoutInvites";
 import { usePfp } from "../helper/usePFPs";
 
@@ -26,7 +26,8 @@ export default function useWorkoutInvites({ uid, onAccepted, enabled = true } = 
 
   useEffect(() => {
     if (!enabled) return undefined;
-    const me = String(uid || global?.userData?.uid || "");
+    // The signed-in uid is known before the user record has loaded; without it the listener never attached.
+    const me = String(uid || global?.userData?.uid || auth?.currentUser?.uid || "");
     if (!me) return undefined;
     const qInv = query(collection(db, "workoutInvites"), where("toUid", "==", me), where("status", "==", "pending"));
     const unsub = onSnapshot(qInv, (snap) => {
@@ -52,7 +53,8 @@ export default function useWorkoutInvites({ uid, onAccepted, enabled = true } = 
   const accept = useCallback(async () => {
     if (!currentInvite) return;
     try {
-      const me = String(uid || global?.userData?.uid || "");
+      // The signed-in uid is known before the user record has loaded; without it the listener never attached.
+    const me = String(uid || global?.userData?.uid || auth?.currentUser?.uid || "");
       const wid = String(currentInvite?.wid || "");
       if (!me || !wid) return;
 
