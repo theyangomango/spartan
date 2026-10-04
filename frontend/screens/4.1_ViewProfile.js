@@ -8,7 +8,6 @@ import ViewProfileInfo from "../components/ViewProfile/ViewProfileInfo";
 import ViewProfileHeader from "../components/ViewProfile/ViewProfileHeader";
 import readDoc from "../../backend/helper/firebase/readDoc";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
-import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import createChat from "../../backend/messages/createChat";
 import makeID from "../../backend/helper/makeID";
 import arrayAppend from "../../backend/helper/firebase/arrayAppend";
@@ -108,7 +107,6 @@ export default function ViewProfile({ navigation, route }) {
     const user = route.params.user;
     const [profileUserData, setProfileUserData] = useState(null);
     const [blockedFromViewing, setBlockedFromViewing] = useState(false);
-    const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
     const [isFollowListVisible, setIsFollowListVisible] = useState(false);
     const [followListMode, setFollowListMode] = useState('followers');
     const [viewerWorkout, setViewerWorkout] = useState(null);
@@ -315,7 +313,9 @@ export default function ViewProfile({ navigation, route }) {
         user?.verified ??
         false
     );
-    function handleOpenViewStats() { setIsViewStatsBottomSheetVisible(true); }
+    function handleOpenViewStats() {
+        navigation.navigate('UserStats', { user: profileUserData || user, transition: 'slide-from-right' });
+    }
 
     const handleReportProfile = useCallback(() => {
         openReportSheet({
@@ -432,14 +432,6 @@ export default function ViewProfile({ navigation, route }) {
                 </View>
             </ScrollView>
             <Footer currentScreenName={'Profile'} navigation={navigation} />
-
-            <UserStatsBottomSheet
-                user={profileUserData || user}
-                navigation={navigation}
-                isVisible={isViewStatsBottomSheetVisible}
-                setIsVisible={setIsViewStatsBottomSheetVisible}
-                heightRatio={0.88}
-            />
 
             <FollowListBottomSheet
                 isVisible={isFollowListVisible}

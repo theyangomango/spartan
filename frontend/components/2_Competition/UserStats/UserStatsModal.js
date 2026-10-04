@@ -71,7 +71,9 @@ const sanitizeWorkoutForRoute = (workout) => {
     }
 };
 
-export default function UserStatsModal({ user, toViewProfile, navigation, hexOverlay, hexProps = {}, deferExercises = false, visible = true, onDetailActiveChange = () => {} }) {
+// `onBack` is set when this is shown as a full screen rather than inside the bottom sheet:
+// the sheet's grabber is replaced by a back button.
+export default function UserStatsModal({ user, toViewProfile, navigation, hexOverlay, hexProps = {}, deferExercises = false, visible = true, onDetailActiveChange = () => {}, onBack = null }) {
     // Optionally defer heavy grouping work until after interactions (for smoother open)
     const [showExercises, setShowExercises] = useState(!deferExercises);
     const viewerData = (() => {
@@ -472,9 +474,20 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
 
     return (
         <View style={styles.container}>
-            <View style={styles.grabber} accessible={false} importantForAccessibility="no" />
+            {!onBack && <View style={styles.grabber} accessible={false} importantForAccessibility="no" />}
             {/* Header */}
             <View style={styles.header}>
+                {onBack && (
+                    <Pressable
+                        onPress={withStrongPress(onBack)}
+                        style={styles.headerBack}
+                        hitSlop={12}
+                        accessibilityRole="button"
+                        accessibilityLabel="Back"
+                    >
+                        <MaterialCommunityIcons name="chevron-left" size={scaleSize(30)} color={COLORS.subtext} />
+                    </Pressable>
+                )}
                 <Pressable onPress={withStrongPress(toViewProfile)} style={styles.headerLeft} hitSlop={10}>
                     {hasPfp ? (
                         <FastImage
@@ -504,7 +517,7 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
                             containerStyle={styles.handleRow}
                             iconSize={scaleSize(18)}
                         />
-                        <Text style={styles.subHandle}>{joinedLabel}</Text>
+                        {!!joinedLabel && <Text style={styles.subHandle}>{joinedLabel}</Text>}
                     </View>
                 </Pressable>
 
@@ -593,6 +606,7 @@ export default function UserStatsModal({ user, toViewProfile, navigation, hexOve
                 workouts={detailWorkouts}
                 loading={detailLoading}
                 onClose={closeDetail}
+                fullScreen={!!onBack}
             />
             <UserStatsWorkoutViewerScreen
                 visible={viewerOpen}

@@ -1,5 +1,5 @@
 import { httpsCallable } from 'firebase/functions';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db, functions } from '../../firebase.config';
 import { emitUserDataUpdate } from '../utils/userDataEvents';
 
@@ -198,6 +198,26 @@ async function setUserHandleFallback(handle) {
   ]);
 
   return { handle: normalized };
+}
+
+const joinDateBackfillAttempted = new Set();
+
+/**
+ * Some accounts were created without a creation date on their public profile, which leaves
+ * "Joined ..." blank for them and for anyone viewing them. Stamp it once from the sign-in
+ * account's own creation time. `publicData` is the signed-in user's usersPublic record.
+ */
+export async function backfillJoinDate(uid, publicData) {
+  const user = auth.currentUser;
+  if (!uid || !publicData || user?.uid !== uid) return false;
+  if (publicData.createdAt || publicData.joined) return false;
+  if (joinDateBackfillAttempted.has(uid)) return false;
+  joinDateBackfillAttempted.add(uid);
+
+  const createdAt = new Date(user.metadata?.creationTime || '');
+  if (Number.isNaN(createdAt.getTime())) return false;
+  await updateDoc(doc(db, 'usersPublic', uid), { createdAt });
+  return true;
 }
 
 export async function ensureUserProfile(options = {}) {

@@ -33,4 +33,5 @@ export { default as DeleteAccount } from './DeleteAccount';
 export { default as ProfileWorkoutsAndPostsScreen } from './ProfileWorkoutsAndPostsScreen';
 export { default as ProfileLoggedFoodsScreen } from './ProfileLoggedFoodsScreen';
 export { default as WeightMeasurementsScreen } from './WeightMeasurementsScreen';
+export { default as UserStatsScreen } from './UserStatsScreen';
 export { default as NoInternet } from './NoInternet';

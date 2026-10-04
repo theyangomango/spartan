@@ -5,10 +5,6 @@ import ProfileInfo from "../components/5_Profile/ProfileTop/ProfileInfo";
 import ProfileRowButtons from "../components/5_Profile/ProfileTop/ProfileRowButtons";
 import WorkoutStats from "../components/5_Profile/ProfileTop/WorkoutStats";
 import EditProfileBottomSheet from "../components/5_Profile/EditProfile/EditProfileBottomSheet";
-// ⬇️ swap OUT the old ViewStatsBottomSheet
-// import ViewStatsBottomSheet from "../components/5_Profile/ViewStats/ViewStatsBottomSheet";
-// ⬇️ and swap IN the Competition screen’s bottom sheet
-import UserStatsBottomSheet from "../components/2_Competition/UserStats/UserStatsBottomSheet";
 import Footer from "../components/Footer";
 import FeedWorkoutViewerSheet from "../components/1_Feed/ViewWorkout/FeedWorkoutViewerSheet";
 import FollowListBottomSheet from "../components/FollowListBottomSheet";
@@ -31,8 +27,6 @@ export default function Profile({ navigation }) {
 
     const [userData, setUserData] = useState(() => ({ ...(global?.userData || {}) }));
 
-    // Reuse this flag to show the Competition-style UserStatsBottomSheet
-    const [isViewStatsBottomSheetVisible, setIsViewStatsBottomSheetVisible] = useState(false);
     const [isFollowListVisible, setIsFollowListVisible] = useState(false);
     const [followListMode, setFollowListMode] = useState('followers'); // or 'following'
 
@@ -123,8 +117,13 @@ export default function Profile({ navigation }) {
     const bioValue = (userData?.bio ?? "").toString();
 
     function handleOpenViewStats() {
-        // ✅ Open the workout stats bottom sheet (same one used on Competition)
-        setIsViewStatsBottomSheetVisible(true);
+        // The stats screen follows the live user record for the signed-in user, so the uid is enough.
+        const params = { user: { uid: userData?.uid }, transition: 'slide-from-right' };
+        try {
+            const rootNav = navigation?.getParent?.('ROOT');
+            if (rootNav?.navigate) rootNav.navigate('UserStats', params);
+            else navigation.navigate('UserStats', params);
+        } catch { navigation.navigate('UserStats', params); }
     }
     
     return (
@@ -184,20 +183,11 @@ export default function Profile({ navigation }) {
                 </View>
             </ScrollView>
 
-            {/* ⬇️ Use the same modal as Competition screen */}
             <EditProfileBottomSheet
                 isVisible={isEditProfileBottomSheetVisible}
                 setIsVisible={setIsEditProfileBottomSheetVisible}
                 setPFP={setPFP}
             />
-            <UserStatsBottomSheet
-                user={userData}                    // show current profile’s user data
-                navigation={navigation}
-                isVisible={isViewStatsBottomSheetVisible}
-                setIsVisible={setIsViewStatsBottomSheetVisible}
-                heightRatio={0.88}
-            />
-
             <FollowListBottomSheet
                 isVisible={isFollowListVisible}
                 setIsVisible={setIsFollowListVisible}

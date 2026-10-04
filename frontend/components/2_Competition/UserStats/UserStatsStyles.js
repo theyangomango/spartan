@@ -52,6 +52,10 @@ const styles = StyleSheet.create({
         marginBottom: scaledSize(8),
         justifyContent: "space-between",
     },
+    headerBack: {
+        marginLeft: -scaledSize(10),
+        marginRight: scaledSize(2),
+    },
     headerLeft: {
         flexDirection: "row",
         alignItems: "center",
@@ -356,6 +360,13 @@ const styles = StyleSheet.create({
         height: scaledSize(4),
         borderRadius: scaledSize(999),
         backgroundColor: HANDLE_FRIEND_ACCENT,
+    },
+    // On a full screen the safe area already clears the status bar and there is no sheet
+    // corner to round, so the overlay drops the sheet's extra top padding and radius.
+    detailOverlayFullScreen: {
+        paddingTop: 0,
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
     },
     detailHeaderWrapper: {
         marginBottom: scaledSize(8),

@@ -8,16 +8,8 @@ import scaleSize from "../../../helper/scaleSize";
 import { strong as hapticStrong } from "../../../utils/haptics";
 
 import { onHexagonUpdate } from "../../../utils/hexagonEvents";
-import { coercePrivacyMode } from "../../../utils/workoutPrivacy";
+import buildEffectiveStatsUser from "./effectiveStatsUser";
 import isThisUser from "../../../helper/isThisUser";
-
-const toDayKey = (d) => {
-    try {
-        const x = new Date(typeof d === 'number' || typeof d === 'string' ? d : (d?.toMillis?.() ? d.toMillis() : Date.now()));
-        x.setHours(0, 0, 0, 0);
-        return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
-    } catch { return ''; }
-};
 
 const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheetProgressSV, heightRatio = 1 }) => {
     const bottomSheetRef = useRef(null);
@@ -112,43 +104,10 @@ const UserStatsBottomSheet = ({ isVisible, setIsVisible, user, navigation, sheet
         else navigation.navigate("ViewProfile", payload);
     }
 
-    const effectiveUser = useMemo(() => {
-        const u = user || global?.userData;
-        const me = global?.userData;
-        if (!u || !me) return u;
-        if (String(u?.uid || '') !== String(me?.uid || '')) return u; // viewing someone else
-
-        // Merge latest completed workout sets into statsExercises (in-memory only)
-        const stats = { ...(u?.statsExercises || {}) };
-        try {
-            const cws = Array.isArray(me?.completedWorkouts) ? me.completedWorkouts : [];
-            if (cws.length) {
-                const cw = cws[cws.length - 1];
-                const wid = String(cw?.wid || cw?.id || '');
-                const dk = toDayKey(cw?.created || cw?.createdAt || Date.now());
-                const exs = Array.isArray(cw?.exercises) ? cw.exercises : [];
-                for (const ex of exs) {
-                    const name = String(ex?.name || '').trim(); if (!name) continue;
-                    const sets = Array.isArray(ex?.sets) ? ex.sets : [];
-                    if (!sets.length) continue;
-                    const entry = { ...(stats[name] || {}) };
-                    const list = Array.isArray(entry.sets) ? entry.sets.slice() : [];
-                    const lastWid = list.length ? list[list.length - 1]?.wid : null;
-                    if (lastWid !== wid) {
-                        const setPrivacy = coercePrivacyMode(cw?.privacyMode);
-                        for (const s of sets) {
-                            const r = Number(s?.reps) || 0; const w = Number(s?.weight) || 0;
-                            if (r > 0 && w > 0) list.push({ weight: w, reps: r, date: dk, wid, privacyMode: setPrivacy });
-                        }
-                        entry.sets = list;
-                        stats[name] = entry;
-                    }
-                }
-            }
-        } catch { }
-        const latestHex = me?.statsHexagon || u?.statsHexagon || null;
-        return { ...u, statsExercises: stats, ...(latestHex ? { statsHexagon: latestHex } : {}) };
-    }, [user, (global?.userData?.completedWorkouts || []).length, global?.userData?.statsExercises]);
+    const effectiveUser = useMemo(
+        () => buildEffectiveStatsUser(user),
+        [user, (global?.userData?.completedWorkouts || []).length, global?.userData?.statsExercises]
+    );
 
     const handleDetailActiveChange = useCallback(() => {
         /* keep header styling static when detail overlay opens */

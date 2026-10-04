@@ -155,6 +155,7 @@ export default function UserStatsExerciseDetailScreen({
     workouts,
     loading,
     onClose,
+    fullScreen = false,
 }) {
     const headerName = detailName || 'Exercise';
     const [postsLoading, setPostsLoading] = useState(false);
@@ -750,7 +751,7 @@ export default function UserStatsExerciseDetailScreen({
         <GestureDetector gesture={gesture}>
             <Animated.View
                 pointerEvents="auto"
-                style={[styles.detailOverlay, { transform: [{ translateX }] }]}
+                style={[styles.detailOverlay, fullScreen && styles.detailOverlayFullScreen, { transform: [{ translateX }] }]}
             >
                 <View style={styles.detailHeaderWrapper}>
                     <View style={styles.detailHeaderSimpleCard}>

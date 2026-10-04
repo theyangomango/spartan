@@ -31,7 +31,7 @@ import { initCommunityStats, refreshCommunityStats } from './frontend/logic/comm
 import { ensureAuthBackgroundAsync } from './frontend/utils/authBackground';
 import { emitUserDataUpdate } from './frontend/utils/userDataEvents';
 import { withLegacyPhotoFields } from './frontend/utils/profilePhoto';
-import { prepareProfileForAuth } from './frontend/services/userProfileService';
+import { backfillJoinDate, prepareProfileForAuth } from './frontend/services/userProfileService';
 import { registerAuthStatusController } from './frontend/state/authStatusController';
 
 /* Screens */
@@ -66,6 +66,7 @@ import {
     ProfileWorkoutsAndPostsScreen,
     ProfileLoggedFoodsScreen,
     WeightMeasurementsScreen,
+    UserStatsScreen,
     NoInternet,
 } from './frontend/screens';
 import SelectPhotosScreen from './frontend/components/5_Profile/MakePost/SelectPhotosScreen';
@@ -1054,6 +1055,7 @@ export default function App() {
         const unsubPublic = onSnapshot(publicRef, (snap) => {
             const data = snap.exists() ? (snap.data() || {}) : null;
             mergeAndApply(data, null, { publicExists: snap.exists() }).catch(() => {});
+            backfillJoinDate(uid, data).catch(() => {});
         }, (err) => {
             console.warn('User public document subscription error:', err?.message || err);
         });
@@ -1608,6 +1610,7 @@ return (
                             })}
                         />
                         <RootStack.Screen name="ViewProfile" component={ViewProfile} />
+                        <RootStack.Screen name="UserStats" component={UserStatsScreen} />
                         <RootStack.Screen
                             name="PastWorkout"
                             component={PastWorkoutScreen}
