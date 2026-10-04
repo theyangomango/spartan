@@ -177,12 +177,13 @@ export const statsExercisesSignature = (map) => {
 
 export const completedWorkoutsSignature = (list) => {
     if (!Array.isArray(list)) return '';
-    const sample = list.slice(0, 40).map((workout) => {
+    // The list is stored oldest first; sample the newest entries, which are the ones that change.
+    const sample = list.slice(-40).map((workout) => {
         const wid = extractWid(workout);
         const ts = resolveWorkoutTimestamp(workout);
         return [wid, ts];
     });
-    return JSON.stringify(sample);
+    return JSON.stringify([list.length, sample]);
 };
 
 export const getInitialStatsExercises = () => {

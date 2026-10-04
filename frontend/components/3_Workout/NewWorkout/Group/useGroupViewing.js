@@ -145,7 +145,7 @@ export function useGroupViewing({
         return () => {
             if (t) clearTimeout(t);
             // best-effort clean-up when leaving this screen
-            try { deleteDoc(doc(db, "workouts", String(wid), "live", String(meUid))); } catch { }
+            try { deleteDoc(doc(db, "workouts", String(wid), "live", String(meUid))).catch(() => { }); } catch { }
         };
     }, [wid, meUid, userHandle, userImage, autoJoin, enabled]);
 

@@ -1,4 +1,3 @@
-import makeID from "../../backend/helper/makeID";
 
 const KG_TO_LB = 2.2046226218488;
 
@@ -69,7 +68,9 @@ export const sanitizeEntries = (rawEntries) => {
             if (!Number.isFinite(weight) || weight <= 0 || !Number.isFinite(recordedAt)) return null;
             const unit = (entry.unit || "").toString().toLowerCase().startsWith("k") ? "kg" : "lb";
             return {
-                id: entry.id || entry.key || makeID(),
+                // Entries stored without an id get one derived from their content, so it is the same on every call
+                // (a random id here made such entries impossible to edit or delete).
+                id: entry.id || entry.key || `legacy-${recordedAt}-${weight}`,
                 weight,
                 unit,
                 recordedAt,

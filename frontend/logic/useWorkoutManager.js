@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, InteractionManager } from "react-native";
+import { Alert, AppState, InteractionManager } from "react-native";
 import {
     setDoc,
     doc,
@@ -74,6 +74,7 @@ const buildRankPayload = (completedWorkouts, statsHexagon) => {
 };
 
 const HEAVY_DELAY_MS = 900; // allow summary modal to animate and settle
+const HEAVY_FALLBACK_DELAY_MS = 2500; // run the deferred writes even if the summary is still open
 const PERSIST_DEBOUNCE_MS = 900;
 
 export default function useWorkoutManager({ uid, millisToHMS }) {
@@ -163,6 +164,18 @@ export default function useWorkoutManager({ uid, millisToHMS }) {
             } catch { /* ignore */ }
         }
     }, [isSummaryModalVisible]);
+
+    // The deferred stats/rank writes wait for the summary to close. If the app is backgrounded or closed
+    // with the summary still open they would be lost, so run them as soon as the app leaves the foreground.
+    useEffect(() => {
+        const subscription = AppState.addEventListener("change", (state) => {
+            if (state === "active" || !pendingHeavyRef.current) return;
+            const fn = pendingHeavyRef.current;
+            pendingHeavyRef.current = null;
+            try { fn(); } catch { /* ignore */ }
+        });
+        return () => subscription.remove();
+    }, []);
 
     /* ------------ persist currentWorkout (debounced) ------------ */
     const saveCurrentWorkoutDebouncedRef = useRef(null);
@@ -998,6 +1011,16 @@ export default function useWorkoutManager({ uid, millisToHMS }) {
                     // Chain: first heavy stats delta, then persist sets history
                     const prevPending = pendingHeavyRef.current;
                     pendingHeavyRef.current = () => { try { prevPending?.(); } catch {}; try { persistSetsHistory(); } catch {} };
+                    // Do not wait indefinitely for the summary to close: if the app is closed while it is open,
+                    // the stats, hexagon and rank writes would never happen. Run them once it has settled.
+                    setTimeout(() => {
+                        InteractionManager.runAfterInteractions(() => {
+                            const pending = pendingHeavyRef.current;
+                            if (!pending) return;
+                            pendingHeavyRef.current = null;
+                            try { pending(); } catch { /* ignore */ }
+                        });
+                    }, HEAVY_FALLBACK_DELAY_MS);
                 } catch {}
             }
 

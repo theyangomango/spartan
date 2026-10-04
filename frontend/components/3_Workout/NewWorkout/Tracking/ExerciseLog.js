@@ -431,6 +431,8 @@ const areEqual = (prev, next) => {
     return (
         // parent-driven replacement of the whole sets array
         (prev.name === next.name &&
+        // callbacks capture the index, so a row must re-render when an exercise above it is removed
+        prev.exerciseIndex === next.exerciseIndex &&
         prev.readOnly === next.readOnly &&
         prev.syncColumnOnEdit === next.syncColumnOnEdit &&
         prev.sets === next.sets &&

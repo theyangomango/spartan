@@ -154,7 +154,7 @@ export default function UserStatsProgressPreview({ user, hexProps = {}, onWorkou
             reps: buildLatest(repsEntries, "reps"),
             personalRecords: buildLatest(personalRecordEntries, "personalRecords"),
         };
-    }, [volumeEntries, repsEntries, personalRecordEntries]);
+    }, [volumeEntries, repsEntries, personalRecordEntries, metricMeta]);
 
     const metricTabs = useMemo(
         () => [
