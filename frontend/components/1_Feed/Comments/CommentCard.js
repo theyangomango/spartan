@@ -72,7 +72,7 @@ export default function CommentCard({
 
     function handleNavigateToProfile() {
         hapticStrong();
-        if (data.uid === global.userData.uid) {
+        if (data?.uid === global?.userData?.uid) {
             try {
                 const rootNav = navigation?.getParent?.('ROOT');
                 if (rootNav?.navigate) rootNav.navigate('Profile', { transition: 'slide-from-right' });

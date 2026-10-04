@@ -19,7 +19,8 @@ const ItemSeparator = () => <View style={styles.sep} />;
 export default function SearchUsers({ navigation, route }) {
   const initialUsers = Array.isArray(route?.params?.initialUsers) ? route.params.initialUsers : [];
   const initialSuggestions = Array.isArray(route?.params?.initialSuggestions) ? route.params.initialSuggestions : [];
-  const navStartedAt = Number(route?.params?.startedAt) || Date.now();
+  // Fixed at mount: a fresh Date.now() per render would re-run the effect that depends on it.
+  const [navStartedAt] = useState(() => Number(route?.params?.startedAt) || Date.now());
   const [qStr, setQStr] = useState('');
   const [results, setResults] = useState([]);
   const [allUsers, setAllUsers] = useState(initialUsers);

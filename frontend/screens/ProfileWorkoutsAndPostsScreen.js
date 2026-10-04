@@ -93,6 +93,11 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
     const [workoutPostsState, setWorkoutPostsState] = useState({ byPid: {}, byWid: {} });
     const [workoutPostsLoading, setWorkoutPostsLoading] = useState(false);
 
+    // Declared above the focus effect so it re-runs when access to the profile changes.
+    const viewerData = (() => { try { return global?.userData || null; } catch { return null; } })();
+    const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
+    const canViewContent = canViewerAccessProfile(userData, viewerUid, viewerData);
+
     useFocusEffect(
         useCallback(() => {
             clearFooterSuppression();
@@ -192,9 +197,6 @@ export default function ProfileWorkoutsAndPostsScreen({ navigation, route }) {
         }
     }, [isViewingSelf]);
 
-    const viewerData = (() => { try { return global?.userData || null; } catch { return null; } })();
-    const viewerUid = viewerData?.uid ? String(viewerData.uid) : "";
-    const canViewContent = canViewerAccessProfile(userData, viewerUid, viewerData);
 
     useEffect(() => {
         if (!userData || !canViewContent) {

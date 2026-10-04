@@ -452,53 +452,6 @@ const SimpleFeedPost = ({
         }
     }, [setControlsVisibility]);
 
-    const openReportOptions = useCallback(() => {
-        if (isViewerOwner) return;
-        setReportOptionsVisible(true);
-    }, [isViewerOwner]);
-
-    const closeReportOptions = useCallback((afterClose) => {
-        if (!isReportOptionsVisible) {
-            if (typeof afterClose === 'function') afterClose();
-            return;
-        }
-        Animated.timing(reportOptionsAnim, {
-            toValue: 0,
-            duration: 200,
-            useNativeDriver: true,
-        }).start(() => {
-            setReportOptionsVisible(false);
-            if (typeof afterClose === 'function') afterClose();
-        });
-    }, [isReportOptionsVisible, reportOptionsAnim]);
-
-    const handleReportOptionsBackdrop = useCallback(() => {
-        closeReportOptions();
-    }, [closeReportOptions]);
-
-    const handleReportPost = useCallback(() => {
-        try { hapticStrong(); } catch { }
-        const fallbackId = data?.id ? String(data.id).trim() : "";
-        const targetId = postPid || fallbackId || `post-${Date.now()}`;
-        openReportSheet({
-            targetType: "post",
-            targetId,
-            ownerUid: postOwnerUid,
-            ownerHandle: reportHandle,
-            source: "feed-post",
-            metadata: {
-                caption,
-                workoutTitle: workoutName,
-            },
-        });
-    }, [caption, data?.id, openReportSheet, postOwnerUid, postPid, reportHandle, workoutName]);
-
-    const handleSelectReport = useCallback(() => {
-        closeReportOptions(() => {
-            handleReportPost();
-        });
-    }, [closeReportOptions, handleReportPost]);
-
     const getAspectRatioForEntry = useCallback((entry) => {
         const ratio = Number(entry?.aspectRatio);
         if (Number.isFinite(ratio) && ratio > 0) return ratio;
@@ -823,6 +776,54 @@ const SimpleFeedPost = ({
     const isPostVerified = useUserVerified(postOwnerUid, fallbackVerified);
 
     const isViewerOwner = viewerUid && postOwnerUid && viewerUid === postOwnerUid;
+
+    // Declared below the owner fields they read, so the report always carries the current post's owner.
+    const openReportOptions = useCallback(() => {
+        if (isViewerOwner) return;
+        setReportOptionsVisible(true);
+    }, [isViewerOwner]);
+
+    const closeReportOptions = useCallback((afterClose) => {
+        if (!isReportOptionsVisible) {
+            if (typeof afterClose === 'function') afterClose();
+            return;
+        }
+        Animated.timing(reportOptionsAnim, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+        }).start(() => {
+            setReportOptionsVisible(false);
+            if (typeof afterClose === 'function') afterClose();
+        });
+    }, [isReportOptionsVisible, reportOptionsAnim]);
+
+    const handleReportOptionsBackdrop = useCallback(() => {
+        closeReportOptions();
+    }, [closeReportOptions]);
+
+    const handleReportPost = useCallback(() => {
+        try { hapticStrong(); } catch { }
+        const fallbackId = data?.id ? String(data.id).trim() : "";
+        const targetId = postPid || fallbackId || `post-${Date.now()}`;
+        openReportSheet({
+            targetType: "post",
+            targetId,
+            ownerUid: postOwnerUid,
+            ownerHandle: reportHandle,
+            source: "feed-post",
+            metadata: {
+                caption,
+                workoutTitle: workoutName,
+            },
+        });
+    }, [caption, data?.id, openReportSheet, postOwnerUid, postPid, reportHandle, workoutName]);
+
+    const handleSelectReport = useCallback(() => {
+        closeReportOptions(() => {
+            handleReportPost();
+        });
+    }, [closeReportOptions, handleReportPost]);
     const showOverflowActions = !isLivePost;
 
     const { deleteOptionLabel, runDefaultDelete } = useFeedPostDelete({ workout, isViewerOwner, postPid, postOwnerUid, viewerUid });

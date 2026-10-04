@@ -180,12 +180,6 @@ export default function Feed({ navigation, route }) {
         dequeueRankPromotion();
     }, []);
 
-    useEffect(() => {
-        try {
-            globalThis.__SPARTAN_FEED_GLOBAL_MUTE__ = areFeedVideosMuted;
-        } catch { }
-    }, [areFeedVideosMuted]);
-
     const flatListRef = useRef(null);
     const refreshTimeoutRef = useRef(null);
     const [refreshing, setRefreshing] = useState(false);
@@ -206,6 +200,13 @@ export default function Feed({ navigation, route }) {
         } catch { }
         return true;
     });
+
+    // Remember the mute choice across Feed remounts (must sit below the state it reads).
+    useEffect(() => {
+        try {
+            globalThis.__SPARTAN_FEED_GLOBAL_MUTE__ = areFeedVideosMuted;
+        } catch { }
+    }, [areFeedVideosMuted]);
 
     const highlightPidRef = useRef(null);
     const [highlightSignal, setHighlightSignal] = useState(0);

@@ -15,7 +15,6 @@ import {
 } from "../../../state/notificationsStore";
 import { shallow } from "zustand/shallow";
 import { joinWorkoutFromPayload } from "../../../workout/workoutActions";
-import { strong as hapticStrong } from "../../../utils/haptics";
 import { navigateRoot, navigationRef, jumpToTab } from "../../../../navigationRef";
 
 export const NOTIFICATION_FILTERS = ["All", "Likes", "Comments", "Follows", "Workouts"];
@@ -100,7 +99,8 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
     useEffect(() => {
         const firstId = events?.[0]?.id || null;
         if (firstId && firstIdRef.current && firstIdRef.current !== firstId) {
-            try { listRef.current?.scrollToOffset?.({ offset: 0, animated: false }); } catch {}
+            // SectionList has no scrollToOffset; scroll through its responder.
+            try { listRef.current?.getScrollResponder?.()?.scrollTo?.({ y: 0, animated: false }); } catch {}
         }
         if (firstId) firstIdRef.current = firstId;
     }, [events]);
@@ -209,7 +209,7 @@ export default function NotificationsModal({ uid, navigation, filter = NOTIFICAT
                 transition: 'slide-from-right',
             };
 
-            hapticStrong();
+            // The card's press handler already fires the haptic.
             try {
                 if (navigateRoot('ViewProfile', payload)) return;
             } catch {}
