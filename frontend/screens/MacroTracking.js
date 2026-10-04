@@ -46,6 +46,9 @@ export default function MacroTracking({ navigation, route }) {
     const { width: screenWidth } = useWindowDimensions();
     const initialFocus = clampDateToToday(parseFocusParam(route?.params?.focusDate || route?.params?.date) || new Date());
     const [focusedDate, setFocusedDate] = useState(initialFocus);
+    // Day pages are memoised and can hold an older deleteFood, so it reads the focused day through a ref.
+    const focusedDateRef = useRef(focusedDate);
+    focusedDateRef.current = focusedDate;
     // Local state derived from global.loggedFoods for the focused day
     const [meals, setMeals] = useState(() => ({ Breakfast: [], Lunch: [], Dinner: [], Snacks: [] }));
     const [totals, setTotals] = useState(() => ({ calories: 0, protein: 0, carbs: 0, fat: 0 }));
@@ -277,7 +280,7 @@ export default function MacroTracking({ navigation, route }) {
     // Delete an entry from the focused day's global.loggedFoods and local state
     const deleteFood = useCallback((mealName, entry) => {
         const uid = global?.userData?.uid || global?.userData?.id;
-        const dk = toDayKey(focusedDate);
+        const dk = toDayKey(focusedDateRef.current);
         const m = entry?.macros || parseMacrosFromDescription(entry?.desc || '', entry?.quantity || 1);
         setMeals((prev) => ({
             ...prev,
@@ -310,7 +313,7 @@ export default function MacroTracking({ navigation, route }) {
                 updateDoc(uref, { [nestedPath]: deleteField(), [flatPath]: deleteField() }).catch(() => { });
             }
         } catch { }
-    }, [focusedDate]);
+    }, []);
 
     // When opening the sheet, seed empty fields from the latest macroGoals
     useEffect(() => {

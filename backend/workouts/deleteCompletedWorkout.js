@@ -28,11 +28,11 @@ const toDayKey = (value) => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
+// When the workout happened. updatedAt is left out on purpose: an edit must not move the workout to the edit day.
 const deriveBestTimestamp = (workout) => (
     Math.max(
         toMillis(workout?.finishedAt),
         toMillis(workout?.completedAt),
-        toMillis(workout?.updatedAt),
         toMillis(workout?.startedAt),
         toMillis(workout?.createdAt),
         toMillis(workout?.created),

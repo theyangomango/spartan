@@ -205,7 +205,8 @@ export default function ProfileLoggedFoodsScreen({ navigation, route }) {
                                 renderSummary={renderSummary}
                                 enableSwipe={false}
                                 onPress={() => navigation.navigate('FoodDetail', {
-                                    entry: entry.raw || entry,
+                                    // The stored entry has no key of its own; FoodDetail needs it to save the edit.
+                                    entry: { ...(entry.raw || entry), key: entry.key },
                                     mealName: entry.meal,
                                     dayKey: entry.dayKey,
                                     mode: 'edit',

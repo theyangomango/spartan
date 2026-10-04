@@ -34,6 +34,7 @@ import { normalizePrevKeepZero } from "../components/3_Workout/shared/workoutSet
 import { normalizeCalories, toDayKeySafe, sanitizeWorkout, stripUndefined, normalizeExerciseName, getTodayKey } from "./workoutSanitize";
 import { cloneHexagon, buildExerciseStatDeltas, runHexagonCompute, captureHexSnapshot, getPreviousOneRm } from "./workoutFinishStats";
 import { extractFollowerUids, filterOutUid } from "./workoutGroupUtils";
+import { computeRankProgressFromData } from "../../shared/rankProgress.js";
 
 /* ---------------- helpers ---------------- */
 const perfNow = () => {
@@ -807,22 +808,10 @@ export default function useWorkoutManager({ uid, millisToHMS }) {
                     // Combine completedWorkouts append + totals + clear currentWorkout into one user doc update (reduces triggers)
                     try {
                         if (uid) {
-                            const uref = doc(db, 'usersPrivate', uid);
                             const incVol = Number(completed?.volume || 0);
                             const incHrs = Number(completed?.duration || 0) / 3600000;
-                            fsUpdateDoc(uref, {
-                                currentWorkout: null,
-                                completedWorkouts: arrayUnion(completed),
-                                statsTotalWorkouts: increment(1),
-                                statsTotalVolume: increment(incVol),
-                                statsTotalHours: increment(incHrs),
-                            }).catch(() => updateDoc('usersPrivate', uid, {
-                                currentWorkout: null,
-                                completedWorkouts: arrayUnion(completed),
-                                statsTotalWorkouts: increment(1),
-                                statsTotalVolume: increment(incVol),
-                                statsTotalHours: increment(incHrs),
-                            }));
+                            // One write per user document: appendCompletedWorkoutRemote covers usersPrivate too,
+                            // so a separate usersPrivate write here would count the workout twice.
                             appendCompletedWorkoutRemote(completed, incVol, incHrs);
                         }
                     } catch { }
